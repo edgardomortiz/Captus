@@ -1,0 +1,173 @@
+---
+title: "Sequence Quality Control"
+author: "Edgardo M. Ortiz"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    df_print: paged
+subtitle: 'Captus-assembly: Clean'
+---
+NOTES on Installing R + RStudio in Linux: `ngsReports` will refuse to install unless `libcurl4-openssl-dev` and `libssl-dev` are already installed in the system:
+```
+sudo apt update
+sudo apt upgrade
+sudo apt install r-base r-base-dev libcurl4-openssl-dev libssl-dev
+```
+
+Install needed packages if they are not installed already:
+```{r, message=FALSE, warning=FALSE}
+if (!require("BiocManager")) install.packages("BiocManager")
+if (!require("ngsReports")) BiocManager::install("ngsReports")
+if (!require("gridExtra")) install.packages("gridExtra")
+if (!require("scales")) install.packages("scales")
+
+```
+Now we load needed libraries and set current working directory to the path of this script:
+```{r, message=FALSE, warning=FALSE}
+library(grid)
+library(gridExtra)
+library(ngsReports)
+library(rstudioapi)
+library(scales)
+```
+Now we load the `FASTQC` reports providing the folders that contain them, the reports must be in `.zip` format from `FASTQC` (the `.html`s will not work):
+```{r}
+# Before quality filtering
+dirBefore <- file.path("REPLACE_HERE_FASTQC_BEFORE_DIR")
+filesBefore <- list.files(dirBefore, pattern="fastqc.zip$", full.names=TRUE)
+fdlBefore <- FastqcDataList(filesBefore)
+
+# After quality filtering
+dirAfter <- file.path("REPLACE_HERE_FASTQC_AFTER_DIR")
+filesAfter <- list.files(dirAfter, pattern="fastqc.zip$", full.names=TRUE)
+fdlAfter <- FastqcDataList(filesAfter)
+
+# Regulate height of graphs according to the number of samples analyzed
+fig_height <- (length(fdlBefore) / 5.5) + 2
+```
+---
+## Summary of reports
+```{r, fig.height=fig_height, fig.width=12, echo=FALSE}
+sumBefore <- plotSummary(fdlBefore) +
+  theme(legend.position = "bottom") +
+  labs(title="Before filtering")
+sumAfter <- plotSummary(fdlAfter) +
+  theme(legend.position = "bottom") +
+  labs(title="After filtering")
+grid.arrange(sumBefore, sumAfter, ncol=2)
+```
+---
+## Total Number of Reads
+```{r, fig.height=fig_height, fig.width=11, echo=FALSE, message=FALSE}
+readsBefore <- plotReadTotals(fdlBefore) +
+  theme(legend.position = "bottom") +
+  labs(title="Before filtering") +
+  scale_y_continuous(labels=unit_format(unit="M", scale=1e-6, accuracy=0.1))
+readsAfter <- plotReadTotals(fdlAfter) +
+  theme(legend.position = "bottom") +
+  labs(title="After filtering") +
+  scale_y_continuous(limits=c(ggplot_build(readsBefore)$layout$panel_params[[1]]$x.range),
+                     expand = c(0,0),
+                     labels=unit_format(unit="M", scale=1e-6, accuracy=0.1))
+grid.arrange(readsBefore, readsAfter, ncol=2)
+```
+---
+## Per base sequence quality scores
+```{r, fig.height=fig_height, fig.width=11, echo=FALSE}
+qualBefore <- plotBaseQuals(fdlBefore) +
+  theme(legend.position = "bottom") +
+  labs(title="Before filtering")
+qualAfter <- plotBaseQuals(fdlAfter) +
+  theme(legend.position = "bottom") +
+  labs(title="After filtering")
+grid.arrange(qualBefore, qualAfter, ncol=2)
+```
+---
+## Per sequence quality scores
+```{r, fig.height=fig_height, fig.width=11, echo=FALSE}
+squalBefore <- plotSeqQuals(fdlBefore) +
+  theme(legend.position = "bottom") +
+  labs(title="Before filtering")
+squalAfter <- plotSeqQuals(fdlAfter) +
+  theme(legend.position = "bottom") +
+  labs(title="After filtering")
+grid.arrange(squalBefore, squalAfter, ncol=2)
+```
+---
+## Per base sequence content
+```{r, fig.height=fig_height, fig.width=11, echo=FALSE}
+scontBefore <- plotSeqContent(fdlBefore, cluster=FALSE, dendrogram=FALSE) +
+  labs(title="Before filtering")
+scontAfter <- plotSeqContent(fdlAfter, cluster=FALSE, dendrogram=FALSE) +
+  labs(title="After filtering")
+grid.arrange(scontBefore, scontAfter, ncol=2)
+```
+---
+## Per base GC content (compared to: *Arabidopsis thaliana*)
+```{r, fig.height=fig_height, fig.width=11, echo=FALSE}
+# We use Arabidopsis thaliana ('species=Athaliana') as default genome to compare GC content
+# To see the complete list of available genomes use 'view(mData(gcTheoretical))'
+# If you are using transcriptomic reads also change 'gcType="Transcriptome"'
+gcBefore <- plotGcContent(fdlBefore, species="Athaliana", gcType="Genome") +
+  theme(legend.position = "bottom") +
+  labs(title="Before filtering")
+gcAfter <- plotGcContent(fdlAfter, species="Athaliana", gcType="Genome") +
+  theme(legend.position = "bottom") +
+  labs(title="After filtering")
+grid.arrange(gcBefore, gcAfter, ncol=2)
+```
+---
+## Sequence duplication levels
+```{r, fig.height=fig_height, fig.width=11, echo=FALSE}
+duplBefore <- plotDupLevels(fdlBefore) +
+  theme(legend.position = "bottom") +
+  labs(title="Before filtering")
+duplAfter <- plotDupLevels(fdlAfter) +
+  theme(legend.position = "bottom") +
+  labs(title="After filtering")
+grid.arrange(duplBefore, duplAfter, ncol=2)
+```
+---
+## Adaptor content
+```{r, fig.height=fig_height, fig.width=11, echo=FALSE}
+adaptBefore <- plotAdapterContent(fdlBefore) +
+  theme(legend.position = "bottom") +
+  labs(title="Before filtering")
+adaptAfter <- plotAdapterContent(fdlAfter) +
+  theme(legend.position = "bottom") +
+  labs(title="After filtering")
+grid.arrange(adaptBefore, adaptAfter, ncol=2)
+```
+---
+## Per base sequence quality (detailed)
+```{r, fig.height=7, fig.width=11, echo=FALSE, message=FALSE, warning=FALSE}
+for (i in seq(1, length(fdlBefore), by=2)) {
+  qualBefore <- plotBaseQuals(fdlBefore[i:(i+1)], plotType = "boxplot") +
+    theme(legend.position = "bottom") +
+    labs(title="Before filtering") +
+    scale_x_discrete(breaks=seq(0,500,by=5))
+  qualAfter <- plotBaseQuals(fdlAfter[i:(i+1)], plotType = "boxplot") +
+    theme(legend.position = "bottom") +
+    labs(title="After filtering") +
+    scale_x_discrete(breaks=seq(0,500,by=5))
+  grid.arrange(qualBefore, qualAfter, ncol=1,
+               top=textGrob(gsub("_R1_fastqc.zip", "", names(fdlBefore)[i]),
+                            gp=gpar(fontsize=15, fontface="bold")))
+}
+```
+---
+## Sequence length distribution (detailed, after filtering)
+```{r, fig.height=3.2, fig.width=11, echo=FALSE, message=FALSE, warning=FALSE}
+for (i in seq(1, length(fdlAfter), by=2)) {
+  seqLenR1 <- plotSeqLengthDistn(fdlAfter[[i]]) +
+    scale_x_discrete(breaks=seq(0,500,by=5)) +
+    theme(axis.text.x=element_text(angle=90))
+  seqLenR2 <- plotSeqLengthDistn(fdlAfter[[(i+1)]]) +
+    scale_x_discrete(breaks=seq(0,500,by=5)) +
+    theme(axis.text.x=element_text(angle=90))
+  grid.arrange(seqLenR1, seqLenR2, ncol=2,
+               top=textGrob(gsub("_R1_fastqc.zip", "", names(fdlBefore)[i]),
+                            gp=gpar(fontsize=15, fontface="bold")))
+
+}
+```
