@@ -101,8 +101,8 @@ NUM_READS_TO_CALCULATE_MEAN_READ_LENGTH = 100000
 # read length of the input FASTQs
 DELTA_MEAN_READ_LENGTH_TO_MAX_KMER_SIZE = 40
 
-# MEGAHIT's '--bubble-level' parameter, apparently reduce the merging level of the bubbles can lead
-# to longer contigs, MEGAHIT's default is 2, we try experimentally 1
+# MEGAHIT's '--bubble-level' parameter, apparently reducing the merging level of the bubbles can
+# lead to longer contigs, MEGAHIT's default is 2, we try experimentally 1
 MEGAHIT_BUBBLE_LEVEL = 1
 
 # MEGAHIT's '--prune-level' parameter, since the data is not metagenomic we should use 3 to recover
