@@ -382,8 +382,8 @@ def extract(full_command, args):
                     tqdm_serial_run(blat_misc_dna, blat_params, d_msg, f_msg,
                                     "extraction", args.show_less)
                 log.log("")
-            d_msg = "Merging GFF annotation tracks and cleaning up"
-            f_msg = "Combined GFF annotation track created"
+            d_msg = "Merging GFFs, summarizing recovery stats, and cleaning up"
+            f_msg = "Merged GFF and summary recovery stats created"
             if run_async:
                 tqdm_parallel_async_run(cleanup_post_extraction, cleanup_params, d_msg, f_msg,
                                         "sample", concurrent, args.show_less)
@@ -553,8 +553,8 @@ def extract(full_command, args):
                         True,
                         True
                     ))
-                d_msg = "Merging GFF annotation tracks and cleaning up"
-                f_msg = "Combined GFF annotation track created"
+                d_msg = "Merging GFFs, summarizing recovery stats, and cleaning up"
+                f_msg = "Merged GFF and summary recovery stats created"
 
                 # Internal switch between parallel asynchronous and serial run (False for debugging)
                 run_async = True
@@ -1078,9 +1078,16 @@ def write_fastas_and_report(
     num_loci, num_paralogs = 0, 0
     lengths_best_hits, coverages_best_hits = [], []
     flanked_seqs, gene_seqs, cds_aa_seqs, cds_nt_seqs, hit_contigs = {}, {}, {}, {}, {}
+    stats_header = "\t".join(["sample_name", "marker_type",
+                              "locus", "ref_name", "ref_coords", "ref_type", "ref_len_matched",
+                              "hit", "pct_recovered", "pct_identity", "score", "lwscore",
+                              "hit_len", "cds_len", "intron_len", "flanks_len", "frameshifts",
+                              "ctg_names", "ctg_strands", "ctg_coords"])
+    stats = []
     for ref in sorted(hits):
         num_loci += 1
         for h in range(len(hits[ref])):
+
             length = hits[ref][h]["matches"] + hits[ref][h]["mismatches"]
             if h == 0:
                 lengths_best_hits.append(length)
@@ -1103,8 +1110,9 @@ def write_fastas_and_report(
             seq_aa = hits[ref][h]["seq_aa"]
             len_aa = f"|length={len(seq_aa)}"
 
+            ref_coords = format_coords(hits[ref][h]["ref_coords"])
             query = (
-                f'|query={hits[ref][h]["ref_name"]}:{format_coords(hits[ref][h]["ref_coords"])}'
+                f'|query={hits[ref][h]["ref_name"]}:{ref_coords}'
                 f'|contigs={hits[ref][h]["hit_contig"]}'.replace("\n", ";")
             )
 
@@ -1144,6 +1152,7 @@ def write_fastas_and_report(
                 "sequence": seq_gene,
                 "ref_name": ref
             }
+
             if marker_type in ["NUC", "PTD", "MIT"]:
                 cds_nt_seqs[seq_name] = {
                     "description": f"{description}{len_nt}{shifts_nt}{query}",
@@ -1155,9 +1164,50 @@ def write_fastas_and_report(
                     "sequence": seq_aa,
                     "ref_name": ref
                 }
+
+            # Format data for summary table
+            hit_len = len(seq_flanked.replace("n", ""))
+            flanks_len = len(seq_flanked.replace("n", "")) - len(seq_gene.replace("n", ""))
+            if marker_type in ["NUC", "PTD", "MIT"]:
+                intron_len = len(seq_gene.replace("n", "")) - len(seq_nt)
+                stats_row = {"ref_type": "prot",
+                             "cds_len": f'{len(seq_nt)}',
+                             "intron_len": f'{intron_len}',
+                             "frameshifts": shifts_nt.replace("|frameshifts=", "")}
+            else:
+                stats_row = {"ref_type": "nucl",
+                             "cds_len": "NA",
+                             "intron_len": "NA",
+                             "frameshifts": "NA"}
+            stats.append("\t".join([sample_name,
+                                    marker_type,
+                                    ref,
+                                    hits[ref][h]["ref_name"],
+                                    ref_coords,
+                                    stats_row["ref_type"],
+                                    f"{length}",
+                                    f"{h:02}",
+                                    f'{hits[ref][h]["coverage"]:.2f}',
+                                    f'{hits[ref][h]["identity"]:.2f}',
+                                    f'{hits[ref][h]["score"]:.3f}',
+                                    f'{hits[ref][h]["lwscore"]:.3f}',
+                                    f'{hit_len}',
+                                    stats_row["cds_len"],
+                                    stats_row["intron_len"],
+                                    f'{flanks_len}',
+                                    stats_row["frameshifts"],
+                                    f'{hits[ref][h]["hit_contig"]}'.replace("\n", ";"),
+                                    f'{hits[ref][h]["strand"]}'.replace("\n", ";"),
+                                    format_coords(hits[ref][h]["hit_coords"]),
+                                    ]))
+
             for contig in hits[ref][h]["hit_contig"].split("\n"):
                 if contig not in hit_contigs:
                     hit_contigs[contig] = dict(target_dict[contig])
+
+    # Write statistics table
+    with open(Path(out_dir, f"{marker_type}_recovery_stats.tsv"), "w") as stats_out:
+        stats_out.write(stats_header + "\n" + "\n".join(stats))
 
     # Write multi-sequence FASTAs and setup directories for locus-wise files, only prepare a
     # separate file per marker if the number of references is not greater than args.max_loci_files
@@ -1306,7 +1356,7 @@ def cleanup_post_extraction(
     """
     Concatenate all '.gff' from extraction folders to make a master annotation file and a single
     FASTA with all hit contigs as well as a FASTA with the leftover contigs that can be used for
-    later clustering
+    later clustering. Also concatenate all '_recovery_stats.tsv' tables without repeating the header.
     Switch clust to True in order to create a 'leftover_contigs_after_clustering.fasta.gz'
     """
 
@@ -1331,6 +1381,24 @@ def cleanup_post_extraction(
         gff_file_out = Path(annotated_assembly_dir, f"{sample_name}_hit_contigs.gff")
         with open(gff_file_out, "w") as gff_out:
             gff_out.write("".join(gff_lines))
+
+        # Concatenate all recovery statistics tables
+        stats_header = "\t".join(["sample_name", "marker_type",
+                                  "locus", "ref_name", "ref_coords", "ref_type", "ref_len_matched",
+                                  "hit", "pct_recovered", "pct_identity", "score", "lwscore",
+                                  "hit_len", "cds_len", "intron_len", "flanks_len", "frameshifts",
+                                  "ctg_names", "ctg_strands", "ctg_coords"]) + "\n"
+        stats_lines = [stats_header]
+        sample_stats = list(sample_dir.resolve().rglob("[A-Z]*_recovery_stats.tsv"))
+        if sample_stats:
+            for table in sample_stats:
+                with open(table, "rt") as stats_in:
+                    for line in stats_in:
+                        if line != stats_header:
+                            stats_lines.append(line)
+        stats_file_out = Path(annotated_assembly_dir, f"{sample_name}_recovery_stats.tsv")
+        with open(stats_file_out, "w") as stats_out:
+            stats_out.write("".join(stats_lines))
 
         # Write FASTAs of contigs with and without hits
         all_contigs = fasta_to_dict(assembly_path, ordered=True)
@@ -1363,12 +1431,12 @@ def cleanup_post_extraction(
                 del_file.unlink()
 
         message = (
-            f"'{sample_name}': GFF annotations merged, unnecessary files removed"
+            f"'{sample_name}': GFF annotations and recovery stats merged, unnecessary files removed"
             f" [{elapsed_time(time.time() - start)}]"
         )
         return message
     else:
-        message = dim(f"'{sample_name}': cleanup and GFF merging skipped (output files already exist)")
+        message = dim(f"'{sample_name}': cleanup and merging of GFFs and stats skipped (output files already exist)")
         return message
 
 
