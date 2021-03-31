@@ -17,6 +17,7 @@ import multiprocessing
 import subprocess
 import sys
 import time
+import zipfile
 from pathlib import Path
 
 from . import log
@@ -277,6 +278,7 @@ def clean(full_command, args):
         " unnecessary files will be removed unless the flag '--keep_all' is enabled."
     )
     bbduk_summarize_logs(out_dir, mar)
+    fastqc_summarize_logs(out_dir, fastqc_before_dir, fastqc_after_dir, mar)
     log.log("")
     log.log_explanation(
         "Now Captus will generate a global report in R Markdown format comparing the change in"
@@ -504,11 +506,6 @@ def fastqc(fastqc_path, in_fastq, fastqc_out_dir, overwrite, stage):
 
 
 def bbduk_summarize_logs(out_dir, margin):
-    reads_bases_summary = Path(out_dir, "captus-assembly_reads_bases.tsv")
-    adaptors_round1_summary = Path(out_dir, "captus-assembly_adaptors_round1.tsv")
-    adaptors_round2_summary = Path(out_dir, "captus-assembly_adaptors_round2.tsv")
-    contaminants_summary = Path(out_dir, "captus-assembly_contaminants.tsv")
-
     round1_logs = list(out_dir.rglob("*.round1.log"))
     round2_logs = list(out_dir.rglob("*.round2.log"))
     cleaning_logs = list(out_dir.rglob("*.cleaning.log"))
@@ -625,6 +622,10 @@ def bbduk_summarize_logs(out_dir, margin):
                     contaminants[contaminant_name][sample_name] = int(fields[-2])
                     contaminants[contaminant_name]["total"] += int(fields[-2])
 
+    reads_bases_summary = Path(out_dir, "captus-assembly_reads_bases.tsv")
+    adaptors_round1_summary = Path(out_dir, "captus-assembly_adaptors_round1.tsv")
+    adaptors_round2_summary = Path(out_dir, "captus-assembly_adaptors_round2.tsv")
+    contaminants_summary = Path(out_dir, "captus-assembly_contaminants.tsv")
     with open(reads_bases_summary, "wt") as summary_out:
         summary_out.write(
             f"sample\treads_input\tbases_input\t"
@@ -690,6 +691,121 @@ def bbduk_summarize_logs(out_dir, margin):
                 f"{contaminant}\t{contaminants[contaminant]['total']}\t{samples_counts}\n"
             )
     log.log(f'{"Contaminants":>{margin}}: {bold(contaminants_summary)}')
+
+
+def fastqc_summarize_logs(out_dir, fastqc_before_dir, fastqc_after_dir, margin):
+    """
+    Summarize FastQC reports into a nice multisample .html, replacement for NGSReports which is
+    cumbersome to install and very slow
+    """
+    reports = list(Path(out_dir, fastqc_before_dir).rglob("*_fastqc.zip"))
+    reports += list(Path(out_dir, fastqc_after_dir).rglob("*_fastqc.zip"))
+
+    fastqc_stats = {
+        "per_base_seq_qual_data":    ["\t".join(["sample_name", "read", "stage",
+                                                 "base", "mean", "median",
+                                                 "upper_quartile", "lower_quartile",
+                                                 "percentile_10", "percentile_90"])],
+        "per_seq_qual_scores_data":  ["\t".join(["sample_name", "read", "stage",
+                                                 "quality", "count"])],
+        "per_base_seq_content_data": ["\t".join(["sample_name", "read", "stage",
+                                                 "base", "G", "A", "T", "C"])],
+        "per_seq_gc_content_data":   ["\t".join(["sample_name", "read", "stage",
+                                                 "gc_content", "count"])],
+        "seq_len_dist_data":         ["\t".join(["sample_name", "read", "stage",
+                                                 "length", "count"])],
+        "seq_dup_levels_data":       ["\t".join(["sample_name", "read", "stage",
+                                                 "duplication_level",
+                                                 "percentage_of_deduplicated",
+                                                 "percentage_of_total"])],
+        "adaptor_content_data":      ["\t".join(["sample_name", "read", "stage",
+                                                 "position", "Illumina_universal_adaptor",
+                                                 "Illumina_small_RNA_3'_adaptor",
+                                                 "Illumina_small_RNA_5'_adaptor",
+                                                 "Nextera_transposase_sequence",
+                                                 "SOLID_small_RNA_adaptor"])],
+    }
+
+    for file in sorted(reports):
+        if "_R1_fastqc.zip" in file.name:
+            sample_name = file.name.replace("_R1_fastqc.zip", "")
+            read = "R1"
+        elif "_R2_fastqc.zip" in file.name:
+            sample_name = file.name.replace("_R2_fastqc.zip", "")
+            read = "R2"
+        else:
+            sample_name = file.name.replace("_fastqc.zip", "")
+            read = "UNK"
+        if "fastqc_before" in str(file):
+            stage = "before"
+        elif "fastqc_after" in str(file):
+            stage = "after"
+        else:
+            stage = "UNK"
+        prepend = [sample_name, read, stage]
+
+        with zipfile.ZipFile(file) as z:
+            add_to = ""
+            with z.open(str(Path(file.stem, "fastqc_data.txt"))) as data_txt:
+                for line in data_txt:
+                    line = line.decode()
+                    if not line.startswith("#") and not line.startswith(">>END_MODULE"):
+                        if line.startswith(">>Basic Statistics"):
+                            add_to = ""
+                        if line.startswith(">>Per base sequence quality"):
+                            add_to = "per_base_seq_qual_data"
+                            continue
+                        if line.startswith(">>Per tile sequence quality"):
+                            add_to = ""
+                        if line.startswith(">>Per sequence quality scores"):
+                            add_to = "per_seq_qual_scores_data"
+                            continue
+                        if line.startswith(">>Per base sequence content"):
+                            add_to = "per_base_seq_content_data"
+                            continue
+                        if line.startswith(">>Per sequence GC content"):
+                            add_to = "per_seq_gc_content_data"
+                            continue
+                        if line.startswith(">>Per base N content"):
+                            add_to = ""
+                        if line.startswith(">>Sequence Length Distribution"):
+                            add_to = "seq_len_dist_data"
+                            continue
+                        if line.startswith(">>Sequence Duplication Levels"):
+                            add_to = "seq_dup_levels_data"
+                            continue
+                        if line.startswith(">>Overrepresented sequences"):
+                            add_to = ""
+                        if line.startswith(">>Adapter Content"):
+                            add_to = "adaptor_content_data"
+                            continue
+                        if add_to == "":
+                            continue
+                        else:
+                            record = "\t".join(prepend + line.strip("\n").split())
+                            fastqc_stats[add_to].append(record)
+
+    per_base_seq_qual = Path(out_dir, "captus-assembly_per_base_seq_qual.tsv")
+    per_seq_qual_scores = Path(out_dir, "captus-assembly_per_seq_qual_scores.tsv")
+    per_base_seq_content = Path(out_dir, "captus-assembly_per_base_seq_content.tsv")
+    per_seq_gc_content = Path(out_dir, "captus-assembly_per_seq_gc_content.tsv")
+    seq_len_dist = Path(out_dir, "captus-assembly_seq_len_dist.tsv")
+    seq_dup_levels = Path(out_dir, "captus-assembly_seq_dup_levels.tsv")
+    adaptor_content = Path(out_dir, "captus-assembly_adaptor_content.tsv")
+    with open(per_base_seq_qual, "wt") as stats_out:
+        stats_out.write("\n".join(fastqc_stats["per_base_seq_qual_data"]))
+    with open(per_seq_qual_scores, "wt") as stats_out:
+        stats_out.write("\n".join(fastqc_stats["per_seq_qual_scores_data"]))
+    with open(per_base_seq_content, "wt") as stats_out:
+        stats_out.write("\n".join(fastqc_stats["per_base_seq_content_data"]))
+    with open(per_seq_gc_content, "wt") as stats_out:
+        stats_out.write("\n".join(fastqc_stats["per_seq_gc_content_data"]))
+    with open(seq_len_dist, "wt") as stats_out:
+        stats_out.write("\n".join(fastqc_stats["seq_len_dist_data"]))
+    with open(seq_dup_levels, "wt") as stats_out:
+        stats_out.write("\n".join(fastqc_stats["seq_dup_levels_data"]))
+    with open(adaptor_content, "wt") as stats_out:
+        stats_out.write("\n".join(fastqc_stats["adaptor_content_data"]))
 
 
 def write_captus_clean_rmd(out_dir, fastqc_before_dir, fastqc_after_dir, overwrite):
