@@ -24,7 +24,7 @@ FASTA_VALID_EXTENSIONS = [".fa", ".fna", ".fasta", ".fa.gz", ".fna.gz", ".fasta.
 FASTQ_VALID_EXTENSIONS = [".fq", ".fastq", ".fq.gz", ".fastq.gz"]
 
 # Fraction of total RAM available to Captus when using 'auto' in --ram
-RAM_FRACTION = 0.975
+RAM_FRACTION = 0.98
 
 # Path to this file:
 SETTINGS_ASSEMBLY_PATH = Path(__file__).resolve()

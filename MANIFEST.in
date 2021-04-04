@@ -1,0 +1,11 @@
+include *.py
+include LICENSE
+recursive-include data *.FAA
+recursive-include data *.Rmd
+recursive-include data *.fasta
+recursive-include data *.gz
+recursive-include data *.txt
+recursive-include dependencies *.pdf
+recursive-include dependencies *.pl
+recursive-include dependencies blat*
+recursive-include docs *.md
