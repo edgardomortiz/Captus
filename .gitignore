@@ -2,14 +2,13 @@
 .DS_Store
 ._*
 .Rhistory
-.vscode
-.vscode/*
+.vscode/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 
-# Installation
+# Installation / distribution stuff
 *.egg-info/
 build/
 dist/
