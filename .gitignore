@@ -9,3 +9,7 @@
 __pycache__/
 *.py[cod]
 
+# Installation
+*.egg-info/
+build/
+dist/
