@@ -628,7 +628,7 @@ def scipio_yaml_to_dict(yaml_path, min_identity, min_coverage, marker_type):
                         prot_start = abs(int(value))
 
                     if line.startswith("    prot_end:"):
-                        if abs(int(value)) > prot_start:
+                        if abs(int(value)) < prot_start:
 
                             if raw[protein][-1]["hit_id"] == "":
                                 raw[protein][-1]["hit_id"] = f"{marker_type}{hit_id}"
@@ -690,7 +690,7 @@ def scipio_yaml_to_dict(yaml_path, min_identity, min_coverage, marker_type):
 
                             if line.startswith("    upstream_gap:"):
                                 raw[protein][-1]["seq_flanked"] += value
-                                raw[protein][-1]["seq_gene"] += value
+                                # raw[protein][-1]["seq_gene"] += value
 
                             if line.startswith("      - type:"):
                                 match_type = value.strip("?")
@@ -758,7 +758,7 @@ def scipio_yaml_to_dict(yaml_path, min_identity, min_coverage, marker_type):
 
                             if line.startswith("    downstream_gap:"):
                                 raw[protein][-1]["seq_flanked"] += value
-                                raw[protein][-1]["seq_gene"] += value
+                                # raw[protein][-1]["seq_gene"] += value
 
     models = {}  # for models filtered by 'min_coverage' and 'min_identity'
     for protein in raw:
