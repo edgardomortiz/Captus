@@ -543,7 +543,8 @@ class CaptusAssembly(object):
             type=str,
             dest="nuc_refs",
             help="B|Set of nuclear protein references, options are:\n"
-                 "Angiosperms353 = The set of target proteins from Angiosperms353\n"
+                 "Angiosperms353 = The original set of target proteins from Angiosperms353\n"
+                 "Mega353 = The improved set of target proteins from Angiosperms353\n"
                  "Alternatively, provide a path to a FASTA aminoacid file containing your reference"
                  " protein sequences"
         )

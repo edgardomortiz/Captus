@@ -1,6 +1,7 @@
 include *.py
 include LICENSE.txt
 recursive-include data *.FAA
+recursive-include data *.FNA
 recursive-include data *.Rmd
 recursive-include data *.fasta
 recursive-include data *.gz

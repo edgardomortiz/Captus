@@ -613,138 +613,152 @@ def scipio_yaml_to_dict(yaml_path, min_identity, min_coverage, marker_type):
                             value = ""
 
                     if line.startswith("  - ID:"):
-                        if raw[protein][-1]["hit_id"] == "":
-                            raw[protein][-1]["hit_id"] = f"{marker_type}{value}"
-                        else:
-                            raw[protein][-1]["hit_id"] += f"\n{marker_type}{value}"
+                        hit_id = value
 
                     if line.startswith("    reason:"):
                         if "gap" in line:
-                            raw[protein][-1]["gapped"] = True
+                            gapped = True
+                        else:
+                            gapped = raw[protein][-1]["gapped"]
 
                     if line.startswith("    prot_len:"):
-                        raw[protein][-1]["ref_size"] = int(value)
+                        prot_len = int(value)
 
-                    if line.startswith("    target:"):
-                        target = value.split()[0].strip("'")
-                        if raw[protein][-1]["hit_contig"] == "":
-                            raw[protein][-1]["hit_contig"] = target
-                        else:
-                            raw[protein][-1]["hit_contig"] += f"\n{target}"
-                            raw[protein][-1]["ref_coords"] += "\n"
-                            raw[protein][-1]["hit_coords"] += "\n"
-                            if not overlapped:
-                                raw[protein][-1]["seq_flanked"] += set_a.SCIPIO_CONTIG_SEPARATOR
-                                raw[protein][-1]["seq_gene"] += set_a.SCIPIO_CONTIG_SEPARATOR
+                    if line.startswith("    prot_start:"):
+                        prot_start = abs(int(value))
 
-                    if line.startswith("    strand:"):
-                        if raw[protein][-1]["strand"] == "":
-                            raw[protein][-1]["strand"] = value.strip("'")
-                        else:
-                            raw[protein][-1]["strand"] += f"""\n{value.strip("'")}"""
+                    if line.startswith("    prot_end:"):
+                        if abs(int(value)) > prot_start:
 
-                    if line.startswith("    matches:"):
-                        raw[protein][-1]["matches"] += int(value)
+                            if raw[protein][-1]["hit_id"] == "":
+                                raw[protein][-1]["hit_id"] = f"{marker_type}{hit_id}"
+                            else:
+                                raw[protein][-1]["hit_id"] += f"\n{marker_type}{hit_id}"
 
-                    if line.startswith("    mismatches:"):
-                        raw[protein][-1]["mismatches"] += int(value)
-                        raw[protein][-1]["coverage"] = (
-                            ((raw[protein][-1]["matches"] + raw[protein][-1]["mismatches"])
-                             / raw[protein][-1]["ref_size"]) * 100
-                        )
-                        try:
-                            raw[protein][-1]["identity"] = (
-                                (raw[protein][-1]["matches"]
-                                 / (raw[protein][-1]["matches"]
-                                    + raw[protein][-1]["mismatches"])) * 100
-                            )
-                        except ZeroDivisionError:
-                            raw[protein][-1]["identity"] = 0.0
-                        raw[protein][-1]["score"] = (
-                            (raw[protein][-1]["matches"] - raw[protein][-1]["mismatches"])
-                            / raw[protein][-1]["ref_size"]
-                        )
-                        raw[protein][-1]["lwscore"] = (
-                            raw[protein][-1]["score"] * (
-                                (raw[protein][-1]["matches"] + raw[protein][-1]["mismatches"])
-                                / raw[protein][-1]["ref_size"]
-                            )
-                        )
+                            raw[protein][-1]["gapped"] = gapped
 
-                    if line.startswith("    upstream:"):
-                        raw[protein][-1]["seq_flanked"] += value
+                            raw[protein][-1]["ref_size"] = prot_len
 
-                    if line.startswith("    upstream_gap:"):
-                        raw[protein][-1]["seq_flanked"] += value
-                        raw[protein][-1]["seq_gene"] += value
+                            if line.startswith("    target:"):
+                                target = value.split()[0].strip("'")
+                                if raw[protein][-1]["hit_contig"] == "":
+                                    raw[protein][-1]["hit_contig"] = target
+                                else:
+                                    raw[protein][-1]["hit_contig"] += f"\n{target}"
+                                    raw[protein][-1]["ref_coords"] += "\n"
+                                    raw[protein][-1]["hit_coords"] += "\n"
+                                    if not overlapped:
+                                        raw[protein][-1]["seq_flanked"] += set_a.SCIPIO_CONTIG_SEPARATOR
+                                        raw[protein][-1]["seq_gene"] += set_a.SCIPIO_CONTIG_SEPARATOR
 
-                    if line.startswith("      - type:"):
-                        match_type = value.strip("?")
-                        if match_type == "exon":
-                            shifts_dict = {}
+                            if line.startswith("    strand:"):
+                                if raw[protein][-1]["strand"] == "":
+                                    raw[protein][-1]["strand"] = value.strip("'")
+                                else:
+                                    raw[protein][-1]["strand"] += f"""\n{value.strip("'")}"""
 
-                    if match_type == "exon" and line.startswith("        dna_start:"):
-                        exon_start = int(value)
-                        match_interval = value.strip("-")
+                            if line.startswith("    matches:"):
+                                raw[protein][-1]["matches"] += int(value)
 
-                    if match_type == "exon" and line.startswith("        dna_end:"):
-                        match_interval += f'-{value.strip("-")}'
-                        if (raw[protein][-1]["hit_coords"] == "" or
-                            raw[protein][-1]["hit_coords"].endswith("\n")):
-                            raw[protein][-1]["hit_coords"] += match_interval
-                        else:
-                            raw[protein][-1]["hit_coords"] += f",{match_interval}"
+                            if line.startswith("    mismatches:"):
+                                raw[protein][-1]["mismatches"] += int(value)
+                                raw[protein][-1]["coverage"] = (
+                                    ((raw[protein][-1]["matches"] + raw[protein][-1]["mismatches"])
+                                    / raw[protein][-1]["ref_size"]) * 100
+                                )
+                                try:
+                                    raw[protein][-1]["identity"] = (
+                                        (raw[protein][-1]["matches"]
+                                        / (raw[protein][-1]["matches"]
+                                            + raw[protein][-1]["mismatches"])) * 100
+                                    )
+                                except ZeroDivisionError:
+                                    raw[protein][-1]["identity"] = 0.0
+                                raw[protein][-1]["score"] = (
+                                    (raw[protein][-1]["matches"] - raw[protein][-1]["mismatches"])
+                                    / raw[protein][-1]["ref_size"]
+                                )
+                                raw[protein][-1]["lwscore"] = (
+                                    raw[protein][-1]["score"] * (
+                                        (raw[protein][-1]["matches"] + raw[protein][-1]["mismatches"])
+                                        / raw[protein][-1]["ref_size"]
+                                    )
+                                )
 
-                    if match_type == "exon" and line.startswith("        prot_start:"):
-                        prot_interval = value
+                            if line.startswith("    upstream:"):
+                                raw[protein][-1]["seq_flanked"] += value
 
-                    if match_type == "exon" and line.startswith("        prot_end:"):
-                        prot_interval += f"-{value}"
-                        if (raw[protein][-1]["ref_coords"] == "" or
-                            raw[protein][-1]["ref_coords"].endswith("\n")):
-                            raw[protein][-1]["ref_coords"] += prot_interval
-                        else:
-                            raw[protein][-1]["ref_coords"] += f",{prot_interval}"
+                            if line.startswith("    upstream_gap:"):
+                                raw[protein][-1]["seq_flanked"] += value
+                                raw[protein][-1]["seq_gene"] += value
 
-                    if line.startswith("        seq:"):
-                        if match_type == "intron" or match_type == "gap":
-                            raw[protein][-1]["seq_flanked"] += value
-                            raw[protein][-1]["seq_gene"] += value
-                        if match_type == "exon":
-                            exon_raw_seq = value
+                            if line.startswith("      - type:"):
+                                match_type = value.strip("?")
+                                if match_type == "exon":
+                                    shifts_dict = {}
 
-                    if match_type == "exon" and line.startswith("            dna_start:"):
-                        shift_start = int(value)
-                    if match_type == "exon" and line.startswith("            dna_end:"):
-                        shift_end = int(value)
-                        if (shift_end - shift_start) % 3 > 0:
-                            shifts_dict[shift_start - exon_start - 1] = (
-                                (3 - (shift_end - shift_start)) * "N"
-                            )
+                            if match_type == "exon" and line.startswith("        dna_start:"):
+                                exon_start = int(value)
+                                match_interval = value.strip("-")
 
-                    if line.startswith("        translation:"):
-                        raw[protein][-1]["seq_aa"] += value.strip("'")
-                        if shifts_dict:
-                            exon_seq = insert_shifts(exon_raw_seq, shifts_dict).upper()
-                        else:
-                            exon_seq = exon_raw_seq.upper()
-                        raw[protein][-1]["seq_flanked"] += exon_seq
-                        raw[protein][-1]["seq_gene"] += exon_seq
-                        raw[protein][-1]["seq_nt"] += exon_seq
-                        shifts_dict = {}
+                            if match_type == "exon" and line.startswith("        dna_end:"):
+                                match_interval += f'-{value.strip("-")}'
+                                if (raw[protein][-1]["hit_coords"] == "" or
+                                    raw[protein][-1]["hit_coords"].endswith("\n")):
+                                    raw[protein][-1]["hit_coords"] += match_interval
+                                else:
+                                    raw[protein][-1]["hit_coords"] += f",{match_interval}"
 
-                    if line.startswith("        overlap:"):
-                        overlapped = bool(value)
+                            if match_type == "exon" and line.startswith("        prot_start:"):
+                                prot_interval = value
 
-                    if line.startswith("    stopcodon:"):
-                        raw[protein][-1]["seq_nt"] += value.upper()
+                            if match_type == "exon" and line.startswith("        prot_end:"):
+                                prot_interval += f"-{value}"
+                                if (raw[protein][-1]["ref_coords"] == "" or
+                                    raw[protein][-1]["ref_coords"].endswith("\n")):
+                                    raw[protein][-1]["ref_coords"] += prot_interval
+                                else:
+                                    raw[protein][-1]["ref_coords"] += f",{prot_interval}"
 
-                    if line.startswith("    downstream:"):
-                        raw[protein][-1]["seq_flanked"] += value
+                            if line.startswith("        seq:"):
+                                if match_type == "intron" or match_type == "gap":
+                                    raw[protein][-1]["seq_flanked"] += value
+                                    raw[protein][-1]["seq_gene"] += value
+                                if match_type == "exon":
+                                    exon_raw_seq = value
 
-                    if line.startswith("    downstream_gap:"):
-                        raw[protein][-1]["seq_flanked"] += value
-                        raw[protein][-1]["seq_gene"] += value
+                            if match_type == "exon" and line.startswith("            dna_start:"):
+                                shift_start = int(value)
+                            if match_type == "exon" and line.startswith("            dna_end:"):
+                                shift_end = int(value)
+                                if (shift_end - shift_start) % 3 > 0:
+                                    shifts_dict[shift_start - exon_start - 1] = (
+                                        (3 - (shift_end - shift_start)) * "N"
+                                    )
+
+                            if line.startswith("        translation:"):
+                                raw[protein][-1]["seq_aa"] += value.strip("'")
+                                if shifts_dict:
+                                    exon_seq = insert_shifts(exon_raw_seq, shifts_dict).upper()
+                                else:
+                                    exon_seq = exon_raw_seq.upper()
+                                raw[protein][-1]["seq_flanked"] += exon_seq
+                                raw[protein][-1]["seq_gene"] += exon_seq
+                                raw[protein][-1]["seq_nt"] += exon_seq
+                                shifts_dict = {}
+
+                            if line.startswith("        overlap:"):
+                                overlapped = bool(value)
+
+                            if line.startswith("    stopcodon:"):
+                                raw[protein][-1]["seq_nt"] += value.upper()
+
+                            if line.startswith("    downstream:"):
+                                raw[protein][-1]["seq_flanked"] += value
+
+                            if line.startswith("    downstream_gap:"):
+                                raw[protein][-1]["seq_flanked"] += value
+                                raw[protein][-1]["seq_gene"] += value
 
     models = {}  # for models filtered by 'min_coverage' and 'min_identity'
     for protein in raw:

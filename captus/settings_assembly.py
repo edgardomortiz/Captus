@@ -153,7 +153,11 @@ PROT_REFS = {
     "NUC": {
         "angiosperms353": {
             "AA": Path(DATA_DIR, "Angiosperms353.FAA"),
-            "NT": "",
+            "NT": Path(DATA_DIR, "Angiosperms353.FNA"),
+        },
+        "mega353": {
+            "AA": Path(DATA_DIR, "Mega353.FAA"),
+            "NT": Path(DATA_DIR, "Mega353.FNA"),
         },
     },
     "PTD": {
@@ -267,11 +271,11 @@ SCIPIO_GENOME_SETTINGS = {
     "NUC": [
         "--max_assemble_size=75000",
         "--region_size=1000",
-        # "--blat_params=-oneOff=1",
-        # "--blat_tilesize=6",
-        "--exhaust_align_size=500",
+        "--blat_params=-oneOff=1",
+        "--blat_tilesize=6",
+        "--exhaust_align_size=5000",
         "--exhaust_gap_size=21",
-        "--min_dna_coverage=0",
+        # "--min_dna_coverage=0.2",
         "--max_move_exon=6",
         "--gap_to_close=21", # keep <=21 or it breaks reconstruction across several contigs
     ],
@@ -283,7 +287,7 @@ SCIPIO_GENOME_SETTINGS = {
         "--blat_tilesize=6",
         "--exhaust_align_size=9000",
         "--exhaust_gap_size=21",
-        "--min_dna_coverage=0.2",
+        # "--min_dna_coverage=0.2",
         "--max_move_exon=6",
         "--gap_to_close=21",
     ],
@@ -295,7 +299,7 @@ SCIPIO_GENOME_SETTINGS = {
         "--blat_tilesize=6",
         "--exhaust_align_size=9000",
         "--exhaust_gap_size=21",
-        "--min_dna_coverage=0.2",
+        # "--min_dna_coverage=0.2",
         "--max_move_exon=6",
         "--gap_to_close=21",
     ],
