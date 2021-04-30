@@ -31,10 +31,11 @@ from .bioformats import (blat_misc_dna_psl_to_dict, dict_to_fasta, fasta_headers
                          fasta_to_dict, is_fasta_nt, scipio_yaml_to_dict,
                          split_mmseqs_clusters_file, translate_fasta_dict, write_gff3)
 from .misc import (ElapsedTimeThread, bioperl_get_version, blat_path_version, bold, bold_green,
-                   bold_yellow, compress_list_files, dim, elapsed_time, format_dep_msg,
-                   has_valid_ext, is_dir_empty, make_output_dir, make_tmp_dir_within,
-                   mmseqs_path_version, quit_with_error, red, scipio_path_version, set_ram,
-                   set_threads, tqdm_parallel_async_run, tqdm_serial_run, yaml_perl_get_version)
+                   bold_yellow, compress_list_files, dim, elapsed_time, execute_jupyter_report,
+                   format_dep_msg, has_valid_ext, is_dir_empty, make_output_dir,
+                   make_tmp_dir_within, mmseqs_path_version, quit_with_error, red,
+                   scipio_path_version, set_ram, set_threads, tqdm_parallel_async_run,
+                   tqdm_serial_run, yaml_perl_get_version)
 from .version import __version__
 
 
@@ -575,6 +576,28 @@ def extract(full_command, args):
                 "Skipping clustering step... Captus found output files in: '{}', to replace them"
                 " enable --overwrite".format(clustering_dir)
             )
+
+
+    ################################################################################################
+    ############################################################################## SUMMARIZE SECTION
+    log.log_section_header("Statistics Summarization")
+    log.log_explanation(
+        "Now Captus will collect the extraction statistics from each sample to compile a"
+        " comprehensive table and a HTML report for visualization of extraction statistics."
+    )
+    ext_stats_tsv = collect_ext_stats(out_dir)
+    log.log(f'{"Extraction statistics":>{mar}}: {bold(ext_stats_tsv)}')
+    log.log("")
+    log.log_explanation(
+        "Generating Jupyter Notebook report... (ADD REPORT CODE HERE)"
+    )
+    # qc_html_report, qc_html_msg = execute_jupyter_report(out_dir,
+    #                                                      settings.CAPTUS_EXTRACTION_REPORT,
+    #                                                      "Captus_Extraction_Report.ipynb",
+    #                                                      "captus-assembly_extract")
+    # log.log(f'{"Final HTML QC report":>{mar}}: {bold(qc_html_report)}')
+    # log.log(f'{"":>{mar}}  {dim(qc_html_msg)}')
+    log.log("")
 
 
     ################################################################################################
@@ -1207,7 +1230,7 @@ def write_fastas_and_report(
 
     # Write statistics table
     with open(Path(out_dir, f"{marker_type}_recovery_stats.tsv"), "w") as stats_out:
-        stats_out.write(stats_header + "\n" + "\n".join(stats))
+        stats_out.write(stats_header + "\n" + "\n".join(stats) + "\n")
 
     # Write multi-sequence FASTAs and setup directories for locus-wise files, only prepare a
     # separate file per marker if the number of references is not greater than args.max_loci_files
@@ -1265,8 +1288,6 @@ def write_fastas_and_report(
                 dict_to_fasta({seq_name_short: dict(cds_nt_seqs[seq_name_full])},
                               Path(cds_nt_seqs_dir, f'{cds_nt_seqs[seq_name_full]["ref_name"]}.fna'),
                               append=True)
-
-    # TODO: Writing report stuff goes here, perhaps create another function
 
     recovery_stats = {
         "num_loci": num_loci,
@@ -1645,6 +1666,30 @@ def filter_clusters(clust_prefix, num_clusters, clust_min_samples):
     p2 = bold(f" \u2514\u2500\u2192 {captus_clusters_file}")
     log.log(f"{p1}\n{p2}")
     return captus_clusters_file
+
+
+def collect_ext_stats(out_dir):
+    tsv_files = sorted(list(Path(out_dir).resolve().rglob("*_recovery_stats.tsv")))
+    if not tsv_files:
+        return red("No extraction statistics files found within sample directories")
+    else:
+        stats_tsv_file = Path(out_dir, "captus-assembly_extract.stats.tsv")
+        header = (
+            "\t".join(["sample_name", "marker_type", "locus",
+                       "ref_name", "ref_coords", "ref_type", "ref_len_matched",
+                       "hit", "pct_recovered", "pct_identity", "score", "lwscore",
+                       "hit_len", "cds_len", "intron_len", "flanks_len", "frameshifts",
+                       "ctg_names", "ctg_strands", "ctg_coords"]) + "\n"
+        )
+        with open(stats_tsv_file, "wt") as tsv_out:
+            tsv_out.write(header)
+            for file in tsv_files:
+                if file.parts[-2] == "06_assembly_annotated":
+                    with open(file, "rt") as tsv_in:
+                        for line in tsv_in:
+                            if line != header:
+                                tsv_out.write(line)
+        return stats_tsv_file
 
 
 def cleanup_clustering_dir(clustering_dir, clust_prefix, clust_tmp_dir, threads, keep_all):

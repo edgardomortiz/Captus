@@ -26,7 +26,7 @@ from . import settings_assembly as settings
 from .bioformats import dict_to_fasta, fasta_headers_to_spades, fasta_to_dict
 from .misc import (bbtools_path_version, bold, dim, elapsed_time, find_and_match_fastqs,
                    format_dep_msg, make_output_dir, make_tmp_dir_within, megahit_path_version,
-                   megahit_toolkit_path, quit_with_error, red, set_ram, set_threads,
+                   megahit_tk_path_version, quit_with_error, red, set_ram, set_threads,
                    tqdm_parallel_async_run, tqdm_serial_run)
 from .version import __version__
 
@@ -92,8 +92,8 @@ def assemble(full_command, args):
     log.log(f'{"Dependencies":>{mar}}:')
     _, megahit_version, megahit_status = megahit_path_version(args.megahit_path)
     log.log(format_dep_msg(f'{"MEGAHIT":>{mar}}: ', megahit_version, megahit_status))
-    megahit_toolkit_path, megahit_toolkit_status = megahit_toolkit_path(args.megahit_toolkit_path)
-    log.log(format_dep_msg(f'{"megahit_toolkit":>{mar}}: ', megahit_toolkit_status))
+    _, megahit_tk_version, megahit_tk_status = megahit_tk_path_version(args.megahit_toolkit_path)
+    log.log(format_dep_msg(f'{"megahit_toolkit":>{mar}}: ', megahit_tk_version, megahit_tk_status))
     log.log(format_dep_msg(f'{"BBTools":>{mar}}: ', reformat_version, reformat_status))
     log.log("")
     log.log(f'{"Output directory":>{mar}}: {bold(out_dir)}')
@@ -188,15 +188,27 @@ def assemble(full_command, args):
         )
 
     concurrent, threads_per_assembly, ram_B_per_assembly = adjust_megahit_concurrency(
-        args.concurrent, threads_max, ram_B, len(fastqs_to_assemble)
+        args.concurrent, threads_max, ram_B, len(fastqs_to_assemble), args.preset
     )
     log.log(f'{"Concurrent assemblies":>{mar}}: {bold(concurrent)}')
     log.log(f'{"RAM per assembly":>{mar}}: {bold(f"{ram_B_per_assembly / 1024 ** 3:.1f}GB")}')
     log.log(f'{"Threads per assembly":>{mar}}: {bold(threads_per_assembly)}')
     log.log("")
-    log.log(f'{"k_list":>{mar}}: {bold(args.k_list)}')
+
+    k_list, min_count, prune_level = args.k_list, args.min_count, args.prune_level
+    if args.preset:
+        if args.preset.upper() in settings.MEGAHIT_PRESETS:
+            k_list = settings.MEGAHIT_PRESETS[args.preset.upper()]["k_list"]
+            min_count = settings.MEGAHIT_PRESETS[args.preset.upper()]["min_count"]
+            prune_level = settings.MEGAHIT_PRESETS[args.preset.upper()]["prune_level"]
+            log.log(f'{"preset":>{mar}}: {bold(args.preset.upper())}')
+        else:
+            log.log(f'{"preset":>{mar}}: {bold(args.preset)} not valid, using defaults!')
+
+    log.log(f'{"k_list":>{mar}}: {bold(k_list)}')
+    log.log(f'{"min_count":>{mar}}: {bold(min_count)}')
+    log.log(f'{"prune_level":>{mar}}: {bold(prune_level)}')
     log.log(f'{"merge_level":>{mar}}: {bold(args.merge_level)}')
-    log.log(f'{"prune_level":>{mar}}: {bold(args.prune_level)}')
     log.log(f'{"min_contig_len":>{mar}}: {bold(args.min_contig_len)}')
     tmp_dir = make_tmp_dir_within(args.tmp_dir, "captus_megahit_tmp")
     log.log(f'{"tmp_dir":>{mar}}: {bold(tmp_dir)}')
@@ -215,30 +227,37 @@ def assemble(full_command, args):
         fastq_dir = fastqs_to_assemble[fastq_r1]["fastq_dir"]
         megahit_params.append((
             args.megahit_path,
-            megahit_toolkit_path,
+            args.megahit_toolkit_path,
             fastq_dir,
             fastq_r1,
             fastq_r2,
-            args.min_count,
             args.k_list,
+            args.min_count,
+            args.prune_level,
             args.merge_level,
             ram_B_per_assembly,
             threads_per_assembly,
             out_dir,
             args.min_contig_len,
             tmp_dir,
+            args.keep_all,
             args.overwrite
         ))
-
     # Internal switch between parallel asynchronous and serial run (False for debugging)
     run_async = True
     if run_async:
         tqdm_parallel_async_run(megahit, megahit_params,
-                                "De novo assembling with MEGAHIT", "De novo assembly completed",
-                                "sample", args.show_less)
+                                "De novo assembling with MEGAHIT",
+                                "De novo assembly completed",
+                                "sample", concurrent, args.show_less)
     else:
-        tqdm_serial_run(megahit, megahit_params, "De novo assembling with MEGAHIT",
-                        "De novo assembly completed", "sample", args.show_less)
+        tqdm_serial_run(megahit, megahit_params,
+                        "De novo assembling with MEGAHIT",
+                        "De novo assembly completed",
+                        "sample", args.show_less)
+    log.log("")
+    asm_stats_tsv = collect_asm_stats(out_dir)
+    log.log(f'{"Assembly statistics":>{mar}}: {bold(asm_stats_tsv)}')
     log.log("")
     shutil.rmtree(tmp_dir, ignore_errors=True)
     log.log(f"MEGAHIT temporary directory '{tmp_dir}' deleted")
@@ -304,14 +323,15 @@ def find_and_match_subsampled_fastqs(fastqs_to_subsample, out_dir):
     return fastqs_to_assemble
 
 
-def adjust_megahit_concurrency(concurrent, threads_max, ram_B, num_samples):
+def adjust_megahit_concurrency(concurrent, threads_max, ram_B, num_samples, preset):
     """
     Adjust the proposed number of 'concurrent' MEGAHIT processes so 'threads_per_assembly' are never
     fewer than 'settings.MEGAHIT_MIN_THREADS' or 'ram_B_per_assembly' is smaller than
     'settings.MEGAHIT_MIN_RAM_B'. Once the right 'concurrent' number has been found
     'threads_per_assembly' and 'ram_per_assembly' are readjusted. If the computer has fewer than 4
     CPUs or less than 4GB of RAM 'concurrent' defaults to 1 and MEGAHIT uses whatever resources are
-    available
+    available. If assembly presets are used, then adjust minimum RAM per assembly according to the
+    preset (e.g. min 8GB for RNAseq or WGS)
     """
 
     if concurrent == "auto":
@@ -322,7 +342,12 @@ def adjust_megahit_concurrency(concurrent, threads_max, ram_B, num_samples):
         except ValueError:
             quit_with_error("Invalid value for '--concurrent', set it to 'auto' or use a number")
 
-    if threads_max < settings.MEGAHIT_MIN_THREADS or ram_B < settings.MEGAHIT_MIN_RAM_B:
+    min_ram_B = settings.MEGAHIT_MIN_RAM_B
+    if preset:
+        if preset.upper() in settings.MEGAHIT_PRESETS:
+            min_ram_B = settings.MEGAHIT_PRESETS[preset.upper()]["min_ram_B"]
+
+    if threads_max < settings.MEGAHIT_MIN_THREADS or ram_B < min_ram_B:
         return 1, threads_max, ram_B
 
     if concurrent > 1:
@@ -330,8 +355,8 @@ def adjust_megahit_concurrency(concurrent, threads_max, ram_B, num_samples):
             concurrent -= 1
     ram_B_per_assembly = ram_B // concurrent
 
-    if ram_B_per_assembly < settings.MEGAHIT_MIN_RAM_B:
-        while ram_B // concurrent < settings.MEGAHIT_MIN_RAM_B:
+    if ram_B_per_assembly < min_ram_B:
+        while ram_B // concurrent < min_ram_B:
             concurrent -= 1
 
     threads_per_assembly = threads_max // concurrent
@@ -341,8 +366,9 @@ def adjust_megahit_concurrency(concurrent, threads_max, ram_B, num_samples):
 
 
 def megahit(
-        megahit_path, megahit_toolkit_path, fastq_dir, fastq_r1, fastq_r2, min_count, k_list,
-        merge_level, ram_B, threads, out_dir, min_contig_len, tmp_dir, overwrite
+        megahit_path, megahit_toolkit_path, fastq_dir, fastq_r1, fastq_r2, k_list, min_count,
+        prune_level, merge_level, ram_B, threads, out_dir, min_contig_len, tmp_dir, keep_all,
+        overwrite
 ):
     """
     De novo assembly with MEGAHIT >= v1.2.9
@@ -374,10 +400,8 @@ def megahit(
         megahit_command += [
             "--min-count", f"{min_count}",
             "--k-list", adjusted_k_list,
-            "--bubble-level", f"{settings.MEGAHIT_BUBBLE_LEVEL}",
             "--merge-level", merge_level,
-            "--prune-level", f"{settings.MEGAHIT_PRUNE_LEVEL}",
-            "--prune-depth", f"{settings.MEGAHIT_PRUNE_DEPTH}"
+            "--prune-level", f"{prune_level}",
             "--memory", f"{ram_B}",
             "--num-cpu-threads", f"{threads}",
             "--out-dir", f"{sample_megahit_out_dir}",
@@ -389,8 +413,10 @@ def megahit(
             megahit_log.write(f"Captus' MEGAHIT Command:\n  {' '.join(megahit_command)}\n\n\n")
         with open(megahit_log_file, "a") as megahit_log:
             subprocess.run(megahit_command, stdout=megahit_log, stderr=megahit_log)
-        cleanup_megahit_out_dir(sample_megahit_out_dir, megahit_log_file, megahit_toolkit_path)
-        message = f"'{sample_name}': assembled [{elapsed_time(time.time() - start)}]"
+        cleanup_megahit_out_dir(sample_megahit_out_dir, megahit_log_file,
+                                megahit_toolkit_path, keep_all)
+        asm_stats = get_asm_stats(sample_megahit_out_dir)
+        message = f"'{sample_name}': {asm_stats} [{elapsed_time(time.time() - start)}]"
     else:
         message = dim(f"'{sample_name}': skipped (output files already exist)")
     return message
@@ -429,14 +455,14 @@ def adjust_megahit_min_contig_len(min_contig_len, mean_read_length, k_list):
     'k_list'
     """
     if min_contig_len == "auto":
-        return mean_read_length + int(k_list.split(",")[0])
+        return min(200, mean_read_length + int(k_list.split(",")[0]))
     elif int(min_contig_len) > 0:
         return min_contig_len
     else:
         return 200
 
 
-def cleanup_megahit_out_dir(sample_megahit_out_dir, megahit_log_file, megahit_toolkit_path):
+def cleanup_megahit_out_dir(sample_megahit_out_dir, megahit_log_file, megahit_toolkit_path, keep_all):
     """
     Tidy up the output folder, MEGAHIT leaves many unnecesary trace files, especially in the
     'intermediate_contigs' directory
@@ -444,37 +470,163 @@ def cleanup_megahit_out_dir(sample_megahit_out_dir, megahit_log_file, megahit_to
     # Move/rename logs into place
     megahit_log_file.replace(Path(sample_megahit_out_dir, "megahit.brief.log"))
     Path(sample_megahit_out_dir, "log").replace(Path(sample_megahit_out_dir, "megahit.full.log"))
+    intermediate_contigs_dir = Path(sample_megahit_out_dir, "intermediate_contigs")
+
+    # Now that assembly has been optimized, the intermedite contigs don't need to be saved or
+    # processed further
 
     # Generate 'fastg' asembly graphs for 'intermediate_contigs' and reformat FASTA headers
-    intermediate_contigs_dir = Path(sample_megahit_out_dir, "intermediate_contigs")
-    intermediate_contigs_graphs_dir = Path(sample_megahit_out_dir, "01_intermediate_contigs_graphs")
-    intermediate_contigs_graphs_dir.mkdir(parents=True)
-    fastas_to_process = list(intermediate_contigs_dir.glob("*[!final].contigs.fa"))
-    for fasta_path in fastas_to_process:
-        if megahit_toolkit_path:
-            megahit_contig2fastg(megahit_toolkit_path, fasta_path,
-                                 Path(intermediate_contigs_graphs_dir, f"{fasta_path.stem}.fastg"))
-        fasta_reheaded, _ = fasta_headers_to_spades(fasta_to_dict(fasta_path))
-        dict_to_fasta(fasta_reheaded,
-                      Path(intermediate_contigs_graphs_dir, fasta_path.name),
-                      wrap=80)
+    # intermediate_contigs_graphs_dir = Path(sample_megahit_out_dir, "01_intermediate_contigs_graphs")
+    # intermediate_contigs_graphs_dir.mkdir(parents=True)
+    # fastas_to_process = list(intermediate_contigs_dir.glob("*[!final].contigs.fa"))
+    # for fasta_path in fastas_to_process:
+    #     if megahit_toolkit_path:
+    #         megahit_contig2fastg(megahit_toolkit_path,
+    #                              fasta_path,
+    #                              Path(intermediate_contigs_graphs_dir, f"{fasta_path.stem}.fastg"))
+    #     fasta_reheaded, _ = fasta_headers_to_spades(fasta_to_dict(fasta_path))
+    #     dict_to_fasta(fasta_reheaded,
+    #                   Path(intermediate_contigs_graphs_dir, fasta_path.name),
+    #                   wrap=80)
 
     # Generate 'fastg' assembly graph for 'final.contigs.fa' and reformat FASTA headers
     if megahit_toolkit_path:
-        megahit_contig2fastg(megahit_toolkit_path, Path(sample_megahit_out_dir, "final.contigs.fa"),
+        megahit_contig2fastg(megahit_toolkit_path,
+                             Path(sample_megahit_out_dir, "final.contigs.fa"),
                              Path(sample_megahit_out_dir, "assembly_graph.fastg"))
     fasta_reheaded, _ = fasta_headers_to_spades(fasta_to_dict(Path(sample_megahit_out_dir,
                                                                    "final.contigs.fa")))
     dict_to_fasta(fasta_reheaded, Path(sample_megahit_out_dir, "assembly.fasta"), wrap=80)
 
     # Delete unimportant/already-processed files
-    shutil.rmtree(intermediate_contigs_dir, ignore_errors=True)
-    Path(sample_megahit_out_dir, "checkpoints.txt").unlink()
-    Path(sample_megahit_out_dir, "done").unlink()
     Path(sample_megahit_out_dir, "final.contigs.fa").unlink()
-    Path(sample_megahit_out_dir, "options.json").unlink()
+    if not keep_all:
+        shutil.rmtree(intermediate_contigs_dir, ignore_errors=True)
+        Path(sample_megahit_out_dir, "checkpoints.txt").unlink()
+        Path(sample_megahit_out_dir, "done").unlink()
+        Path(sample_megahit_out_dir, "options.json").unlink()
 
-    # TODO: Determine if 'intermediate_contigs' must be erased if '--keep_all' was not enabled
+
+def get_asm_stats(sample_megahit_out_dir):
+    asm = fasta_to_dict(Path(sample_megahit_out_dir, "assembly.fasta"))
+
+    sample = Path(sample_megahit_out_dir).parts[-2].replace("__captus-asm", "")
+
+    lengths = []
+    depths = []
+    gc_count = 0
+    for seq in asm:
+        lengths.append(len(asm[seq]["sequence"]))
+        gc_count += asm[seq]["sequence"].count("G")
+        gc_count += asm[seq]["sequence"].count("C")
+        depths.append(float(seq.split("_cov_")[1].split("_")[0]))
+
+    n_least_0bp = len(lengths)
+    n_least_1kbp = round(len(list(filter(lambda l: l >= 1000, lengths))) / n_least_0bp * 100, 3)
+    n_least_2kbp = round(len(list(filter(lambda l: l >= 2000, lengths))) / n_least_0bp * 100, 3)
+    n_least_5kbp = round(len(list(filter(lambda l: l >= 5000, lengths))) / n_least_0bp * 100, 3)
+    n_least_10kbp = round(len(list(filter(lambda l: l >= 10000, lengths))) / n_least_0bp * 100, 3)
+
+    longest = max(lengths)
+    shortest = min(lengths)
+    s_least_0bp = sum(lengths)
+    s_least_1kbp = round(sum(list(filter(lambda l: l >= 1000, lengths))) / s_least_0bp * 100, 3)
+    s_least_2kbp = round(sum(list(filter(lambda l: l >= 2000, lengths))) / s_least_0bp * 100, 3)
+    s_least_5kbp = round(sum(list(filter(lambda l: l >= 5000, lengths))) / s_least_0bp * 100, 3)
+    s_least_10kbp = round(sum(list(filter(lambda l: l >= 10000, lengths))) / s_least_0bp * 100, 3)
+    avg_length = math.ceil(statistics.mean(lengths))
+    median_length = math.ceil(statistics.median(lengths))
+    asm_half, size, n50 = s_least_0bp / 2, 0, 0
+    for l in sorted(lengths, reverse=True):
+        size += l
+        if size >= asm_half:
+            n50 = l
+            break
+
+    gc = round(gc_count / s_least_0bp * 100, 3)
+
+    avg_depth = round(statistics.mean(depths), 2)
+    d_least_1x = round(len(list(filter(lambda d: d >= 1, depths))) / n_least_0bp * 100, 3)
+    d_least_2x = round(len(list(filter(lambda d: d >= 2, depths))) / n_least_0bp * 100, 3)
+    d_least_5x = round(len(list(filter(lambda d: d >= 5, depths))) / n_least_0bp * 100, 3)
+    d_least_10x = round(len(list(filter(lambda d: d >= 10, depths))) / n_least_0bp * 100, 3)
+
+    stats_tsv = [
+        "sample", sample,
+        "n_contigs", n_least_0bp,
+        "pct_contigs_>=_1kbp", n_least_1kbp,
+        "pct_contigs_>=_2kbp", n_least_2kbp,
+        "pct_contigs_>=_5kbp", n_least_5kbp,
+        "pct_contigs_>=_10kbp", n_least_10kbp,
+        "longest_contig", longest,
+        "shortest_contig", shortest,
+        "total_length", s_least_0bp,
+        "pct_length_>=_1kbp", s_least_1kbp,
+        "pct_length_>=_2kbp", s_least_2kbp,
+        "pct_length_>=_5kbp", s_least_5kbp,
+        "pct_length_>=_10kbp", s_least_10kbp,
+        "avg_length", avg_length,
+        "median_length", median_length,
+        "N50", n50,
+        "GC_content",gc,
+        "avg_depth", avg_depth,
+        "pct_contigs_>=_1x", d_least_1x,
+        "pct_contigs_>=_2x", d_least_2x,
+        "pct_contigs_>=_5x", d_least_5x,
+        "pct_contigs_>=_10x", d_least_10x,
+    ]
+
+    with open(Path(sample_megahit_out_dir, "assembly.stats.tsv"), "wt") as tsv_out:
+        for i in range(0, len(stats_tsv), 2):
+            tsv_out.write(f"{stats_tsv[i].rjust(20)} : {stats_tsv[i+1]}\n")
+    with open(Path(sample_megahit_out_dir, "assembly.stats.t.tsv"), "wt") as tsv_out:
+        # tsv_out.write("\t".join(stats_tsv[i] for i in range(0, len(stats_tsv), 2)) + "\n")
+        tsv_out.write("\t".join(f"{stats_tsv[i+1]}" for i in range(0, len(stats_tsv), 2)) + "\n")
+
+    asm_msg = (
+        f"{s_least_0bp} bp in {n_least_0bp} contigs, from {shortest} to {longest} bp,"
+        f" avg {avg_length} bp, median {median_length} bp, N50 {n50} bp"
+    )
+    return asm_msg
+
+
+def collect_asm_stats(out_dir):
+    tsv_files = sorted(list(Path(out_dir).resolve().rglob("*assembly.stats.t.tsv")))
+    if not tsv_files:
+        return red("No assembly statistics files found within sample directories")
+    else:
+        tsv = ["\t".join([
+            "sample",
+            "n_contigs",
+            "pct_contigs_>=_1kbp",
+            "pct_contigs_>=_2kbp",
+            "pct_contigs_>=_5kbp",
+            "pct_contigs_>=_10kbp",
+            "longest_contig",
+            "shortest_contig",
+            "total_length",
+            "pct_length_>=_1kbp",
+            "pct_length_>=_2kbp",
+            "pct_length_>=_5kbp",
+            "pct_length_>=_10kbp",
+            "avg_length",
+            "median_length",
+            "N50",
+            "GC_content",
+            "avg_depth",
+            "pct_contigs_>=_1x",
+            "pct_contigs_>=_2x",
+            "pct_contigs_>=_5x",
+            "pct_contigs_>=_10x",
+        ])]
+        for file in tsv_files:
+            with open(file, "rt") as tsv_in:
+                for line in tsv_in:
+                    tsv.append(line.strip("\n"))
+        stats_tsv_file = Path(out_dir, "captus-assembly_assemble.stats.tsv")
+        with open(stats_tsv_file, "wt") as tsv_out:
+            tsv_out.write("\n".join(tsv))
+        return stats_tsv_file
 
 
 def megahit_contig2fastg(megahit_toolkit_path, in_fasta_path, out_fastg_path):

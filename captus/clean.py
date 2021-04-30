@@ -14,6 +14,7 @@ not, see <http://www.gnu.org/licenses/>.
 
 
 import multiprocessing
+import shutil
 import subprocess
 import sys
 import time
@@ -22,10 +23,10 @@ from pathlib import Path
 
 from . import log
 from . import settings_assembly as settings
-from .misc import (bbtools_path_version, bold, dim, elapsed_time, fastqc_path_version,
-                   find_and_match_fastqs, format_dep_msg, has_valid_ext, make_output_dir,
-                   quit_with_error, red, set_ram, set_threads, tqdm_parallel_async_run,
-                   tqdm_serial_run)
+from .misc import (bbtools_path_version, bold, dim, elapsed_time, execute_jupyter_report,
+                   fastqc_path_version, find_and_match_fastqs, format_dep_msg, has_valid_ext,
+                   make_output_dir, quit_with_error, red, set_ram, set_threads,
+                   tqdm_parallel_async_run, tqdm_serial_run)
 from .version import __version__
 
 
@@ -35,7 +36,7 @@ def clean(full_command, args):
     out_dir, out_dir_msg = make_output_dir(args.out)
     log.logger = log.Log(Path(out_dir, "captus-assembly_clean.log"), stdout_verbosity_level=1)
 
-    mar = 20  # Margin for aligning parameters and values
+    mar = 21  # Margin for aligning parameters and values
 
     ################################################################################################
     ############################################################################### STARTING SECTION
@@ -272,27 +273,38 @@ def clean(full_command, args):
 
     ################################################################################################
     ################################################################################ CLEANUP SECTION
-    log.log_section_header("File Cleanup and BBTools' Logs Summarization")
+    log.log_section_header("Logs Summarization and File Cleanup")
     log.log_explanation(
-        "Now Captus will summarize the reports from bbduk.sh. Intermediate FASTQ files and other"
-        " unnecessary files will be removed unless the flag '--keep_all' is enabled."
+        "Now Captus will summarize the logs from 'bbduk.sh' and 'FastQC' to produce a final report"
+        " in HTML format. The data tables and individual graphs associated with the HTML report will"
+        " be placed in a subdirectory  called '03_qc_extras'."
     )
-    bbduk_summarize_logs(out_dir, mar)
-    fastqc_summarize_logs(out_dir, fastqc_before_dir, fastqc_after_dir, mar)
+    qc_extras_dir, qc_extras_msg = make_output_dir(Path(out_dir, "03_qc_extras"))
+    log.log("")
+    log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
+    log.log(f'{"QC extras directory":>{mar}}: {bold(qc_extras_dir)}')
+    log.log(f'{"":>{mar}}  {dim(qc_extras_msg)}')
+    log.log("")
+    bbduk_summarize_logs(out_dir, qc_extras_dir, mar)
+    fastqc_summarize_logs(out_dir, qc_extras_dir, fastqc_before_dir, fastqc_after_dir, mar)
     log.log("")
     log.log_explanation(
-        "Now Captus will generate a global report in R Markdown format comparing the change in"
-        " sequence quality parameters BEFORE and AFTER cleaning. You can open this file in"
-        " RStudio and use the 'knitr' button produce a HTML 'Sequence Quality Control' report"
-        " summarized across samples"
+        "Generating Jupyter Notebook report..."
     )
-    qc_rmd_file, qc_rmd_msg = write_captus_clean_rmd(out_dir, fastqc_before_dir,
-                                                     fastqc_after_dir, args.overwrite)
-    log.log(f'{"Summarized QC report":>{mar}}: {bold(qc_rmd_file)}')
-    log.log(f'{"":>{mar}}  {dim(qc_rmd_msg)}')
+    qc_html_report, qc_html_msg = execute_jupyter_report(out_dir,
+                                                         settings.CAPTUS_QC_REPORT,
+                                                         "Captus_Cleaning_Report.ipynb",
+                                                         "captus-assembly_clean")
+    log.log(f'{"Final HTML QC report":>{mar}}: {bold(qc_html_report)}')
+    log.log(f'{"":>{mar}}  {dim(qc_html_msg)}')
     log.log("")
+
     if not args.keep_all:
         start = time.time()
+        log.log("")
+        log.log_explanation(
+            "Deleting intermediate FASTQ files and other unnecessary files..."
+        )
         reclaimed_bytes = 0
         files_to_delete = [fq for fq in adaptors_trimmed_dir.resolve().glob("*")
                            if has_valid_ext(fq, settings.FASTQ_VALID_EXTENSIONS)]
@@ -505,7 +517,7 @@ def fastqc(fastqc_path, in_fastq, fastqc_out_dir, overwrite, stage):
     return message
 
 
-def bbduk_summarize_logs(out_dir, margin):
+def bbduk_summarize_logs(out_dir, qc_extras_dir, margin):
     round1_logs = list(out_dir.rglob("*.round1.log"))
     round2_logs = list(out_dir.rglob("*.round2.log"))
     cleaning_logs = list(out_dir.rglob("*.cleaning.log"))
@@ -622,10 +634,10 @@ def bbduk_summarize_logs(out_dir, margin):
                     contaminants[contaminant_name][sample_name] = int(fields[-2])
                     contaminants[contaminant_name]["total"] += int(fields[-2])
 
-    reads_bases_summary = Path(out_dir, "captus-assembly_reads_bases.tsv")
-    adaptors_round1_summary = Path(out_dir, "captus-assembly_adaptors_round1.tsv")
-    adaptors_round2_summary = Path(out_dir, "captus-assembly_adaptors_round2.tsv")
-    contaminants_summary = Path(out_dir, "captus-assembly_contaminants.tsv")
+    reads_bases_summary = Path(qc_extras_dir, "reads_bases.tsv")
+    adaptors_round1_summary = Path(qc_extras_dir, "adaptors_round1.tsv")
+    adaptors_round2_summary = Path(qc_extras_dir, "adaptors_round2.tsv")
+    contaminants_summary = Path(qc_extras_dir, "contaminants.tsv")
     with open(reads_bases_summary, "wt") as summary_out:
         summary_out.write(
             f"sample\treads_input\tbases_input\t"
@@ -693,7 +705,7 @@ def bbduk_summarize_logs(out_dir, margin):
     log.log(f'{"Contaminants":>{margin}}: {bold(contaminants_summary)}')
 
 
-def fastqc_summarize_logs(out_dir, fastqc_before_dir, fastqc_after_dir, margin):
+def fastqc_summarize_logs(out_dir, qc_extras_dir, fastqc_before_dir, fastqc_after_dir, margin):
     """
     Summarize FastQC reports into a nice multisample .html, replacement for NGSReports which is
     cumbersome to install and very slow
@@ -785,44 +797,38 @@ def fastqc_summarize_logs(out_dir, fastqc_before_dir, fastqc_after_dir, margin):
                             record = "\t".join(prepend + line.strip("\n").split())
                             fastqc_stats[add_to].append(record)
 
-    per_base_seq_qual = Path(out_dir, "captus-assembly_per_base_seq_qual.tsv")
-    per_seq_qual_scores = Path(out_dir, "captus-assembly_per_seq_qual_scores.tsv")
-    per_base_seq_content = Path(out_dir, "captus-assembly_per_base_seq_content.tsv")
-    per_seq_gc_content = Path(out_dir, "captus-assembly_per_seq_gc_content.tsv")
-    seq_len_dist = Path(out_dir, "captus-assembly_seq_len_dist.tsv")
-    seq_dup_levels = Path(out_dir, "captus-assembly_seq_dup_levels.tsv")
-    adaptor_content = Path(out_dir, "captus-assembly_adaptor_content.tsv")
+    per_base_seq_qual = Path(qc_extras_dir, "per_base_seq_qual.tsv")
     with open(per_base_seq_qual, "wt") as stats_out:
         stats_out.write("\n".join(fastqc_stats["per_base_seq_qual_data"]))
+    log.log(f'{"Per base seq. qual.":>{margin}}: {bold(per_base_seq_qual)}')
+
+    per_seq_qual_scores = Path(qc_extras_dir, "per_seq_qual_scores.tsv")
     with open(per_seq_qual_scores, "wt") as stats_out:
         stats_out.write("\n".join(fastqc_stats["per_seq_qual_scores_data"]))
+    log.log(f'{"Per seq. qual. scores":>{margin}}: {bold(per_seq_qual_scores)}')
+
+    per_base_seq_content = Path(qc_extras_dir, "per_base_seq_content.tsv")
     with open(per_base_seq_content, "wt") as stats_out:
         stats_out.write("\n".join(fastqc_stats["per_base_seq_content_data"]))
+    log.log(f'{"Per base seq. content":>{margin}}: {bold(per_base_seq_content)}')
+
+    per_seq_gc_content = Path(qc_extras_dir, "per_seq_gc_content.tsv")
     with open(per_seq_gc_content, "wt") as stats_out:
         stats_out.write("\n".join(fastqc_stats["per_seq_gc_content_data"]))
+    log.log(f'{"Per seq. GC content":>{margin}}: {bold(per_seq_gc_content)}')
+
+    seq_len_dist = Path(qc_extras_dir, "seq_len_dist.tsv")
     with open(seq_len_dist, "wt") as stats_out:
         stats_out.write("\n".join(fastqc_stats["seq_len_dist_data"]))
+    log.log(f'{"Seq. length distr.":>{margin}}: {bold(seq_len_dist)}')
+
+    seq_dup_levels = Path(qc_extras_dir, "seq_dup_levels.tsv")
     with open(seq_dup_levels, "wt") as stats_out:
         stats_out.write("\n".join(fastqc_stats["seq_dup_levels_data"]))
+    log.log(f'{"Seq. duplication":>{margin}}: {bold(seq_dup_levels)}')
+
+    adaptor_content = Path(qc_extras_dir, "adaptor_content.tsv")
     with open(adaptor_content, "wt") as stats_out:
         stats_out.write("\n".join(fastqc_stats["adaptor_content_data"]))
+    log.log(f'{"Adaptor content":>{margin}}: {bold(adaptor_content)}')
 
-
-def write_captus_clean_rmd(out_dir, fastqc_before_dir, fastqc_after_dir, overwrite):
-    """
-    Replace FastQC output directories within the R Markdown document
-    """
-    captus_qc_rmd_file = Path(out_dir, "captus-assembly_clean.Rmd")
-    if overwrite is True or not captus_qc_rmd_file.exists():
-        with open(settings.CAPTUS_QC_RMD_REPORT, "rt") as rmd_in:
-            with open(captus_qc_rmd_file, "wt") as rmd_out:
-                for line in rmd_in:
-                    if "REPLACE_HERE_FASTQC_BEFORE_DIR" in line:
-                        line = line.replace("REPLACE_HERE_FASTQC_BEFORE_DIR", f"{fastqc_before_dir}")
-                    elif "REPLACE_HERE_FASTQC_AFTER_DIR" in line:
-                        line = line.replace("REPLACE_HERE_FASTQC_AFTER_DIR", f"{fastqc_after_dir}")
-                    rmd_out.write(line)
-        message = "R Markdown file successfully created"
-    else:
-        message = "The R Markdown file exists, just re-run 'knit' in RStudio"
-    return captus_qc_rmd_file, message

@@ -12,6 +12,7 @@ details. You should have received a copy of the GNU General Public License along
 not, see <http://www.gnu.org/licenses/>.
 """
 
+import shutil
 import subprocess
 import time
 from pathlib import Path
@@ -97,7 +98,7 @@ def align(full_command, args):
     extracted_sample_dirs = find_extracted_sample_dirs(args.captus_extractions_dir)
     log.log(f'{"Samples to process":>{mar}}: {bold(len(extracted_sample_dirs))}')
     log.log("")
-    log.log(make_output_tree(markers, formats, out_dir, "01_unaligned", mar))
+    log.log(make_output_dirtree(markers, formats, out_dir, "01_unaligned", mar))
     log.log("")
     collect_extracted_markers(markers, formats, extracted_sample_dirs, out_dir,
                               "01_unaligned", ref_paths, args.overwrite, args.show_less)
@@ -110,15 +111,8 @@ def align(full_command, args):
     log.log_explanation(
         "Now Captus will align all collected markers using MAFFT. If you added the references to be"
         " used as alignment guides Captus will produce a directory with alignments including the"
-        " references and a separate one with the references removed."
+        " references and a separate one with the references removed. "
     )
-    try:
-        remove_references = bool(any([path for marker in ref_paths
-                                           for path in ref_paths[marker].values()]))
-    except TypeError:
-        remove_references = False
-    base_dir = "02_aligned_with_refs" if remove_references else "02_aligned"
-
     concurrent, threads_per_alignment = adjust_mafft_concurrency(args.concurrent, threads_max)
     log.log(f'{"Concurrent alignments":>{mar}}: {bold(concurrent)}')
     log.log(f'{"Threads per alignment":>{mar}}: {bold(threads_per_alignment)}')
@@ -130,10 +124,10 @@ def align(full_command, args):
     log.log("")
     log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
     log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
-    fastas_to_align = fastas_origs_dests(out_dir, "01_unaligned", base_dir)
+    fastas_to_align = fastas_origs_dests(out_dir, "01_unaligned", "02_aligned_unfiltered")
     log.log(f'{"FASTA files to align":>{mar}}: {bold(len(fastas_to_align))}')
     log.log("")
-    log.log(make_output_tree(markers, formats, out_dir, base_dir, mar))
+    log.log(make_output_dirtree(markers, formats, out_dir, "02_aligned_unfiltered", mar))
     log.log("")
 
     mafft_params = []
@@ -160,29 +154,134 @@ def align(full_command, args):
                         "alignment", args.show_less)
     log.log("")
 
-    if remove_references:
-        log.log_explanation(
-            "Now Captus will create modified copies of the alignments that will not include the"
-            " reference sequences:"
-        )
-        fastas_to_rem_refs = fastas_origs_dests(out_dir, base_dir, "03_aligned")
-        log.log(f'{"FASTA files to process":>{mar}}: {bold(len(fastas_to_align))}')
+
+    ################################################################################################
+    ################################################################################ CLEANUP SECTION
+    log.log_section_header("Paralog Filtering")
+    log.log_explanation(
+        "Now Captus will remove paralogs using the method(s) selected with '--filter_method'."
+        " Afterwards, copies of the alignments without the reference sequences will also be created."
+    )
+    concurrent = threads_max
+    filtering_refs = {}
+    if args.filter_method.lower() in ["careful", "both"]:
+        for marker in ref_paths:
+            if marker != "CLR":
+                if ref_paths[marker]["NT_path"]:
+                    filtering_refs[marker] = {"path": ref_paths[marker]["NT_path"],
+                                              "marker_dir": settings.MARKER_DIRS[marker],
+                                              "format_dir": settings.FORMAT_DIRS["NT"]}
+                elif marker != "DNA" and ref_paths[marker]["AA_path"]:
+                    filtering_refs[marker] = {"path": ref_paths[marker]["AA_path"],
+                                              "marker_dir": settings.MARKER_DIRS[marker],
+                                              "format_dir": settings.FORMAT_DIRS["AA"]}
+    filter_method = args.filter_method.lower()
+    if not filtering_refs:
+        if args.filter_method == "careful":
+            filter_method = None
+        elif args.filiter_method == "both":
+            filter_method = "fast"
+
+    log.log(f'{"Concurrent processes":>{mar}}: {bold(concurrent)}')
+    log.log(f'{"Filtering method":>{mar}}: {bold(filter_method)}')
+    log.log("")
+    if filtering_refs:
+        log.log(bold(f'{"References for filtering":>{mar}}:'))
+        for marker in filtering_refs:
+            log.log(f'{"  Marker":>{mar}}: {bold(marker)}')
+            log.log(f'{"  Format":>{mar}}: {bold(filtering_refs[marker]["format_dir"][-2:])}')
+            log.log(f'{"  Path":>{mar}}: {bold(filtering_refs[marker]["path"])}')
+            log.log("")
+    log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
+    log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
+    log.log("")
+
+    if filter_method in ["fast", "both"]:
+        fastas_to_filter = fastas_origs_dests(out_dir,
+                                              "02_aligned_unfiltered",
+                                              "03_aligned_fast_filter")
         log.log("")
-        log.log(make_output_tree(markers, formats, out_dir, "03_aligned", mar))
+        log.log(bold(f'{"FAST paralog filtering":>{mar}}:'))
+        log.log(f'{"FASTA files to process":>{mar}}: {bold(len(fastas_to_filter))}')
+        log.log(make_output_dirtree(markers, formats, out_dir, "03_aligned_fast_filter", mar))
         log.log("")
-        rem_refs(ref_paths, fastas_to_rem_refs, args.overwrite,
-                 concurrent, args.show_less, run_async=False)
+        paralog_fast_filter(fastas_to_filter, args.overwrite, concurrent,
+                            args.show_less, run_async=True)
+        log.log("")
+
+    if filter_method in ["careful", "both"]:
+        fastas_to_filter = fastas_origs_dests(out_dir,
+                                              "02_aligned_unfiltered",
+                                              "04_aligned_careful_filter")
+        log.log("")
+        log.log(bold(f'{"CAREFUL paralog filtering":>{mar}}:'))
+        log.log(f'{"FASTA files to process":>{mar}}: {bold(len(fastas_to_filter))}')
+        log.log(make_output_dirtree(markers, formats, out_dir, "04_aligned_careful_filter", mar))
+        log.log("")
+        tmp_dir, _ = make_output_dir(Path(out_dir, "tmp"))
+        paralog_careful_filter(tmp_dir, fastas_to_filter, filtering_refs, args.overwrite,
+                               concurrent, args.show_less, run_async=True)
+        paralog_stats_tsv = collect_paralog_stats(out_dir, tmp_dir)
+        log.log("")
+        log.log(f'{"Paralog statistics":>{mar}}: {bold(paralog_stats_tsv)}')
+        shutil.rmtree(tmp_dir, ignore_errors=True)
         log.log("")
 
 
     ################################################################################################
     ################################################################################ CLEANUP SECTION
-    log.log_section_header("File Cleanup and Alignment Statistics Summarization")
+    log.log_section_header("Reference Sequences Removal and File Cleanup")
     log.log_explanation(
-        "Now Captus will summarize calculate and summarize several metrics from the alignments such"
-        " as mean pairwise identity, mean identity between paralogs and best hits, etc. Empty"
-        " directories will be removed as well as MAFFT logs unless the flag '--keep_all' is enabled."
+        "Now Captus will create copies of the alignnments that will not include the reference"
+        " sequences used as alignment guide and for paralog filtering. Empty directories will be"
+        " removed as well as MAFFT logs unless the flag '--keep_all' is enabled."
     )
+    try:
+        remove_references = bool(any([path for marker in ref_paths
+                                           for path in ref_paths[marker].values()]))
+    except TypeError:
+        remove_references = False
+
+    if remove_references:
+        if Path(out_dir, "02_aligned_unfiltered").exists():
+            fastas_to_rem_refs = fastas_origs_dests(out_dir,
+                                                    "02_aligned_unfiltered",
+                                                    "05_aligned_unfiltered_no_refs")
+            log.log("")
+            log.log(f'{"FASTA files to process":>{mar}}: {bold(len(fastas_to_rem_refs))}')
+            log.log(make_output_dirtree(markers, formats, out_dir,
+                                        "05_aligned_unfiltered_no_refs", mar))
+            log.log("")
+            rem_refs(ref_paths, fastas_to_rem_refs, args.overwrite,
+                     concurrent, args.show_less, run_async=True)
+            log.log("")
+
+        if Path(out_dir, "03_aligned_fast_filter").exists():
+            fastas_to_rem_refs = fastas_origs_dests(out_dir,
+                                                    "03_aligned_fast_filter",
+                                                    "06_aligned_fast_filter_no_refs")
+            log.log("")
+            log.log(f'{"FASTA files to process":>{mar}}: {bold(len(fastas_to_rem_refs))}')
+            log.log(make_output_dirtree(markers, formats, out_dir,
+                                        "06_aligned_fast_filter_no_refs", mar))
+            log.log("")
+            rem_refs(ref_paths, fastas_to_rem_refs, args.overwrite,
+                     concurrent, args.show_less, run_async=True)
+            log.log("")
+
+        if Path(out_dir, "04_aligned_careful_filter").exists():
+            fastas_to_rem_refs = fastas_origs_dests(out_dir,
+                                                    "04_aligned_careful_filter",
+                                                    "07_aligned_careful_filter_no_refs")
+            log.log("")
+            log.log(f'{"FASTA files to process":>{mar}}: {bold(len(fastas_to_rem_refs))}')
+            log.log(make_output_dirtree(markers, formats, out_dir,
+                                        "07_aligned_careful_filter_no_refs", mar))
+            log.log("")
+            rem_refs(ref_paths, fastas_to_rem_refs, args.overwrite,
+                     concurrent, args.show_less, run_async=True)
+            log.log("")
+
     start = time.time()
     reclaimed_bytes = 0
     if not args.keep_all:
@@ -190,6 +289,7 @@ def align(full_command, args):
         for del_file in files_to_delete:
             reclaimed_bytes += del_file.stat().st_size
             del_file.unlink()
+        log.log("")
         log.log(
             f'A total of {len(files_to_delete)} files'
             f' amounting to {reclaimed_bytes / 1024 ** 2:.2f}MB'
@@ -205,14 +305,6 @@ def align(full_command, args):
             del_dir.rmdir()
         except OSError:
             continue
-    log.log("")
-    pairwise_id_params = [(path,) for path in list(Path(out_dir, base_dir).resolve().rglob("*.f[an]a"))]
-    pairwise_ids_file = Path(out_dir, "pairwise_ids.tsv")
-    with open(pairwise_ids_file, "wt") as pids_out:
-        pids_out.write(f"pid\tref\tparalog\tparalog_to_best_hit\tmarker\tformat\tname\n")
-    tqdm_parallel_async_write(pairwise_id, pairwise_id_params, "Calculating parwise identities",
-                              "Identity calculation finished", "alignment", concurrent,
-                              pairwise_ids_file)
     log.log("")
 
 
@@ -278,6 +370,8 @@ def prepare_refs(nuc_refs, ptd_refs, mit_refs, dna_refs, clr_refs, margin, overw
             elif Path(refs).is_file() and is_fasta_nt(refs) is False:
                 aa_path = Path(refs).resolve()
                 aa_msg = bold(aa_path)
+                nt_path = None
+                nt_msg = "not provided"
             elif Path(refs).is_file() and is_fasta_nt(refs) is True:
                 nt_path = Path(refs).resolve()
                 nt_msg = bold(nt_path)
@@ -402,7 +496,7 @@ def prepare_refs(nuc_refs, ptd_refs, mit_refs, dna_refs, clr_refs, margin, overw
         return None
 
 
-def make_output_tree(markers, formats, out_dir, base_dir, margin):
+def make_output_dirtree(markers, formats, out_dir, base_dir, margin):
     """
     Create directory structure to receive extracted markers from all the samples in
     `captus_extractions_dir`, print directory tree created with explanations of the intended content
@@ -530,8 +624,12 @@ def add_refs(ref_path, dest_dir, extension):
         markers_in_ref.append(marker_name)
         fasta_out = Path(dest_dir, f"{marker_name}{extension}")
         if fasta_out.exists():
-            fastas_found.append(marker_name)
-            dict_to_fasta({seq_name: dict(ref_fasta[seq])}, fasta_out, append=True)
+            with open(fasta_out, "rt") as fasta_to_check:
+                for line in fasta_to_check:
+                    if seq in line:
+                        fastas_found.append(marker_name)
+                        dict_to_fasta({seq_name: dict(ref_fasta[seq])}, fasta_out, append=True)
+                        break
     if bool(fastas_found):
         message = (
             f"'{ref_path.name}': {len(set(fastas_found))} markers (out of"
@@ -654,4 +752,184 @@ def rem_refs_from_fasta(fasta_source: Path, fasta_dest: Path, ref_names: list, o
     else:
         message = dim(f"'{fasta_dest_short}': skipped (output FASTA already exists)")
     return message
+
+
+def paralog_fast_filter(fastas_paths, overwrite, concurrent, show_less, run_async):
+    filter_paralogs_fast_params = []
+    for fasta in fastas_paths:
+        filter_paralogs_fast_params.append((
+            fasta,
+            fastas_paths[fasta],
+            overwrite,
+        ))
+    if run_async:
+        tqdm_parallel_async_run(filter_paralogs_fast, filter_paralogs_fast_params,
+                                "Removing potential paralogs from alignments",
+                                "Potential paralog removal completed",
+                                "alignment", concurrent, show_less)
+    else:
+        tqdm_serial_run(filter_paralogs_fast, filter_paralogs_fast_params,
+                        "Removing potential paralogs from alignments",
+                        "Potential paralog removal completed",
+                        "alignment", show_less)
+
+
+def filter_paralogs_fast(fasta_source, fasta_dest, overwrite):
+    start = time.time()
+    fasta_dest_short = Path(*list(fasta_dest.parts)[-3:])
+    fasta_with_paralogs, fasta_without_paralogs = fasta_to_dict(fasta_source), {}
+    if overwrite is True or not fasta_dest.exists():
+        for seq_name in fasta_with_paralogs:
+            if ("hit=00" in fasta_with_paralogs[seq_name]["description"] or
+                "|ref" in seq_name):
+                seq_name_out = seq_name.replace("|00", "")
+                fasta_without_paralogs[seq_name_out] = dict(fasta_with_paralogs[seq_name])
+        dict_to_fasta(fasta_without_paralogs, fasta_dest)
+        message = f"'{fasta_dest_short}': paralogs removed [{elapsed_time(time.time() - start)}]"
+    else:
+        message = dim(f"'{fasta_dest_short}': skipped (output FASTA already exists)")
+    return message
+
+
+def paralog_careful_filter(
+    tmp_dir, fastas_paths, filtering_refs, overwrite, concurrent, show_less, run_async
+):
+    fastas = {}
+    for marker in filtering_refs:
+        for fasta in fastas_paths:
+            if (fasta.parts[-2] == filtering_refs[marker]["format_dir"] and
+                fasta.parts[-3] == filtering_refs[marker]["marker_dir"]):
+                fastas[fasta.stem] = fasta
+
+    filter_paralogs_careful_params = []
+    for marker_name in fastas:
+        fastas_marker = {}
+        for fasta in fastas_paths:
+            if fasta.stem == marker_name and fasta.parts[-3] == fastas[marker_name].parts[-3]:
+                fastas_marker[fasta] = fastas_paths[fasta]
+        filter_paralogs_careful_params.append((
+            tmp_dir,
+            fastas[marker_name],
+            fastas_marker,
+            overwrite
+        ))
+
+    if run_async:
+        tqdm_parallel_async_run(filter_paralogs_careful, filter_paralogs_careful_params,
+                                "Removing potential paralogs from markers",
+                                "Potential paralog removal completed",
+                                "marker", concurrent, show_less)
+    else:
+        tqdm_serial_run(filter_paralogs_careful, filter_paralogs_careful_params,
+                        "Removing potential paralogs from markers",
+                        "Potential paralog removal completed",
+                        "marker", show_less)
+
+
+def filter_paralogs_careful(tmp_dir, fasta_model, fastas_paths, overwrite):
+
+    def calc_pid(s1, s2):
+        s1_start, s2_start = len(s1) - len(s1.lstrip("-")), len(s2) - len(s2.lstrip("-"))
+        s1_end, s2_end = len(s1.rstrip("-")), len(s2.rstrip("-"))
+        overlap_length = min(s1_end, s2_end) - max(s1_start, s2_start)
+        matches = 0
+        if overlap_length > 0:
+            for pos in range(max(s1_start, s2_start), min(s1_end, s2_end)):
+                if s1[pos].upper() == s2[pos].upper():
+                    matches += 1
+            return matches * 100 / overlap_length
+        else:
+            return 0.00
+
+    start = time.time()
+
+    aln = fasta_to_dict(fasta_model, ordered=True)
+    refs = {}
+    for seq in aln:
+        if "query=" in aln[seq]["description"] and "hit=00" in aln[seq]["description"]:
+            ref = aln[seq]["description"].split("query=")[1].split(":")[0]
+            if ref in refs:
+                refs[ref] += 1
+            else:
+                refs[ref] = 1
+    best_ref_full_name = max(refs, key=refs.get)
+    s = settings.REFERENCE_CLUSTER_SEPARATOR
+    best_ref = s.join(best_ref_full_name.split(s)[:-1])
+    best_ref_seq = aln[f"{best_ref}|ref"]["sequence"]
+
+    tsv = []
+    accepted = []
+    for seq in aln:
+        if "|" not in seq or seq.endswith("|ref"):
+            accepted.append(seq)
+
+    samples_with_paralogs = {}
+    for seq in aln:
+        if "|" in seq and not seq.endswith("|ref"):
+            sample_name = "|".join(seq.split("|")[:-1])
+            hit_num = seq.split("|")[-1]
+            if sample_name in samples_with_paralogs:
+                samples_with_paralogs[sample_name][seq] = calc_pid(best_ref_seq, aln[seq]["sequence"])
+            else:
+                samples_with_paralogs[sample_name] = {seq: calc_pid(best_ref_seq, aln[seq]["sequence"])}
+            tsv.append([
+                fasta_model.parts[-3][-3:],                   # marker type
+                fasta_model.parts[-2][-2:],                   # format used for filtering
+                fasta_model.stem,                             # locus name
+                sample_name,                                  # sample name
+                seq,                                          # sequence name
+                hit_num,                                      # hit ranking
+                best_ref_full_name,                           # reference name
+                f"{samples_with_paralogs[sample_name][seq]}", # identity to reference
+                f"{False}",                                   # accepted as ortholog
+            ])
+    for sample in samples_with_paralogs:
+        accepted.append(max(samples_with_paralogs[sample], key=samples_with_paralogs[sample].get))
+
+    for row in tsv:
+        if row[4] in accepted:
+            row[8] = f"{True}"
+
+    with open(Path(tmp_dir, f"{best_ref}.tsv"), "wt") as tsv_out:
+        for row in tsv:
+            tsv_out.write("\t".join(row) + "\n")
+
+    for fasta in fastas_paths:
+        fasta_with_paralogs, fasta_without_paralogs = fasta_to_dict(fasta), {}
+        if overwrite is True or not fastas_paths[fasta].exists():
+            for seq_name in fasta_with_paralogs:
+                if seq_name in accepted:
+                    if seq_name.endswith("|ref") or not "|" in seq_name:
+                        fasta_without_paralogs[seq_name] = fasta_with_paralogs[seq_name]
+                    else:
+                        seq_name_out = "|".join(seq_name.split("|")[:-1])
+                        fasta_without_paralogs[seq_name_out] = fasta_with_paralogs[seq_name]
+            dict_to_fasta(fasta_without_paralogs, fastas_paths[fasta])
+    message = (
+        f"'{fasta_model.parts[-3]}-{fasta_model.stem}': paralogs removed from"
+        f" {len(fastas_paths)} files [{elapsed_time(time.time() - start)}]"
+    )
+    return message
+
+def collect_paralog_stats(out_dir, tmp_dir):
+    tsv_files = sorted(list(Path(tmp_dir).resolve().glob("*.tsv")))
+    if not tsv_files:
+        return red("No paralog filtering statistics files found within sample directories")
+    else:
+        stats_tsv_file = Path(out_dir, "captus-assembly_paralog_filtering.tsv")
+        with open(stats_tsv_file, "wt") as tsv_out:
+            tsv_out.write("\t".join(["marker_type",
+                                     "format_filtered",
+                                     "locus",
+                                     "sample",
+                                     "sequence",
+                                     "hit",
+                                     "ref",
+                                     "identity",
+                                     "accepted"]) + "\n")
+            for file in tsv_files:
+                with open(file, "rt") as tsv_in:
+                    for line in tsv_in:
+                        tsv_out.write(line)
+        return stats_tsv_file
 
