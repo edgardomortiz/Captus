@@ -1400,7 +1400,7 @@ def cleanup_post_extraction(
                             if line.split()[0] not in names_hit_contigs:
                                 names_hit_contigs.append(urllib.parse.unquote(line.split()[0]))
         gff_file_out = Path(annotated_assembly_dir, f"{sample_name}_hit_contigs.gff")
-        with open(gff_file_out, "w") as gff_out:
+        with open(gff_file_out, "wt") as gff_out:
             gff_out.write("".join(gff_lines))
 
         # Concatenate all recovery statistics tables
@@ -1411,6 +1411,7 @@ def cleanup_post_extraction(
                                   "ctg_names", "ctg_strands", "ctg_coords"]) + "\n"
         stats_lines = [stats_header]
         sample_stats = list(sample_dir.resolve().rglob("[A-Z]*_recovery_stats.tsv"))
+        sample_stats = [tsv for tsv in sample_stats if tsv.parts[-2] != "06_assembly_annotated"]
         if sample_stats:
             for table in sample_stats:
                 with open(table, "rt") as stats_in:
@@ -1418,8 +1419,8 @@ def cleanup_post_extraction(
                         if line != stats_header:
                             stats_lines.append(line)
         stats_file_out = Path(annotated_assembly_dir, f"{sample_name}_recovery_stats.tsv")
-        with open(stats_file_out, "w") as stats_out:
-            stats_out.write("".join(stats_lines))
+        with open(stats_file_out, "wt") as tsv_out:
+            tsv_out.write("".join(stats_lines))
 
         # Write FASTAs of contigs with and without hits
         all_contigs = fasta_to_dict(assembly_path, ordered=True)
@@ -1669,11 +1670,12 @@ def filter_clusters(clust_prefix, num_clusters, clust_min_samples):
 
 
 def collect_ext_stats(out_dir):
-    tsv_files = sorted(list(Path(out_dir).resolve().rglob("*_recovery_stats.tsv")))
-    if not tsv_files:
+    samples_stats = sorted(list(Path(out_dir).resolve().rglob("*_recovery_stats.tsv")))
+    samples_stats = [tsv for tsv in samples_stats if tsv.parts[-2] == "06_assembly_annotated"]
+    if not samples_stats:
         return red("No extraction statistics files found within sample directories")
     else:
-        stats_tsv_file = Path(out_dir, "captus-assembly_extract.stats.tsv")
+        stats_file_out = Path(out_dir, "captus-assembly_extract.stats.tsv")
         header = (
             "\t".join(["sample_name", "marker_type", "locus",
                        "ref_name", "ref_coords", "ref_type", "ref_len_matched",
@@ -1681,15 +1683,14 @@ def collect_ext_stats(out_dir):
                        "hit_len", "cds_len", "intron_len", "flanks_len", "frameshifts",
                        "ctg_names", "ctg_strands", "ctg_coords"]) + "\n"
         )
-        with open(stats_tsv_file, "wt") as tsv_out:
+        with open(stats_file_out, "wt") as tsv_out:
             tsv_out.write(header)
-            for file in tsv_files:
-                if file.parts[-2] == "06_assembly_annotated":
-                    with open(file, "rt") as tsv_in:
-                        for line in tsv_in:
-                            if line != header:
-                                tsv_out.write(line)
-        return stats_tsv_file
+            for tsv in samples_stats:
+                with open(tsv, "rt") as tsv_in:
+                    for line in tsv_in:
+                        if line != header:
+                            tsv_out.write(line)
+        return stats_file_out
 
 
 def cleanup_clustering_dir(clustering_dir, clust_prefix, clust_tmp_dir, threads, keep_all):

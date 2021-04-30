@@ -336,7 +336,7 @@ DNA_UP_DOWN_STREAM_BP = 1000
 # if HDD, it may improve with SSDs
 MAX_WRITING_INSTANCES = 16
 
-# Clustering identity percentage, if '--cl_min_identity' is left as 'auto' it becomes 90% of the
+# Clustering identity percentage, if '--cl_min_identity' is left as 'auto' it becomes 98% of the
 # '--dna_min_identity' value
 MMSEQS2_BLAT_DNA_IDENTITY_FACTOR = 0.98
 
