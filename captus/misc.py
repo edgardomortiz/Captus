@@ -263,7 +263,7 @@ def find_and_match_fastqs(reads):
     if type(reads) is not list:
         reads = [reads]
     if len(reads) == 1 and Path(reads[0]).is_dir():
-        reads = [file for file in Path(reads[0]).resolve().glob("*")
+        reads = [file for file in Path(reads[0]).resolve().rglob("*")
                  if has_valid_ext(file, valid_exts)]
     else:
         reads = [Path(file).resolve() for file in reads
@@ -330,6 +330,32 @@ def compress_list_files(files_list, threads):
                                 "Completed 'gzip' compression", "file", t)
 
 
+def execute_jupyter_report(out_dir, jupyter_notebook, title, prefix):
+    start = time.time()
+
+    shutil.copy(jupyter_notebook, Path(out_dir, title))
+    qc_html_report = Path(out_dir, f"{prefix}.report.html")
+    qc_html_report_log = Path(out_dir, f"{prefix}.report.log")
+    nbconvert_cmd = [
+        "jupyter", "nbconvert",
+        "--to", "html",
+        "--execute", f'{Path(out_dir, title)}',
+        "--no-input",
+        "--output", f'{qc_html_report}'
+    ]
+    with open(qc_html_report_log, "wt") as report_log:
+        subprocess.run(nbconvert_cmd, stderr=report_log)
+
+    Path(out_dir, title).unlink()
+
+    if qc_html_report.exists() and qc_html_report.is_file():
+        qc_html_msg = dim(f"Report generated in {elapsed_time(time.time() - start)}")
+    else:
+        qc_html_msg = red(f"Report not generated, verify your Jupyter installation")
+
+    return qc_html_report, qc_html_msg
+
+
 ####################################################################################################
 ################################################################ FUNCTIONS TO VERIFY SOFTWARE STATUS
 def format_dep_msg(dep_text, dep_version, dep_status):
@@ -389,11 +415,14 @@ def megahit_path_version(megahit_path):
     return found_megahit_path, version, "OK"
 
 
-def megahit_toolkit_path(megahit_toolkit_path):
-    found_megahit_toolkit_path = shutil.which(megahit_toolkit_path)
-    if found_megahit_toolkit_path is None:
-        return found_megahit_toolkit_path, "not found"
-    return found_megahit_toolkit_path, "OK"
+def megahit_tk_path_version(megahit_toolkit_path):
+    found_megahit_tk_path = shutil.which(megahit_toolkit_path)
+    if found_megahit_tk_path is None:
+        return found_megahit_tk_path, "not found"
+    command = [found_megahit_tk_path, "dumpversion"]
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    version = process.communicate()[0].decode().strip("\n").split("v")[-1]
+    return found_megahit_tk_path, version, "OK"
 
 
 def scipio_path_version(scipio_path):

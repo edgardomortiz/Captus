@@ -318,31 +318,57 @@ class CaptusAssembly(object):
 
         megahit_group = parser.add_argument_group("MEGAHIT")
         megahit_group.add_argument(
-            "--min_count",
-            action="store",
-            default=1,
-            type=int,
-            dest="min_count",
-            help="Minimum contig depth (a.k.a. multiplicity in MEGAHIT)"
-        )
-        megahit_group.add_argument(
             "--k_list",
             action="store",
-            default="21,29,39,53,71,91,111,131,151",
+            default="31,39,47,63,79,95,111,127,143,159,175",
             type=str,
             dest="k_list",
             help="Comma-separated list of kmer sizes, all must be odd values in the range 15-255,"
-                 " increments of at most 28"
+                 " increments of at most 28. The defaults have been optimized for captured data."
+                 " The final kmer size will be adjusted automatically so it never exceeds the mean"
+                 " read length of the sample by more than 31"
+        )
+        megahit_group.add_argument(
+            "--min_count",
+            action="store",
+            default=2,
+            type=int,
+            dest="min_count",
+            help="Minimum contig depth (a.k.a. multiplicity in MEGAHIT), accepted values are"
+                 " integers >= 1. Reducing it to 1 may increase the amount of low-depth contigs"
+                 " likely produced from reads with errors. Increase above 2 if the data has high"
+                 " and even sequencing depth"
+        )
+        megahit_group.add_argument(
+            "--prune_level",
+            action="store",
+            default=2,
+            type=str,
+            dest="prune_level",
+            help="Strength of prunning for low-coverage edges during graph cleaning. Increasing the"
+                 " default can speed up the assembly at the cost of losing low-depth contigs."
+                 " Accepted values are integers between 0 and 3"
         )
         megahit_group.add_argument(
             "--merge_level",
             action="store",
-            default="20,0.96",
+            default="20,0.95",
             type=str,
             dest="merge_level",
             help="Merge complex bubbles, the first number multiplied by the kmer size represents the"
                  " maximum bubble length to merge, the second number represents the minimum"
                  " similarity required to merge bubbles"
+        )
+        megahit_group.add_argument(
+            "--preset",
+            action="store",
+            type=str,
+            dest="preset",
+            help="B|The defaults work well with either capture or genome-skimming data up to 10M"
+                 " reads. You can assemble RNAseq reads or WGS reads using these presets. Be aware,"
+                 "these will require a minimum of 8GB of RAM to work well.\n"
+                 "RNA = --k-list 27,47,67,87,107,127,147,167 --min-count 2 --prune-level 2\n"
+                 "WGS = --k-list 31,39,51,71,91,111,131,151,171 --min-count 2 --prune-level 2"
         )
         megahit_group.add_argument(
             "--min_contig_len",
@@ -591,7 +617,7 @@ class CaptusAssembly(object):
             type=str,
             dest="ptd_refs",
             help="B|Set of plastidial protein references, options are:\n"
-                 "AngiospermsPTD = A set of Angiosperms plastidial proteins curated by us\n"
+                 "LandPlantsPTD = A set of plastidial proteins for Land Plants, curated by us\n"
                  "Alternatively, provide a path to a FASTA aminoacid file containing your reference"
                  " protein sequences"
         )
@@ -638,7 +664,7 @@ class CaptusAssembly(object):
             type=str,
             dest="mit_refs",
             help="B|Set of mitochondrial protein references, options are:\n"
-                 "AngiospermsMIT = A set of Angiosperms Plants mitochondrial proteins curated by us\n"
+                 "LandPlantsMIT = A set of mitochondrial proteins for Land Plants, curated by us\n"
                  "Alternatively, provide a path to a FASTA aminoacid file containing your reference"
                  " protein sequences"
         )
@@ -906,7 +932,7 @@ class CaptusAssembly(object):
         input_group.add_argument(
             "-f", "--formats",
             action="store",
-            default="aa,nt,ge,ma",
+            default="AA,NT,GE,MA",
             type=str,
             dest="formats",
             help="B|Which alignment format(s) to prepare for each marker category, you can provide a"
@@ -926,9 +952,11 @@ class CaptusAssembly(object):
             action="store",
             type=str,
             dest="nuc_refs",
-            help="B|Set of nuclear protein references. These will be used as guides for alignment"
-                 " and removed from the final alignment files. Options are:\n"
-                 "Angiosperms353 = The set of target proteins from Angiosperms353\n"
+            help="B|Set of nuclear protein references. These will be used as guides for"
+                 " alignment and removed from the final alignment files. The references are also"
+                 " used when the 'careful' method for paralog removal is chosen. Options are:\n"
+                 "Angiosperms353 = The original set of target proteins from Angiosperms353\n"
+                 "Mega353 = The improved set of target proteins from Angiosperms353\n"
                  "PathAA,PathNT = Paths to protein reference set both in aminoacids and nucleotides"
                  " separated by a comma, no spaces (e.g.: ref.faa,ref.fna)\n"
                  "PathNT,transtable = Path to protein reference set in nucleotides, followed by the"
@@ -942,9 +970,10 @@ class CaptusAssembly(object):
             action="store",
             type=str,
             dest="ptd_refs",
-            help="B|Set of plastidial protein references. These will be used as guides for alignment"
-                 " and removed from the final alignment files. Options are:\n"
-                 "AngiospermsPTD = A set of Angiosperms Plants plastidial proteins curated by us\n"
+            help="B|Set of plastidial protein references. These will be used as guides for"
+                 " alignment and removed from the final alignment files. The references are also"
+                 " used when the 'careful' method for paralog removal is chosen. Options are:\n"
+                 "LandPlantsPTD = A set of plastidial proteins for Land Plants, curated by us\n"
                  "PathAA,PathNT = paths to protein reference set both in aminoacids and nucleotides"
                  " separated by a comma, no spaces (e.g.: ref.faa,ref.fna)\n"
                  "PathNT,transtable = Path to protein reference set in nucleotides, followed by the"
@@ -959,8 +988,9 @@ class CaptusAssembly(object):
             type=str,
             dest="mit_refs",
             help="B|Set of mitochondrial protein references. These will be used as guides for"
-                 " alignment and removed from the final alignment files. Options are:\n"
-                 "AngiospermsMIT = A set of Angiosperms Plants mitochondrial proteins curated by us\n"
+                 " alignment and removed from the final alignment files. The references are also"
+                 " used when the 'careful' method for paralog removal is chosen. Options are:\n"
+                 "LandPlantsMIT = A set of mitochondrial proteins for Land Plants, curated by us\n"
                  "PathAA,PathNT = paths to protein reference set both in aminoacids and nucleotides"
                  " separated by a comma, no spaces (e.g.: ref.faa,ref.fna)\n"
                  "PathNT,transtable = Path to protein reference set in nucleotides, followed by the"
@@ -984,6 +1014,25 @@ class CaptusAssembly(object):
             dest="clr_refs",
             help="Path to the FASTA reference file of cluster representatives. These will be used as"
                  " guides for alignment and removed from the final alignment files."
+        )
+
+        paralog_group = parser.add_argument_group("Paralog filtering")
+        paralog_group.add_argument(
+            "--filter_method",
+            action="store",
+            choices=["fast", "careful", "both"],
+            default="both",
+            type=str,
+            dest="filter_method",
+            help="B|Methods for filtering paralogous sequences:\n"
+                 "fast = Only the best hit for each sample (marked as hit=00) is retained\n"
+                 "careful = Only keep the copy (regardless of hit ranking) that is most similar to"
+                 " the reference sequence that was chosen most frequently among all other samples"
+                 " in the alignment. To use this method, the names of the references used for marker"
+                 " extraction must be provided with '--nuc_refs', and/or '--ptd_refs', and/or"
+                 " '--mit_refs\n"
+                 "both = Two separate folders will be created, each containing the results from each"
+                 " filtering method"
         )
 
         mafft_group = parser.add_argument_group("MAFFT")

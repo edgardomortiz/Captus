@@ -24,13 +24,16 @@ FASTA_VALID_EXTENSIONS = [".fa", ".fna", ".fasta", ".fa.gz", ".fna.gz", ".fasta.
 FASTQ_VALID_EXTENSIONS = [".fq", ".fastq", ".fq.gz", ".fastq.gz"]
 
 # Fraction of total RAM available to Captus when using 'auto' in --ram
-RAM_FRACTION = 0.98
+RAM_FRACTION = 0.99
 
 # Path to this file:
 SETTINGS_ASSEMBLY_PATH = Path(__file__).resolve()
 
 # Data directory
 DATA_DIR = Path(SETTINGS_ASSEMBLY_PATH.parent.parent, "data")
+
+# Code directory
+CODE_DIR = Path(SETTINGS_ASSEMBLY_PATH.parent.parent, "captus")
 
 # FASTA file of Illumina adaptors
 ILLUMINA_ADAPTORS = Path(DATA_DIR, "adaptors_illumina.fasta")
@@ -47,8 +50,11 @@ PHIX_REF_GENOME = Path(DATA_DIR, "phix174_ill.ref.fa.gz")
 # FASTA file of sequencing artifacts
 SEQUENCING_ARTIFACTS = Path(DATA_DIR, "sequencing_artifacts.fasta")
 
-# R Markdown to generate Sequence Quality Reports
-CAPTUS_QC_RMD_REPORT = Path(DATA_DIR, "captus-assembly_clean.Rmd")
+# Jupyter Notebok to generate Sequence Quality Report
+CAPTUS_QC_REPORT = Path(CODE_DIR, "cleaning_report.ipynb")
+
+# Jupyter Notebok to generate Marker Extraction Report
+CAPTUS_EXTRACTION_REPORT = Path(CODE_DIR, "extraction_report.ipynb")
 
 # Keep reads with a minimum length of this value after trimming, for the adaptor removal stage and
 # the quality filtering/trimming stage
@@ -72,10 +78,10 @@ BBDUK_ADAPTOR_ROUND2_HDIST = 1
 # Minimum K-mer size for second round of adaptor cleaning
 BBDUK_ADAPTOR_ROUND2_MINK = 9
 
-# K-mer size for contaminant filtering during qulity filtering and trimming
+# K-mer size for contaminant filtering during quality filtering and trimming
 BBDUK_QUALITY_K = 31
 
-# Hamming distance for contaminant filtering during qulity filtering and trimming
+# Hamming distance for contaminant filtering during quality filtering and trimming
 BBDUK_QUALITY_HDIST = 1
 
 # Trim reads' low-quality nucleotides from these directions l=left, r=right, lr=both
@@ -99,23 +105,26 @@ NUM_READS_TO_CALCULATE_MEAN_READ_LENGTH = 100000
 
 # Include largest kmer sizes in MEGAHIT's 'k_list' if they are at most this larger than the mean
 # read length of the input FASTQs
-DELTA_MEAN_READ_LENGTH_TO_MAX_KMER_SIZE = 40
-
-# MEGAHIT's '--bubble-level' parameter, apparently reducing the merging level of the bubbles can
-# lead to longer contigs, MEGAHIT's default is 2, we try experimentally 1
-MEGAHIT_BUBBLE_LEVEL = 1
-
-# MEGAHIT's '--prune-level' parameter, since the data is not metagenomic we should use 3 to recover
-# longer contigs
-MEGAHIT_PRUNE_LEVEL = 3
-
-# MEGAHIT's '--prune-depth' parameter, the default is sqrt(median_of_kmer_depth) when '--prune-level'
-# is set to 3, this results in low coverage contigs being removed too aggresively, to recover as
-# much assembled sequence as possible set to 1
-MEGAHIT_PRUNE_DEPTH = 1
+DELTA_MEAN_READ_LENGTH_TO_MAX_KMER_SIZE = 31
 
 # Minimum RAM in bytes for a MEGAHIT assembly
 MEGAHIT_MIN_RAM_B = 4 * 1024 ** 3
+
+# Presets for MEGAHIT assemblies of RNAseq and WGS
+MEGAHIT_PRESETS = {
+    "RNA": {
+        "k_list": "27,47,67,87,107,127,147,167",
+        "min_count": 2,
+        "prune_level": 2,
+        "min_ram_B": 8 * 1024 ** 3, # 8GB
+    },
+    "WGS": {
+        "k_list": "31,39,51,71,91,111,131,151,171",
+        "min_count": 2,
+        "prune_level": 2,
+        "min_ram_B": 8 * 1024 ** 3, # 8GB
+    },
+}
 
 # Minimum number of threads for a MEGAHIT assembly
 MEGAHIT_MIN_THREADS = 4
@@ -161,15 +170,15 @@ PROT_REFS = {
         },
     },
     "PTD": {
-        "angiospermsptd": {
-            "AA": Path(DATA_DIR, "AngiospermsPTD.FAA"),
-            "NT": "",
+        "landplantsptd": {
+            "AA": Path(DATA_DIR, "LandPlantsPTD.FAA"),
+            "NT": Path(DATA_DIR, "LandPlantsPTD.FNA"),
         },
     },
     "MIT": {
-        "angiospermsmit": {
-            "AA": Path(DATA_DIR, "AngiospermsMIT.FAA"),
-            "NT": "",
+        "landplantsmit": {
+            "AA": Path(DATA_DIR, "LandPlantsMIT.FAA"),
+            "NT": Path(DATA_DIR, "LandPlantsMIT.FNA"),
         },
     }
 }
@@ -230,7 +239,7 @@ FORMAT_DIRS = {
 TRANSLATED_REF_SUFFIX = ".captus.faa"
 
 # Valid combinations of marker directories and format directories
-VALID_MARKER_FORMAT_COMBO = [(m, f) for m in ["NUC","PTD","MIT"] for f in ["AA","NT","GE","GF"]]
+VALID_MARKER_FORMAT_COMBO =  [(m, f) for m in ["NUC","PTD","MIT"] for f in ["AA","NT","GE","GF"]]
 VALID_MARKER_FORMAT_COMBO += [(m, f) for m in ["DNA","CLR"] for f in ["MA","MF"]]
 
 # Scipio's initial round will run with 'min_score' multiplied by this factor
@@ -253,9 +262,9 @@ SCIPIO_BLAT_IDENTITY_FACTOR = 0.9
 
 # Default Genetic Codes to set Scipio's --transtable
 DEFAULT_GENETIC_CODES = {
-    "NUC": {"id": 1, "name": "Standard"},
+    "NUC": {"id":  1, "name": "Standard"},
     "PTD": {"id": 11, "name": "Bacterial, Archaeal and Plant Plastid"},
-    "MIT": {"id": 1, "name": "Standard"}
+    "MIT": {"id":  1, "name": "Standard"}
 }
 
 # Divergent genetic codes that will need a lower 'SCIPIO_BLAT_IDENTITY_FACTOR' for BLAT to find hits
@@ -266,6 +275,7 @@ DIVERGENT_GENETIC_CODES = [2, 3, 5, 9, 12, 13, 14, 21, 24, 26, 33]
 SCIPIO_MAX_IDENTITY_DIV_CODE = 66
 
 # Extra settings for the final round of Scipio according to the genome of the genes
+# Always keep 'gap_to_close' <= 21 or reconstruction of genes across several contigs breaks down
 SCIPIO_GENOME_SETTINGS = {
     # Change here the settings for nuclear genes:
     "NUC": [
@@ -275,9 +285,8 @@ SCIPIO_GENOME_SETTINGS = {
         "--blat_tilesize=6",
         "--exhaust_align_size=5000",
         "--exhaust_gap_size=21",
-        # "--min_dna_coverage=0.2",
         "--max_move_exon=6",
-        "--gap_to_close=21", # keep <=21 or it breaks reconstruction across several contigs
+        "--gap_to_close=21",
     ],
     # Change here the settings for plastidial genes:
     "PTD": [
@@ -287,7 +296,6 @@ SCIPIO_GENOME_SETTINGS = {
         "--blat_tilesize=6",
         "--exhaust_align_size=9000",
         "--exhaust_gap_size=21",
-        # "--min_dna_coverage=0.2",
         "--max_move_exon=6",
         "--gap_to_close=21",
     ],
@@ -299,7 +307,6 @@ SCIPIO_GENOME_SETTINGS = {
         "--blat_tilesize=6",
         "--exhaust_align_size=9000",
         "--exhaust_gap_size=21",
-        # "--min_dna_coverage=0.2",
         "--max_move_exon=6",
         "--gap_to_close=21",
     ],
