@@ -20,7 +20,7 @@ from threading import Timer
 
 from . import log
 from . import settings_assembly as settings
-from .bioformats import dict_to_fasta, fasta_to_dict, is_fasta_nt, pairwise_id, translate_fasta_dict
+from .bioformats import dict_to_fasta, fasta_to_dict, is_fasta_nt, translate_fasta_dict
 from .misc import (bold, dim, elapsed_time, format_dep_msg, is_dir_empty, mafft_path_version,
                    make_output_dir, quit_with_error, red, set_ram, set_threads,
                    tqdm_parallel_async_run, tqdm_parallel_async_write, tqdm_serial_run)
@@ -911,10 +911,11 @@ def filter_paralogs_careful(tmp_dir, fasta_model, fastas_paths, overwrite):
     )
     return message
 
+
 def collect_paralog_stats(out_dir, tmp_dir):
     tsv_files = sorted(list(Path(tmp_dir).resolve().glob("*.tsv")))
     if not tsv_files:
-        return red("No paralog filtering statistics files found within sample directories")
+        return red("No paralog filtering statistics files found...")
     else:
         stats_tsv_file = Path(out_dir, "captus-assembly_paralog_filtering.tsv")
         with open(stats_tsv_file, "wt") as tsv_out:
