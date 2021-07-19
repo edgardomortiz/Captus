@@ -50,12 +50,6 @@ PHIX_REF_GENOME = Path(DATA_DIR, "phix174_ill.ref.fa.gz")
 # FASTA file of sequencing artifacts
 SEQUENCING_ARTIFACTS = Path(DATA_DIR, "sequencing_artifacts.fasta")
 
-# Jupyter Notebok to generate Sequence Quality Report
-CAPTUS_QC_REPORT = Path(CODE_DIR, "cleaning_report.ipynb")
-
-# Jupyter Notebok to generate Marker Extraction Report
-CAPTUS_EXTRACTION_REPORT = Path(CODE_DIR, "extraction_report.ipynb")
-
 # Keep reads with a minimum length of this value after trimming, for the adaptor removal stage and
 # the quality filtering/trimming stage
 BBDUK_MIN_LENGTH = 21
@@ -99,6 +93,21 @@ FASTQC_MAX_INSTANCES = 16
 
 # Compression level for subsampled FASTQ files
 REFORMAT_ZIPLEVEL = 5
+
+# File names for QC extra tables with statistics
+QC_FILES = {
+    "REBA": "reads_bases.tsv",
+    "ADR1": "adaptors_round1.tsv",
+    "ADR2": "adaptors_round2.tsv",
+    "CONT": "contaminants.tsv",
+    "PBSQ": "per_base_seq_qual.tsv",
+    "PSQS": "per_seq_qual_scores.tsv",
+    "PBSC": "per_base_seq_content.tsv",
+    "PSGC": "per_seq_gc_content.tsv",
+    "SLEN": "seq_len_dist.tsv",
+    "SDUP": "seq_dup_levels.tsv",
+    "ADCO": "adaptor_content.tsv",
+}
 
 # Caculate the average read length of a FASTQ with this many reads
 NUM_READS_TO_CALCULATE_MEAN_READ_LENGTH = 100000
@@ -165,20 +174,20 @@ PROT_REFS = {
             "NT": Path(DATA_DIR, "Angiosperms353.FNA"),
         },
         "mega353": {
-            "AA": Path(DATA_DIR, "Mega353.FAA"),
-            "NT": Path(DATA_DIR, "Mega353.FNA"),
+            "AA": Path(DATA_DIR, "Mega353_centroids80.FAA"),
+            "NT": Path(DATA_DIR, "Mega353_centroids80.FNA"),
         },
     },
     "PTD": {
-        "landplantsptd": {
-            "AA": Path(DATA_DIR, "LandPlantsPTD.FAA"),
-            "NT": Path(DATA_DIR, "LandPlantsPTD.FNA"),
+        "seedplantsptd": {
+            "AA": Path(DATA_DIR, "SeedPlantsPTD.FAA"),
+            "NT": Path(DATA_DIR, "SeedPlantsPTD.FNA"),
         },
     },
     "MIT": {
-        "landplantsmit": {
-            "AA": Path(DATA_DIR, "LandPlantsMIT.FAA"),
-            "NT": Path(DATA_DIR, "LandPlantsMIT.FNA"),
+        "seedplantsmit": {
+            "AA": Path(DATA_DIR, "SeedPlantsMIT.FAA"),
+            "NT": Path(DATA_DIR, "SeedPlantsMIT.FNA"),
         },
     }
 }
@@ -193,9 +202,6 @@ DEPS_DIR = Path(Path(__file__).resolve().parent.parent, "dependencies")
 
 # Bundled Scipio v1.4.1 path
 BUNDLED_SCIPIO = Path(DEPS_DIR, "scipio-1.4", "scipio.1.4.1.pl")
-
-# Bundled Scipio v1.4.1 path
-BUNDLED_SCIPIO_YAML2GFF = Path(DEPS_DIR, "scipio-1.4", "yaml2gff.1.4.pl")
 
 # Bundled BLAT >= v36x7 path
 os_type = platform.system()
@@ -238,12 +244,17 @@ FORMAT_DIRS = {
 # Translated protein reference suffix
 TRANSLATED_REF_SUFFIX = ".captus.faa"
 
+# JSON with paths to references filename
+JSON_REFS = "captus-assembly_extract.refs.json"
+
 # Valid combinations of marker directories and format directories
 VALID_MARKER_FORMAT_COMBO =  [(m, f) for m in ["NUC","PTD","MIT"] for f in ["AA","NT","GE","GF"]]
 VALID_MARKER_FORMAT_COMBO += [(m, f) for m in ["DNA","CLR"] for f in ["MA","MF"]]
 
 # Scipio's initial round will run with 'min_score' multiplied by this factor
-SCIPIO_SCORE_INITIAL_FACTOR = 0.9
+# Empirically, we observed that a score of 0.14 in the first round gave good results, so it is no
+# longer necessary to use a lower socre for the first round of Scipio
+SCIPIO_SCORE_INITIAL_FACTOR = 1.0
 
 # Scipio's accepted intron penalty controls what types of intron borders are accepted:
 # 1.0 = GT--AG, GC--AG
@@ -274,41 +285,59 @@ DIVERGENT_GENETIC_CODES = [2, 3, 5, 9, 12, 13, 14, 21, 24, 26, 33]
 # Scipio's maximum identity when using a divergent genetic code
 SCIPIO_MAX_IDENTITY_DIV_CODE = 66
 
-# Extra settings for the final round of Scipio according to the genome of the genes
-# Always keep 'gap_to_close' <= 21 or reconstruction of genes across several contigs breaks down
-SCIPIO_GENOME_SETTINGS = {
+# Basic Scipio setting that are genome-specific, more importantly make BLAT parameters more
+# restrictive in total assembly size and maximum intron sizes
+SCIPIO_GENOME_BASIC_SETTINGS = {
     # Change here the settings for nuclear genes:
     "NUC": [
-        "--max_assemble_size=75000",
-        "--region_size=1000",
-        "--blat_params=-oneOff=1",
-        "--blat_tilesize=6",
-        "--exhaust_align_size=5000",
-        "--exhaust_gap_size=21",
-        "--max_move_exon=6",
-        "--gap_to_close=21",
     ],
     # Change here the settings for plastidial genes:
     "PTD": [
-        "--max_assemble_size=9000",
         "--region_size=0",
-        "--blat_params=-oneOff=1",
-        "--blat_tilesize=6",
-        "--exhaust_align_size=9000",
-        "--exhaust_gap_size=21",
-        "--max_move_exon=6",
-        "--gap_to_close=21",
+        "--blat_params=-maxIntron=2000",
+        "--max_assemble_size=9000",
     ],
     # Change here the settings for mitochondrial genes:
     "MIT": [
-        "--max_assemble_size=9000",
         "--region_size=0",
+        "--blat_params=-maxIntron=9000",
+        "--max_assemble_size=50000",
+    ],
+}
+
+# Extra settings for the final round of Scipio according to the genome of the genes
+# Always keep 'gap_to_close' <= 21 or reconstruction of genes across several contigs breaks down
+SCIPIO_GENOME_EXTRA_SETTINGS = {
+    # Change here the settings for nuclear genes:
+    "NUC": [
         "--blat_params=-oneOff=1",
         "--blat_tilesize=6",
+        "--exhaust_align_size=5000",
+        "--exhaust_gap_size=500",
+        "--max_move_exon=10",
+    ],
+    # Change here the settings for plastidial genes:
+    "PTD": [
+        "--region_size=0",
+        "--blat_params=-oneOff=1 -maxIntron=2000",
+        "--blat_tilesize=6",
+        "--exhaust_align_size=2000",
+        "--exhaust_gap_size=900",
+        "--max_assemble_size=9000",
+        "--min_intron_len=500",
+        "--max_move_exon=10",
+        "--gap_to_close=120",
+    ],
+    # Change here the settings for mitochondrial genes:
+    "MIT": [
+        "--region_size=0",
+        "--blat_params=-oneOff=1 -maxIntron=9000",
+        "--blat_tilesize=6",
         "--exhaust_align_size=9000",
-        "--exhaust_gap_size=21",
-        "--max_move_exon=6",
-        "--gap_to_close=21",
+        "--exhaust_gap_size=900",
+        "--max_assemble_size=50000",
+        "--max_move_exon=10",
+        "--gap_to_close=120",
     ],
 }
 
@@ -367,6 +396,10 @@ MMSEQS2_COV_MODE = 1
 # sample (500*0.3)+21 = 171 kmers from that sequence
 MMSEQS2_KMER_PER_SEQ_SCALE = 0.3
 
+# A cluster must have at least this proportion of the total number of samples to be used as
+# reference
+CLR_MIN_SAMPLE_PROP = 0.3
+
 # GFF feature colors, Okabe & Ito palette
 GFF_COLORS = {
     "NUC": "#e69f00",  # orange
@@ -376,8 +409,25 @@ GFF_COLORS = {
     "CLR": "#cc79a7",  # purple
 }
 
+# Alignment output folders
+ALN_DIRS = {
+    "UNAL": "01_unaligned",
+    "ALND": "02_aligned_untrimmed",
+    "TRIM": "03_aligned_trimmed",
+    "UNFI": "01_unfiltered",
+    "FAST": "02_fast",
+    "CARE": "03_careful",
+    "NREF": "04_unfiltered_no_refs",
+    "NRFA": "05_fast_no_refs",
+    "NRCA": "06_careful_no_refs",
+}
+
 # MAFFT algorithms choices to real MAFFT syntax translation
 MAFFT_ALGORITHMS = {
+    "auto": {
+        "arg": "--auto",
+        "aka": "(a.k.a. Automatic)"
+    },
     "genafpair": {
         "arg": "--genafpair",
         "aka": "(a.k.a. E-INS-i)"
@@ -399,3 +449,6 @@ MAFFT_ALGORITHMS = {
         "aka": "(a.k.a. FFT-NS-2)"
     },
 }
+
+# Minimum of sequences allowed in an alignment
+MIN_SAMPLES_ALN = 3

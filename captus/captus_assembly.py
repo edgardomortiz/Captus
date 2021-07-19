@@ -228,6 +228,12 @@ class CaptusAssembly(object):
             help="Enable for less verbose screen printout. Specifically, individual sample "
             "information will no longer be shown (but it will still be logged)"
         )
+        other_group.add_argument(
+            "--debug",
+            action="store_true",
+            dest="debug",
+            help="Enable debugging mode, parallelization is disabled so errors are logged to screen"
+        )
 
         help_group = parser.add_argument_group("Help")
         help_group.add_argument(
@@ -343,10 +349,10 @@ class CaptusAssembly(object):
             "--prune_level",
             action="store",
             default=2,
-            type=str,
+            type=int,
             dest="prune_level",
             help="Strength of prunning for low-coverage edges during graph cleaning. Increasing the"
-                 " default can speed up the assembly at the cost of losing low-depth contigs."
+                 " value beyond 2 can speed up the assembly at the cost of losing low-depth contigs."
                  " Accepted values are integers between 0 and 3"
         )
         megahit_group.add_argument(
@@ -451,6 +457,12 @@ class CaptusAssembly(object):
             dest="show_less",
             help="Enable for less verbose screen printout. Specifically, individual sample "
             "information will no longer be shown (but it will still be logged)"
+        )
+        other_group.add_argument(
+            "--debug",
+            action="store_true",
+            dest="debug",
+            help="Enable debugging mode, parallelization is disabled so errors are logged to screen"
         )
 
         help_group = parser.add_argument_group("Help")
@@ -571,21 +583,22 @@ class CaptusAssembly(object):
             help="B|Set of nuclear protein references, options are:\n"
                  "Angiosperms353 = The original set of target proteins from Angiosperms353\n"
                  "Mega353 = The improved set of target proteins from Angiosperms353\n"
-                 "Alternatively, provide a path to a FASTA aminoacid file containing your reference"
-                 " protein sequences"
+                 "Alternatively, provide a path to a FASTA file containing your reference protein"
+                 " sequences in either nucleotide or aminoacid. When the FASTA file is in"
+                 " nucleotides, '--nuc_transtable' will be used to translate it to aminoacids"
         )
         scipio_nuc_group.add_argument(
             "--nuc_min_score",
             action="store",
-            default=0.3,
+            default=0.12,
             type=float,
             dest="nuc_min_score",
-            help="Minimum Scipio score to retain hits to reference proteins"
+            help="Minimum Scipio score to retain hits to reference proteins."
         )
         scipio_nuc_group.add_argument(
             "--nuc_min_identity",
             action="store",
-            default=60,
+            default=55,
             type=float,
             dest="nuc_min_identity",
             help="Minimum identity percentage to retain hits to reference proteins"
@@ -593,7 +606,7 @@ class CaptusAssembly(object):
         scipio_nuc_group.add_argument(
             "--nuc_min_coverage",
             action="store",
-            default=30,
+            default=20,
             type=float,
             dest="nuc_min_coverage",
             help="Minimum coverage percentage of reference protein to consider a hit by a contig"
@@ -617,14 +630,15 @@ class CaptusAssembly(object):
             type=str,
             dest="ptd_refs",
             help="B|Set of plastidial protein references, options are:\n"
-                 "LandPlantsPTD = A set of plastidial proteins for Land Plants, curated by us\n"
-                 "Alternatively, provide a path to a FASTA aminoacid file containing your reference"
-                 " protein sequences"
+                 "SeedPlantsPTD = A set of plastidial proteins for Seed Plants, curated by us\n"
+                 "Alternatively, provide a path to a FASTA file containing your reference protein"
+                 " sequences in either nucleotide or aminoacid. When the FASTA file is in"
+                 " nucleotides, '--ptd_transtable' will be used to translate it to aminoacids"
         )
         scipio_ptd_group.add_argument(
             "--ptd_min_score",
             action="store",
-            default=0.3,
+            default=0.2,
             type=float,
             dest="ptd_min_score",
             help="Minimum Scipio score to retain hits to reference proteins"
@@ -632,7 +646,7 @@ class CaptusAssembly(object):
         scipio_ptd_group.add_argument(
             "--ptd_min_identity",
             action="store",
-            default=70,
+            default=65,
             type=float,
             dest="ptd_min_identity",
             help="Minimum identity percentage to retain hits to reference proteins"
@@ -640,7 +654,7 @@ class CaptusAssembly(object):
         scipio_ptd_group.add_argument(
             "--ptd_min_coverage",
             action="store",
-            default=30,
+            default=20,
             type=float,
             dest="ptd_min_coverage",
             help="Minimum coverage percentage of reference protein to consider a hit by a contig"
@@ -664,14 +678,15 @@ class CaptusAssembly(object):
             type=str,
             dest="mit_refs",
             help="B|Set of mitochondrial protein references, options are:\n"
-                 "LandPlantsMIT = A set of mitochondrial proteins for Land Plants, curated by us\n"
-                 "Alternatively, provide a path to a FASTA aminoacid file containing your reference"
-                 " protein sequences"
+                 "SeedPlantsMIT = A set of mitochondrial proteins for Seed Plants, curated by us\n"
+                 "Alternatively, provide a path to a FASTA file containing your reference protein"
+                 " sequences in either nucleotide or aminoacid. When the FASTA file is in"
+                 " nucleotides, '--mit_transtable' will be used to translate it to aminoacids"
         )
         scipio_mit_group.add_argument(
             "--mit_min_score",
             action="store",
-            default=0.3,
+            default=0.2,
             type=float,
             dest="mit_min_score",
             help="Minimum Scipio score to retain hits to reference proteins"
@@ -679,7 +694,7 @@ class CaptusAssembly(object):
         scipio_mit_group.add_argument(
             "--mit_min_identity",
             action="store",
-            default=80,
+            default=65,
             type=float,
             dest="mit_min_identity",
             help="Minimum identity percentage to retain hits to reference proteins"
@@ -687,7 +702,7 @@ class CaptusAssembly(object):
         scipio_mit_group.add_argument(
             "--mit_min_coverage",
             action="store",
-            default=30,
+            default=20,
             type=float,
             dest="mit_min_coverage",
             help="Minimum coverage percentage of reference protein to consider a hit by a contig"
@@ -723,7 +738,7 @@ class CaptusAssembly(object):
         non_coding_group.add_argument(
             "--dna_min_coverage",
             action="store",
-            default=30,
+            default=20,
             type=float,
             dest="dna_min_coverage",
             help="Minimum coverage percentage of reference sequence to retain matches"
@@ -780,11 +795,11 @@ class CaptusAssembly(object):
         mmseqs2_group.add_argument(
             "--cl_max_seq_len",
             action="store",
-            default=65535,
+            default=5000,
             type=int,
             dest="cl_max_seq_len",
-            help="Do not cluster sequences longer than this length in bp, the default is the maximum"
-                 " allowed by MMseqs2 (default: 65535)"
+            help="Do not cluster sequences longer than this length in bp, the maximum allowed by"
+                 " MMseqs2 is 65535"
         )
         mmseqs2_group.add_argument(
             "--cl_tmp_dir",
@@ -793,16 +808,17 @@ class CaptusAssembly(object):
             type=str,
             dest="cl_tmp_dir",
             help="Where to create the temporary directory 'captus_mmseqs2_tmp' for MMseqs2."
-                " Clustering can become slow when done on external drives, set this location to a"
-                " fast, preferably local, drive"
+                 " Clustering can become slow when done on external drives, set this location to a"
+                 " fast, preferably local, drive"
         )
         mmseqs2_group.add_argument(
             "--cl_min_samples",
             action="store",
-            default=4,
-            type=int,
+            default="auto",
+            type=str,
             dest="cl_min_samples",
-            help="Minimum number of samples per cluster, the minimum for phylogeny estimation is 4"
+            help="Minimum number of samples per cluster, if set to 'auto' the number is adjusted to"
+                 f" {settings.CLR_MIN_SAMPLE_PROP:.0%}% of the total number of samples or at least 4"
         )
 
         other_group = parser.add_argument_group("Other")
@@ -865,6 +881,12 @@ class CaptusAssembly(object):
             dest="show_less",
             help="Enable for less verbose screen printout. Specifically, individual sample "
             "information will no longer be shown (but it will still be logged)"
+        )
+        other_group.add_argument(
+            "--debug",
+            action="store_true",
+            dest="debug",
+            help="Enable debugging mode, parallelization is disabled so errors are logged to screen"
         )
 
         help_group = parser.add_argument_group("Help")
@@ -973,7 +995,7 @@ class CaptusAssembly(object):
             help="B|Set of plastidial protein references. These will be used as guides for"
                  " alignment and removed from the final alignment files. The references are also"
                  " used when the 'careful' method for paralog removal is chosen. Options are:\n"
-                 "LandPlantsPTD = A set of plastidial proteins for Land Plants, curated by us\n"
+                 "SeedPlantsPTD = A set of plastidial proteins for Seed Plants, curated by us\n"
                  "PathAA,PathNT = paths to protein reference set both in aminoacids and nucleotides"
                  " separated by a comma, no spaces (e.g.: ref.faa,ref.fna)\n"
                  "PathNT,transtable = Path to protein reference set in nucleotides, followed by the"
@@ -990,7 +1012,7 @@ class CaptusAssembly(object):
             help="B|Set of mitochondrial protein references. These will be used as guides for"
                  " alignment and removed from the final alignment files. The references are also"
                  " used when the 'careful' method for paralog removal is chosen. Options are:\n"
-                 "LandPlantsMIT = A set of mitochondrial proteins for Land Plants, curated by us\n"
+                 "SeedPlantsMIT = A set of mitochondrial proteins for Seed Plants, curated by us\n"
                  "PathAA,PathNT = paths to protein reference set both in aminoacids and nucleotides"
                  " separated by a comma, no spaces (e.g.: ref.faa,ref.fna)\n"
                  "PathNT,transtable = Path to protein reference set in nucleotides, followed by the"
@@ -1006,14 +1028,6 @@ class CaptusAssembly(object):
             dest="dna_refs",
             help="Path to a FASTA nucleotide file of miscellaneous DNA references. These will be"
                  " used as guides for alignment and removed from the final alignment files."
-        )
-        input_group.add_argument(
-            "-c", "--clr_refs",
-            action="store",
-            type=str,
-            dest="clr_refs",
-            help="Path to the FASTA reference file of cluster representatives. These will be used as"
-                 " guides for alignment and removed from the final alignment files."
         )
 
         paralog_group = parser.add_argument_group("Paralog filtering")
@@ -1039,8 +1053,15 @@ class CaptusAssembly(object):
         mafft_group.add_argument(
             "--mafft_algorithm",
             action="store",
-            choices=["genafpair", "localpair", "globalpair", "retree1", "retree2"],
-            default="genafpair",
+            choices=[
+                "auto",
+                "genafpair",
+                "localpair",
+                "globalpair",
+                "retree1",
+                "retree2",
+            ],
+            default="auto",
             type=str,
             dest="mafft_algorithm",
             help="MAFFT's algorithm, see"
@@ -1053,6 +1074,37 @@ class CaptusAssembly(object):
             type=int,
             dest="mafft_timeout",
             help="Maximum allowed time in seconds for a single alignment"
+        )
+
+        clipkit_group = parser.add_argument_group("ClipKIT")
+        clipkit_group.add_argument(
+            "--clipkit_algorithm",
+            action="store",
+            choices=[
+                "smart-gap",
+                "gappy",
+                "kpic",
+                "kpic-smart-gap",
+                "kpic-gappy",
+                "kpi",
+                "kpi-smart-gap",
+                "kpi-gappy",
+            ],
+            default="smart-gap",
+            type=str,
+            dest="clipkit_algorithm",
+            help="ClipKIT's algorithm, see"
+                 " https://jlsteenwyk.com/ClipKIT/advanced/index.html#modes"
+        )
+        clipkit_group.add_argument(
+            "--clipkit_gaps",
+            action="store",
+            default=0.9,
+            type=float,
+            dest="clipkit_gaps",
+            help="Gappynes threshold per position. Accepted values between 0 and 1. This argument is"
+                 " ignored when using the 'kpi' and 'kpic' algorithms or intermediate steps that use"
+                 " 'smart-gap'"
         )
 
         output_group = parser.add_argument_group("Output")
@@ -1080,12 +1132,38 @@ class CaptusAssembly(object):
 
         other_group = parser.add_argument_group("Other")
         other_group.add_argument(
+            "--redo_from",
+            action="store",
+            choices=[
+                "alignment",
+                "filtering",
+                "removal",
+                "trimming",
+            ],
+            type=str,
+            dest="redo_from",
+            help="B|Repeat analysis from a particular stage:\n"
+                 "alignment = Delete all subdirectories with alignments and restart\n"
+                 "filtering = Delete all subdirectories with filtered alignments and restart\n"
+                 "removal = Delete all subdirectories with alignments with references removed and"
+                 " restart\n"
+                 "trimming = Delete all subdirectories with trimmed alignments and restart"
+        )
+        other_group.add_argument(
             "--mafft_path",
             action="store",
             default="mafft",
             type=str,
             dest="mafft_path",
             help="Path to MAFFT (default: mafft/mafft.bat)"
+        )
+        other_group.add_argument(
+            "--clipkit_path",
+            action="store",
+            default="clipkit",
+            type=str,
+            dest="clipkit_path",
+            help="Path to ClipKIT"
         )
         other_group.add_argument(
             "--ram",
@@ -1121,6 +1199,12 @@ class CaptusAssembly(object):
             dest="show_less",
             help="Enable for less verbose screen printout. Specifically, individual sample "
             "information will no longer be shown (but it will still be logged)"
+        )
+        other_group.add_argument(
+            "--debug",
+            action="store_true",
+            dest="debug",
+            help="Enable debugging mode, parallelization is disabled so errors are logged to screen"
         )
 
         help_group = parser.add_argument_group("Help")

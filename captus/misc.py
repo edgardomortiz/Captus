@@ -14,9 +14,11 @@ not, see <http://www.gnu.org/licenses/>.
 
 
 import argparse
+import importlib
 import multiprocessing
 import os
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -159,11 +161,6 @@ def tqdm_parallel_async_write(
         f" [{elapsed_time(time.time() - start)}]"
     ))
 
-    # for f in params_list:
-    #     with open(file_out, "at") as fout:
-    #         fout.write("".join(function(*f)))
-
-
 
 def elapsed_time(total_seconds):
     """
@@ -266,8 +263,9 @@ def find_and_match_fastqs(reads):
         reads = [file for file in Path(reads[0]).resolve().rglob("*")
                  if has_valid_ext(file, valid_exts)]
     else:
-        reads = [Path(file).resolve() for file in reads
-                 if Path(file).is_file() and has_valid_ext(file, valid_exts)]
+
+        reads = [Path(Path(file).parent.resolve(), Path(file).name) for file in reads
+                 if Path(file).resolve().is_file() and has_valid_ext(file, valid_exts)]
     fastqs = {}
     for fastq_file in reads:
         file_name = fastq_file.name
@@ -482,6 +480,27 @@ def mmseqs_path_version(mmseqs_path):
     return found_mmseqs_path, version, "OK"
 
 
+def clipkit_path_version(clipkit_path):
+    found_clipkit_path = shutil.which(clipkit_path)
+    if found_clipkit_path is None:
+        return clipkit_path, "", "not found"
+    command = [found_clipkit_path, "-v"]
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    version = process.communicate()[0].decode().strip("\n").split()[-1]
+    return found_clipkit_path, version, "OK"
+
+
+def python_library_check(library_name):
+    library_found = bool(importlib.util.find_spec(library_name))
+    library_version = ""
+    library_status = "not found"
+    if library_found:
+        library = importlib.import_module(library_name)
+        library_version = library.__version__
+        library_status = "OK"
+    return library_found, library_version, library_status
+
+
 ####################################################################################################
 ## FUNCTIONS TAKEN FROM UNICYCLER FOR HELP AND TEXT FORMATTING (https://github.com/rrwick/Unicycler)
 
@@ -677,3 +696,7 @@ def bold_yellow_underline(text):
 
 def bold_red_underline(text):
     return f"{RED}{BOLD}{UNDERLINE}{text}{END_FORMATTING}"
+
+
+def remove_formatting(text):
+    return re.sub('\033.*?m', '', text)
