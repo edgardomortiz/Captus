@@ -13,7 +13,6 @@ not, see <http://www.gnu.org/licenses/>.
 """
 
 
-# import ast
 import gzip
 import math
 import re
@@ -75,9 +74,9 @@ REV_COMP_DICT = {
 
 # Codons corresponding to aminoacid strings in GENETIC_CODES
 CODONS = {
-    "base1": "TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG",
-    "base2": "TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG",
-    "base3": "TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG",
+    "base1":   "TTTTTTTTTTTTTTTTCCCCCCCCCCCCCCCCAAAAAAAAAAAAAAAAGGGGGGGGGGGGGGGG",
+    "base2":   "TTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGGTTTTCCCCAAAAGGGG",
+    "base3":   "TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG",
 }
 
 # NCBI Genetic Codes (modified from ftp://ftp.ncbi.nih.gov/entrez/misc/data/gc.prt)
@@ -339,11 +338,58 @@ def translate_fasta_dict(in_fasta_dict: dict, genetic_code_id: int, frame="guess
     return translated_fasta
 
 
+def fix_premature_stops(in_fasta_dict: dict):
+    """
+    Returns 'None" if no premature stops were found or a fasta_dict with the premature stops
+    replaced by 'X'
+
+    Parameters
+    ----------
+    in_fasta_dict : dict
+        Input fasta_dict has to be in aminoacids
+    """
+    has_premature_stops = False
+    out_fasta_dict = {}
+    for seq_name in in_fasta_dict:
+        seq_out = (
+            f'{in_fasta_dict[seq_name]["sequence"][:-1].replace("*", "X")}'
+            f'{in_fasta_dict[seq_name]["sequence"][-1]}'
+        )
+        if in_fasta_dict[seq_name]["sequence"] != seq_out:
+            has_premature_stops = True
+        out_fasta_dict[seq_name] = {
+            "sequence": seq_out,
+            "description": in_fasta_dict[seq_name]["description"]
+        }
+    if has_premature_stops:
+        return out_fasta_dict
+    else:
+        return None
+
+
 def reverse_complement(seq):
     """
     Return the reverse complement of a DNA sequence
     """
     return "".join([REV_COMP_DICT[n] for n in seq[::-1]])
+
+
+def pairwise_identity(seq1, seq2):
+    """
+    Given a pair of aligned sequences 'seq1' and 'seq2', calculate the identity of the overlapping
+    region
+    """
+    seq1_start, seq2_start = len(seq1) - len(seq1.lstrip("-")), len(seq2) - len(seq2.lstrip("-"))
+    seq1_end, seq2_end = len(seq1.rstrip("-")), len(seq2.rstrip("-"))
+    overlap_length = min(seq1_end, seq2_end) - max(seq1_start, seq2_start)
+    matches = 0
+    if overlap_length > 0:
+        for pos in range(max(seq1_start, seq2_start), min(seq1_end, seq2_end)):
+            if seq1[pos].upper() == seq2[pos].upper():
+                matches += 1
+        return matches * 100 / overlap_length
+    else:
+        return 0.00
 
 
 def fasta_to_dict(fasta_path, ordered=False):
@@ -420,12 +466,12 @@ def dict_to_fasta(in_fasta_dict, out_fasta_path, wrap=0, append=False):
     return out_fasta_path
 
 
-def is_fasta_nt(fasta_path):
+def fasta_type(fasta_path):
     """
-    Verify FASTA format and that sequence is only nucleotides, returns 'True' when the file contains
-    only nucleotides or nucleotide IUPAC ambiguity codes and 'False' when it contains aminoacids.
+    Verify FASTA format and that sequence is only nucleotides, returns 'NT' when the file contains
+    only nucleotides or nucleotide IUPAC ambiguity codes and 'AA' when it contains aminoacids.
     When other characters are found in the sequence or the files doesn't have headers it returns
-    'not a FASTA'
+    'invalid'
     """
     has_headers = False
     has_aminos = False
@@ -448,13 +494,111 @@ def is_fasta_nt(fasta_path):
                             has_aminos = True
                             break
                 else:
-                    return "not a FASTA"
+                    return "invalid"
     if has_headers and has_aminos:
-        return False
+        return "AA"
     elif has_headers and not has_aminos:
-        return True
+        return "NT"
     else:
-        return "not a FASTA"
+        return "invalid"
+
+
+def alignment_stats(fasta_path):
+    """
+    Tally number of sequences, sites (total, singletons, informative, constant), patterns (unique
+    sites), average pairwise identity and percentage of missingness (including gaps and ambiguities)
+    """
+
+    def aligned_length(fasta_dict):
+        if len(fasta_dict) < 2:
+            return False
+        length = -1
+        for seq in fasta_dict:
+            if length == -1:
+                length = len(fasta_dict[seq]["sequence"])
+            else:
+                if len(fasta_dict[seq]["sequence"]) != length:
+                    return False
+        if length > 0:
+            return length
+        else:
+            return False
+
+    def pattern_type(pattern):
+        pattern = pattern.replace("-", "")
+        if not pattern:
+            return "constant"
+        else:
+            chars = list(set(pattern))
+        if len(chars) == 1:
+            return "constant"
+        else:
+            shared_chars = [c for c in chars if pattern.count(c) >= 2]
+        if len(shared_chars) >= 2:
+            return "informative"
+        else:
+            return "singleton"
+
+    stats = {
+        "sequences": "NA",
+        "sites": "NA",
+        "informative": 0,
+        "uninformative": 0,
+        "constant": 0,
+        "singleton": 0,
+        "patterns": "NA",
+        "avg_pid": "NA",
+        "missingness": "NA",
+    }
+
+    # Ambiguity symbols copied from:
+    # http://www.iqtree.org/doc/Frequently-Asked-Questions#how-does-iq-tree-treat-gapmissingambiguous-characters
+    aln_type = fasta_type(fasta_path)
+    if aln_type == "invalid":
+        return stats
+    elif aln_type == "AA":
+        amb_symbols = ["?", ".", "~", "*", "X"]
+    elif aln_type == "NT":
+        amb_symbols = ["?", ".", "~", "O", "N", "X"]
+
+    fasta_dict = fasta_to_dict(fasta_path)
+    stats["sequences"] = len(fasta_dict)
+
+    num_sites = aligned_length(fasta_dict)
+    if not num_sites:
+        return stats
+    stats["sites"] = num_sites
+
+    sequences = []
+    sites = [""] * num_sites
+    for seq_name in fasta_dict:
+        seq = ""
+        for i in range(len(fasta_dict[seq_name]["sequence"])):
+            symbol = fasta_dict[seq_name]["sequence"][i].upper()
+            if symbol in amb_symbols:
+                sites[i] += "-"
+                seq += "-"
+            else:
+                sites[i] += symbol
+                seq += symbol
+        sequences.append(seq)
+
+    for site in sites:
+        stats[pattern_type(site)] += 1
+    stats["uninformative"] = stats["constant"] + stats["singleton"]
+
+    stats["patterns"] = len(set(sites))
+
+    identities = []
+    for i in range(len(sequences) - 1):
+        for j in range(i + 1, len(sequences)):
+            identities.append(pairwise_identity(sequences[i], sequences[j]))
+    stats["avg_pid"] = round(statistics.mean(identities), 5)
+
+    seqs_concat = "".join(sequences)
+    stats["missingness"] = round(seqs_concat.count("-") / len(seqs_concat) * 100, 5)
+
+    return stats
 
 
 def fasta_headers_to_spades(fasta_dict, ordered=True):
@@ -755,6 +899,8 @@ def scipio_yaml_to_dict(yaml_path, min_identity, min_coverage, marker_type):
                         overlapped = bool(value)
 
                     if include and line.startswith("    stopcodon:"):
+                        raw[protein][-1]["seq_flanked"] += value.upper()
+                        raw[protein][-1]["seq_gene"] += value.upper()
                         raw[protein][-1]["seq_nt"] += value.upper()
 
                     if include and line.startswith("    downstream:"):
@@ -967,7 +1113,7 @@ def blat_misc_dna_psl_to_dict(psl_path, target_dict, min_identity, min_coverage,
                         asm_hit["seq_gene"] += f'{"n" * abs(overlap)}{next_seq_gene}'
                     else:
 
-                        # Ignore overlapped portion from the hit with smaller protein 'identity'
+                        # Ignore overlapped portion from the hit with smaller 'identity'
                         if path[h]["identity"] >= path[h + 1]["identity"]:
                             asm_hit["seq_flanked"] += next_seq_flanked[overlap:]
                             asm_hit["seq_gene"] += next_seq_gene[overlap:]
@@ -1018,74 +1164,65 @@ def blat_misc_dna_psl_to_dict(psl_path, target_dict, min_identity, min_coverage,
         raw_assembly = None
         return assembly
 
+    def is_pair_compatible(h1, h2, max_overlap_bp):
+        return bool(
+            (h1["q_end"] - max_overlap_bp <= h2["q_start"]
+             or h2["q_end"] - max_overlap_bp <= h1["q_start"])
+            and max(h1["identity"], h2["identity"]) * set_a.DNA_TOLERANCE_PROP
+                 <= min(h1["identity"], h2["identity"]) * set_a.DNA_TOLERANCE_PROP
+        )
+
     def greedy_assembly_partial_hits(hits_list, max_overlap_bp):
         """
-        TODO: check this
-        Start with the most 'proximal' hit and look for 'middle' or 'distal' hits that are at most
-        overlapped by min('tolerance_prop'*'q_size', max_overlap_bp) and with 'match_id' >= proximal
-        hit's 'match_id'*'tolerance_prop'. Contruct a list of paths to proceed with the function
-        'extract_and_stitch_edges' to finally return a list of ranked assembled sequences to
-        repopulate the dictionary of 'dna_hits'
+        Partial hits are assembled greedily starting by the hits with the highest 'lwscore',
+        producing as many paralogs as necessary. Paralogs are merged from partial hits when all
+        the hits within the paralog are compatible (they have overlap and identity within tolerated
+        limits)
         """
-        full_hits, part_hits = [], []
-        compatible_pairs = []
-        all_paths, last_path = [], []
-        contigs_used, valid_paths = [], []
-        hit_paths = []
+        full_hits, part_hits, used_hits = [], [], []
+        paths, sorted_paths = [], []
+
         for hit in hits_list:
             if hit["region"] == "full":
                 full_hits.append(hit)
             else:
                 part_hits.append(hit)
 
-        # Sort partial hits by their start coordinate of the match to the reference
-        part_hits = sorted(part_hits, key=lambda i: i["q_start"])
+        if part_hits:
+            # Sort partial hits by their 'lwscore'
+            part_hits = sorted(part_hits, key=lambda i: i["lwscore"], reverse=True)
+            # Make an empty list as long as the number of hits, in the worst-case scenario no hit is
+            # compatible with any other
+            paths = [[] for h in part_hits]
+            # Fill the first path with the first hit in 'part_hits'
+            paths[0] = [part_hits[0]]
 
-        # Find pair of campatible hits, not too much overlap, not too different id. to the reference
-        for h1 in range(len(part_hits)):
-            for h2 in range(h1 + 1, len(part_hits)):
-                if (part_hits[h1]["q_end"] - max_overlap_bp <= part_hits[h2]["q_start"] and
-                    max(part_hits[h1]["identity"], part_hits[h2]["identity"])
-                    * set_a.DNA_TOLERANCE_PROP
-                    <= min(part_hits[h1]["identity"], part_hits[h2]["identity"])):
-                    compatible_pairs.append((part_hits[h1]["hit_id"], part_hits[h2]["hit_id"]))
+        # Check the remaining hits, only accept hits in a path when they are compatible with all the
+        # other hits in that path
+        if len(part_hits) > 1:
+            for h2 in part_hits[1:]:
+                for path in paths:
+                    compatible = True
+                    if path:
+                        for h1 in path:
+                            if not is_pair_compatible(h1, h2, max_overlap_bp):
+                                compatible = False
+                                break
+                    if compatible:
+                        used_hits.append(h2["hit_id"])
+                        path.append(h2)
+                        break
 
-        # Find concatenation paths greedily, starting by the hits closest to the first query start
-        if compatible_pairs:
-            for p1 in range(len(compatible_pairs)):
-                if last_path == []:
-                    last_path = [compatible_pairs[p1][0], compatible_pairs[p1][1]]
-                for p2 in range(p1 + 1, len(compatible_pairs)):
-                    if last_path[-1] == compatible_pairs[p2][0]:
-                        last_path.append(compatible_pairs[p2][1])
-                all_paths.append(last_path)
-                last_path = []
+        # Sort each path by starting query coordinate
+        for path in paths:
+            if path:
+                if len(path) > 1:
+                    sorted_paths.append(sorted(path, key=lambda i: i["q_start"]))
+                else:
+                    sorted_paths.append(path)
+        del paths
 
-        # Filter redundant paths so every hit is used only once
-        if all_paths:
-            contigs_used, valid_paths = list(all_paths[0]), list([all_paths[0]])
-            for path in all_paths:
-                if set(path) - set(contigs_used) == set(path):
-                    valid_paths.append(path)
-                    contigs_used += path
-
-        # Recover all information associated with the hit names
-        if valid_paths:
-            for path in valid_paths:
-                path_out = []
-                for step in path:
-                    for hit in part_hits:
-                        if step == hit["hit_id"]:
-                            path_out.append(hit)
-                hit_paths.append(path_out)
-
-        # Put together all the paths to proceed with the assembly, simple full hits first, then
-        # the assembled partial hits, and finally the orphaned partial hits
-        assembly_paths = (
-            [[full_hits[f]] for f in range(len(full_hits))] + hit_paths
-            + [[part_hits[p]] for p in range(len(part_hits))
-               if part_hits[p]["hit_id"] not in contigs_used]
-        )
+        assembly_paths = ([[full_hits[f]] for f in range(len(full_hits))] + sorted_paths)
 
         # Search FASTA assembly input ('target_dict') and extract/stitch needed sequence fragments
         assembly = extract_and_stitch_edges(assembly_paths)
@@ -1101,6 +1238,7 @@ def blat_misc_dna_psl_to_dict(psl_path, target_dict, min_identity, min_coverage,
         return max_overlap_bp
 
     raw_dna_hits = {}
+    hit = {}
     hit_num = 1
     with open(psl_path) as psl_in:
         for line in psl_in:
@@ -1121,7 +1259,7 @@ def blat_misc_dna_psl_to_dict(psl_path, target_dict, min_identity, min_coverage,
 
             # Ignore hits with not enough coverage of the reference, or partial hits immersed in
             # larger segments of unrelated sequence
-            if coverage >= set_a.DNA_MIN_COVERAGE_BEFORE_ASSEMBLY and region != "wedged":
+            if not (coverage < set_a.DNA_MIN_COVERAGE_BEFORE_ASSEMBLY and region == "wedged"):
 
                 # Compose hit record with columns from the .psl line
                 hit = {
@@ -1141,7 +1279,7 @@ def blat_misc_dna_psl_to_dict(psl_path, target_dict, min_identity, min_coverage,
                     "score": score,
                     "lwscore": lwscore,
                     "region": region,
-                    "gapped": gapped
+                    "gapped": gapped,
                 }
                 hit_num += 1
                 if q_name not in raw_dna_hits:
@@ -1151,7 +1289,10 @@ def blat_misc_dna_psl_to_dict(psl_path, target_dict, min_identity, min_coverage,
 
     # Use the name of the last contig to extract kmer size if the assembly was done within Captus
     # and determine the maximum overlap tolerated between adjacent contigs for assembly
-    max_overlap_bp = determine_max_overlap(hit["hit_contig"])
+    if hit:
+        max_overlap_bp = determine_max_overlap(hit["hit_contig"])
+    else:
+        return False
 
     # Assemble hits, organized by reference
     dna_hits = {}

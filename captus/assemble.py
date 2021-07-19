@@ -26,8 +26,8 @@ from . import settings_assembly as settings
 from .bioformats import dict_to_fasta, fasta_headers_to_spades, fasta_to_dict
 from .misc import (bbtools_path_version, bold, dim, elapsed_time, find_and_match_fastqs,
                    format_dep_msg, make_output_dir, make_tmp_dir_within, megahit_path_version,
-                   megahit_tk_path_version, quit_with_error, red, set_ram, set_threads,
-                   tqdm_parallel_async_run, tqdm_serial_run)
+                   megahit_tk_path_version, python_library_check, quit_with_error, red, set_ram,
+                   set_threads, tqdm_parallel_async_run, tqdm_serial_run)
 from .version import __version__
 
 
@@ -89,6 +89,7 @@ def assemble(full_command, args):
     threads_max, threads_total = set_threads(args.threads)
     log.log(f'{"Max. Threads":>{mar}}: {bold(threads_max)} {dim(f"(out of {threads_total})")}')
     log.log("")
+
     log.log(f'{"Dependencies":>{mar}}:')
     _, megahit_version, megahit_status = megahit_path_version(args.megahit_path)
     log.log(format_dep_msg(f'{"MEGAHIT":>{mar}}: ', megahit_version, megahit_status))
@@ -96,6 +97,16 @@ def assemble(full_command, args):
     log.log(format_dep_msg(f'{"megahit_toolkit":>{mar}}: ', megahit_tk_version, megahit_tk_status))
     log.log(format_dep_msg(f'{"BBTools":>{mar}}: ', reformat_version, reformat_status))
     log.log("")
+
+    log.log(f'{"Python libraries":>{mar}}:')
+    numpy_found, numpy_version, numpy_status = python_library_check("numpy")
+    pandas_found, pandas_version, pandas_status = python_library_check("pandas")
+    plotly_found, plotly_version, plotly_status = python_library_check("plotly")
+    log.log(format_dep_msg(f'{"numpy":>{mar}}: ', numpy_version, numpy_status))
+    log.log(format_dep_msg(f'{"pandas":>{mar}}: ', pandas_version, pandas_status))
+    log.log(format_dep_msg(f'{"plotly":>{mar}}: ', plotly_version, plotly_status))
+    log.log("")
+
     log.log(f'{"Output directory":>{mar}}: {bold(out_dir)}')
     log.log(f'{"":>{mar}}  {dim(out_dir_msg)}')
     log.log("")
@@ -243,22 +254,41 @@ def assemble(full_command, args):
             args.keep_all,
             args.overwrite
         ))
-    # Internal switch between parallel asynchronous and serial run (False for debugging)
-    run_async = True
-    if run_async:
-        tqdm_parallel_async_run(megahit, megahit_params,
-                                "De novo assembling with MEGAHIT",
-                                "De novo assembly completed",
-                                "sample", concurrent, args.show_less)
-    else:
+
+    if args.debug:
         tqdm_serial_run(megahit, megahit_params,
                         "De novo assembling with MEGAHIT",
                         "De novo assembly completed",
                         "sample", args.show_less)
+    else:
+        tqdm_parallel_async_run(megahit, megahit_params,
+                                "De novo assembling with MEGAHIT",
+                                "De novo assembly completed",
+                                "sample", concurrent, args.show_less)
     log.log("")
+
     asm_stats_tsv = collect_asm_stats(out_dir)
     log.log(f'{"Assembly statistics":>{mar}}: {bold(asm_stats_tsv)}')
     log.log("")
+    if all([numpy_found, pandas_found, plotly_found]):
+
+        from .report import build_assembly_report
+
+        log.log_explanation(
+            "Generating Assembly report..."
+        )
+        asm_html_report, asm_html_msg = build_assembly_report(out_dir, asm_stats_tsv)
+        log.log(f'{"Assembly report":>{mar}}: {bold(asm_html_report)}')
+        log.log(f'{"":>{mar}}  {dim(asm_html_msg)}')
+        log.log("")
+    else:
+        log.log(
+            f"{bold('WARNING:')} Captus uses 'numpy', 'pandas', and 'plotly' to generate  an HTML"
+            " report based on the assembly statistics. At least one of these libraries could not be"
+            " found, please verify these libraries are installed and available."
+        )
+        log.log("")
+
     shutil.rmtree(tmp_dir, ignore_errors=True)
     log.log(f"MEGAHIT temporary directory '{tmp_dir}' deleted")
     log.log("")

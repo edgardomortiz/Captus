@@ -25,8 +25,8 @@ from . import log
 from . import settings_assembly as settings
 from .misc import (bbtools_path_version, bold, dim, elapsed_time, execute_jupyter_report,
                    fastqc_path_version, find_and_match_fastqs, format_dep_msg, has_valid_ext,
-                   make_output_dir, quit_with_error, red, set_ram, set_threads,
-                   tqdm_parallel_async_run, tqdm_serial_run)
+                   make_output_dir, python_library_check, quit_with_error, red, set_ram,
+                   set_threads, tqdm_parallel_async_run, tqdm_serial_run)
 from .version import __version__
 
 
@@ -77,11 +77,22 @@ def clean(full_command, args):
     threads_max, threads_total = set_threads(args.threads)
     log.log(f'{"Max. Threads":>{mar}}: {bold(threads_max)} {dim(f"(out of {threads_total})")}')
     log.log("")
+
     log.log(f'{"Dependencies":>{mar}}:')
     _, bbduk_version, bbduk_status = bbtools_path_version(args.bbduk_path)
     log.log(format_dep_msg(f'{"BBTools":>{mar}}: ', bbduk_version, bbduk_status))
     log.log(format_dep_msg(f'{"FastQC":>{mar}}: ', fastqc_version, fastqc_status))
     log.log("")
+
+    log.log(f'{"Python libraries":>{mar}}:')
+    numpy_found, numpy_version, numpy_status = python_library_check("numpy")
+    pandas_found, pandas_version, pandas_status = python_library_check("pandas")
+    plotly_found, plotly_version, plotly_status = python_library_check("plotly")
+    log.log(format_dep_msg(f'{"numpy":>{mar}}: ', numpy_version, numpy_status))
+    log.log(format_dep_msg(f'{"pandas":>{mar}}: ', pandas_version, pandas_status))
+    log.log(format_dep_msg(f'{"plotly":>{mar}}: ', plotly_version, plotly_status))
+    log.log("")
+
     log.log(f'{"Output directory":>{mar}}: {bold(out_dir)}')
     log.log(f'{"":>{mar}}  {dim(out_dir_msg)}')
     log.log("")
@@ -129,8 +140,9 @@ def clean(full_command, args):
     log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
     log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
     fastqs_raw = find_and_match_fastqs(args.reads)
-    log.log("")
     adaptors_trimmed_dir, adaptors_trimmed_msg = make_output_dir(Path(out_dir, "00_adaptors_trimmed"))
+    log.log(f'{"Samples to trim":>{mar}}: {bold(len(fastqs_raw))}')
+    log.log("")
     log.log(f'{"Output directory":>{mar}}: {bold(adaptors_trimmed_dir)}')
     log.log(f'{"":>{mar}}  {dim(adaptors_trimmed_msg)}')
     log.log("")
@@ -175,7 +187,8 @@ def clean(full_command, args):
     log.log(f'{"maq":>{mar}}: {bold(args.maq)}')
     log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
     log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
-    fastqs_no_adaptors = find_and_match_fastqs(adaptors_trimmed_dir)
+    all_fastqs_no_adaptors = find_and_match_fastqs(adaptors_trimmed_dir)
+    fastqs_no_adaptors = {k:v for (k,v) in all_fastqs_no_adaptors if k in fastqs_raw}
     log.log(f'{"Samples to clean":>{mar}}: {bold(len(fastqs_no_adaptors))}')
     log.log("")
     log.log(f'{"Output directory":>{mar}}: {bold(out_dir)}')
@@ -238,7 +251,8 @@ def clean(full_command, args):
                     args.overwrite,
                     "BEFORE"
                 ))
-        clean_fastqs = find_and_match_fastqs(out_dir)
+        all_clean_fastqs = find_and_match_fastqs(out_dir)
+        clean_fastqs = {k:v for (k,v) in all_clean_fastqs if k in fastqs_raw}
         for fastq_r1 in sorted(clean_fastqs):
             fastqc_params.append((
                 args.fastqc_path,
@@ -265,9 +279,15 @@ def clean(full_command, args):
         log.log(f'{"AFTER cleaning":>{mar}}: {bold(fastqc_after_dir)}')
         log.log(f'{"":>{mar}}  {dim(fastqc_after_msg)}')
         log.log("")
-        tqdm_parallel_async_run(fastqc, fastqc_params,
-                                "Running FastQC", "FastQC analysis completed", "file",
-                                min(threads_max, settings.FASTQC_MAX_INSTANCES), args.show_less)
+
+        if args.debug:
+            tqdm_serial_run(fastqc, fastqc_params,
+                            "Running FastQC", "FastQC analysis completed",
+                            "file", args.show_less)
+        else:
+            tqdm_parallel_async_run(fastqc, fastqc_params,
+                                    "Running FastQC", "FastQC analysis completed", "file",
+                                    min(threads_max, settings.FASTQC_MAX_INSTANCES), args.show_less)
         log.log("")
 
 
@@ -288,20 +308,28 @@ def clean(full_command, args):
     bbduk_summarize_logs(out_dir, qc_extras_dir, mar)
     fastqc_summarize_logs(out_dir, qc_extras_dir, fastqc_before_dir, fastqc_after_dir, mar)
     log.log("")
-    log.log_explanation(
-        "Generating Jupyter Notebook report..."
-    )
-    qc_html_report, qc_html_msg = execute_jupyter_report(out_dir,
-                                                         settings.CAPTUS_QC_REPORT,
-                                                         "Captus_Cleaning_Report.ipynb",
-                                                         "captus-assembly_clean")
-    log.log(f'{"Final HTML QC report":>{mar}}: {bold(qc_html_report)}')
-    log.log(f'{"":>{mar}}  {dim(qc_html_msg)}')
-    log.log("")
+
+    if all([numpy_found, pandas_found, plotly_found]):
+
+        from .report import build_qc_report
+
+        log.log_explanation(
+            "Generating Sequence Quality Control report..."
+        )
+        qc_html_report, qc_html_msg = build_qc_report(out_dir, qc_extras_dir)
+        log.log(f'{"Sequence QC report":>{mar}}: {bold(qc_html_report)}')
+        log.log(f'{"":>{mar}}  {dim(qc_html_msg)}')
+        log.log("")
+    else:
+        log.log(
+            f"{bold('WARNING:')} Captus uses 'numpy', 'pandas', and 'plotly' to generate  an HTML"
+            " report based on the read QC statistics. At least one of these libraries could not be"
+            " found, please verify these libraries are installed and available."
+        )
+        log.log("")
 
     if not args.keep_all:
         start = time.time()
-        log.log("")
         log.log_explanation(
             "Deleting intermediate FASTQ files and other unnecessary files..."
         )
@@ -634,10 +662,10 @@ def bbduk_summarize_logs(out_dir, qc_extras_dir, margin):
                     contaminants[contaminant_name][sample_name] = int(fields[-2])
                     contaminants[contaminant_name]["total"] += int(fields[-2])
 
-    reads_bases_summary = Path(qc_extras_dir, "reads_bases.tsv")
-    adaptors_round1_summary = Path(qc_extras_dir, "adaptors_round1.tsv")
-    adaptors_round2_summary = Path(qc_extras_dir, "adaptors_round2.tsv")
-    contaminants_summary = Path(qc_extras_dir, "contaminants.tsv")
+    reads_bases_summary = Path(qc_extras_dir, settings.QC_FILES["REBA"])
+    adaptors_round1_summary = Path(qc_extras_dir, settings.QC_FILES["ADR1"])
+    adaptors_round2_summary = Path(qc_extras_dir, settings.QC_FILES["ADR2"])
+    contaminants_summary = Path(qc_extras_dir, settings.QC_FILES["CONT"])
     with open(reads_bases_summary, "wt") as summary_out:
         summary_out.write(
             f"sample\treads_input\tbases_input\t"
@@ -797,37 +825,37 @@ def fastqc_summarize_logs(out_dir, qc_extras_dir, fastqc_before_dir, fastqc_afte
                             record = "\t".join(prepend + line.strip("\n").split())
                             fastqc_stats[add_to].append(record)
 
-    per_base_seq_qual = Path(qc_extras_dir, "per_base_seq_qual.tsv")
+    per_base_seq_qual = Path(qc_extras_dir, settings.QC_FILES["PBSQ"])
     with open(per_base_seq_qual, "wt") as stats_out:
         stats_out.write("\n".join(fastqc_stats["per_base_seq_qual_data"]))
     log.log(f'{"Per base seq. qual.":>{margin}}: {bold(per_base_seq_qual)}')
 
-    per_seq_qual_scores = Path(qc_extras_dir, "per_seq_qual_scores.tsv")
+    per_seq_qual_scores = Path(qc_extras_dir, settings.QC_FILES["PSQS"])
     with open(per_seq_qual_scores, "wt") as stats_out:
         stats_out.write("\n".join(fastqc_stats["per_seq_qual_scores_data"]))
     log.log(f'{"Per seq. qual. scores":>{margin}}: {bold(per_seq_qual_scores)}')
 
-    per_base_seq_content = Path(qc_extras_dir, "per_base_seq_content.tsv")
+    per_base_seq_content = Path(qc_extras_dir, settings.QC_FILES["PBSC"])
     with open(per_base_seq_content, "wt") as stats_out:
         stats_out.write("\n".join(fastqc_stats["per_base_seq_content_data"]))
     log.log(f'{"Per base seq. content":>{margin}}: {bold(per_base_seq_content)}')
 
-    per_seq_gc_content = Path(qc_extras_dir, "per_seq_gc_content.tsv")
+    per_seq_gc_content = Path(qc_extras_dir, settings.QC_FILES["PSGC"])
     with open(per_seq_gc_content, "wt") as stats_out:
         stats_out.write("\n".join(fastqc_stats["per_seq_gc_content_data"]))
     log.log(f'{"Per seq. GC content":>{margin}}: {bold(per_seq_gc_content)}')
 
-    seq_len_dist = Path(qc_extras_dir, "seq_len_dist.tsv")
+    seq_len_dist = Path(qc_extras_dir, settings.QC_FILES["SLEN"])
     with open(seq_len_dist, "wt") as stats_out:
         stats_out.write("\n".join(fastqc_stats["seq_len_dist_data"]))
     log.log(f'{"Seq. length distr.":>{margin}}: {bold(seq_len_dist)}')
 
-    seq_dup_levels = Path(qc_extras_dir, "seq_dup_levels.tsv")
+    seq_dup_levels = Path(qc_extras_dir, settings.QC_FILES["SDUP"])
     with open(seq_dup_levels, "wt") as stats_out:
         stats_out.write("\n".join(fastqc_stats["seq_dup_levels_data"]))
     log.log(f'{"Seq. duplication":>{margin}}: {bold(seq_dup_levels)}')
 
-    adaptor_content = Path(qc_extras_dir, "adaptor_content.tsv")
+    adaptor_content = Path(qc_extras_dir, settings.QC_FILES["ADCO"])
     with open(adaptor_content, "wt") as stats_out:
         stats_out.write("\n".join(fastqc_stats["adaptor_content_data"]))
     log.log(f'{"Adaptor content":>{margin}}: {bold(adaptor_content)}')
