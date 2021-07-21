@@ -718,7 +718,12 @@ def select_filtering_refs(refs_paths, markers, formats, method):
     if method.lower() in ["careful", "both"]:
         if "NT" in formats:
             for marker in refs_paths:
-                if marker != "CLR":
+                if marker == "DNA":
+                    if refs_paths[marker]["NT_path"]:
+                        filtering_refs[marker] = {"path": refs_paths[marker]["NT_path"],
+                                                  "marker_dir": settings.MARKER_DIRS[marker],
+                                                  "format_dir": settings.FORMAT_DIRS["MA"]}
+                elif marker != "CLR":
                     if refs_paths[marker]["NT_path"]:
                         filtering_refs[marker] = {"path": refs_paths[marker]["NT_path"],
                                                   "marker_dir": settings.MARKER_DIRS[marker],
@@ -1104,6 +1109,9 @@ def filter_paralogs_careful(shared_paralog_stats, fasta_model, fastas_paths, ove
     start = time.time()
 
     aln = fasta_to_dict(fasta_model, ordered=True)
+    fasta_model_marker = fasta_model.parts[-3][-3:]
+    fasta_model_format = fasta_model.parts[-2][-2:].replace("es", "NT")
+
     refs = {}
     for seq in aln:
         if "query=" in aln[seq]["description"] and "hit=00" in aln[seq]["description"]:
@@ -1130,24 +1138,24 @@ def filter_paralogs_careful(shared_paralog_stats, fasta_model, fastas_paths, ove
             hit_num = seq.split("|")[-1]
             length_seq = len(aln[seq]["sequence"].replace("-", ""))
             lenght_ref = len(best_ref_seq.replace("-", ""))
-            pid = pairwise_identity(best_ref_seq, aln[seq]["sequence"])
+            pid = pairwise_identity(best_ref_seq, aln[seq]["sequence"], fasta_model_format)
             paralog_score = (pid / 100) * (length_seq / lenght_ref)
             if sample_name in samples_with_paralogs:
                 samples_with_paralogs[sample_name][seq] = paralog_score
             else:
                 samples_with_paralogs[sample_name] = {seq: paralog_score}
             tsv.append([
-                fasta_model.parts[-3][-3:], # [0]  marker type
-                fasta_model.parts[-2][-2:], # [1]  format used for filtering
-                fasta_model.stem,           # [2]  locus name
-                best_ref_full_name,         # [3]  reference name
-                sample_name,                # [4]  sample name
-                hit_num,                    # [5]  hit ranking
-                seq,                        # [6]  sequence name
-                f"{length_seq}",            # [7]  ungapped sequence length
-                f"{pid:.5f}",               # [8]  identity to reference
-                f"{paralog_score:.5f}",     # [9]  pid * (len(seq) / len(ref))
-                f"{False}",                 # [10] accepted as ortholog
+                fasta_model_marker,     # [0]  marker type
+                fasta_model_format,     # [1]  format used for filtering
+                fasta_model.stem,       # [2]  locus name
+                best_ref_full_name,     # [3]  reference name
+                sample_name,            # [4]  sample name
+                hit_num,                # [5]  hit ranking
+                seq,                    # [6]  sequence name
+                f"{length_seq}",        # [7]  ungapped sequence length
+                f"{pid:.5f}",           # [8]  identity to reference
+                f"{paralog_score:.5f}", # [9]  pid * (len(seq) / len(ref))
+                f"{False}",             # [10] accepted as ortholog
             ])
     for sample in samples_with_paralogs:
         accepted.append(max(samples_with_paralogs[sample], key=samples_with_paralogs[sample].get))
@@ -1325,13 +1333,13 @@ def compute_aln_stats(shared_aln_stats, fasta_path):
     aln_stats = alignment_stats(fasta_path)
 
     aln_tsv = [[
-        aln_marker,                                         # [0] marker type
-        fasta_path.stem,                                    # [1] locus name
-        aln_format,                                         # [2] alignment format
-        f"{fasta_path}",                                    # [3] alignment file location
-        f'{fasta_path_parts[-4].split("_")[1]}',            # [4] paralog filter applied
-        f'{bool("no_refs" in fasta_path_parts[-4])}',       # [5] references removed
-        f'{bool(not "untrimmed" in fasta_path_parts[-5])}', # [6] alignment was trimmed
+        f"{fasta_path}",                                    # [0] alignment file location
+        f'{bool(not "untrimmed" in fasta_path_parts[-5])}', # [1] alignment was trimmed
+        f'{fasta_path_parts[-4].split("_")[1]}',            # [2] paralog filter applied
+        f'{bool("no_refs" in fasta_path_parts[-4])}',       # [3] references removed
+        aln_marker,                                         # [4] marker type
+        aln_format,                                         # [5] alignment format
+        fasta_path.stem,                                    # [6] locus name
         f'{aln_stats["sequences"]}',                        # [7] num sequences
         f'{aln_stats["sites"]}',                            # [8] num sites
         f'{aln_stats["informative"]}',                      # [9] num informative sites
@@ -1356,13 +1364,13 @@ def write_aln_stats(out_dir, shared_aln_stats):
     else:
         stats_tsv_file = Path(out_dir, "captus-assembly_align.stats.tsv")
         with open(stats_tsv_file, "wt") as tsv_out:
-            tsv_out.write("\t".join(["marker_type",
-                                     "locus",
-                                     "format",
-                                     "path",
-                                     "paralog_filter",
-                                     "has_no_refs",
+            tsv_out.write("\t".join(["path",
                                      "trimmed",
+                                     "paralog_filter",
+                                     "no_refs",
+                                     "marker_type",
+                                     "format",
+                                     "locus",
                                      "seqs",
                                      "sites",
                                      "informative",

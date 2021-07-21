@@ -1070,7 +1070,7 @@ class CaptusAssembly(object):
         mafft_group.add_argument(
             "--mafft_timeout",
             action="store",
-            default=10800,
+            default=21600,
             type=int,
             dest="mafft_timeout",
             help="Maximum allowed time in seconds for a single alignment"

@@ -43,14 +43,46 @@ NT_IUPAC = {
     "S": ["G", "C"], "Y": ["C", "T"], "K": ["G", "T"],
     "V": ["A", "G", "C"], "H": ["A", "C", "T"],
     "D": ["G", "A", "T"], "B": ["G", "C", "T"],
-    "N": ["A", "C", "G", "T"], "-": [],
+    "N": ["A", "C", "G", "T"], "-": ["-"],
 }
+
+# Calculate pairwise identities for nucleotides
+NT_PIDS = {}
+i = 0
+for a in sorted(NT_IUPAC):
+    for b in sorted(NT_IUPAC)[i:]:
+        expand = NT_IUPAC[a] + NT_IUPAC[b]
+        combos = len(NT_IUPAC[a]) * len(NT_IUPAC[b])
+        matches = 0
+        for nuc in set(expand):
+            matches += (expand.count(nuc) * (expand.count(nuc) - 1)) / 2
+        NT_PIDS[a+b] = matches / combos
+    i += 1
+NT_PIDS["--"] = 0.0
 
 # Set of valid aminoacids, including IUPAC ambiguities
 AA_IUPAC = {
-    "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N",
-    "O", "P", "Q", "R", "S", "T", "U", "V", "W", "Y", "Z", "X", "*", "-"
+    "A": ["A"], "B": ["D", "N"], "C": ["C"], "D": ["D"], "E": ["E"], "F": ["F"],
+    "G": ["G"], "H": ["H"], "I": ["I"], "J": ["I", "L"], "K": ["K"], "L": ["L"],
+    "M": ["M"], "N": ["N"], "O": ["O"], "P": ["P"], "Q": ["Q"], "R": ["R"], "S": ["S"],
+    "T": ["T"], "U": ["U"], "V": ["V"], "W": ["W"], "Y": ["Y"], "Z": ["E", "Q"],
+    "X": ["A", "C", "D", "E", "F", "G", "H", "I", "K", "L", "M", "N", "O", "P",
+          "Q", "R", "S", "T", "U", "V", "W", "Y"], "*": ["*"], "-": ["-"],
 }
+
+# Calculate pairwise identities for aminoacids
+AA_PIDS = {}
+i = 0
+for a in sorted(AA_IUPAC):
+    for b in sorted(AA_IUPAC)[i:]:
+        expand = AA_IUPAC[a] + AA_IUPAC[b]
+        combos = len(AA_IUPAC[a]) * len(AA_IUPAC[b])
+        matches = 0
+        for nuc in set(expand):
+            matches += (expand.count(nuc) * (expand.count(nuc) - 1)) / 2
+        AA_PIDS[a+b] = matches / combos
+    i += 1
+AA_PIDS["--"] = 0.0
 
 # Ambiguous aminoacids used in fuzzy translation
 AA_AMBIGS = {
@@ -61,7 +93,7 @@ AA_AMBIGS = {
 
 # Since the list of nucleotides is a subset of the list of aminoacids we need a list of only the
 # aminoacid letters that are not also nucleotide letters
-AA_NOT_IN_NT = AA_IUPAC - set(NT_IUPAC)
+AA_NOT_IN_NT = set(AA_IUPAC) - set(NT_IUPAC)
 
 # Reverse complement dictionary
 REV_COMP_DICT = {
@@ -374,22 +406,96 @@ def reverse_complement(seq):
     return "".join([REV_COMP_DICT[n] for n in seq[::-1]])
 
 
-def pairwise_identity(seq1, seq2):
+def pairwise_identity(seq1: str, seq2: str, seq_type: str):
     """
     Given a pair of aligned sequences 'seq1' and 'seq2', calculate the identity of the overlapping
     region
+
+    Parameters
+    ----------
+    seq1 : str
+        Sequence 1
+    seq2 : str
+        Sequence 2
+    seq_type : str
+        'AA' if aminoacid, 'NT' if nucleotide
+
+    Returns
+    -------
+    float
+        Pairwise sequence identity as percentage
     """
+
+    PIDS = {}
+    if seq_type == "NT":
+        PIDS = NT_PIDS
+    elif seq_type == "AA":
+        PIDS = AA_PIDS
+
+    seq1 = seq1.upper()
+    seq2 = seq2.upper()
     seq1_start, seq2_start = len(seq1) - len(seq1.lstrip("-")), len(seq2) - len(seq2.lstrip("-"))
     seq1_end, seq2_end = len(seq1.rstrip("-")), len(seq2.rstrip("-"))
     overlap_length = min(seq1_end, seq2_end) - max(seq1_start, seq2_start)
     matches = 0
     if overlap_length > 0:
         for pos in range(max(seq1_start, seq2_start), min(seq1_end, seq2_end)):
-            if seq1[pos].upper() == seq2[pos].upper():
-                matches += 1
-        return matches * 100 / overlap_length
+            pair = "".join(sorted(seq1[pos]+seq2[pos]))
+            matches += PIDS[pair]
+            if pair == "--":
+                overlap_length -= 1
+        return (matches / overlap_length) * 100
     else:
         return 0.00
+
+
+def site_pairwise_identity(site: str, seq_type: str):
+    """
+    Calculates the mean pairwise identity of an alignment site (column), gap vs non-gap comparisons
+    are counted as mismatches, but gap vs gap comparisons are excluded. Fractional matches are also
+    possible when comparing ambiguities, for example R vs A is 0.5 matches because R is A or G.
+    If terminal gaps are represented by '#' they are removed from the site before the calculation.
+
+    Parameters
+    ----------
+    site : str
+        Transposed alignment site (column)
+    seq_type : str
+        'AA' if aminoacid, 'NT' if nucleotide
+
+    Returns
+    -------
+    float
+        Mean pairwise identity of the site as percentage
+    """
+
+    PIDS = {}
+    if seq_type == "NT":
+        PIDS = NT_PIDS
+    elif seq_type == "AA":
+        PIDS = AA_PIDS
+
+    site = site.replace("#", "").upper()
+    len_site = len(site)
+    if len_site < 2:
+        return None
+    else:
+        ss_site = sorted(set(site))
+        counts = {r:site.count(r) for r in ss_site}
+        combos = ((len_site * (len_site - 1)) / 2)
+        if "-" in counts:
+            combos -= ((counts["-"] * (counts["-"] - 1)) / 2)
+        if combos == 0:
+            return [0,0]
+        matches = 0
+        for ra in counts:
+            matches += ((counts[ra] * (counts[ra] - 1)) / 2) * PIDS[ra+ra]
+        i = 0
+        for ra in ss_site[i:]:
+            for rb in ss_site[i+1:]:
+                matches += counts[ra] * counts[rb] * PIDS[ra+rb]
+            i += 1
+        return [(matches / combos) * 100, combos]
 
 
 def fasta_to_dict(fasta_path, ordered=False):
@@ -524,16 +630,72 @@ def alignment_stats(fasta_path):
         else:
             return False
 
-    def pattern_type(pattern):
-        pattern = pattern.replace("-", "")
+    def mark_terminal_gaps(fasta_dict):
+        fasta_list = []
+        for seq_name in fasta_dict:
+            seq = fasta_dict[seq_name]["sequence"]
+            left_gaps = "#" * (len(seq) - len(seq.lstrip("-")))
+            right_gaps = "#" * (len(seq) - len(seq.rstrip("-")))
+            fasta_list.append(f'{left_gaps}{seq.strip("-")}{right_gaps}')
+        return fasta_list
+
+    def transpose_aln(fasta_list:list, num_sites):
+        sites = [""] * num_sites
+        for seq in fasta_list:
+            for pos in range(num_sites):
+                sites[pos] += seq[pos]
+        return sites
+
+    def clean_patterns(sites: list, seq_type):
+        """
+        Replace missing data with '-' for determination of pattern type. Lists of missing data
+        symbols take from:
+        http://www.iqtree.org/doc/Frequently-Asked-Questions#how-does-iq-tree-treat-gapmissingambiguous-characters
+        We added '#" to represent terminal gaps.
+
+        Parameters
+        ----------
+        sites : list
+            Transposed alignment sites (columns)
+        seq_type : [type]
+            'AA' if aminoacid, 'NT' if nucleotide
+
+        Returns
+        -------
+        list
+            Transposed alignment sites with missing data replaced by '-'
+        """
+        missing = []
+        if seq_type == "NT":
+            missing = ["?", ".", "~", "O", "N", "X", "#"]
+        elif seq_type == "AA":
+            missing = ["?", ".", "~", "*", "X", "#"]
+        clean = []
+        for site in sites:
+            site_out = ""
+            for r in site:
+                if r in missing:
+                    site_out += "-"
+                else:
+                    site_out += r
+            clean.append(site_out)
+        return clean
+
+    def pattern_type(pattern, seq_type):
+        pattern = pattern.replace("-", "").upper()
         if not pattern:
             return "constant"
-        else:
-            chars = list(set(pattern))
-        if len(chars) == 1:
+        r_sets = []
+        if seq_type == "NT":
+            r_sets = [set(NT_IUPAC[r]) for r in pattern]
+        elif seq_type == "AA":
+            r_sets = [set(AA_IUPAC[r]) for r in pattern]
+        set_intersect = r_sets[0].intersection(*r_sets[1:])
+        if set_intersect:
             return "constant"
         else:
-            shared_chars = [c for c in chars if pattern.count(c) >= 2]
+            pat_expand = "".join(["".join(s) for s in r_sets])
+            shared_chars = [c for c in set(pat_expand) if pat_expand.count(c) >= 2]
         if len(shared_chars) >= 2:
             return "informative"
         else:
@@ -551,15 +713,9 @@ def alignment_stats(fasta_path):
         "missingness": "NA",
     }
 
-    # Ambiguity symbols copied from:
-    # http://www.iqtree.org/doc/Frequently-Asked-Questions#how-does-iq-tree-treat-gapmissingambiguous-characters
     aln_type = fasta_type(fasta_path)
     if aln_type == "invalid":
         return stats
-    elif aln_type == "AA":
-        amb_symbols = ["?", ".", "~", "*", "X"]
-    elif aln_type == "NT":
-        amb_symbols = ["?", ".", "~", "O", "N", "X"]
 
     fasta_dict = fasta_to_dict(fasta_path)
     stats["sequences"] = len(fasta_dict)
@@ -569,34 +725,26 @@ def alignment_stats(fasta_path):
         return stats
     stats["sites"] = num_sites
 
-    sequences = []
-    sites = [""] * num_sites
-    for seq_name in fasta_dict:
-        seq = ""
-        for i in range(len(fasta_dict[seq_name]["sequence"])):
-            symbol = fasta_dict[seq_name]["sequence"][i].upper()
-            if symbol in amb_symbols:
-                sites[i] += "-"
-                seq += "-"
-            else:
-                sites[i] += symbol
-                seq += symbol
-        sequences.append(seq)
+    sites = transpose_aln(mark_terminal_gaps(fasta_dict), num_sites)
+    ids_combos = [site_pairwise_identity(site, aln_type) for site in sites]
+    ids_combos = [idc for idc in ids_combos if idc is not None]
+    identities = 0
+    combos = 0
+    for idc in ids_combos:
+        identities += idc[0] * idc[1]
+        combos += idc[1]
+    stats["avg_pid"] = round(identities / combos, 5)
 
+    sites = clean_patterns(sites, aln_type)
     for site in sites:
-        stats[pattern_type(site)] += 1
+        stats[pattern_type(site, aln_type)] += 1
     stats["uninformative"] = stats["constant"] + stats["singleton"]
 
     stats["patterns"] = len(set(sites))
 
-    identities = []
-    for i in range(len(sequences) - 1):
-        for j in range(i + 1, len(sequences)):
-            identities.append(pairwise_identity(sequences[i], sequences[j]))
-    stats["avg_pid"] = round(statistics.mean(identities), 5)
-
-    seqs_concat = "".join(sequences)
-    stats["missingness"] = round(seqs_concat.count("-") / len(seqs_concat) * 100, 5)
+    sites_concat = "".join(sites)
+    if len(sites_concat):
+        stats["missingness"] = round(sites_concat.count("-") / len(sites_concat) * 100, 5)
 
     return stats
 
