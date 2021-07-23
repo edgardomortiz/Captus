@@ -345,7 +345,7 @@ def clean(full_command, args):
             reclaimed_bytes += del_file.stat().st_size
             del_file.unlink()
         log.log(
-            f'A total of {len(files_to_delete)} files'
+            f'    A total of {len(files_to_delete)} files'
             f' amounting to {reclaimed_bytes / 1024 ** 3:.2f}GB'
             f' were deleted in {elapsed_time(time.time() - start)}'
         )
