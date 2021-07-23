@@ -467,7 +467,7 @@ def align(full_command, args):
             del_file.unlink()
         log.log("")
         log.log(
-            f'A total of {len(files_to_delete)} files'
+            f'    A total of {len(files_to_delete)} files'
             f' amounting to {reclaimed_bytes / 1024 ** 2:.2f}MB'
             f' were deleted in {elapsed_time(time.time() - start)}'
         )

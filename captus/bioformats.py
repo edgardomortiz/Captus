@@ -1317,7 +1317,7 @@ def blat_misc_dna_psl_to_dict(psl_path, target_dict, min_identity, min_coverage,
             (h1["q_end"] - max_overlap_bp <= h2["q_start"]
              or h2["q_end"] - max_overlap_bp <= h1["q_start"])
             and max(h1["identity"], h2["identity"]) * set_a.DNA_TOLERANCE_PROP
-                 <= min(h1["identity"], h2["identity"]) * set_a.DNA_TOLERANCE_PROP
+                 <= min(h1["identity"], h2["identity"])
         )
 
     def greedy_assembly_partial_hits(hits_list, max_overlap_bp):
