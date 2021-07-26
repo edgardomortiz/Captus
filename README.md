@@ -57,9 +57,3 @@ Alternatively, you can skip the installation with `pip` and simply run the follo
 ```bash
 $ captus_assembly-runner.py
 ```
->---
->**NOTE**
->
->Maybe this works
->
->---
