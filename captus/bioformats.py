@@ -1380,7 +1380,8 @@ def blat_misc_dna_psl_to_dict(psl_path, target_dict, min_identity, min_coverage,
     def determine_max_overlap(contig_name):
         template = re.compile(CAPTUS_MEGAHIT_HEADER_REGEX)
         if template.match(contig_name):
-            max_overlap_bp = int(contig_name.split("_")[7])
+            largest_kmer = int(contig_name.split("_")[7])
+            max_overlap_bp = math.ceil(largest_kmer + (largest_kmer * 0.05))
         else:
             max_overlap_bp = set_a.DNA_MAX_OVERLAP_BP
         return max_overlap_bp

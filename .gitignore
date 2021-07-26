@@ -12,3 +12,6 @@ __pycache__/
 *.egg-info/
 build/
 dist/
+
+# Docs for now
+captus_docs/

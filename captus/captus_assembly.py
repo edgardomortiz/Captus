@@ -58,7 +58,8 @@ class CaptusAssembly(object):
                  " from the assembly obtained with the 'assemble' command is recommended, but any"
                  " other assemblies in FASTA format are also allowed.\n"
                  "align = Align extracted markers across samples with MAFFT: Marker alignment"
-                 " depends on the directory structure created by the 'extract' command"
+                 " depends on the directory structure created by the 'extract' command. This step"
+                 " also performs paralog filtration and alignment trimming using ClipKIT"
         )
 
         help_group = parser.add_argument_group("Help")
