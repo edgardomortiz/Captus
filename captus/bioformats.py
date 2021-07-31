@@ -1105,6 +1105,25 @@ def blat_misc_dna_psl_to_dict(psl_path, target_dict, min_identity, min_coverage,
     file Angiosperms353.FAA)
     """
 
+    def split_blat_hit(q_size, block_sizes, q_starts, t_starts, q_end_pos, t_end_pos):
+        """
+        Split aligned block so no block contins an insertion as long as the query size
+        """
+        t_inserts = 0
+        q_start, t_start = [q_starts[0]], [t_starts[0]]
+        q_end, t_end = [], []
+        for i in range(len(block_sizes) - 1):
+            if (t_starts[i + 1] - (t_starts[i] + block_sizes[i])
+                >= q_size * set_a.DNA_MAX_INSERT_PROP):
+                t_inserts += t_starts[i + 1] - (t_starts[i] + block_sizes[i])
+                q_start.append(q_starts[i + 1])
+                t_start.append(t_starts[i + 1])
+                q_end.append(q_starts[i] + block_sizes[i])
+                t_end.append(t_starts[i] + block_sizes[i])
+        q_end.append(q_end_pos)
+        t_end.append(t_end_pos)
+        return q_start, q_end, t_start, t_end, t_inserts
+
     def calculate_psl_identity(
             q_end, q_start, t_end, t_start, q_inserts, matches, rep_matches, mismatches
     ):
@@ -1148,25 +1167,38 @@ def blat_misc_dna_psl_to_dict(psl_path, target_dict, min_identity, min_coverage,
         elif (q_end >= q_size * (1 - set_a.DNA_TOLERANCE_PROP)
               and t_start <= t_size * set_a.DNA_TOLERANCE_PROP):
             return "distal"
-        else:  # hit is only partial and surrounded by a large proportion of unknown sequence
+        else:  # hit is only partial and surrounded by a large proportion of unmatched sequence
             return "wedged"
 
     def extract_psl_sequence(
-            fasta_dict, seq_name, strand, start_pos, end_pos, match_part, up_down_stream_bp
+            fasta_dict, seq_name, strand, t_starts, t_ends, match_part, up_down_stream_bp
     ):
         """
         Extract sequence from a 'fasta_dict' object using BLAT's PSL coordinate style
         """
+        starts = list(t_starts)
+        ends = list(t_ends)
         if up_down_stream_bp > 0:
             seq_len = len(fasta_dict[seq_name]["sequence"])
             if match_part == "full" or match_part == "proximal":
-                start_pos = max((start_pos - up_down_stream_bp), 0)
+                starts[0] = max((starts[0] - up_down_stream_bp), 0)
             if match_part == "full" or match_part == "distal":
-                end_pos = min((end_pos + up_down_stream_bp), seq_len)
+                ends[-1] = min((ends[-1] + up_down_stream_bp), seq_len)
+        sequence = ""
+        for s, e in zip(starts, ends):
+            sequence += fasta_dict[seq_name]["sequence"][s:e]
         if strand == "+":
-            return fasta_dict[seq_name]["sequence"][start_pos:end_pos]
+            return sequence
         elif strand == "-":
-            return reverse_complement(fasta_dict[seq_name]["sequence"][start_pos:end_pos])
+            return reverse_complement(sequence)
+
+    def join_coords(starts, ends):
+        """
+        Given a list of starts [1,30,50] and a list of ends [12,38,100] produce a string for
+        decorating the sequence description as '1-12,30-38,50-100', don't make them 1-based yet,
+        that is done by the functions 'write_gff3' and 'write_fastas_and_report'
+        """
+        return ",".join([f"{s}-{e}" for s, e in zip(starts, ends)])
 
     def extract_and_stitch_edges(assembly_paths):
         """
@@ -1174,22 +1206,18 @@ def blat_misc_dna_psl_to_dict(psl_path, target_dict, min_identity, min_coverage,
         sorted by 'lwscore', followed by assembled hits sorted by 'lwscore', and finally
         partial unassembled hits sorted by 'lwscore'.
         Assembly: For overlaps follow the coordinate system of the query and remove the overlap from
-        the partial hit with the lower 'match_id', for non-overlapped partial hits, concatenate hits
+        the partial hit with the lower 'identity', for non-overlapped partial hits, concatenate hits
         intercalating them with as many Ns as indicated by gap in query
         """
-        full_hits = []
-        sewn_hits = []
-        part_hits = []
-        asm_num = 1
+        raw_assembly = []
         for path in assembly_paths:
-            identities = [path[0]["identity"]]
             asm_hit = {
                 "ref_name": path[0]["ref_name"],        # full name of non-coding reference sequence
                 "ref_size": path[0]["ref_size"],           # length of non-coding reference sequence
-                "ref_coords": f'{path[0]["q_start"]}-{path[0]["q_end"]}',     # AA coords in protein
+                "ref_coords": join_coords(path[0]["q_start"], path[0]["q_end"]),     # coords in ref
                 "hit_id": path[0]["hit_id"],                                    # 'DNA##' or 'CLR##'
                 "hit_contig": path[0]["hit_contig"],               # contig name(s) used in assembly
-                "hit_coords": f'{path[0]["t_start"]}-{path[0]["t_end"]}',       # NT coords in match
+                "hit_coords": join_coords(path[0]["t_start"], path[0]["t_end"]),   # coords in match
                 "strand": path[0]["strand"],                                     # contigs strand(s)
                 "matches": path[0]["matches"],                  # accumulated matches across targets
                 "mismatches": path[0]["mismatches"],         # accumulated mismatches across targets
@@ -1200,133 +1228,107 @@ def blat_misc_dna_psl_to_dict(psl_path, target_dict, min_identity, min_coverage,
                 "gapped": path[0]["gapped"],          # set to True when is assembly of partial hits
                 "region": path[0]["region"],    # full, proximal, middle, distal with respect to ref
                 # assembled sequence match plus upstream and downstream buffer
-                "seq_flanked": extract_psl_sequence(
-                    target_dict,
-                    path[0]["hit_contig"],
-                    path[0]["strand"],
-                    path[0]["t_start"],
-                    path[0]["t_end"],
-                    path[0]["region"],
-                    set_a.DNA_UP_DOWN_STREAM_BP
-                ),
+                "seq_flanked": extract_psl_sequence(target_dict,
+                                                    path[0]["hit_contig"],
+                                                    path[0]["strand"],
+                                                    path[0]["t_start"],
+                                                    path[0]["t_end"],
+                                                    path[0]["region"],
+                                                    set_a.DNA_UP_DOWN_STREAM_BP),
                 # assembled sequence match
-                "seq_gene": extract_psl_sequence(
-                    target_dict,
-                    path[0]["hit_contig"],
-                    path[0]["strand"],
-                    path[0]["t_start"],
-                    path[0]["t_end"],
-                    path[0]["region"],
-                    0
-                ),
+                "seq_gene": extract_psl_sequence(target_dict,
+                                                 path[0]["hit_contig"],
+                                                 path[0]["strand"],
+                                                 path[0]["t_start"],
+                                                 path[0]["t_end"],
+                                                 path[0]["region"],
+                                                 0),
                 "seq_nt": "",  # not used
                 "seq_aa": "",  # not used
             }
 
             if len(path) > 1:
-                asm_hit["matches"] = 0
-                asm_hit["mismatches"] = 0
-                asm_hit["coverage"] = 0.0
+                ref_starts = [list(path[0]["q_start"])]
+                ref_ends = [list(path[0]["q_end"])]
+                hit_ids = [path[0]["identity"]]
+                match_props = [path[0]["matches"] / len(asm_hit["seq_gene"])]
+                mismatch_props = [path[0]["mismatches"] / len(asm_hit["seq_gene"])]
+                score_corr = 1
                 for h in range(len(path) - 1):
-                    asm_hit["ref_coords"] += f'\n{path[h + 1]["q_start"]}-{path[h + 1]["q_end"]}'
                     asm_hit["hit_id"] += f'\n{path[h + 1]["hit_id"]}'
-                    asm_hit["hit_contig"] += "\n" + path[h + 1]["hit_contig"]
-                    asm_hit["hit_coords"] += f'\n{path[h + 1]["t_start"]}-{path[h + 1]["t_end"]}'
+                    asm_hit["hit_contig"] += f'\n{path[h + 1]["hit_contig"]}'
+                    asm_hit["hit_coords"] += (
+                        f'\n{join_coords(path[h + 1]["t_start"], path[h + 1]["t_end"])}'
+                    )
                     asm_hit["strand"] += f'\n{path[h + 1]["strand"]}'
-                    identities.append(path[h + 1]["identity"])
+                    hit_ids.append(path[h + 1]["identity"])
                     asm_hit["region"] += f',{path[h + 1]["region"]}'
-                    this_seq_gene = extract_psl_sequence(
-                        target_dict,
-                        path[h]["hit_contig"],
-                        path[h]["strand"],
-                        path[h]["t_start"],
-                        path[h]["t_end"],
-                        path[h]["region"],
-                        0
-                    )
-                    next_seq_gene = extract_psl_sequence(
-                        target_dict,
-                        path[h + 1]["hit_contig"],
-                        path[h + 1]["strand"],
-                        path[h + 1]["t_start"],
-                        path[h + 1]["t_end"],
-                        path[h + 1]["region"],
-                        0
-                    )
-                    next_seq_flanked = extract_psl_sequence(
-                        target_dict,
-                        path[h + 1]["hit_contig"],
-                        path[h + 1]["strand"],
-                        path[h + 1]["t_start"],
-                        path[h + 1]["t_end"],
-                        path[h + 1]["region"],
-                        set_a.DNA_UP_DOWN_STREAM_BP
-                    )
+                    next_seq_gene = extract_psl_sequence(target_dict,
+                                                         path[h + 1]["hit_contig"],
+                                                         path[h + 1]["strand"],
+                                                         path[h + 1]["t_start"],
+                                                         path[h + 1]["t_end"],
+                                                         path[h + 1]["region"],
+                                                         0)
+                    next_seq_flanked = extract_psl_sequence(target_dict,
+                                                            path[h + 1]["hit_contig"],
+                                                            path[h + 1]["strand"],
+                                                            path[h + 1]["t_start"],
+                                                            path[h + 1]["t_end"],
+                                                            path[h + 1]["region"],
+                                                            set_a.DNA_UP_DOWN_STREAM_BP)
+                    match_props.append(path[h + 1]["matches"] / len(next_seq_gene))
+                    mismatch_props.append(path[h + 1]["mismatches"] / len(next_seq_gene))
 
-                    overlap = path[h]["q_end"] - path[h + 1]["q_start"]
-
+                    overlap = path[h]["q_end"][-1] - path[h + 1]["q_start"][0]
                     # Negative 'overlap' is a gap that has to be filled with 'n's
+
                     if overlap < 1:
                         asm_hit["seq_flanked"] += f'{"n" * abs(overlap)}{next_seq_flanked}'
                         asm_hit["seq_gene"] += f'{"n" * abs(overlap)}{next_seq_gene}'
-                        asm_hit["matches"] += path[h]["matches"]
-                        asm_hit["mismatches"] += path[h]["mismatches"]
-                        if path[h]["hit_id"] == path[-2]["hit_id"]:
-                            asm_hit["matches"] += path[h + 1]["matches"]
-                            asm_hit["mismatches"] += path[h + 1]["mismatches"]
+                        ref_starts.append(list(path[h + 1]["q_start"]))
+                        ref_ends.append(list(path[h + 1]["q_end"]))
                     else:
-                        # Ignore overlapped portion from the hit with smaller 'identity'
+                        score_corr -= set_a.DNA_TOLERANCE_PROP
+                        # Ignore overlapped portion from the hit with smaller 'identity' to the ref
                         if path[h]["identity"] >= path[h + 1]["identity"]:
                             asm_hit["seq_flanked"] += next_seq_flanked[overlap:]
                             asm_hit["seq_gene"] += next_seq_gene[overlap:]
-                            asm_hit["matches"] += path[h]["matches"]
-                            asm_hit["mismatches"] += path[h]["mismatches"]
-                            if path[h]["hit_id"] == path[-2]["hit_id"]:
-                                prop_added = (len(next_seq_gene) - overlap) / len(next_seq_gene)
-                                asm_hit["matches"] += path[h + 1]["matches"] * prop_added
-                                asm_hit["mismatches"] += path[h + 1]["mismatches"] * prop_added
+                            ref_starts.append(list(path[h + 1]["q_start"]))
+                            ref_starts[-1][0] += overlap
+                            ref_ends.append(list(path[h + 1]["q_end"]))
                         else:
                             asm_hit["seq_flanked"] = (
                                 f'{asm_hit["seq_flanked"][:-overlap]}{next_seq_flanked}'
                             )
                             asm_hit["seq_gene"] = f'{asm_hit["seq_gene"][:-overlap]}{next_seq_gene}'
-                            prop_added = (len(this_seq_gene) - overlap) / len(this_seq_gene)
-                            asm_hit["matches"] += path[h]["matches"] * prop_added
-                            asm_hit["mismatches"] += path[h]["mismatches"] * prop_added
-                            if path[h]["hit_id"] == path[-2]["hit_id"]:
-                                asm_hit["matches"] += path[h + 1]["matches"]
-                                asm_hit["mismatches"] += path[h + 1]["mismatches"]
+                            ref_ends[-1][-1] -= overlap
+                            ref_starts.append(list(path[h + 1]["q_start"]))
+                            ref_ends.append(list(path[h + 1]["q_end"]))
 
-                    asm_hit["coverage"] = (
-                        len(asm_hit["seq_gene"].replace("n", "")) / asm_hit["ref_size"] * 100.0
-                    )
-
-                # Calculate the mean 'match_id' of all the partial hits used in the assembled path
-                asm_hit["identity"] = statistics.mean(identities)
-
-                # Likewise, recalculate the 'score' and 'lwscore' using sum of matches/mismatches
-                # from all partial hits used in the assemble path
-                asm_hit["score"] = (
-                    (asm_hit["matches"] - asm_hit["mismatches"]) / asm_hit["ref_size"]
-                )
-                asm_hit["lwscore"] = (
-                    asm_hit["score"] * (
-                        len(asm_hit["seq_gene"].replace("n", "")) / asm_hit["ref_size"]
-                    )
-                )
+                # Reformat the matched query coordinates for decorating the FASTA description line
+                asm_hit["ref_coords"] = "\n".join([join_coords(s, e) for s, e
+                                                   in zip(ref_starts, ref_ends)])
+                # To avoid inflating the 'score' and 'coverage' of hits with insertions we need to
+                # find out first the 'matched_len' discounting gaps and insertions to ref
+                matched_len = ref_ends[-1][-1] - ref_starts[0][0] - asm_hit["seq_gene"].count("n")
+                asm_hit["coverage"] = matched_len / asm_hit["ref_size"] * 100.0
+                # Calculate the mean 'identity' of all the partial hits used in the assembled path
+                asm_hit["identity"] = statistics.mean(hit_ids)
+                # Recalculate the 'score' and 'lwscore' using sum of matches/mismatches from all
+                # partial hits used in the assemble path
+                asm_hit["score"] = (((statistics.mean(match_props) * matched_len
+                                      - statistics.mean(mismatch_props) * matched_len)
+                                     / asm_hit["ref_size"]))
+                asm_hit["lwscore"] = (asm_hit["score"]
+                                      * (matched_len / asm_hit["ref_size"])
+                                      * score_corr)
                 asm_hit["gapped"] = bool("n" in asm_hit["seq_gene"])
-                asm_num += 1
 
-            # Separate hits by type
-            if asm_hit["region"] == "full":
-                full_hits.append(dict(asm_hit))
-            elif "," in asm_hit["region"]:
-                sewn_hits.append(dict(asm_hit))
-            else:
-                part_hits.append(dict(asm_hit))
+            # Append hits to the global assembly 'raw_assembly'
+            raw_assembly.append(dict(asm_hit))
 
-        # Concatenate assembled hits in a single list and sort them by 'lwscore'
-        raw_assembly = full_hits + sewn_hits + part_hits
+        # Sort 'raw_assembly' from largest to smallest 'lwscore'
         raw_assembly = sorted(raw_assembly, key=lambda i: i["lwscore"], reverse=True)
 
         # Final filtering by 'min_coverage' and 'min_identity'
@@ -1341,7 +1343,7 @@ def blat_misc_dna_psl_to_dict(psl_path, target_dict, min_identity, min_coverage,
         if (max(h1["identity"], h2["identity"]) * (1 - set_a.DNA_TOLERANCE_PROP)
             > min(h1["identity"], h2["identity"])):
             return False
-        overlap = min(h1["q_end"], h2["q_end"]) - max(h1["q_start"], h2["q_start"])
+        overlap = min(h1["q_end"][-1], h2["q_end"][-1]) - max(h1["q_start"][0], h2["q_start"][0])
         if overlap < 1:
             return True
         if (h1["match_len"] * (1 - set_a.DNA_TOLERANCE_PROP) <= overlap
@@ -1356,7 +1358,7 @@ def blat_misc_dna_psl_to_dict(psl_path, target_dict, min_identity, min_coverage,
         the hits within the paralog are compatible (they have overlap and identity within tolerated
         limits)
         """
-        full_hits, part_hits, used_hits = [], [], []
+        full_hits, part_hits = [], []
         paths, sorted_paths = [], []
 
         for hit in hits_list:
@@ -1386,7 +1388,6 @@ def blat_misc_dna_psl_to_dict(psl_path, target_dict, min_identity, min_coverage,
                                 compatible = False
                                 break
                     if compatible:
-                        used_hits.append(h2["hit_id"])
                         path.append(h2)
                         break
 
@@ -1394,7 +1395,7 @@ def blat_misc_dna_psl_to_dict(psl_path, target_dict, min_identity, min_coverage,
         for path in paths:
             if path:
                 if len(path) > 1:
-                    sorted_paths.append(sorted(path, key=lambda i: i["q_start"]))
+                    sorted_paths.append(sorted(path, key=lambda i: i["q_start"][0]))
                 else:
                     sorted_paths.append(path)
         del paths
@@ -1423,16 +1424,31 @@ def blat_misc_dna_psl_to_dict(psl_path, target_dict, min_identity, min_coverage,
             matches, mismatches, rep_matches = int(cols[0]), int(cols[1]), int(cols[2])
             q_inserts, t_strand = int(cols[4]), cols[8]
             q_base_inserts, t_base_inserts = int(cols[5]), int(cols[7])
-            q_name, q_size, q_start, q_end = cols[9], int(cols[10]), int(cols[11]), int(cols[12])
-            t_name, t_size, t_start, t_end = cols[13], int(cols[14]), int(cols[15]), int(cols[16])
+            q_name, q_size = cols[9], int(cols[10])
+            t_name, t_size = cols[13], int(cols[14])
+            # When an insertion as long as the query size is detected we must attempt splitting hit
+            if t_base_inserts >= q_size * set_a.DNA_MAX_INSERT_PROP:
+                block_sizes = [int(s) for s in cols[18].strip(",").split(",")]
+                q_starts = [int(p) for p in cols[19].strip(",").split(",")]
+                t_starts = [int(p) for p in cols[20].strip(",").split(",")]
+                q_start, q_end, t_start, t_end, t_inserts = split_blat_hit(q_size,
+                                                                           block_sizes,
+                                                                           q_starts,
+                                                                           t_starts,
+                                                                           int(cols[12]),
+                                                                           int(cols[16]))
+            else:
+                q_start, q_end = [int(cols[11])], [int(cols[12])]
+                t_start, t_end, t_inserts = [int(cols[15])], [int(cols[16])], 0
 
-            coverage = ((q_end - q_start - q_base_inserts - t_base_inserts) / q_size) * 100.0
-            identity = calculate_psl_identity(q_end, q_start, t_end, t_start, q_inserts,
-                                              matches, rep_matches, mismatches)
-            score = ((matches + rep_matches) - mismatches) / q_size
+            coverage = (matches + rep_matches + mismatches) / q_size * 100
+            identity = calculate_psl_identity(q_end[-1], q_start[0], t_end[-1], t_start[0],
+                                              q_inserts, matches, rep_matches, mismatches)
+            score = (matches + rep_matches - mismatches) / q_size
             lwscore = score * ((matches + rep_matches + mismatches) / q_size)
-            region = determine_matching_region(q_size, q_start, q_end, t_size, t_start, t_end)
-            gapped = False if region == "full" else True
+            region = determine_matching_region(q_size, q_start[0], q_end[-1],
+                                               t_size, t_start[0], t_end[-1])
+            gapped = not bool(region == "full")
 
             # Ignore hits with not enough coverage of the reference, or partial hits immersed in
             # larger segments of unrelated sequence
@@ -1442,13 +1458,13 @@ def blat_misc_dna_psl_to_dict(psl_path, target_dict, min_identity, min_coverage,
                 hit = {
                     "ref_name": q_name,
                     "ref_size": q_size,
-                    "q_start": q_start,
-                    "q_end": q_end,
-                    "match_len": q_end - q_start,
+                    "q_start": q_start,                  # list of starts
+                    "q_end": q_end,                      # list of ends
+                    "match_len": matches + rep_matches + mismatches,
                     "hit_id": f"{marker_type}{hit_num}",
                     "hit_contig": t_name,
-                    "t_start": t_start,
-                    "t_end": t_end,
+                    "t_start": t_start,                  # list of starts
+                    "t_end": t_end,                      # list of ends
                     "strand": t_strand,
                     "matches": matches + rep_matches,
                     "mismatches": mismatches,
