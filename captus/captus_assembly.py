@@ -50,7 +50,8 @@ class CaptusAssembly(object):
         required_group.add_argument(
             "command",
             help="B|Pipeline commands (in typical order of execution)\n"
-                 "clean = Trim adaptors and quality filter reads with BBTools\n"
+                 "clean = Trim adaptors and quality filter reads with BBTools, run FastQC on the"
+                 " raw and cleaned reads\n"
                  "assemble = Perform de novo assembly with MEGAHIT: Assembling reads that were"
                  " cleaned with the 'clean' command is recommended, but any other reads are also"
                  " allowed\n"
@@ -59,7 +60,7 @@ class CaptusAssembly(object):
                  " other assemblies in FASTA format are also allowed.\n"
                  "align = Align extracted markers across samples with MAFFT: Marker alignment"
                  " depends on the directory structure created by the 'extract' command. This step"
-                 " also performs paralog filtration and alignment trimming using ClipKIT"
+                 " also performs paralog filtering and alignment trimming using ClipKIT"
         )
 
         help_group = parser.add_argument_group("Help")

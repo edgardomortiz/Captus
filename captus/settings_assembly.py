@@ -341,20 +341,22 @@ SCIPIO_GENOME_EXTRA_SETTINGS = {
     ],
 }
 
-# Tolerance proportion for determining if two hits are compatible in their 'match_id' or percentage
-# of identity to the reference, or determining if they have an acceptable margin of overlap. These
-# two conditions are used to determine compatible pairs of hits during the assembly of partial hits
+# Maximum insertion allowed expressed as proportion of the reference sequence length
+DNA_MAX_INSERT_PROP = 0.66
+
+# Tolerance proportion for determining if two hits are compatible in their percentage of 'identity'
+# to the reference, or determining if they have an acceptable margin of overlap. These two
+# conditions are used to determine compatible pairs of hits during the assembly of partial hits
 # during the extraction of non-coding markers
 DNA_TOLERANCE_PROP = 0.05
 
-# Absolute maximum overlap in bp between two adjacent partial hits, this value will truncate
-# 'DNA_TOLERANCE_PROP'*'q_size' to not allow large overlaps when reference sequence is very long
-# If the contig was assembled wthin Captus, the kmer size was recorded in the contig name and will
-# be used as the absolute maximum overlap between contigs
-DNA_MAX_OVERLAP_BP = 99
-
 # Minimum coverage for non-coding hits before attempting greedy assembly
 DNA_MIN_COVERAGE_BEFORE_ASSEMBLY = 10
+
+# When reads are assembled within Captus using MEGAHIT, the maximum overlap between adjacent hits is
+# the size of the largest kmer used for the assembly. If the assembly comes from a different source
+# then the maximum overlap is fixed to this value
+DNA_MAX_OVERLAP_BP = 99
 
 # During non-coding sequence extraction, a version of the sequence matched with extra upstream and
 # downstream nucleotides is extracted in case they help in alignment or provide useful extra data
