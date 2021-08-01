@@ -342,7 +342,10 @@ SCIPIO_GENOME_EXTRA_SETTINGS = {
 }
 
 # Maximum insertion allowed expressed as proportion of the reference sequence length
-DNA_MAX_INSERT_PROP = 0.66
+DNA_MAX_INSERT_PROP = 0.5
+
+# Absolute maximum insertion allowed in bp
+DNA_MAX_INSERT_SIZE = 1000
 
 # Tolerance proportion for determining if two hits are compatible in their percentage of 'identity'
 # to the reference, or determining if they have an acceptable margin of overlap. These two
