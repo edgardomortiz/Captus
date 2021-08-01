@@ -1114,7 +1114,7 @@ def blat_misc_dna_psl_to_dict(psl_path, target_dict, min_identity, min_coverage,
         q_end, t_end = [], []
         for i in range(len(block_sizes) - 1):
             if (t_starts[i + 1] - (t_starts[i] + block_sizes[i])
-                >= q_size * set_a.DNA_MAX_INSERT_PROP):
+                >= min(q_size * set_a.DNA_MAX_INSERT_PROP, set_a.DNA_MAX_INSERT_SIZE)):
                 t_inserts += t_starts[i + 1] - (t_starts[i] + block_sizes[i])
                 q_start.append(q_starts[i + 1])
                 t_start.append(t_starts[i + 1])
@@ -1320,9 +1320,8 @@ def blat_misc_dna_psl_to_dict(psl_path, target_dict, min_identity, min_coverage,
                 asm_hit["score"] = (((statistics.mean(match_props) * matched_len
                                       - statistics.mean(mismatch_props) * matched_len)
                                      / asm_hit["ref_size"]))
-                asm_hit["lwscore"] = (asm_hit["score"]
-                                      * (matched_len / asm_hit["ref_size"])
-                                      * score_corr)
+                asm_hit["lwscore"] = (asm_hit["score"] * score_corr
+                                      * (matched_len / asm_hit["ref_size"]))
                 asm_hit["gapped"] = bool("n" in asm_hit["seq_gene"])
 
             # Append hits to the global assembly 'raw_assembly'
@@ -1427,7 +1426,7 @@ def blat_misc_dna_psl_to_dict(psl_path, target_dict, min_identity, min_coverage,
             q_name, q_size = cols[9], int(cols[10])
             t_name, t_size = cols[13], int(cols[14])
             # When an insertion as long as the query size is detected we must attempt splitting hit
-            if t_base_inserts >= q_size * set_a.DNA_MAX_INSERT_PROP:
+            if t_base_inserts >= min(q_size * set_a.DNA_MAX_INSERT_PROP, set_a.DNA_MAX_INSERT_SIZE):
                 block_sizes = [int(s) for s in cols[18].strip(",").split(",")]
                 q_starts = [int(p) for p in cols[19].strip(",").split(",")]
                 t_starts = [int(p) for p in cols[20].strip(",").split(",")]
