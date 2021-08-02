@@ -224,6 +224,16 @@ class CaptusAssembly(object):
             help="Maximum number of CPUs dedicated to Captus, 'auto' uses all available CPUs"
         )
         other_group.add_argument(
+            "--concurrent",
+            action="store",
+            default='auto',
+            type=str,
+            dest="concurrent",
+            help="Captus will attempt to run FastQC on this many samples concurrently. If set to"
+                 f" 'auto', Captus will run at most {settings.FASTQC_MAX_INSTANCES} instances of"
+                 " FastQC or as many CPU cores are available, whatever number is lower"
+        )
+        other_group.add_argument(
             "--show_less",
             action="store_true",
             dest="show_less",
