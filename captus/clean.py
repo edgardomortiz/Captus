@@ -188,7 +188,7 @@ def clean(full_command, args):
     log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
     log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
     all_fastqs_no_adaptors = find_and_match_fastqs(adaptors_trimmed_dir)
-    fastqs_no_adaptors = {k:v for (k,v) in all_fastqs_no_adaptors if k in fastqs_raw}
+    fastqs_no_adaptors = {k:v for (k,v) in all_fastqs_no_adaptors.items() if k in fastqs_raw}
     log.log(f'{"Samples to clean":>{mar}}: {bold(len(fastqs_no_adaptors))}')
     log.log("")
     log.log(f'{"Output directory":>{mar}}: {bold(out_dir)}')
@@ -252,7 +252,7 @@ def clean(full_command, args):
                     "BEFORE"
                 ))
         all_clean_fastqs = find_and_match_fastqs(out_dir)
-        clean_fastqs = {k:v for (k,v) in all_clean_fastqs if k in fastqs_raw}
+        clean_fastqs = {k:v for (k,v) in all_clean_fastqs.items() if k in fastqs_raw}
         for fastq_r1 in sorted(clean_fastqs):
             fastqc_params.append((
                 args.fastqc_path,
@@ -269,7 +269,9 @@ def clean(full_command, args):
                     args.overwrite,
                     "AFTER"
                 ))
-
+        concurrent = set_fastqc_concurrency(args.concurrent, threads_max)
+        log.log(f'{"Concurrent samples":>{mar}}: {bold(concurrent)}')
+        log.log("")
         log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
         log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
         log.log(f'{"Files to analyze":>{mar}}: {bold(len(fastqc_params))}')
@@ -287,7 +289,7 @@ def clean(full_command, args):
         else:
             tqdm_parallel_async_run(fastqc, fastqc_params,
                                     "Running FastQC", "FastQC analysis completed", "file",
-                                    min(threads_max, settings.FASTQC_MAX_INSTANCES), args.show_less)
+                                    concurrent, args.show_less)
         log.log("")
 
 
@@ -515,6 +517,18 @@ def bbduk_filter_quality(
         message = dim(f"'{sample_name}': skipped (output files already exist)")
 
     return message
+
+
+def set_fastqc_concurrency(concurrent, threads_max):
+    if concurrent == "auto":
+        concurrent = settings.FASTQC_MAX_INSTANCES
+    else:
+        try:
+            concurrent = int(concurrent)
+        except ValueError:
+            quit_with_error("Invalid value for '--concurrent', set it to 'auto' or use a number")
+
+    return min(concurrent, threads_max)
 
 
 def fastqc(fastqc_path, in_fastq, fastqc_out_dir, overwrite, stage):
