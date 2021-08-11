@@ -73,7 +73,7 @@ def assemble(full_command, args):
             " read pairs (or single-end reads)."
         )
     else:
-        fastqs_to_assemble = find_and_match_fastqs(args.reads)
+        fastqs_to_assemble = find_and_match_fastqs(args.reads, recursive=False)
         skip_subsampling = True
         reformat_version, reformat_status = "", "not used"
         intro_msg = (

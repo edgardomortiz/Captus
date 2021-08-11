@@ -449,8 +449,27 @@ def align(full_command, args):
                                 "alignment", concurrent, args.show_less)
 
     aln_stats_tsv = write_aln_stats(out_dir, shared_aln_stats)
-    log.log("")
-    log.log(f'{"Alignment statistics":>{mar}}: {bold(aln_stats_tsv)}')
+    if aln_stats_tsv:
+        log.log(f'{"Alignment statistics":>{mar}}: {bold(aln_stats_tsv)}')
+        log.log("")
+        if all([numpy_found, pandas_found, plotly_found]):
+
+            from .report import build_alignment_report
+
+            log.log_explanation(
+                "Generating Alignment Statistics report..."
+            )
+            aln_html_report, aln_html_msg = build_alignment_report(out_dir, aln_stats_tsv)
+            log.log(f'{"Alignment report":>{mar}}: {bold(aln_html_report)}')
+            log.log(f'{"":>{mar}}  {dim(aln_html_msg)}')
+        else:
+            log.log(
+                f"{bold('WARNING:')} Captus uses 'numpy', 'pandas', and 'plotly' to generate  an HTML"
+                " report based on the marker recovery statistics. At least one of these libraries could"
+                " not be found, please verify these libraries are installed and available."
+            )
+    else:
+        log.log(red("Skipping summarization step... (no alignment statistics files were produced)"))
     log.log("")
 
     if not args.keep_all:

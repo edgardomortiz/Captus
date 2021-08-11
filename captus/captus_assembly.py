@@ -37,7 +37,8 @@ class CaptusAssembly(object):
     ######################################################################## CAPTUS-ASSEMBLY SECTION
     def __init__(self):
 
-        description = bold("Captus' pipeline for targeted sequence capture assembly")
+        description = bold(f'Captus {__version__}:'
+                           " Assembly of Phylogenomic Datasets from High-Throughput Sequencing data")
         parser=argparse.ArgumentParser(
             usage="captus_assembly command [options]",
             description=description,
@@ -49,12 +50,12 @@ class CaptusAssembly(object):
         required_group = parser.add_argument_group("Captus-assembly commands")
         required_group.add_argument(
             "command",
-            help="B|Pipeline commands (in typical order of execution)\n"
+            help="B|Program commands (in typical order of execution)\n"
                  "clean = Trim adaptors and quality filter reads with BBTools, run FastQC on the"
                  " raw and cleaned reads\n"
                  "assemble = Perform de novo assembly with MEGAHIT: Assembling reads that were"
-                 " cleaned with the 'clean' command is recommended, but any other reads are also"
-                 " allowed\n"
+                 " cleaned with the 'clean' command is recommended, but reads cleaned elsewhere are"
+                 " also allowed\n"
                  "extract = Recover targeted markers with BLAT and Scipio: Extracting markers"
                  " from the assembly obtained with the 'assemble' command is recommended, but any"
                  " other assemblies in FASTA format are also allowed.\n"
@@ -94,7 +95,7 @@ class CaptusAssembly(object):
     ################################################################################## CLEAN SECTION
     def clean(self):
         description = bold(
-            "Captus-assembly: Clean; remove adaptors and quality filter reads with BBTools\n"
+            "Captus-assembly: Clean; remove adaptors and quality-filter reads with BBTools\n"
         )
         parser=argparse.ArgumentParser(
             usage="captus_assembly clean -r READS [READS ...] [options]",
@@ -112,12 +113,12 @@ class CaptusAssembly(object):
             type=str,
             required=True,
             dest="reads",
-            help="B|FASTQ files. Valid file name extensions are: .fq, .fastq, .fq.gz, and .fastq.gz. "
-                 "The names must include the string '_R1' (and '_R2' when pairs are provided). "
-                 "Everything before the string '_R1' will be used as sample name. There are a few"
+            help="B|FASTQ files. Valid filename extensions are: .fq, .fastq, .fq.gz, and .fastq.gz."
+                 " The names must include the string '_R1' (and '_R2' when pairs are provided)."
+                 " Everything before the string '_R1' will be used as sample name. There are a few"
                  " ways to provide the FASTQ files:\n"
                  "A directory = path to directory containing FASTQ files (e.g.: -r ./raw_reads)\n"
-                 "A list = file names separated by space (e.g.: -r A_R1.fq A_R2.fq B_R1.fq C_R1.fq)\n"
+                 "A list = filenames separated by space (e.g.: -r A_R1.fq A_R2.fq B_R1.fq C_R1.fq)\n"
                  "A pattern = UNIX matching expression (e.g.: -r ./raw_reads/*.fastq.gz)"
         )
 
@@ -134,14 +135,13 @@ class CaptusAssembly(object):
             "--keep_all",
             action="store_true",
             dest="keep_all",
-            help="Enable to keep all intermediate files, otherwise intermediate FASTQ files are"
-                 " deleted"
+            help="Do not delete any intermediate files"
         )
         output_group.add_argument(
             "--overwrite",
             action="store_true",
             dest="overwrite",
-            help="Enable to overwrite previous results"
+            help="Overwrite previous results"
         )
 
         adaptor_group = parser.add_argument_group("Adaptor trimming")
@@ -154,13 +154,14 @@ class CaptusAssembly(object):
             help="B|Set of adaptors to remove\n"
                  "Illumina = Illumina adaptors included in BBTools\n"
                  "BGI = BGISEQ, DNBSEG, or MGISEQ adaptors\n"
+                 "ALL = Illumina + BGI\n"
                  "Alternatively, provide a path to a FASTA file containing your own adaptors"
         )
         adaptor_group.add_argument(
             "--rna",
             action="store_true",
             dest="rna",
-            help="Enable if cleaning RNAseq reads to additionally trim poly-A tails"
+            help="Trim ploy-A tails from RNA-Seq reads"
         )
 
         quality_group = parser.add_argument_group("Quality trimming and filtering")
@@ -170,7 +171,7 @@ class CaptusAssembly(object):
             default=10,
             type=int,
             dest="trimq",
-            help="Leading and trailing regions of reads with average PHRED quality score below this"
+            help="Leading and trailing read regions with average PHRED quality score below this"
                  " value will be trimmed"
         )
         quality_group.add_argument(
@@ -229,22 +230,22 @@ class CaptusAssembly(object):
             default='auto',
             type=str,
             dest="concurrent",
-            help="Captus will attempt to run FastQC on this many samples concurrently. If set to"
+            help="Captus will attempt to run FastQC concurrently on this many samples. If set to"
                  f" 'auto', Captus will run at most {settings.FASTQC_MAX_INSTANCES} instances of"
                  " FastQC or as many CPU cores are available, whatever number is lower"
-        )
-        other_group.add_argument(
-            "--show_less",
-            action="store_true",
-            dest="show_less",
-            help="Enable for less verbose screen printout. Specifically, individual sample "
-            "information will no longer be shown (but it will still be logged)"
         )
         other_group.add_argument(
             "--debug",
             action="store_true",
             dest="debug",
             help="Enable debugging mode, parallelization is disabled so errors are logged to screen"
+        )
+        other_group.add_argument(
+            "--show_less",
+            action="store_true",
+            dest="show_less",
+            help="Do not show individual sample information during the run, the information is still"
+                 " written to the log"
         )
 
         help_group = parser.add_argument_group("Help")
@@ -307,7 +308,7 @@ class CaptusAssembly(object):
             help="Use this number of read pairs (or reads if single-end) for assembly. Reads are"
                  " randomly subsampled with 'reformat.sh' from BBTools (option:"
                  " srt/samplereadstarget). Useful for limiting the amount of data of samples with"
-                 " high sequencing depth. To use all the reads, set this value to 0"
+                 " very high sequencing depth. To use all the reads, set this value to 0"
         )
 
         output_group = parser.add_argument_group("Output")
@@ -324,14 +325,13 @@ class CaptusAssembly(object):
             "--keep_all",
             action="store_true",
             dest="keep_all",
-            help="Enable to keep all intermediate files, otherwise intermediate MEGAHIT assembly"
-                 " files will be deleted"
+            help="Do not delete any intermediate files"
         )
         output_group.add_argument(
             "--overwrite",
             action="store_true",
             dest="overwrite",
-            help="Enable to overwrite previous results"
+            help="Overwrite previous results"
         )
 
         megahit_group = parser.add_argument_group("MEGAHIT")
@@ -341,10 +341,11 @@ class CaptusAssembly(object):
             default="31,39,47,63,79,95,111,127,143,159,175",
             type=str,
             dest="k_list",
-            help="Comma-separated list of kmer sizes, all must be odd values in the range 15-255,"
-                 " increments of at most 28. The defaults have been optimized for captured data."
-                 " The final kmer size will be adjusted automatically so it never exceeds the mean"
-                 " read length of the sample by more than 31"
+            help="Comma-separated list of kmer sizes, all must be odd values in the range 15-255, in"
+                 " increments of at most 28. If not provided, a list optimized for hybridization"
+                 " capture and/or genome skimming data will be used. The final kmer size will be"
+                 " adjusted automatically so it never exceeds the mean read length of the sample by"
+                 " more than 31"
         )
         megahit_group.add_argument(
             "--min_count",
@@ -363,7 +364,7 @@ class CaptusAssembly(object):
             default=2,
             type=int,
             dest="prune_level",
-            help="Strength of prunning for low-coverage edges during graph cleaning. Increasing the"
+            help="Prunning strength for low-coverage edges during graph cleaning. Increasing the"
                  " value beyond 2 can speed up the assembly at the cost of losing low-depth contigs."
                  " Accepted values are integers between 0 and 3"
         )
@@ -382,11 +383,11 @@ class CaptusAssembly(object):
             action="store",
             type=str,
             dest="preset",
-            help="B|The defaults work well with either capture or genome-skimming data up to 10M"
-                 " reads. You can assemble RNAseq reads or WGS reads using these presets. Be aware,"
-                 "these will require a minimum of 8GB of RAM to work well.\n"
+            help="B|The defaults work well with either hybridization capture or genome skimming data"
+                 " up to 10M reads. You can assemble RNA-Seq reads or WGS reads using these presets."
+                 " Be aware, these will require a minimum of 8GB of RAM to work well.\n"
                  "RNA = --k-list 27,47,67,87,107,127,147,167 --min-count 2 --prune-level 2\n"
-                 "WGS = --k-list 31,39,51,71,91,111,131,151,171 --min-count 2 --prune-level 2"
+                 "WGS = --k-list 31,39,51,71,91,111,131,151,171 --min-count 3 --prune-level 2"
         )
         megahit_group.add_argument(
             "--min_contig_len",
@@ -403,7 +404,7 @@ class CaptusAssembly(object):
             default="$HOME",
             type=str,
             dest="tmp_dir",
-            help="Where to create the temporary directory 'captus_assembly_tmp' for MEGAHIT"
+            help="Location to create the temporary directory 'captus_assembly_tmp' for MEGAHIT"
                  " assembly. Sometimes, when working on external hard drives MEGAHIT will refuse to"
                  " run unless this directory is created in an internal hard drive."
         )
@@ -460,21 +461,21 @@ class CaptusAssembly(object):
                  " will be divided by this value for each individual MEGAHIT process. For example"
                  " if you set --threads to 12 and --concurrent to 3, then each MEGAHIT assembly will"
                  " be done using --threads/--concurrent = 4 CPUs. If set to 'auto', Captus will run"
-                 " as many concurrent assemblies as possible with a minimum of 4 CPUs and 4GB of RAM"
-                 " per assembly"
-        )
-        other_group.add_argument(
-            "--show_less",
-            action="store_true",
-            dest="show_less",
-            help="Enable for less verbose screen printout. Specifically, individual sample "
-            "information will no longer be shown (but it will still be logged)"
+                 " as many concurrent assemblies as possible with a minimum of 4 CPUs and 4 GB of"
+                 " RAM per assembly (8 GB if presets RNA or WGS are used)"
         )
         other_group.add_argument(
             "--debug",
             action="store_true",
             dest="debug",
             help="Enable debugging mode, parallelization is disabled so errors are logged to screen"
+        )
+        other_group.add_argument(
+            "--show_less",
+            action="store_true",
+            dest="show_less",
+            help="Do not show individual sample information during the run, the information is still"
+                 " written to the log"
         )
 
         help_group = parser.add_argument_group("Help")
@@ -576,14 +577,13 @@ class CaptusAssembly(object):
             "--keep_all",
             action="store_true",
             dest="keep_all",
-            help="Enable to keep all intermediate files, otherwise intermediate files will be"
-                 " deleted"
+            help="Do not delete any intermediate files"
         )
         output_group.add_argument(
             "--overwrite",
             action="store_true",
             dest="overwrite",
-            help="Enable to overwrite previous results"
+            help="Overwrite previous results"
         )
 
         scipio_nuc_group = parser.add_argument_group("Nuclear proteins extraction (Scipio)")
@@ -598,6 +598,17 @@ class CaptusAssembly(object):
                  "Alternatively, provide a path to a FASTA file containing your reference protein"
                  " sequences in either nucleotide or aminoacid. When the FASTA file is in"
                  " nucleotides, '--nuc_transtable' will be used to translate it to aminoacids"
+        )
+        scipio_nuc_group.add_argument(
+            "--nuc_transtable",
+            action="store",
+            default=settings.DEFAULT_GENETIC_CODES["NUC"]["id"],
+            type=int,
+            dest="nuc_transtable",
+            help="Genetic code table to translate your nuclear proteins. Complete list of tables at:"
+                 " https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi (default:"
+                 f' {settings.DEFAULT_GENETIC_CODES["NUC"]["id"]}:'
+                 f' {settings.DEFAULT_GENETIC_CODES["NUC"]["name"]})'
         )
         scipio_nuc_group.add_argument(
             "--nuc_min_score",
@@ -623,17 +634,6 @@ class CaptusAssembly(object):
             dest="nuc_min_coverage",
             help="Minimum coverage percentage of reference protein to consider a hit by a contig"
         )
-        scipio_nuc_group.add_argument(
-            "--nuc_transtable",
-            action="store",
-            default=settings.DEFAULT_GENETIC_CODES["NUC"]["id"],
-            type=int,
-            dest="nuc_transtable",
-            help="Genetic code table to translate your nuclear proteins. Complete list of tables at:"
-                 " https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi (default:"
-                 f' {settings.DEFAULT_GENETIC_CODES["NUC"]["id"]}:'
-                 f' {settings.DEFAULT_GENETIC_CODES["NUC"]["name"]})'
-        )
 
         scipio_ptd_group = parser.add_argument_group("Plastidial proteins extraction (Scipio)")
         scipio_ptd_group.add_argument(
@@ -646,6 +646,17 @@ class CaptusAssembly(object):
                  "Alternatively, provide a path to a FASTA file containing your reference protein"
                  " sequences in either nucleotide or aminoacid. When the FASTA file is in"
                  " nucleotides, '--ptd_transtable' will be used to translate it to aminoacids"
+        )
+        scipio_ptd_group.add_argument(
+            "--ptd_transtable",
+            action="store",
+            default=settings.DEFAULT_GENETIC_CODES["PTD"]["id"],
+            type=int,
+            dest="ptd_transtable",
+            help="Genetic code table to translate your plastidial proteins. Complete list of tables"
+                 " at: https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi (default:"
+                 f' {settings.DEFAULT_GENETIC_CODES["PTD"]["id"]}:'
+                 f' {settings.DEFAULT_GENETIC_CODES["PTD"]["name"]})'
         )
         scipio_ptd_group.add_argument(
             "--ptd_min_score",
@@ -671,17 +682,6 @@ class CaptusAssembly(object):
             dest="ptd_min_coverage",
             help="Minimum coverage percentage of reference protein to consider a hit by a contig"
         )
-        scipio_ptd_group.add_argument(
-            "--ptd_transtable",
-            action="store",
-            default=settings.DEFAULT_GENETIC_CODES["PTD"]["id"],
-            type=int,
-            dest="ptd_transtable",
-            help="Genetic code table to translate your plastidial proteins. Complete list of tables"
-                 " at: https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi (default:"
-                 f' {settings.DEFAULT_GENETIC_CODES["PTD"]["id"]}:'
-                 f' {settings.DEFAULT_GENETIC_CODES["PTD"]["name"]})'
-        )
 
         scipio_mit_group = parser.add_argument_group("Mitochondrial proteins extraction (Scipio)")
         scipio_mit_group.add_argument(
@@ -694,6 +694,17 @@ class CaptusAssembly(object):
                  "Alternatively, provide a path to a FASTA file containing your reference protein"
                  " sequences in either nucleotide or aminoacid. When the FASTA file is in"
                  " nucleotides, '--mit_transtable' will be used to translate it to aminoacids"
+        )
+        scipio_mit_group.add_argument(
+            "--mit_transtable",
+            action="store",
+            default=settings.DEFAULT_GENETIC_CODES["MIT"]["id"],
+            type=int,
+            dest="mit_transtable",
+            help="Genetic code table to translate your mitochondrial proteins. Complete list of"
+                 " tables at: https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi (default:"
+                 f' {settings.DEFAULT_GENETIC_CODES["MIT"]["id"]}:'
+                 f' {settings.DEFAULT_GENETIC_CODES["MIT"]["name"]})'
         )
         scipio_mit_group.add_argument(
             "--mit_min_score",
@@ -718,17 +729,6 @@ class CaptusAssembly(object):
             type=float,
             dest="mit_min_coverage",
             help="Minimum coverage percentage of reference protein to consider a hit by a contig"
-        )
-        scipio_mit_group.add_argument(
-            "--mit_transtable",
-            action="store",
-            default=settings.DEFAULT_GENETIC_CODES["MIT"]["id"],
-            type=int,
-            dest="mit_transtable",
-            help="Genetic code table to translate your mitochondrial proteins. Complete list of"
-                 " tables at: https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi (default:"
-                 f' {settings.DEFAULT_GENETIC_CODES["MIT"]["id"]}:'
-                 f' {settings.DEFAULT_GENETIC_CODES["MIT"]["name"]})'
         )
 
         non_coding_group = parser.add_argument_group("Miscellaneous DNA extraction (BLAT)")
@@ -762,9 +762,9 @@ class CaptusAssembly(object):
             action="store_true",
             dest="cluster_leftovers",
             help="Enable MMseqs2 clustering across samples of the contigs that had no hits to the"
-                 " reference markers. A new non-coding reference is built from the best"
-                 " representative of each cluster in order to perform a bootstraped non-coding"
-                 " marker extraction."
+                 " reference markers. A new miscellaneous DNA reference is built from the best"
+                 " representative of each cluster in order to perform a miscellaneous DNA marker"
+                 " extraction."
         )
         mmseqs2_group.add_argument(
             "--cl_min_identity",
@@ -888,17 +888,17 @@ class CaptusAssembly(object):
                  " each process due to the RAM requirements of BLAT"
         )
         other_group.add_argument(
-            "--show_less",
-            action="store_true",
-            dest="show_less",
-            help="Enable for less verbose screen printout. Specifically, individual sample "
-            "information will no longer be shown (but it will still be logged)"
-        )
-        other_group.add_argument(
             "--debug",
             action="store_true",
             dest="debug",
             help="Enable debugging mode, parallelization is disabled so errors are logged to screen"
+        )
+        other_group.add_argument(
+            "--show_less",
+            action="store_true",
+            dest="show_less",
+            help="Do not show individual sample information during the run, the information is still"
+                 " written to the log"
         )
 
         help_group = parser.add_argument_group("Help")
@@ -961,7 +961,7 @@ class CaptusAssembly(object):
                  "MIT = Mitochondrial proteins inside directories '03_coding_MIT'\n"
                  "DNA = Miscellaneous DNA markers inside directories '04_misc_DNA'\n"
                  "CLR = Cluster-derived DNA markers inside directories '05_clusters'\n"
-                 "all = Shortcut for NUC,PTD,MIT,DNA,CLR"
+                 "ALL = Shortcut for NUC,PTD,MIT,DNA,CLR"
         )
         input_group.add_argument(
             "-f", "--formats",
@@ -980,8 +980,33 @@ class CaptusAssembly(object):
                  "Valid types for miscellaneous DNA and CLusteR-derived markers:\n"
                  "MA = Matched sequences without flanking upstream or downstream basepairs\n"
                  "MF = Matched sequences with flanking upstream and downstream basepairs\n"
+                 "ALL = Shortcut for AA,NT,GE,GF,MA,MF"
         )
-        input_group.add_argument(
+
+        output_group = parser.add_argument_group("Output")
+        output_group.add_argument(
+            "-o", "--out",
+            action="store",
+            default="./04_alignments",
+            type=str,
+            dest="out",
+            help="Output directory name"
+        )
+        output_group.add_argument(
+            "--keep_all",
+            action="store_true",
+            dest="keep_all",
+            help="Do not delete any intermediate files"
+        )
+        output_group.add_argument(
+            "--overwrite",
+            action="store_true",
+            dest="overwrite",
+            help="Overwrite previous results"
+        )
+
+        references_group = parser.add_argument_group("Extraction References")
+        references_group.add_argument(
             "-n", "--nuc_refs",
             action="store",
             type=str,
@@ -999,7 +1024,7 @@ class CaptusAssembly(object):
                  "PathAA = Path to protein reference set in aminoacids, in this case it is not"
                  " possible to add references to the nucleotide CDS alignments (e.g.: ref.faa)"
         )
-        input_group.add_argument(
+        references_group.add_argument(
             "-p", "--ptd_refs",
             action="store",
             type=str,
@@ -1016,7 +1041,7 @@ class CaptusAssembly(object):
                  "PathAA = path to protein reference set in aminoacids, in this case it is not"
                  " possible to add references to the nucleotide CDS alignments (e.g.: ref.faa)"
         )
-        input_group.add_argument(
+        references_group.add_argument(
             "-m", "--mit_refs",
             action="store",
             type=str,
@@ -1033,32 +1058,13 @@ class CaptusAssembly(object):
                  "PathAA = path to protein reference set in aminoacids, in this case it is not"
                  " possible to add references to the nucleotide CDS alignments (e.g.: ref.faa)"
         )
-        input_group.add_argument(
+        references_group.add_argument(
             "-d", "--dna_refs",
             action="store",
             type=str,
             dest="dna_refs",
             help="Path to a FASTA nucleotide file of miscellaneous DNA references. These will be"
                  " used as guides for alignment and removed from the final alignment files."
-        )
-
-        paralog_group = parser.add_argument_group("Paralog filtering")
-        paralog_group.add_argument(
-            "--filter_method",
-            action="store",
-            choices=["fast", "careful", "both"],
-            default="both",
-            type=str,
-            dest="filter_method",
-            help="B|Methods for filtering paralogous sequences:\n"
-                 "fast = Only the best hit for each sample (marked as hit=00) is retained\n"
-                 "careful = Only keep the copy (regardless of hit ranking) that is most similar to"
-                 " the reference sequence that was chosen most frequently among all other samples"
-                 " in the alignment. To use this method, the names of the references used for marker"
-                 " extraction must be provided with '--nuc_refs', and/or '--ptd_refs', and/or"
-                 " '--mit_refs\n"
-                 "both = Two separate folders will be created, each containing the results from each"
-                 " filtering method"
         )
 
         mafft_group = parser.add_argument_group("MAFFT")
@@ -1088,6 +1094,25 @@ class CaptusAssembly(object):
             help="Maximum allowed time in seconds for a single alignment"
         )
 
+        paralog_group = parser.add_argument_group("Paralog filtering")
+        paralog_group.add_argument(
+            "--filter_method",
+            action="store",
+            choices=["fast", "careful", "both"],
+            default="both",
+            type=str,
+            dest="filter_method",
+            help="B|Methods for filtering paralogous sequences:\n"
+                 "fast = Only the best hit for each sample (marked as hit=00) is retained\n"
+                 "careful = Only keep the copy (regardless of hit ranking) that is most similar to"
+                 " the reference sequence that was chosen most frequently among all other samples"
+                 " in the alignment. To use this method, the names of the references used for marker"
+                 " extraction must be provided with '--nuc_refs', and/or '--ptd_refs', and/or"
+                 " '--mit_refs\n"
+                 "both = Two separate folders will be created, each containing the results from each"
+                 " filtering method"
+        )
+
         clipkit_group = parser.add_argument_group("ClipKIT")
         clipkit_group.add_argument(
             "--clipkit_algorithm",
@@ -1114,32 +1139,9 @@ class CaptusAssembly(object):
             default=0.9,
             type=float,
             dest="clipkit_gaps",
-            help="Gappynes threshold per position. Accepted values between 0 and 1. This argument is"
-                 " ignored when using the 'kpi' and 'kpic' algorithms or intermediate steps that use"
-                 " 'smart-gap'"
-        )
-
-        output_group = parser.add_argument_group("Output")
-        output_group.add_argument(
-            "-o", "--out",
-            action="store",
-            default="./04_alignments",
-            type=str,
-            dest="out",
-            help="Output directory name"
-        )
-        output_group.add_argument(
-            "--keep_all",
-            action="store_true",
-            dest="keep_all",
-            help="Enable to keep all intermediate files, otherwise intermediate FASTQ files are"
-                 " deleted"
-        )
-        output_group.add_argument(
-            "--overwrite",
-            action="store_true",
-            dest="overwrite",
-            help="Enable to overwrite previous results"
+            help="Gappyness threshold per position. Accepted values between 0 and 1. This argument"
+                 " is ignored when using the 'kpi' and 'kpic' algorithms or intermediate steps that"
+                 " use 'smart-gap'"
         )
 
         other_group = parser.add_argument_group("Other")
@@ -1206,17 +1208,17 @@ class CaptusAssembly(object):
                  " process"
         )
         other_group.add_argument(
-            "--show_less",
-            action="store_true",
-            dest="show_less",
-            help="Enable for less verbose screen printout. Specifically, individual sample "
-            "information will no longer be shown (but it will still be logged)"
-        )
-        other_group.add_argument(
             "--debug",
             action="store_true",
             dest="debug",
             help="Enable debugging mode, parallelization is disabled so errors are logged to screen"
+        )
+        other_group.add_argument(
+            "--show_less",
+            action="store_true",
+            dest="show_less",
+            help="Do not show individual sample information during the run, the information is still"
+                 " written to the log"
         )
 
         help_group = parser.add_argument_group("Help")
@@ -1240,10 +1242,6 @@ class CaptusAssembly(object):
         args=parser.parse_args(sys.argv[2:])
         align(full_command, args)
         exit(1)
-
-
-    ################################################################################################
-    ################################################################################# CURATE SECTION
 
 
 def main():

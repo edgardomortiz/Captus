@@ -20,14 +20,162 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+from plotly.colors import sample_colorscale
 from plotly.subplots import make_subplots
 
 from . import settings_assembly
 from .misc import dim, elapsed_time, red
 
+def normalize(l):
+    if len(l) > 0:
+        l_min = min(l)
+        l_max = max(l)
+        return [(i - l_min) / (l_max - l_min) for i in l] if l_max > l_min else 0.5
+    else:
+        return(0.5)
 
 def build_qc_report(out_dir, qc_extras_dir):
     start = time.time()
+
+    ### Summary table ###
+    df1 = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["REBA"]))
+    df2 = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["PSQS"]))
+    df3 = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["SLEN"]))
+    df4 = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["PSGC"]))
+
+    # Output reads/bases%
+    df1["reads_passed_cleaning_%"] = df1["reads_passed_cleaning"] / df1["reads_input"] * 100
+    df1["bases_passed_cleaning_%"] = df1["bases_passed_cleaning"] / df1["bases_input"] * 100
+    # Mean read length%
+    df3["length * count"] = df3["length"] * df3["count"]
+    read_len_pct = (df3.groupby(["sample_name", "stage"])["length * count"].sum()
+        / df3.groupby(["sample_name", "stage"])["count"].sum()
+        / df3.groupby(["sample_name", "stage"])["length"].max() * 100
+    )
+    # Q20, Q30 reads%
+    q20 = (df2[df2["quality"] >= 20].groupby(["sample_name", "stage"])["count"].sum()
+        / df2.groupby(["sample_name", "stage"])["count"].sum() * 100
+    )
+    q30 = (df2[df2["quality"] >= 30].groupby(["sample_name", "stage"])["count"].sum()
+        / df2.groupby(["sample_name", "stage"])["count"].sum() * 100
+    )
+    # GC%
+    df4["gc_content * count"] = df4["gc_content"] * df4["count"]
+    gc = (df4.groupby(["sample_name", "stage"])["gc_content * count"].sum()
+        / df4.groupby(["sample_name", "stage"])["count"].sum()
+    )
+
+    df = pd.DataFrame({
+        "Sample": df1["sample"],
+        "Input Reads": df1["reads_input"],
+        "Input Bases": df1["bases_input"],
+        "Output Reads": df1["reads_passed_cleaning"],
+        "Output Reads%": df1["reads_passed_cleaning_%"],
+        "Output Bases": df1["bases_passed_cleaning"],
+        "Output Bases%": df1["bases_passed_cleaning_%"],
+        "Mean Read Length%": read_len_pct.xs("after", level="stage").reset_index()[0],
+        ">Q20 Reads%": q20.xs("after", level="stage").reset_index()["count"],
+        ">Q30 Reads%": q30.xs("after", level="stage").reset_index()["count"],
+        "GC%": gc.xs("after", level="stage").reset_index()[0],
+    })
+
+    colorscale = [
+        [0, "#F0D9E6"],
+        [0.1, "#F5F5F5"],
+        [0.9, "#F5F5F5"],
+        [1, "#BDE3D8"]
+    ]
+
+    fig0 = go.Figure()
+    fig0.add_trace(go.Table(
+        header=dict(values=["<b>" + col + "</b>" for col in df.columns]),
+        cells=dict(
+            values=[df[col] for col in df.columns],
+            fill_color=[
+                "#F5F5F5",
+                sample_colorscale(colorscale, normalize(df["Input Reads"])),
+                sample_colorscale(colorscale, normalize(df["Input Bases"])),
+                sample_colorscale(colorscale, normalize(df["Output Reads"])),
+                sample_colorscale(colorscale, normalize(df["Output Reads%"])),
+                sample_colorscale(colorscale, normalize(df["Output Bases"])),
+                sample_colorscale(colorscale, normalize(df["Output Bases%"])),
+                sample_colorscale(colorscale, normalize(df["Mean Read Length%"])),
+                sample_colorscale(colorscale, normalize(df[">Q20 Reads%"])),
+                sample_colorscale(colorscale, normalize(df[">Q30 Reads%"])),
+                sample_colorscale(colorscale, normalize(df["GC%"])),
+            ],
+            format=[None, ",", ",", ",", ".2f", ",", ".2f"],
+            suffix=[None, None, None, None, "%", None, "%"],
+            align=["left", "right"],
+            height=21,
+        )
+    ))
+
+    buttons = []
+    for col in df.columns:
+        if col == "Sample":
+            df.sort_values(by=col, inplace=True)
+        else:
+            df.sort_values(by=col, inplace=True, ascending=False)
+        button = dict(label=col,
+            method="restyle",
+            args=[dict(
+                cells=dict(values=[df[col] for col in df.columns],
+                fill=dict(
+                    color=[
+                        "#F5F5F5",
+                        sample_colorscale(colorscale, normalize(df["Input Reads"])),
+                        sample_colorscale(colorscale, normalize(df["Input Bases"])),
+                        sample_colorscale(colorscale, normalize(df["Output Reads"])),
+                        sample_colorscale(colorscale, normalize(df["Output Reads%"])),
+                        sample_colorscale(colorscale, normalize(df["Output Bases"])),
+                        sample_colorscale(colorscale, normalize(df["Output Bases%"])),
+                        sample_colorscale(colorscale, normalize(df["Mean Read Length%"])),
+                        sample_colorscale(colorscale, normalize(df[">Q20 Reads%"])),
+                        sample_colorscale(colorscale, normalize(df[">Q30 Reads%"])),
+                        sample_colorscale(colorscale, normalize(df["GC%"])),
+                    ]
+                ),
+                format=[None, ",", ",", ",", ".2f", ",", ".2f"],
+                suffix=[None, None, None, None, "%", None, "%"],
+                align=["left", "right"],
+                height=21,
+                )
+            )]
+        )
+        buttons.append(button)
+
+    updatemenus = [dict(
+        buttons=buttons,
+        type="dropdown",
+        direction="down",
+        pad=dict(t=10, b=10),
+        x=1,
+        xanchor="right",
+        y=1,
+        yanchor="bottom",
+    )]
+
+    annotations=[dict(
+        text="<b>Sort by:</b>",
+        x=1,
+        xref="paper",
+        xanchor="right",
+        xshift=-160,
+        y=1,
+        yref="paper",
+        yanchor="top",
+        yshift=36,
+        align="right",
+        showarrow=False
+    )]
+
+    fig0.update_layout(
+        font_family="Arial",
+        title="<b>Captus-assembly: Clean (Quality Control Report)<br>1. Summary Table</b>",
+        updatemenus=updatemenus,
+        annotations=annotations,
+    )
 
 
     ### Stats on reads/bases ###
@@ -122,8 +270,8 @@ def build_qc_report(out_dir, qc_extras_dir):
                          ticks="outside",
                          gridcolor="rgb(64,64,64)",
                      ),
-                 ),
-             ],
+                 )
+             ]
         ),
         dict(label="Percentage",
              method="update",
@@ -154,9 +302,9 @@ def build_qc_report(out_dir, qc_extras_dir):
                          ticks="outside",
                          gridcolor="rgb(64,64,64)",
                      ),
-                 ),
-             ],
-        ),
+                 )
+             ]
+        )
     ]
     updatemenus = [
         dict(
@@ -169,12 +317,12 @@ def build_qc_report(out_dir, qc_extras_dir):
             xanchor="right",
             y=1,
             yanchor="bottom",
-        ),
+        )
     ]
 
     fig1.update_layout(
         font_family="Arial",
-        title="<b>Stats on Reads/Bases</b>",
+        title="<b>2. Stats on Reads/Bases</b>",
         yaxis=dict(title="Sample"),
         barmode="overlay",
         bargap=0,
@@ -302,7 +450,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                 coloraxis="coloraxis",
                 hoverongaps=False,
                 ygap=0.75,
-            ),
+            )
         )
 
     # Draw boundaries between samples
@@ -334,12 +482,12 @@ def build_qc_report(out_dir, qc_extras_dir):
             xanchor="right",
             y=1,
             yanchor="bottom",
-        ),
+        )
     ]
 
     fig2.update_layout(
         font_family="Arial",
-        title_text="<b>Per Base Quality</b>",
+        title_text="<b>3. Per Base Quality</b>",
         plot_bgcolor="rgb(8,8,8)",
         yaxis=dict(title="Sample - Stage"),
         coloraxis=dict(
@@ -355,7 +503,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                 ticks="outside",
                 yanchor="top" if len(sample_list) > 7 else "middle",
                 y=1 if len(sample_list) > 7 else 0.5,
-            ),
+            )
         ),
         height=180 + 30 * len(sample_list),
         updatemenus=updatemenus,
@@ -386,7 +534,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     col = 0
     while df_pivot.iloc[:,col].isnull().any() == True:
         df_pivot.iloc[:,col].fillna(0, inplace=True)
-        col += 1
+        col = col + 1
     df = df_pivot.reset_index().melt(
         id_vars=["sample_name", "read", "stage"], value_name="count").sort_values(
             by=["sample_name", "stage"], ascending=[True, False]
@@ -470,7 +618,7 @@ def build_qc_report(out_dir, qc_extras_dir):
 
     fig3.update_layout(
         font_family="Arial",
-        title_text="<b>Per Read Quality</b>",
+        title_text="<b>4. Per Read Quality</b>",
         yaxis=dict(title="Sample - Stage"),
         coloraxis=dict(
             colorscale="Spectral_r",
@@ -484,7 +632,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                 ticksuffix="%",
                 yanchor="top" if len(sample_list) > 7 else "middle",
                 y=1 if len(sample_list) > 7 else 0.5,
-            ),
+            )
         ),
         height=180 + 30 * len(sample_list),
         plot_bgcolor="rgb(8,8,8)",
@@ -604,12 +752,12 @@ def build_qc_report(out_dir, qc_extras_dir):
                               "Proportion: %{z:.2f}%<br>" +
                               "Count: %{customdata[3]:,.0f} reads<extra></extra>",
                 ygap=2,
-            ),
+            )
         )
 
     fig4.update_layout(
         font_family="Arial",
-        title_text="<b>Read Length Distribution</b>",
+        title_text="<b>5. Read Length Distribution</b>",
         yaxis=dict(title="Sample"),
         coloraxis=dict(
             colorscale=colorscale,
@@ -623,7 +771,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                 ticksuffix="%",
                 yanchor="top" if len(sample_list) > 7 else "middle",
                 y=1 if len(sample_list) > 7 else 0.5,
-            ),
+            )
         ),
         height=180 + 15 * len(sample_list),
         plot_bgcolor="rgb(8,8,8)",
@@ -644,7 +792,6 @@ def build_qc_report(out_dir, qc_extras_dir):
         tickson="labels",
         gridcolor="rgb(64,64,64)",
     )
-
 
     ### Per Base Nucleotide Content ###
     df = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["PBSC"]))
@@ -716,7 +863,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                               "Position: %{x} bp<br>" +
                               "Proportion: %{z:.2f}%<extra></extra>",
                 ygap=0.25,
-            ),
+            )
         )
 
     # Draw boundaries between stages
@@ -733,7 +880,7 @@ def build_qc_report(out_dir, qc_extras_dir):
 
     fig5.update_layout(
         font_family="Arial",
-        title_text="<b>Per Base Nucleotide Content</b>",
+        title_text="<b>6. Per Base Nucleotide Content</b>",
         yaxis=dict(title="Sample - Stage - Nucleotide"),
         coloraxis=dict(
             colorscale="Spectral_r",
@@ -747,7 +894,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                 ticksuffix="%",
                 yanchor="top" if len(sample_list) > 1 else "middle",
                 y=1 if len(sample_list) > 1 else 0.5,
-            ),
+            )
         ),
         height=270 + 120 * len(sample_list),
         plot_bgcolor="rgb(8,8,8)",
@@ -768,7 +915,6 @@ def build_qc_report(out_dir, qc_extras_dir):
         showdividers=False,
         gridcolor="rgb(64,64,64)",
     )
-
 
     ### Per Read GC Content ###
     df = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["PSGC"]))
@@ -831,7 +977,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                               "GC Content: %{x}%<br>" +
                               "Proportion: %{z:.2f}%<extra></extra>",
                 ygap=0.75,
-            ),
+            )
         )
 
     # Draw boundaries between samples
@@ -842,7 +988,7 @@ def build_qc_report(out_dir, qc_extras_dir):
 
     fig6.update_layout(
         font_family="Arial",
-        title_text="<b>Per Read GC Content</b>",
+        title_text="<b>7. Per Read GC Content</b>",
         yaxis=dict(title="Sample - Stage"),
         coloraxis=dict(
             colorscale="Spectral_r",
@@ -856,7 +1002,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                 ticksuffix="%",
                 yanchor="top" if len(sample_list) > 7 else "middle",
                 y=1 if len(sample_list) > 7 else 0.5,
-            ),
+            )
         ),
         height=180 + 30 * len(sample_list),
         plot_bgcolor="rgb(8,8,8)",
@@ -878,7 +1024,6 @@ def build_qc_report(out_dir, qc_extras_dir):
         showdividers=False,
         gridcolor="rgb(64,64,64)",
     )
-
 
     ### Sequence Duplication Level ###
     df = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["SDUP"]),
@@ -976,7 +1121,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                     hovertemplate="<b>%{y}</b><br>" +
                                   "Duplication Level: %{meta[0]}<br>" +
                                   "Percentage: %{x:.2f}%<extra></extra>",
-                ),
+                )
             )
 
     # Draw boundaries between samples
@@ -987,7 +1132,7 @@ def build_qc_report(out_dir, qc_extras_dir):
 
     fig7.update_layout(
         font_family="Arial",
-        title_text="<b>Sequence Duplication Level</b>",
+        title_text="<b>8. Sequence Duplication Level</b>",
         yaxis=dict(title="Sample - Stage"),
         barmode="stack",
         bargap=0,
@@ -1012,7 +1157,6 @@ def build_qc_report(out_dir, qc_extras_dir):
         tickson="labels",
         gridcolor="rgb(64,64,64)",
     )
-
 
     ### Adapter Content ###
     df = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["ADCO"]))
@@ -1107,7 +1251,7 @@ def build_qc_report(out_dir, qc_extras_dir):
 
     fig8.update_layout(
         font_family="Arial",
-        title_text="<b>Adapter Content</b>",
+        title_text="<b>9. Adapter Content</b>",
         yaxis=dict(title="Sample - Stage"),
         coloraxis=dict(
             colorscale="Spectral_r",
@@ -1143,8 +1287,11 @@ def build_qc_report(out_dir, qc_extras_dir):
     )
 
     # Export all plots into one html file
+
+    # Save plot in HTML
     qc_html_report = Path(out_dir, "captus-assembly_clean.report.html")
     with open(qc_html_report, "w") as f:
+        f.write(fig0.to_html(full_html=False, include_plotlyjs="cdn"))
         f.write(fig1.to_html(full_html=False, include_plotlyjs="cdn"))
         f.write(fig2.to_html(full_html=False, include_plotlyjs="cdn"))
         f.write(fig3.to_html(full_html=False, include_plotlyjs="cdn"))
@@ -1164,6 +1311,143 @@ def build_qc_report(out_dir, qc_extras_dir):
 def build_assembly_report(out_dir, asm_stats_tsv):
     start = time.time()
 
+    ### Table ###
+    # Load datatable
+    df = pd.read_table(asm_stats_tsv)
+
+    df = df.reindex(
+        columns=[
+            "sample",
+            "total_length",
+            "n_contigs",
+            "avg_length",
+            "N50",
+            "longest_contig",
+            "shortest_contig",
+            "pct_contigs_>=_1kbp",
+            "GC_content",
+            "avg_depth",
+        ],
+    )
+
+    df.rename(
+        columns={
+            "sample": "Sample",
+            "total_length": "Total Length",
+            "n_contigs": "Number of Contigs",
+            "avg_length": "Average Length",
+            "N50": "Contig N50",
+            "longest_contig": "Longest Contig",
+            "shortest_contig": "Shortest Contig",
+            "pct_contigs_>=_1kbp": "≥ 1kbp Contig%",
+            "GC_content": "GC Content",
+            "avg_depth": "Average Depth",
+        },
+        inplace=True,
+    )
+
+    colorscale = [
+        [0, "#E6BED4"],
+        [0.1, "#F5F5F5"],
+        [0.9, "#F5F5F5"],
+        [1, "#8DD0BB"]
+    ]
+
+    fig0 = go.Figure()
+    fig0.add_trace(
+        go.Table(
+            header=dict(values=["<b>" + col + "</b>" for col in df.columns]),
+            cells=dict(
+                values=[df[col] for col in df.columns],
+                fill_color=[
+                    "#F5F5F5",
+                    sample_colorscale(colorscale, normalize(df["Total Length"])),
+                    sample_colorscale(colorscale, normalize(df["Number of Contigs"])),
+                    sample_colorscale(colorscale, normalize(df["Average Length"])),
+                    sample_colorscale(colorscale, normalize(df["Contig N50"])),
+                    sample_colorscale(colorscale, normalize(df["Longest Contig"])),
+                    sample_colorscale(colorscale, normalize(df["Shortest Contig"])),
+                    sample_colorscale(colorscale, normalize(df["≥ 1kbp Contig%"])),
+                    sample_colorscale(colorscale, normalize(df["GC Content"])),
+                    sample_colorscale(colorscale, normalize(df["Average Depth"])),
+                ],
+                format=[None, ",", ",", ",", ",", ",", ",", ".2f"],
+                suffix=[None, " bp", None, " bp", " bp", " bp", " bp", "%", "%", " ×"],
+                align=["left", "right"],
+                height=21,
+            )
+        )
+    )
+
+    buttons = []
+    for col in df.columns:
+        if col == "Sample":
+            df.sort_values(by=col, inplace=True)
+        else:
+            df.sort_values(by=col, inplace=True, ascending=False)
+        button = dict(
+            label=col,
+            method="restyle",
+            args=[
+                dict(
+                cells=dict(
+                    values=[df[col] for col in df.columns],
+                fill=dict(
+                    color=[
+                        "#F5F5F5",
+                        sample_colorscale(colorscale, normalize(df["Total Length"])),
+                        sample_colorscale(colorscale, normalize(df["Number of Contigs"])),
+                        sample_colorscale(colorscale, normalize(df["Average Length"])),
+                        sample_colorscale(colorscale, normalize(df["Contig N50"])),
+                        sample_colorscale(colorscale, normalize(df["Longest Contig"])),
+                        sample_colorscale(colorscale, normalize(df["Shortest Contig"])),
+                        sample_colorscale(colorscale, normalize(df["≥ 1kbp Contig%"])),
+                        sample_colorscale(colorscale, normalize(df["GC Content"])),
+                        sample_colorscale(colorscale, normalize(df["Average Depth"])),
+                    ]
+                ),
+                format=[None, ",", ",", ",", ",", ",", ",", ".2f"],
+                suffix=[None, " bp", None, " bp", " bp", " bp", " bp", "%", "%", " ×"],
+                align=["left", "right"],
+                height=21,
+                )
+            )]
+        )
+        buttons.append(button)
+
+    updatemenus = [dict(
+        buttons=buttons,
+        type="dropdown",
+        direction="down",
+        pad=dict(t=10, b=10),
+        x=1,
+        xanchor="right",
+        y=1,
+        yanchor="bottom",
+    )]
+
+    annotations=[dict(
+        text="<b>Sort by:</b>",
+        x=1,
+        xref="paper",
+        xanchor="right",
+        xshift=-150,
+        y=1,
+        yref="paper",
+        yanchor="top",
+        yshift=36,
+        align="right",
+        showarrow=False
+    )]
+
+    fig0.update_layout(
+        font_family="Arial",
+        title="<b>Captus-assembly: Assemble (<i>De Novo</i> Assembly Report<br>1. Summary Table</b>",
+        updatemenus=updatemenus,
+        annotations=annotations,
+    )
+
+    ### Bar plot ###
     # Load datatable
     df = pd.read_table(asm_stats_tsv)
 
@@ -1202,7 +1486,7 @@ def build_assembly_report(out_dir, asm_stats_tsv):
     button_lab_list = [
         "Number of Contigs",
         "Total Length (bp)",
-        "N50 (bp)",
+        "Contig N50 (bp)",
         "Average Length (bp)",
         "Median Length (bp)",
         "Maximum Length (bp)",
@@ -1218,7 +1502,7 @@ def build_assembly_report(out_dir, asm_stats_tsv):
     xlab_list = [
         "Number of Contigs",
         "Total Length (bp)",
-        "N50 (bp)",
+        "Contig N50 (bp)",
         "Average Length (bp)",
         "Median Length (bp)",
         "Maximum Length (bp)",
@@ -1230,26 +1514,27 @@ def build_assembly_report(out_dir, asm_stats_tsv):
         "Contigs (%)",
     ]
 
-    colors = ["#0072B2", "#E69F00", "#009E73", "#CC79A7"]
+    colors = ["#56B4E9", "#009E73", "#E69F00", "#CC79A7"]
 
     # Create figure
-    fig = go.Figure()
+    fig1 = go.Figure()
 
     for i in range(4):
         if i == 0:
             visible = True
         else:
             visible = False
-        fig.add_trace(
+        fig1.add_trace(
             go.Bar(
                 x=df[var_list[0]],
                 y=df["sample"],
                 orientation="h",
                 visible=visible,
                 marker_color=colors[i],
+                marker_line_color="rgb(8,8,8)",
                 hovertemplate="Sample: %{y}<br>" +
-                              xlab_list[0] + ": %{x}<extra></extra>",
-            ),
+                              xlab_list[0] + ": %{x}<extra></extra>"
+            )
         )
 
     # Dropdown setting
@@ -1281,15 +1566,16 @@ def build_assembly_report(out_dir, asm_stats_tsv):
                     x=x,
                     name=name,
                     visible=visible,
-                    hovertemplate=hovertemplate,
+                    hovertemplate=hovertemplate
                 ),
                 dict(
                     xaxis=dict(
                         title=xlab_list[j],
                         showgrid=True,
-                    ),
-                ),
-            ],
+                        gridcolor="rgb(64,64,64)",
+                    )
+                )
+            ]
         )
 
         buttons.append(button)
@@ -1304,15 +1590,15 @@ def build_assembly_report(out_dir, asm_stats_tsv):
             x=1,
             xanchor="right",
             y=1,
-            yanchor="bottom",
-        ),
+            yanchor="bottom"
+        )
     ]
 
     # Layout setting
-    fig.update_layout(
+    fig1.update_layout(
         plot_bgcolor="rgb(8,8,8)",
         font_family="Arial",
-        title="<b>Captus-assembly: Assemble (Assembly Report)</b>",
+        title="<b>2. Detailed Stats</b>",
         xaxis=dict(
             title=xlab_list[0],
             showgrid=True,
@@ -1325,12 +1611,14 @@ def build_assembly_report(out_dir, asm_stats_tsv):
             gridcolor="rgb(64,64,64)",
         ),
         barmode="overlay",
-        updatemenus=updatemenus,
+        updatemenus=updatemenus
     )
 
     # Save plot in HTML
     asm_html_report = Path(out_dir, "captus-assembly_assemble.report.html")
-    fig.write_html(asm_html_report)
+    with open(asm_html_report, "w") as f:
+        f.write(fig0.to_html(full_html=False, include_plotlyjs="cdn"))
+        f.write(fig1.to_html(full_html=False, include_plotlyjs="cdn"))
     if asm_html_report.exists() and asm_html_report.is_file():
         asm_html_msg = dim(f"Report generated in {elapsed_time(time.time() - start)}")
     else:
@@ -1347,154 +1635,485 @@ def build_extraction_report(out_dir, ext_stats_tsv):
 
     # Preprocess
     df_best = (
-        df.loc[
-            df.groupby(["sample_name", "marker_type", "locus"])["lwscore"].idxmax(),:
-        ].reset_index(drop=True)
+        df.loc[df.groupby(["sample_name", "marker_type", "locus"])["lwscore"].idxmax(),:]
+        .reset_index(drop=True)
+        .fillna("NaN")
     )
-    df_best["hit"] = (
-        df.groupby(["sample_name", "marker_type", "locus"], as_index=False).count()["hit"]
-    )
+    df_best["hit"] = df.groupby(["sample_name", "marker_type", "locus"], as_index=False).count()["hit"]
+    df_best.loc[df_best["ref_type"] == "nucl", "ref_len_unit"] = "bp"
+    df_best.loc[df_best["ref_type"] == "prot", "ref_len_unit"] = "aa"
 
     # Define variables
-    marker_type = df_best["marker_type"].unique()
+    marker_type = df_best["marker_type"].sort_values().unique()
     if len(marker_type) > 1:
         marker_type = np.insert(marker_type, 0, "ALL")
     var_list = ["pct_recovered", "pct_identity", "hit", "score", "lwscore"]
-    var_lab_list = ["Recovered Length (%)", "Identity (%)", "Hit", "Score", "Length-weighted Score"]
-    cmap = "Spectral_r"
-
-    # Create figure
-    fig = go.Figure()
-
-    # Make heatmap for each marker type
-    buttons1, buttons2 = [], []
-    for i in range(len(marker_type)):
-        if marker_type[i] == "ALL":
-            data = df_best
-            data["marker_type - locus"] = data["marker_type"] + " - " + data["locus"].astype(str)
-            d = data.pivot(
-                index="sample_name",
-                columns="marker_type - locus",
-                values=var_list[0],
-            )
-        else:
-            data = df_best[df_best["marker_type"] == marker_type[i]]
-            d = data.pivot(
-                index="sample_name",
-                columns="locus",
-                values=var_list[0],
-            )
-
-        heatmap = go.Heatmap(
-            x=d.columns,
-            y=d.index,
-            z=d.values,
-            colorscale=cmap,
-            colorbar=dict(
-                outlinecolor="rgb(8,8,8)",
-                outlinewidth=1,
-            ),
-            hovertemplate="Sample: %{y}<br>" +
-                          "Locus: %{x}<br>" +
-                          var_lab_list[0] + ": %{z}<extra></extra>",
-            visible=False,
-            xgap=0.5,
-            ygap=0.5,
-        )
-
-        if i == 0:
-            heatmap.visible = True
-        fig.add_trace(heatmap)
-
-        # Add dropdown for marker types
-        visible = [False] * len(marker_type)
-        visible[i] = True
-        button = dict(
-            label=marker_type[i],
-            method="update",
-            args=[{"visible": visible}],
-        )
-        buttons1.append(button)
-
-    # Add dropdown for variables
-    for j in range(len(var_list)):
-        z = []
-        for i in range(len(marker_type)):
-            if marker_type[i] == "ALL":
-                data = df_best
-                d = data.pivot(
-                    index="sample_name",
-                    columns="marker_type - locus",
-                    values=var_list[j],
-                )
-            else:
-                data = df_best[df_best["marker_type"] == marker_type[i]]
-                d = data.pivot(
-                    index="sample_name",
-                    columns="locus",
-                    values=var_list[j],
-                )
-            z.append(d.values)
-        hovertemplate = [
-            "Sample: %{y}<br>" +
-            "Locus: %{x}<br>" +
-            var_lab_list[j] + ": %{z}<extra></extra>"
-        ] * len(marker_type)
-        button = dict(
-            label=var_lab_list[j],
-            method="restyle",
-            args=[{"z": z, "hovertemplate": hovertemplate}],
-        )
-        buttons2.append(button)
-
-    updatemenus = [
+    var_lab_list = ["Recovered Length (%)", "Identity (%)", "Hit Count (Paralogs)", "Score", "Length-weighted score"]
+    hovertemplate = "<br>".join(
+        [
+            "Sample: <b>%{customdata[0]}</b>",
+            "Marker type: <b>%{customdata[1]}</b>",
+            "Locus: <b>%{customdata[2]}</b>",
+            "Ref name: <b>%{customdata[3]}</b>",
+            "Ref coords: <b>%{customdata[4]}</b>",
+            "Ref type: <b>%{customdata[5]}</b>",
+            "Ref len matched: <b>%{customdata[6]:,.0f} %{customdata[20]}</b>",
+            "Number of hits: <b>%{customdata[7]}</b>",
+            "Recovered length: <b>%{customdata[8]:.2f}%</b>",
+            "Identity: <b>%{customdata[9]:.2f}%</b>",
+            "Score: <b>%{customdata[10]:.3f}</b>",
+            "Length-weighted score: <b>%{customdata[11]:.3f}</b>",
+            "Hit length: <b>%{customdata[12]:,.0f} bp</b>",
+            "CDS length: <b>%{customdata[13]:,.0f} bp</b>",
+            "Intron length: <b>%{customdata[14]:,.0f} bp</b>",
+            "Flanking length: <b>%{customdata[15]:,.0f} bp</b>",
+            "Frameshift: <b>%{customdata[16]}</b><extra></extra>",
+        ]
+    )
+    colorscale = [
+        [0.0, "rgb(94,79,162)"],
+        [0.1, "rgb(50,136,189)"],
+        [0.2, "rgb(102,194,165)"],
+        [0.3, "rgb(171,221,164)"],
+        [0.4, "rgb(230,245,152)"],
+        [0.5, "rgb(255,255,191)"],
+        [0.6, "rgb(254,224,139)"],
+        [0.7, "rgb(253,174,97)"],
+        [0.8, "rgb(244,109,67)"],
+        [0.9, "rgb(213,62,79)"],
+        [1.0, "rgb(158,1,66)"],
+        [1.0, "rgb(255, 64, 255)"],
+        [1.0, "rgb(255, 64, 255)"],
+    ]
+    colorscale2 = [
+        [0.0, "rgb(94,79,162)"],
+        [0.1, "rgb(50,136,189)"],
+        [0.2, "rgb(102,194,165)"],
+        [0.3, "rgb(171,221,164)"],
+        [0.4, "rgb(230,245,152)"],
+        [0.5, "rgb(255,255,191)"],
+        [0.6, "rgb(254,224,139)"],
+        [0.7, "rgb(253,174,97)"],
+        [0.8, "rgb(244,109,67)"],
+        [0.9, "rgb(213,62,79)"],
+        [1.0, "rgb(158,1,66)"],
+    ]
+    # Button for sorting X-axis
+    buttons2 = [
         dict(
-            buttons=buttons1,
-            type = "dropdown",
-            direction="down",
-            pad={"t": 10, "b": 10},
-            showactive=True,
-            x=0.5,
-            xanchor="right",
-            y=1,
-            yanchor="bottom",
+            label="X",
+            method="relayout",
+            args=[{"xaxis.categoryorder": "sum descending"}],
+            args2=[{"xaxis.categoryorder": "category ascending"}],
         ),
+    ]
+    # Button for sorting Y-axis
+    buttons3 = [
         dict(
-            buttons=buttons2,
-            type = "dropdown",
-            direction="down",
-            pad={"t": 10, "b": 10},
-            showactive=True,
-            x=1,
-            xanchor="right",
-            y=1,
-            yanchor="bottom",
+            label="Y",
+            method="relayout",
+            args=[{"yaxis.categoryorder": "sum ascending"}],
+            args2=[{"yaxis.categoryorder": "category descending"}],
         ),
     ]
 
-    # Layout setting
-    fig.update_layout(
-        plot_bgcolor="rgb(8,8,8)",
-        font_family="Arial",
-        title="<b>Captus-assembly: Extract (Marker Recovery Report)</b>",
-        xaxis=dict(
-            title="Locus",
-            type="category",
-            gridcolor="rgb(64,64,64)",
-        ),
-        yaxis=dict(
-            title="Sample",
-            type="category",
-            autorange="reversed",
-            gridcolor="rgb(64,64,64)",
-        ),
-        annotations=[
+    # Make heatmap for each marker type
+    figs = []
+    for i, marker in enumerate(marker_type):
+        if marker == "ALL":
+            data = df_best
+            data["marker_type - locus"] = data["marker_type"] + " - " + data["locus"].astype(str)
+            x = data["marker_type - locus"]
+        else:
+            data = df_best[df_best["marker_type"] == marker]
+            x = data["locus"]
+        fig = go.Figure()
+        fig.add_trace(
+            go.Heatmap(
+                x=x,
+                y=data["sample_name"],
+                z=data[var_list[0]],
+                zmin=data[var_list[0]].min(),
+                zmax=data[var_list[0]].max() if data[var_list[0]].max() < 200 else 200,
+                colorscale=colorscale2 if data[var_list[0]].max() < 200 else colorscale,
+                colorbar=dict(
+                    ticks="outside",
+                    ticksuffix="%",
+                    outlinecolor="rgb(8,8,8)",
+                    outlinewidth=1,
+                ),
+                customdata=data,
+                hovertemplate=hovertemplate,
+                hoverongaps=False,
+                xgap=0.5,
+                ygap=0.5,
+            )
+        )
+
+        # Dropdown for variables
+        buttons1 = []
+        for j, var in enumerate(var_list):
+            if var == "pct_recovered":
+                zmax = data[var].max() if data[var].max() < 200 else 200
+                cmap = [colorscale2] if data[var].max() < 200 else [colorscale]
+            elif var == "pct_identity":
+                zmax = data[var].max() if data[var].max() < 100 else 100
+                cmap = [colorscale2] if data[var].max() <= 100 else [colorscale]
+            elif var == "hit":
+                zmax = data[var].max() if data[var].max() < 50 else 50
+                cmap = [colorscale2] if data[var].max() < 50 else [colorscale]
+            else:
+                zmax = data[var].max() if data[var].max() < 2 else 2
+                cmap = [colorscale2] if data[var].max() < 2 else [colorscale]
+            button = dict(
+                label=var_lab_list[j],
+                method="restyle",
+                args=[
+                    {
+                        "z": [data[var]],
+                        "zmin": data[var].min(),
+                        "zmax": zmax,
+                        "colorscale": cmap,
+                        "colorbar.ticksuffix": None if j > 1 else "%",
+                    }
+                ],
+            )
+            buttons1.append(button)
+
+        updatemenus=[
             dict(
-                text="<b>Marker:</b>",
+                buttons=buttons1,
+                type="dropdown",
+                direction="down",
+                pad={"t": 10, "b": 10},
+                showactive=True,
+                x=0.5,
+                xanchor="right",
+                y=1,
+                yanchor="bottom",
+            ),
+            dict(
+                buttons=buttons2,
+                type="buttons",
+                direction="right",
+                pad={"t": 10, "b": 10, "r": 40},
+                showactive=True,
+                active=-1,
+                x=1,
+                xanchor="right",
+                y=1,
+                yanchor="bottom",
+            ),
+            dict(
+                buttons=buttons3,
+                type = "buttons",
+                direction="right",
+                pad={"t": 10, "b": 10},
+                showactive=True,
+                active=-1,
+                x=1,
+                xanchor="right",
+                y=1,
+                yanchor="bottom",
+            ),
+        ]
+
+        annotations = [
+            dict(
+                text="<b>Variable:</b>",
                 x=0.5,
                 xref="paper",
                 xanchor="right",
-                xshift=-70,
+                xshift=-165,
+                y=1,
+                yref="paper",
+                yanchor="top",
+                yshift=36,
+                align="right",
+                showarrow=False,
+            ),
+            dict(
+                text="<b>Sort by Value:</b>",
+                x=1,
+                xref="paper",
+                xanchor="right",
+                xshift=-80,
+                y=1,
+                yref="paper",
+                yanchor="top",
+                yshift=36,
+                align="right",
+                showarrow=False,
+            ),
+        ]
+
+        # Layout setting
+        if i == 0:
+            if len(marker_type) == 1:
+                title = "<b>Captus-assembly: Extract (Marker Recovery Report)<br>Marker Type: " + marker + "</b>"
+            else:
+                title = "<b>Captus-assembly: Extract (Marker Recovery Report)<br>1. Marker Type: " + marker + "</b>"
+        else:
+            title = "<b>" + str(i + 1) + ". Marker Type: " + marker + "</b>"
+        fig.update_layout(
+            font_family="Arial",
+            plot_bgcolor="rgb(8,8,8)",
+            title=title,
+            xaxis=dict(
+                title="Marker type - Locus" if marker == "ALL" else "Locus",
+                type="category",
+                categoryorder="category ascending",
+                gridcolor="rgb(64,64,64)",
+                ticks="outside",
+            ),
+            yaxis=dict(
+                title="Sample",
+                type="category",
+                categoryorder="category descending",
+                gridcolor="rgb(64,64,64)",
+                ticks="outside",
+            ),
+            annotations=annotations,
+            updatemenus=updatemenus
+        )
+
+        figs.append(fig)
+
+    # Save plot in HTML
+    ext_html_report = Path(out_dir, "captus-assembly_extract.report.html")
+    with open(ext_html_report, "w") as f:
+        for fig in figs:
+            f.write(fig.to_html(full_html=False, include_plotlyjs="cdn"))
+    if ext_html_report.exists() and ext_html_report.is_file():
+        ext_html_msg = dim(f"Report generated in {elapsed_time(time.time() - start)}")
+    else:
+        ext_html_msg = red(f"Report not generated, verify your Python environment")
+
+    return ext_html_report, ext_html_msg
+
+
+def build_alignment_report(out_dir, aln_stats_tsv):
+    start = time.time()
+
+    df = pd.read_table(aln_stats_tsv)
+
+    marker_type = df["marker_type"].sort_values().unique()
+    if len(marker_type) > 1:
+        marker_type = np.insert(marker_type, 0, "ALL")
+
+    var_dict = {
+        "Number of sequences": "seqs",
+        "Alignment length": "sites",
+        "Informative sites": "informative",
+        "Constant sites": "constant",
+        "Singleton sites": "singleton",
+        "Patterns": "patterns",
+        "Mean pairwise identity (%)": "avg_pid",
+        "Missingness (%)": "missingness",
+    }
+
+    colorscale = [
+        [0, "#F0D9E6"],
+        [0.5, "#F5F5F5"],
+        [1, "#BDE3D8"],
+    ]
+
+    header = [
+        "<b>Marker type</b>",
+        "<b>Format</b>",
+        "<b>Locus</b>",
+        "<b>▼02_aligned_untrimmed<br> ▶01_unfiltered</b>",
+        "<b>▼02_aligned_untrimmed<br> ▶02_fast</b>",
+        "<b>▼02_aligned_untrimmed<br> ▶03_careful</b>",
+        "<b>▼02_aligned_untrimmed<br> ▶04_unfiltered_no_refs</b>",
+        "<b>▼02_aligned_untrimmed<br> ▶05_fast_no_refs</b>",
+        "<b>▼02_aligned_untrimmed<br> ▶06_careful_no_refs</b>",
+        "<b>▼03_aligned_trimmed<br> ▶01_unfiltered</b>",
+        "<b>▼03_aligned_trimmed<br> ▶02_fast</b>",
+        "<b>▼03_aligned_trimmed<br> ▶03_careful</b>",
+        "<b>▼03_aligned_trimmed<br> ▶04_unfiltered_no_refs</b>",
+        "<b>▼03_aligned_trimmed<br> ▶05_fast_no_refs</b>",
+        "<b>▼03_aligned_trimmed<br> ▶06_careful_no_refs</b>",
+    ]
+
+    header2 = [
+        "<b>Marker type</b>",
+        "<b>Format</b>",
+        "<b>Locus</b>",
+        "<b>▼02_aligned_untrimmed<br> ▶01_unfiltered</b>",
+        "<b>▼02_aligned_untrimmed<br> ▶02_fast</b>",
+        "<b>▼02_aligned_untrimmed<br> ▶04_unfiltered_no_refs</b>",
+        "<b>▼02_aligned_untrimmed<br> ▶05_fast_no_refs</b>",
+        "<b>▼03_aligned_trimmed<br> ▶01_unfiltered</b>",
+        "<b>▼03_aligned_trimmed<br> ▶02_fast</b>",
+        "<b>▼03_aligned_trimmed<br> ▶04_unfiltered_no_refs</b>",
+        "<b>▼03_aligned_trimmed<br> ▶05_fast_no_refs</b>",
+    ]
+
+    figs = []
+    for j, marker in enumerate(marker_type):
+        if marker == "ALL":
+            data = df
+        else:
+            data = df[df["marker_type"] == marker]
+        format_list = data["format"].sort_values().unique()
+        if len(format_list) > 1:
+            format_list = np.insert(format_list, 0, "ALL")
+
+        fig = go.Figure()
+        buttons1 = []
+        for i, format in enumerate(format_list):
+            if format == "ALL":
+                data_pivot = (
+                    data.pivot(
+                        index=["marker_type", "format", "locus"],
+                        columns=["paralog_filter", "no_refs", "trimmed"],
+                        values=list(var_dict.values())[0],
+                    )
+                )
+            else:
+                data_pivot = (
+                    data[data["format"] == format]
+                    .pivot(
+                        index=["marker_type", "format", "locus"],
+                        columns=["paralog_filter", "no_refs", "trimmed"],
+                        values=list(var_dict.values())[0],
+                    )
+                )
+            data_pivot["mean"] = data_pivot.mean(numeric_only=True, axis=1)
+            data_pivot = (
+                data_pivot.sort_values("mean", ascending=False)
+                .drop(data_pivot.columns[len(data_pivot.columns)-1], axis=1)
+            )
+            data_norm = (
+                data_pivot.apply(lambda x: (x - min(x)) / (max(x) - min(x)), axis=1)
+                .reset_index()
+                .fillna(0.5)
+            )
+            data_pivot = data_pivot.reset_index().fillna("NaN")
+            colors = []
+            for col in data_norm.columns:
+                if data_norm[col].dtypes == "object":
+                    colors.append("#F5F5F5")
+                else:
+                    colors.append(sample_colorscale(colorscale, data_norm[col]))
+
+            trace = go.Table(
+                header=dict(
+                    values=header2 if marker == "CLR" else header,
+                ),
+                cells=dict(
+                    values=[data_pivot[col] for col in data_pivot.columns],
+                    height=21,
+                    format=[None, None, None, ","],
+                    align=["center", "center", "center", "right"],
+                    fill=dict(
+                        color=colors
+                    )
+                ),
+                visible=True if i == 0 else False,
+            )
+            fig.add_trace(trace)
+
+            visible = [False] * len(format_list)
+            visible[i] = True
+            button = dict(
+                label=format,
+                method="restyle",
+                args=[{
+                    "visible": visible,
+                }]
+            )
+            buttons1.append(button)
+
+        buttons2 = []
+        for lab, var in var_dict.items():
+            values, colors_list = [], []
+            for format in format_list:
+                if format == "ALL":
+                    data_pivot = (
+                        data.pivot(
+                            index=["marker_type", "format", "locus"],
+                            columns=["paralog_filter", "no_refs", "trimmed"],
+                            values=var,
+                        )
+                    )
+                else:
+                    data_pivot = (
+                        data[data["format"] == format]
+                        .pivot(
+                            index=["marker_type", "format", "locus"],
+                            columns=["paralog_filter", "no_refs", "trimmed"],
+                            values=var,
+                        )
+                    )
+                data_pivot["mean"] = data_pivot.mean(numeric_only=True, axis=1)
+                data_pivot = (
+                    data_pivot.sort_values("mean", ascending=False)
+                    .drop(data_pivot.columns[len(data_pivot.columns)-1], axis=1)
+                )
+                data_norm = (
+                    data_pivot.apply(lambda x: (x - min(x)) / (max(x) - min(x)), axis=1)
+                    .reset_index()
+                    .fillna(0.5)
+                )
+                data_pivot = data_pivot.reset_index().fillna("NaN")
+                value = [data_pivot[col] for col in data_pivot.columns]
+                values.append(value)
+                colors = []
+                for col in data_norm.columns:
+                    if data_norm[col].dtypes == "object":
+                        colors.append("#F5F5F5")
+                    else:
+                        colors.append(sample_colorscale(colorscale, data_norm[col]))
+                colors_list.append(colors)
+                if var == "avg_pid" or var == "missingness":
+                    cell_form = [[None, None, None, ".2f"]] * len(format_list)
+                else:
+                    cell_form = [[None, None, None, ","]] * len(format_list)
+            button = dict(
+                label=lab,
+                method="restyle",
+                args=[{
+                    "cells.values": values,
+                    "cells.fill.color": colors_list,
+                    "cells.format": cell_form,
+                }],
+            )
+            buttons2.append(button)
+
+        updatemenus = [
+            dict(
+                buttons=buttons1,
+                type = "dropdown",
+                direction="down",
+                pad={"t": 10, "b": 10},
+                showactive=True,
+                x=0.5,
+                xanchor="right",
+                y=1,
+                yanchor="bottom"
+            ),
+            dict(
+                buttons=buttons2,
+                type="dropdown",
+                direction="down",
+                pad={"t": 10, "b": 10},
+                showactive=True,
+                x=1,
+                xanchor="right",
+                y=1,
+                yanchor="bottom"
+            ),
+        ]
+
+        annotations=[
+            dict(
+                text="<b>Format:</b>",
+                x=0.5,
+                xref="paper",
+                xanchor="right",
+                xshift=-65,
                 y=1,
                 yref="paper",
                 yanchor="top",
@@ -1507,7 +2126,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
                 x=1,
                 xref="paper",
                 xanchor="right",
-                xshift=-170,
+                xshift=-185,
                 y=1,
                 yref="paper",
                 yanchor="top",
@@ -1515,17 +2134,32 @@ def build_extraction_report(out_dir, ext_stats_tsv):
                 align="right",
                 showarrow=False,
             ),
-        ],
-        updatemenus=updatemenus,
-    )
+        ]
 
-    # Save plot in HTML
-    ext_html_report = Path(out_dir, "captus-assembly_extract.report.html")
-    fig.write_html(ext_html_report)
-    if ext_html_report.exists() and ext_html_report.is_file():
-        ext_html_msg = dim(f"Report generated in {elapsed_time(time.time() - start)}")
+        if j == 0:
+            if len(marker_type) > 1:
+                title = "<b>Captus-assembly: Align (Alignment/Trimming Report)<br>1. Marker Type: ALL</b>"
+            else:
+                title = "<b>Captus-assembly: Align (Alignment/Trimming Report)<br>Marker Type: " + marker + "</b>"
+        else:
+            title = "<b>" + str(j + 1) + ". Marker Type: " + marker + "</b>"
+        fig.update_layout(
+            font_family="Arial",
+            title=title,
+            updatemenus=updatemenus,
+            annotations=annotations,
+        )
+
+        figs.append(fig)
+
+    # Save plot in html
+    aln_html_report = Path(out_dir, "captus-assembly_align.report.html")
+    with open(aln_html_report, "w") as f:
+        for fig in figs:
+            f.write(fig.to_html(full_html=False, include_plotlyjs="cdn"))
+    if aln_html_report.exists() and aln_html_report.is_file():
+        aln_html_msg = dim(f"Report generated in {elapsed_time(time.time() - start)}")
     else:
-        ext_html_msg = red(f"Report not generated, verify your Python environment")
+        aln_html_msg = red(f"Report not generated, verify your Python environment")
 
-    return ext_html_report, ext_html_msg
-
+    return aln_html_report, aln_html_msg

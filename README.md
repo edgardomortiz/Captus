@@ -1,5 +1,5 @@
 # *Captus*
-### Tools for hybridization capture-based target enrichment: Probe Design, Data Assembly, Marker Extraction and Alignment
+### Assembly of Phylogenomic Datasets from High-Throughput Sequencing data
 ___
 
 ## Installation
