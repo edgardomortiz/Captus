@@ -41,6 +41,9 @@ ILLUMINA_ADAPTORS = Path(DATA_DIR, "adaptors_illumina.fasta")
 # FASTA file of BGISEQ, DNBSEQ, MGISEQ adaptors
 BGISEQ_ADAPTORS = Path(DATA_DIR, "adaptors_bgi-dnb-mgi.fasta")
 
+# Combined FASTA file of Illumina, BGISEQ, DNBSEQ, MGISEQ adaptors
+COMBINED_ADAPTORS = Path(DATA_DIR, "adaptors_combined.fasta")
+
 # FASTA file of BGISEQ, DNBSEQ, MGISEQ adaptors
 POLYA_ADAPTORS = Path(DATA_DIR, "polyA.fasta")
 
@@ -129,7 +132,7 @@ MEGAHIT_PRESETS = {
     },
     "WGS": {
         "k_list": "31,39,51,71,91,111,131,151,171",
-        "min_count": 2,
+        "min_count": 3,
         "prune_level": 2,
         "min_ram_B": 8 * 1024 ** 3, # 8GB
     },

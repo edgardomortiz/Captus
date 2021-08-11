@@ -249,7 +249,7 @@ def has_valid_ext(file_path, valid_extensions_list):
     return False
 
 
-def find_and_match_fastqs(reads):
+def find_and_match_fastqs(reads, recursive=True):
     """
     Receives a list of files or a drectory name. Only FASTQ files in the list or inside the folder
     are retained. Returns a dictionary with the items formatted as:
@@ -260,10 +260,13 @@ def find_and_match_fastqs(reads):
     if type(reads) is not list:
         reads = [reads]
     if len(reads) == 1 and Path(reads[0]).is_dir():
-        reads = [file for file in Path(reads[0]).resolve().rglob("*")
-                 if has_valid_ext(file, valid_exts)]
+        if recursive:
+            reads = [file for file in Path(reads[0]).resolve().rglob("*")
+                    if has_valid_ext(file, valid_exts)]
+        else:
+            reads = [file for file in Path(reads[0]).resolve().glob("*")
+                    if has_valid_ext(file, valid_exts)]
     else:
-
         reads = [Path(Path(file).parent.resolve(), Path(file).name) for file in reads
                  if Path(file).resolve().is_file() and has_valid_ext(file, valid_exts)]
     fastqs = {}

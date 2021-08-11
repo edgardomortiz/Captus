@@ -596,12 +596,13 @@ def extract(full_command, args):
                                        threads_max, args.keep_all)
                 log.log("")
 
-        # Nothing to cluster
+        # Nothing to cluster, just skip already processed
         else:
-            quit_with_error(
+            log.log(red(
                 "Skipping clustering step... Captus found output files in: '{}', to replace them"
                 " enable --overwrite".format(clustering_dir)
-            )
+            ))
+            log.log("")
 
 
     ################################################################################################

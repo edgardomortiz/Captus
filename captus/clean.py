@@ -129,6 +129,9 @@ def clean(full_command, args):
     elif args.adaptor_set.lower() in ["bgi", "bgiseq", "dnbseq", "mgiseq"]:
         adaptor_set = settings.BGISEQ_ADAPTORS
         adaptor_set_msg = f'{bold("BGI")} {dim(adaptor_set)}'
+    elif args.adaptor_set.lower() == "all":
+        adaptor_set = settings.COMBINED_ADAPTORS
+        adaptor_set_msg = f'{bold("ALL")} {dim(adaptor_set)}'
     elif Path(args.adaptor_set).is_file():
         adaptor_set = Path(args.adaptor_set).resolve()
         adaptor_set_msg = bold(adaptor_set)
