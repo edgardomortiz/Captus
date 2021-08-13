@@ -1005,68 +1005,6 @@ class CaptusAssembly(object):
             help="Overwrite previous results"
         )
 
-        references_group = parser.add_argument_group("Extraction References")
-        references_group.add_argument(
-            "-n", "--nuc_refs",
-            action="store",
-            type=str,
-            dest="nuc_refs",
-            help="B|Set of nuclear protein references. These will be used as guides for"
-                 " alignment and removed from the final alignment files. The references are also"
-                 " used when the 'careful' method for paralog removal is chosen. Options are:\n"
-                 "Angiosperms353 = The original set of target proteins from Angiosperms353\n"
-                 "Mega353 = The improved set of target proteins from Angiosperms353\n"
-                 "PathAA,PathNT = Paths to protein reference set both in aminoacids and nucleotides"
-                 " separated by a comma, no spaces (e.g.: ref.faa,ref.fna)\n"
-                 "PathNT,transtable = Path to protein reference set in nucleotides, followed by the"
-                 " Genetic Code number to translate it, separated by a comma, no spaces. If omitted,"
-                 f' GC defaults to {settings.DEFAULT_GENETIC_CODES["NUC"]["id"]} (e.g.: ref.fna,1)\n'
-                 "PathAA = Path to protein reference set in aminoacids, in this case it is not"
-                 " possible to add references to the nucleotide CDS alignments (e.g.: ref.faa)"
-        )
-        references_group.add_argument(
-            "-p", "--ptd_refs",
-            action="store",
-            type=str,
-            dest="ptd_refs",
-            help="B|Set of plastidial protein references. These will be used as guides for"
-                 " alignment and removed from the final alignment files. The references are also"
-                 " used when the 'careful' method for paralog removal is chosen. Options are:\n"
-                 "SeedPlantsPTD = A set of plastidial proteins for Seed Plants, curated by us\n"
-                 "PathAA,PathNT = paths to protein reference set both in aminoacids and nucleotides"
-                 " separated by a comma, no spaces (e.g.: ref.faa,ref.fna)\n"
-                 "PathNT,transtable = Path to protein reference set in nucleotides, followed by the"
-                 " Genetic Code number to translate it, separated by a comma, no spaces. If omitted,"
-                 f' GC defaults to {settings.DEFAULT_GENETIC_CODES["PTD"]["id"]} (e.g.: ref.fna,11)\n'
-                 "PathAA = path to protein reference set in aminoacids, in this case it is not"
-                 " possible to add references to the nucleotide CDS alignments (e.g.: ref.faa)"
-        )
-        references_group.add_argument(
-            "-m", "--mit_refs",
-            action="store",
-            type=str,
-            dest="mit_refs",
-            help="B|Set of mitochondrial protein references. These will be used as guides for"
-                 " alignment and removed from the final alignment files. The references are also"
-                 " used when the 'careful' method for paralog removal is chosen. Options are:\n"
-                 "SeedPlantsMIT = A set of mitochondrial proteins for Seed Plants, curated by us\n"
-                 "PathAA,PathNT = paths to protein reference set both in aminoacids and nucleotides"
-                 " separated by a comma, no spaces (e.g.: ref.faa,ref.fna)\n"
-                 "PathNT,transtable = Path to protein reference set in nucleotides, followed by the"
-                 " Genetic Code number to translate it, separated by a comma, no spaces. If omitted,"
-                 f' GC defaults to {settings.DEFAULT_GENETIC_CODES["MIT"]["id"]} (e.g.: ref.fna,1)\n'
-                 "PathAA = path to protein reference set in aminoacids, in this case it is not"
-                 " possible to add references to the nucleotide CDS alignments (e.g.: ref.faa)"
-        )
-        references_group.add_argument(
-            "-d", "--dna_refs",
-            action="store",
-            type=str,
-            dest="dna_refs",
-            help="Path to a FASTA nucleotide file of miscellaneous DNA references. These will be"
-                 " used as guides for alignment and removed from the final alignment files."
-        )
-
         mafft_group = parser.add_argument_group("MAFFT")
         mafft_group.add_argument(
             "--mafft_algorithm",

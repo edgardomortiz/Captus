@@ -29,7 +29,7 @@ ___
 ### *Output*
 ___
 #### **`-o, --out`**
-With this option you can redirect the output directory to a path of your choice, that path will be created if it doesn't exist. If you don't provide an output directory name `Captus` creates a directory called `02_assemblies` to contain the assembled contigs.
+With this option you can redirect the output directory to a path of your choice, that path will be created if it doesn't already exist. If you don't provide an output directory name, `Captus` creates a directory called `03_extractions` to contain the extracted markers organized in one subdirectory per sample with the ending `__captus-ext`.
 ___
 #### **`--max_loci_files`**
 When the number of loci in the reference exceeds this value, `Captus` will not write a separate FASTA file per sample per marker, otherwise the hard drive fills up with tons of small files. The file that includes all the markers extracted grouped per sample is still written (this is the only file needed by the final step `align` to produce the marker alignments across all samples).
