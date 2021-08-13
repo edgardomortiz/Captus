@@ -11,37 +11,30 @@ captus_assembly align --help
 
 ___
 ### *Input*
-  -e CAPTUS_EXTRACTIONS_DIR, --captus_extractions_dir CAPTUS_EXTRACTIONS_DIR
-                                 Path to the output directory that contains the assemblies and
-                                 extractions from previous steps of Captus-assembly. This
-                                 directory is called '02_assemblies' if you did not specify a
-                                 different name during the 'assemble' or 'extract' steps (default:
-                                 ./03_extractions)
-  -k MARKERS, --markers MARKERS  Which markers to align, you can provide a comma-separated list,
-                                 no spaces (default: all)
-                                   NUC = Nuclear proteins inside directories '01_coding_NUC'
-                                   PTD = Plastidial proteins inside directories '02_coding_PTD'
-                                   MIT = Mitochondrial proteins inside directories '03_coding_MIT'
-                                   DNA = Miscellaneous DNA markers inside directories '04_misc_DNA'
-                                   CLR = Cluster-derived DNA markers inside directories
-                                         '05_clusters'
-                                   ALL = Shortcut for NUC,PTD,MIT,DNA,CLR
-  -f FORMATS, --formats FORMATS  Which alignment format(s) to prepare for each marker category,
-                                 you can provide a comma-separated list, no spaces (default:
-                                 AA,NT,GE,MA)
-                                   Valid types for NUC, PTD, and MIT markers:
-                                   AA = Coding sequences in aminoacids
-                                   NT = Coding sequences in nucleotides
-                                   GE = Complete gene sequences (exons + introns) without flanking
-                                        upstream or downstream basepairs
-                                   GF = Complete gene sequences with flanking upstream and
-                                        downstream basepairs
-                                   Valid types for miscellaneous DNA and CLusteR-derived markers:
-                                   MA = Matched sequences without flanking upstream or downstream
-                                        basepairs
-                                   MF = Matched sequences with flanking upstream and downstream
-                                        basepairs
-                                   ALL = Shortcut for AA,NT,GE,GF,MA,MF
+___
+#### **`-e, --captus_extractions_dir`**
+Path to the output directory from the `extract` command, (e.g. `03_extractions` iy you used the default name). The `align` command depends entirely on the output from the `extract` step, in other words, you can't provide your unaligned or aligned FASTA files for processing.
+___
+#### **`-k, --markers`**
+Which type(s) of markers to align, you can provide a comma-separated list (no spaces). These are the available marker types:
+- _**NUC**_ = **Nuc**lear proteins inside directories '01_coding_NUC'
+- _**PTD**_ = **P**las**t**i**d**ial proteins inside directories '02_coding_PTD'
+- _**MIT**_ = **Mit**ochondrial proteins inside directories '03_coding_MIT'
+- _**DNA**_ = Miscellaneous **DNA** markers inside directories '04_misc_DNA'
+- _**CLR**_ = **Cl**uste**r**-derived DNA markers inside directories '05_clusters'
+- _**ALL**_ = Shortcut for NUC,PTD,MIT,DNA,CLR
+___
+#### **`-f, --formats`**
+For each marker type, `Captus` creates several different formats. You can provide a comma-separated list (no spaces) of the formats you wish to align. These are the available formats:
+- _**AA**_ = Coding sequences in **a**mino**a**cids
+- _**NT**_ = Coding sequences in **n**ucleo**t**ides
+- _**GE**_ = Complete **ge**ne sequences (exons + introns) without extra flanking sequence
+- _**GF**_ = Complete **g**ene sequences with **f**lanking upstream and downstream basepairs
+- _**MA**_ = **Ma**tched sequences without extra flanking sequence
+- _**MF**_ = **M**atched sequences with **f**lanking upstream and downstream basepairs
+- _**ALL**_ = Shortcut for AA,NT,GE,GF,MA,MF
+
+\* AA, NT, GE, and GF are valid only for NUC, PTD, and MIT markers, while MA and MF are valid only for DNA and CLR
 ___
 ### *Output*
 ___
@@ -54,71 +47,16 @@ ___
 #### **`--overwrite`**
 Use this flag with caution, this will replace any previous results.
 ___
-### *Extraction references*
-  -n NUC_REFS, --nuc_refs NUC_REFS
-                                 Set of nuclear protein references. These will be used as guides
-                                 for alignment and removed from the final alignment files. The
-                                 references are also used when the 'careful' method for paralog
-                                 removal is chosen. Options are:
-                                   Angiosperms353 = The original set of target proteins from
-                                                    Angiosperms353
-                                   Mega353 = The improved set of target proteins from Angiosperms353
-                                   PathAA,PathNT = Paths to protein reference set both in
-                                                   aminoacids and nucleotides separated by a
-                                                   comma, no spaces (e.g.: ref.faa,ref.fna)
-                                   PathNT,transtable = Path to protein reference set in
-                                                       nucleotides, followed by the Genetic Code
-                                                       number to translate it, separated by a
-                                                       comma, no spaces. If omitted, GC defaults
-                                                       to 1 (e.g.: ref.fna,1)
-                                   PathAA = Path to protein reference set in aminoacids, in this
-                                            case it is not possible to add references to the
-                                            nucleotide CDS alignments (e.g.: ref.faa)
-  -p PTD_REFS, --ptd_refs PTD_REFS
-                                 Set of plastidial protein references. These will be used as
-                                 guides for alignment and removed from the final alignment files.
-                                 The references are also used when the 'careful' method for
-                                 paralog removal is chosen. Options are:
-                                   SeedPlantsPTD = A set of plastidial proteins for Seed Plants,
-                                                   curated by us
-                                   PathAA,PathNT = paths to protein reference set both in
-                                                   aminoacids and nucleotides separated by a
-                                                   comma, no spaces (e.g.: ref.faa,ref.fna)
-                                   PathNT,transtable = Path to protein reference set in
-                                                       nucleotides, followed by the Genetic Code
-                                                       number to translate it, separated by a
-                                                       comma, no spaces. If omitted, GC defaults
-                                                       to 11 (e.g.: ref.fna,11)
-                                   PathAA = path to protein reference set in aminoacids, in this
-                                            case it is not possible to add references to the
-                                            nucleotide CDS alignments (e.g.: ref.faa)
-  -m MIT_REFS, --mit_refs MIT_REFS
-                                 Set of mitochondrial protein references. These will be used as
-                                 guides for alignment and removed from the final alignment files.
-                                 The references are also used when the 'careful' method for
-                                 paralog removal is chosen. Options are:
-                                   SeedPlantsMIT = A set of mitochondrial proteins for Seed
-                                                   Plants, curated by us
-                                   PathAA,PathNT = paths to protein reference set both in
-                                                   aminoacids and nucleotides separated by a
-                                                   comma, no spaces (e.g.: ref.faa,ref.fna)
-                                   PathNT,transtable = Path to protein reference set in
-                                                       nucleotides, followed by the Genetic Code
-                                                       number to translate it, separated by a
-                                                       comma, no spaces. If omitted, GC defaults
-                                                       to 1 (e.g.: ref.fna,1)
-                                   PathAA = path to protein reference set in aminoacids, in this
-                                            case it is not possible to add references to the
-                                            nucleotide CDS alignments (e.g.: ref.faa)
-  -d DNA_REFS, --dna_refs DNA_REFS
-                                 Path to a FASTA nucleotide file of miscellaneous DNA references.
-                                 These will be used as guides for alignment and removed from the
-                                 final alignment files.
-___
 ### *MAFFT*
 ___
 #### **`--mafft_algorithm`**
-Select [MAFFT's alignment algorithm](https://mafft.cbrc.jp/alignment/software/algorithms/algorithms.html)
+Select [MAFFT's alignment algorithm](https://mafft.cbrc.jp/alignment/software/algorithms/algorithms.html). Valid algorithm names are:
+- _**auto**_ 
+- _**genafpair**_ = E-INS-i
+- _**localpair**_ = L-INS-i
+- _**globalpair**_ = G-INS-i
+- _**retree1**_ = FFT-NS-1
+- _**retree2**_ = FFT-NS-2
 ___
 #### **`--mafft_timeout`**
 Modify the waiting time in seconds for an individual alignment to complete. When using more exhaustive MAFFT algorithm (e.g. `genafpair`), alignment can take very long (up to hours depending on sample number an length of the sequences). `Captus` terminates an alignment if it doesn't finish in 21600 seconds (6 hours).
@@ -135,7 +73,15 @@ ___
 ### *ClipKIT*
 ___
 #### **`--clipkit_algorithm`**
-Select [ClipKIT's trimming mode](https://jlsteenwyk.com/ClipKIT/advanced/index.html#modes)
+Select [ClipKIT's trimming mode](https://jlsteenwyk.com/ClipKIT/advanced/index.html#modes). Valid trimming modes are:
+- _**smart-gap**_
+- _**gappy**_
+- _**kpic**_
+- _**kpic-smart-gap**_
+- _**kpic-gappy**_
+- _**kpi**_
+- _**kpi-smart-gap**_
+- _**kpi-gappy**_
 ___
 #### **`--clipkit_gaps`**
 Gappynes threshold per position. Accepted values between 0 and 1. This argument is ignored when using the `kpi` and `kpic` algorithms or intermediate steps that use `smart-gap`.
@@ -154,4 +100,7 @@ If you have installed your own copies of `MAFFT` or `ClipKIT` you can provide th
 ___
 #### **`--ram`**, **`--threads`**, **`--concurrent`**, **`--debug`**, **`--show_less`**
 See [Parallelization (and other common options)]({{< ref "parallelization">}})
+
 ___
+Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (11.08.2021)  
+Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (11.08.2021)

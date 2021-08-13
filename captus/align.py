@@ -119,10 +119,7 @@ def align(full_command, args):
     log.log(f'{"Alignment formats":>{mar}}: {bold(formats)} {dim(formats_ignored)}')
     log.log("")
     refs_paths = prepare_refs(args.captus_extractions_dir,
-                              args.nuc_refs,
-                              args.ptd_refs,
-                              args.mit_refs,
-                              args.dna_refs,
+                              None, None, None, None, # Not needed since we import refpaths in JSON
                               mar,
                               args.overwrite)
     log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
@@ -447,6 +444,7 @@ def align(full_command, args):
                                 "Computing alignment statistics",
                                 "Alignment statistics completed",
                                 "alignment", concurrent, args.show_less)
+    log.log("")
 
     aln_stats_tsv = write_aln_stats(out_dir, shared_aln_stats)
     if aln_stats_tsv:
@@ -698,33 +696,36 @@ def prepare_refs(captus_ext_dir, nuc_refs, ptd_refs, mit_refs, dna_refs, margin,
         }
 
     log.log(bold(f'{"Reference datasets":>{margin}}:'))
-    if nuc_refs:
-        refs_pats["NUC"] = get_protref_paths(nuc_refs, "NUC", margin, overwrite)
-    if refs_paths["NUC"]["AA_path"] or refs_paths["NUC"]["NT_path"]:
-        log.log(f'{"Nuclear proteins AA":>{margin}}: {refs_paths["NUC"]["AA_msg"]}')
-        log.log(f'{"Nuclear proteins NT":>{margin}}: {refs_paths["NUC"]["NT_msg"]}')
-        log.log("")
 
-    if ptd_refs:
-        refs_pats["PTD"] = get_protref_paths(nuc_refs, "PTD", margin, overwrite)
-    if refs_paths["PTD"]["AA_path"] or refs_paths["PTD"]["NT_path"]:
-        log.log(f'{"Plastidial proteins AA":>{margin}}: {refs_paths["PTD"]["AA_msg"]}')
-        log.log(f'{"Plastidial proteins NT":>{margin}}: {refs_paths["PTD"]["NT_msg"]}')
-        log.log("")
+    # The following lines are no longer needed since we import the JSON file with the reference paths
+    # from the 'captus_ext_dir' (Captus' extractions directory). Maybe in the future I will remove
+    # al extra code from this function
+    # if nuc_refs:
+    #     refs_pats["NUC"] = get_protref_paths(nuc_refs, "NUC", margin, overwrite)
+    # if refs_paths["NUC"]["AA_path"] or refs_paths["NUC"]["NT_path"]:
+    #     log.log(f'{"Nuclear proteins AA":>{margin}}: {refs_paths["NUC"]["AA_msg"]}')
+    #     log.log(f'{"Nuclear proteins NT":>{margin}}: {refs_paths["NUC"]["NT_msg"]}')
+    #     log.log("")
 
-    if mit_refs:
-        refs_pats["MIT"] = get_protref_paths(nuc_refs, "MIT", margin, overwrite)
-    if refs_paths["MIT"]["AA_path"] or refs_paths["MIT"]["NT_path"]:
-        log.log(f'{"Mitochondrial proteins AA":>{margin}}: {refs_paths["MIT"]["AA_msg"]}')
-        log.log(f'{"Mitochondrial proteins NT":>{margin}}: {refs_paths["MIT"]["NT_msg"]}')
-        log.log("")
+    # if ptd_refs:
+    #     refs_pats["PTD"] = get_protref_paths(nuc_refs, "PTD", margin, overwrite)
+    # if refs_paths["PTD"]["AA_path"] or refs_paths["PTD"]["NT_path"]:
+    #     log.log(f'{"Plastidial proteins AA":>{margin}}: {refs_paths["PTD"]["AA_msg"]}')
+    #     log.log(f'{"Plastidial proteins NT":>{margin}}: {refs_paths["PTD"]["NT_msg"]}')
+    #     log.log("")
 
-    if dna_refs:
-        refs_paths["DNA"] = get_dnaref_path(dna_refs, margin)
-    if refs_paths["DNA"]["NT_path"]:
-        log.log(f'{"Miscellaneous DNA":>{margin}}: {refs_paths["DNA"]["NT_msg"]}')
+    # if mit_refs:
+    #     refs_pats["MIT"] = get_protref_paths(nuc_refs, "MIT", margin, overwrite)
+    # if refs_paths["MIT"]["AA_path"] or refs_paths["MIT"]["NT_path"]:
+    #     log.log(f'{"Mitochondrial proteins AA":>{margin}}: {refs_paths["MIT"]["AA_msg"]}')
+    #     log.log(f'{"Mitochondrial proteins NT":>{margin}}: {refs_paths["MIT"]["NT_msg"]}')
+    #     log.log("")
 
-        log.log("")
+    # if dna_refs:
+    #     refs_paths["DNA"] = get_dnaref_path(dna_refs, margin)
+    # if refs_paths["DNA"]["NT_path"]:
+    #     log.log(f'{"Miscellaneous DNA":>{margin}}: {refs_paths["DNA"]["NT_msg"]}')
+    #     log.log("")
 
     return refs_paths
 
