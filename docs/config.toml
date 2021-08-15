@@ -1,4 +1,4 @@
-baseURL = "http://example.org/"
+baseURL = "https://captus.github.io/"
 languageCode = "en-us"
 
 title = "Captus documentation"
@@ -6,11 +6,12 @@ theme = "hugo-theme-relearn"
 themesdir = "themes"
 
 [params]
-  editURL = "https://github.com/edgardomortiz/Captus/docs/content/"
-  baseURL = "https://github.com/edgardomortiz/Captus/docs/"
+  editURL = "https://github.com/edgardomortiz/Captus/tree/master/docs/content/"
+  baseURL = "https://captus.github.io/"
   description = "Documentation and tutorials for Captus"
   author = "Edgardo M. Ortiz"
   showVisitedLinks = true
+  disableInlineCopyToClipBoard = true
   disableBreadcrumb = false
   disableNextPrev = false
   themeVariant = "green"

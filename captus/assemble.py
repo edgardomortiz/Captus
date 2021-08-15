@@ -209,9 +209,12 @@ def assemble(full_command, args):
     k_list, min_count, prune_level = args.k_list, args.min_count, args.prune_level
     if args.preset:
         if args.preset.upper() in settings.MEGAHIT_PRESETS:
-            k_list = settings.MEGAHIT_PRESETS[args.preset.upper()]["k_list"]
-            min_count = settings.MEGAHIT_PRESETS[args.preset.upper()]["min_count"]
-            prune_level = settings.MEGAHIT_PRESETS[args.preset.upper()]["prune_level"]
+            if k_list == settings.MEGAHIT_K_LIST:
+                k_list = settings.MEGAHIT_PRESETS[args.preset.upper()]["k_list"]
+            if min_count == settings.MEGAHIT_MIN_COUNT:
+                min_count = settings.MEGAHIT_PRESETS[args.preset.upper()]["min_count"]
+            if prune_level == settings.MEGAHIT_PRUNE_LEVEL:
+                prune_level = settings.MEGAHIT_PRESETS[args.preset.upper()]["prune_level"]
             log.log(f'{"preset":>{mar}}: {bold(args.preset.upper())}')
         else:
             log.log(f'{"preset":>{mar}}: {bold(args.preset)} not valid, using defaults!')
