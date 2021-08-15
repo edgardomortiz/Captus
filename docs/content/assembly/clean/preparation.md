@@ -1,17 +1,27 @@
 ---
 title: "Input Preparation"
 weight: 12
-pre: '<i class="fas fa-check-square"></i> '
+pre: '<i class="fas fa-clipboard-check"></i> '
 ---
 
-
 {{% notice note %}}
-Before starting the pipeline, a <i class="fas fa-exclamation-triangle"></i> **VERY IMPORTANT** step is to rename you FASTQ files so they clearly identify your samples throughout the entire analysis.
+Before starting your analysis, a <i class="fas fa-exclamation-triangle"></i> **VERY IMPORTANT** step is to rename you FASTQ files so they clearly identify your samples throughout the entire analysis.
 {{% /notice %}}
+
+In general, a good tip for renaming your samples is to think on how you want the names in your final phylogenetic tree.
+
+The only special characters that are safe to use in the sample name are `-`, and `_` (`_` is commonly used to replace spaces in many phylogenetic programs). Otherwise, do not use spaces, other special characters (``! " # $ % & ( ) * + , . / : ; < = > ? @ [ \ ] ^ ` { | } ~``), or accented letters (like `á`, `è`, `ü`, `ç`, `ñ`), they are just guaranteed to give you headaches at some point.
+
+Also, please use this naming convention for your FASTQ files:
+
+![Naming convention for FASTQ files](/images/fastq.png?width=600)
+
+- Any text found before the **_R#** pattern and the **extension** will become your **sample name** becomes 
 - If you are using **paired-end** reads, your R1 and R2 filenames should contain the patterns `_R1` and `_R2` respectively to be correctly matched and used as pairs. For **single-end** your filenames should still contain `_R1`.
 - These are the valid extensions: `.fq`, `.fastq`, `.fq.gz`, and `.fastq.gz`.
-- The only special characters that are safe to use in the sample name are `-`, and `_` (`_` is commonly used to replace spaces in many phylogenetic programs). Otherwise, do not use spaces other special characters (``! " # $ % & ( ) * + , . / : ; < = > ? @ [ \ ] ^ ` { | } ~``) or accented letters (like `á`, `è`, `ü`, `ç`, `ñ`), they are just guaranteed to give you headaches at some point.
-- In general, a good tip for renaming your samples is to think on how you want the names in your final phylogenetic tree.
+
+
+
 
 These are examples of **valid** FASTQ filenames for `Captus`:
 
