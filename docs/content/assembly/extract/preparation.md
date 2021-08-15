@@ -19,7 +19,7 @@ Also, please use this naming convention for your FASTA files:
 
 ![Naming convention for FASTA files](/images/fasta.png?width=600)
 
-- Any text before the **extension** will become your **sample name**.
+- Any text before the **extension** will become your **sample name** (`Mus_musculus_GRCm39` in this case).
 - Valid extension for assemblies are: `.fa`, `.fna`, `.fasta`, `.fa.gz`, `.fna.gz`, `.fasta.gz`.
 
 These are examples of **valid** FASTA filenames for marker extraction with `Captus`:
@@ -38,9 +38,9 @@ And here, some examples or **invalid** FASTA filenames:
 ___
 ### *Reference dataset formatting*
 
-Most importantly, in order to extract markers, the sequences in your reference datasets have to follow some naming conventions if you want to take advantage of using multiple reference sequences per locus and a more careful method for paralog filtering. When multiple reference sequences per locus are found in the reference dataset, `Captus` will decide during the extraction which of those references matches your assembly best based on similarity and total recovered length percentage.
+Most importantly, in order to extract markers, the sequences in your reference datasets have to follow a simple naming convention if you want to take advantage of using multiple reference sequences per locus and our paralog filtering method. When multiple reference sequences per locus are found in the reference dataset, `Captus` will decide during the extraction which of those references matches your assembly best based on similarity and total recovered length percentage.
 
-Here is an example of a reference protein dataset that has **two loci** (called *accD* and *cemA*) with **five** reference sequences each (probably coming from different taxa to expand phylogenetic coverage). Coding sequences can be provided in either aminoacid or nucleotide. [Miscellaneous DNA markers]({{< ref "/assembly/extract/options#--dna_refs">}}) can only contain nucleotide sequences.
+Here is an example of a reference protein dataset that has **two loci** (called *accD* and *cemA*) with **five** reference sequences each (probably coming from different taxa to expand phylogenetic coverage). Coding sequences can be provided in either aminoacid or nucleotide. [Miscellaneous DNA markers]({{< ref "/assembly/extract/options#--dna_refs">}}) references can only contain nucleotide sequences.
 
 ```text
 >AA-S46062.1-accD [cluster_size=80]
@@ -65,7 +65,7 @@ MAKNKICIPFISIVFLPWWISFLFKKDFESWVTNWWNTSKSEILLNDIQEKSILKTFIELEELFLLDEMLKEYPETRLQ*
 MAKKKAFISLIYLASIVFLPWWLSFTFNKSMESWVKNCWNTGPSENFLNDIEEKIIIKKFIELEELSLFDEILKDYTQD*
 ```
 
-So, if you want to format your reference dataset to include multiple sequences per locus you have to use this naming convention:
+Let's take a look at how the sequence names are formatted:
 
 ![Naming convention for reference sequences](/images/multi_seq_per_locus.png?width=600)
 
@@ -74,8 +74,12 @@ So, if you want to format your reference dataset to include multiple sequences p
 - Any text found after the the **separator** will become the **locus name**.
 - Any text found after the first space is considered the **description** and this text is optional.
 
-[`Angiosperms353`](https://github.com/mossmatters/Angiosperms353) and [`HybPiper`](https://github.com/mossmatters/HybPiper) use this format, therefore, in order to mantain compatibility, we also used it to build our reference datasets for plastome proteins `SeedPlantsPTD` and mitochondrial proteins `SeedPlantsMIT`. At the same time it is also sompatible with the references needed by other pipelines (e.g. [`SeCaPr`](content.com/AntonelliLab/seqcap_processor/master/docs/documentation/subdocs/extract_contigs.html#Extracting-target-contigs)) which only consider a single sequence per locus.
+[`Angiosperms353`](https://github.com/mossmatters/Angiosperms353) and [`HybPiper`](https://github.com/mossmatters/HybPiper) use this format, therefore, in order to mantain compatibility, we also used it to build our reference datasets for plastome proteins `SeedPlantsPTD` and mitochondrial proteins `SeedPlantsMIT`. At the same time it is also sompatible with the references needed by other pipelines (e.g. [`SeCaPr`](content.com/AntonelliLab/seqcap_processor/master/docs/documentation/subdocs/extract_contigs.html#Extracting-target-contigs)) which are only capable of dealing with a single sequence per locus.
 
 {{% notice warning %}}
-When the **separator** is not present (even in a single sequence in the whole reference dataset), the entire **sequence name** will be used as the **locus name**. This is fine if your reference dataset only contains a single sequence per locus for example, but if you intend to use the "muti-sequence per locus" format, please ensure that every single sequence contains a **`-`** as **separator**.
+When the **separator** is not present (even in a single sequence in the whole reference dataset), the entire **sequence name** will be used as the **locus name**. This is fine when your reference dataset only contains a single sequence per locus for example, but if you intend to use the "muti-sequence per locus" format, please ensure that every single sequence contains a **`-`** as **separator**.
 {{% /notice %}}
+
+___
+Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-08-06)  
+Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-08-15)

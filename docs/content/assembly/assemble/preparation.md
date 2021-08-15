@@ -9,3 +9,7 @@ If you cleaned your reads using `Captus` then the data is ready for analysis ins
 {{% notice note %}}
 If you want to provide reads cleaned elsewhere, please follow the same <i class="fas fa-exclamation-triangle"></i> [**naming convention**]({{< ref "/assembly/clean/preparation">}}) required for raw reads and place your FASTQ files preferably in a single directory.
 {{% /notice %}}
+
+___
+Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-08-06)  
+Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-08-15)
