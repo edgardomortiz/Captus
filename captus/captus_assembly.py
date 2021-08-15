@@ -287,6 +287,7 @@ class CaptusAssembly(object):
         input_group.add_argument(
             "-r", "--reads",
             action="store",
+            default="./01_clean_reads",
             nargs="+",
             type=str,
             required=True,
@@ -338,7 +339,7 @@ class CaptusAssembly(object):
         megahit_group.add_argument(
             "--k_list",
             action="store",
-            default="31,39,47,63,79,95,111,127,143,159,175",
+            default=settings.MEGAHIT_K_LIST,
             type=str,
             dest="k_list",
             help="Comma-separated list of kmer sizes, all must be odd values in the range 15-255, in"
@@ -350,7 +351,7 @@ class CaptusAssembly(object):
         megahit_group.add_argument(
             "--min_count",
             action="store",
-            default=2,
+            default=settings.MEGAHIT_MIN_COUNT,
             type=int,
             dest="min_count",
             help="Minimum contig depth (a.k.a. multiplicity in MEGAHIT), accepted values are"
@@ -361,7 +362,7 @@ class CaptusAssembly(object):
         megahit_group.add_argument(
             "--prune_level",
             action="store",
-            default=2,
+            default=settings.MEGAHIT_PRUNE_LEVEL,
             type=int,
             dest="prune_level",
             help="Prunning strength for low-coverage edges during graph cleaning. Increasing the"

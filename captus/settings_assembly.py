@@ -122,6 +122,11 @@ DELTA_MEAN_READ_LENGTH_TO_MAX_KMER_SIZE = 31
 # Minimum RAM in bytes for a MEGAHIT assembly
 MEGAHIT_MIN_RAM_B = 4 * 1024 ** 3
 
+# Defaults for MEGAHIT, optimized for hybridization capture or genome skimming
+MEGAHIT_K_LIST = "31,39,47,63,79,95,111,127,143,159,175"
+MEGAHIT_MIN_COUNT = 2
+MEGAHIT_PRUNE_LEVEL = 2
+
 # Presets for MEGAHIT assemblies of RNAseq and WGS
 MEGAHIT_PRESETS = {
     "RNA": {
