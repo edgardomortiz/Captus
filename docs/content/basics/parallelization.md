@@ -2,10 +2,8 @@
 title: "Parallelization"
 weight: 20
 ---
-
-#### <center>(and other common options)</center>
+# (and other common options)
 ___
-
 Throughout Captus' commands we provide common options that allow you limit the computer's resources available to `Captus`, change the way of running parallel tasks, and control the amount of text shown during a run:
 
 #### **`--ram`**

@@ -3,7 +3,8 @@ title: "Options"
 weight: 13
 pre: '<i class="fas fa-cog"></i> '
 ---
-
+# extract
+___
 To show all available options and their default values you can type in your terminal:
 ```console
 captus_assembly extract --help
