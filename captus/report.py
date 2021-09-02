@@ -74,15 +74,14 @@ def build_qc_report(out_dir, qc_extras_dir):
         "Output Bases": df1["bases_passed_cleaning"],
         "Output Bases%": df1["bases_passed_cleaning_%"],
         "Mean Read Length%": read_len_pct.xs("after", level="stage").reset_index()[0],
-        ">Q20 Reads%": q20.xs("after", level="stage").reset_index()["count"],
-        ">Q30 Reads%": q30.xs("after", level="stage").reset_index()["count"],
+        "≥Q20 Reads%": q20.xs("after", level="stage").reset_index()["count"],
+        "≥Q30 Reads%": q30.xs("after", level="stage").reset_index()["count"],
         "GC%": gc.xs("after", level="stage").reset_index()[0],
     })
 
     colorscale = [
         [0, "#F0D9E6"],
-        [0.1, "#F5F5F5"],
-        [0.9, "#F5F5F5"],
+        [0.5, "#F5F5F5"],
         [1, "#BDE3D8"]
     ]
 
@@ -100,12 +99,11 @@ def build_qc_report(out_dir, qc_extras_dir):
                 sample_colorscale(colorscale, normalize(df["Output Bases"])),
                 sample_colorscale(colorscale, normalize(df["Output Bases%"])),
                 sample_colorscale(colorscale, normalize(df["Mean Read Length%"])),
-                sample_colorscale(colorscale, normalize(df[">Q20 Reads%"])),
-                sample_colorscale(colorscale, normalize(df[">Q30 Reads%"])),
+                sample_colorscale(colorscale, normalize(df["≥Q20 Reads%"])),
+                sample_colorscale(colorscale, normalize(df["≥Q30 Reads%"])),
                 sample_colorscale(colorscale, normalize(df["GC%"])),
             ],
             format=[None, ",", ",", ",", ".2f", ",", ".2f"],
-            suffix=[None, None, None, None, "%", None, "%"],
             align=["left", "right"],
             height=21,
         )
@@ -131,13 +129,12 @@ def build_qc_report(out_dir, qc_extras_dir):
                         sample_colorscale(colorscale, normalize(df["Output Bases"])),
                         sample_colorscale(colorscale, normalize(df["Output Bases%"])),
                         sample_colorscale(colorscale, normalize(df["Mean Read Length%"])),
-                        sample_colorscale(colorscale, normalize(df[">Q20 Reads%"])),
-                        sample_colorscale(colorscale, normalize(df[">Q30 Reads%"])),
+                        sample_colorscale(colorscale, normalize(df["≥Q20 Reads%"])),
+                        sample_colorscale(colorscale, normalize(df["≥Q30 Reads%"])),
                         sample_colorscale(colorscale, normalize(df["GC%"])),
                     ]
                 ),
                 format=[None, ",", ",", ",", ".2f", ",", ".2f"],
-                suffix=[None, None, None, None, "%", None, "%"],
                 align=["left", "right"],
                 height=21,
                 )
@@ -495,7 +492,7 @@ def build_qc_report(out_dir, qc_extras_dir):
             cmin=2,
             cmax=41,
             colorbar=dict(
-                title="PHRED<br>Score",
+                title="Phred<br>Score",
                 lenmode="pixels",
                 len=200,
                 outlinecolor="rgb(8,8,8)",
@@ -564,7 +561,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                 coloraxis="coloraxis",
                 customdata=df_R1,
                 hovertemplate="<b>%{y}</b><br>" +
-                              "Mean PHRED Score: %{x}<br>" +
+                              "Mean Phred Score: %{x}<br>" +
                               "Proportion: %{z:.2f}%<br>" +
                               "Count: %{customdata[4]:,.0f} reads<extra></extra>",
                 hoverongaps=False,
@@ -582,7 +579,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                 coloraxis="coloraxis",
                 customdata=df_R2,
                 hovertemplate="<b>%{y}</b><br>" +
-                              "Mean PHRED Score: %{x}<br>" +
+                              "Mean Phred Score: %{x}<br>" +
                               "Proportion: %{z:.2f}%<br>" +
                               "Count: %{customdata[4]:,.0f} reads<extra></extra>",
                 hoverongaps=False,
@@ -603,7 +600,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                 coloraxis="coloraxis",
                 customdata=df,
                 hovertemplate="<b>%{y}</b><br>" +
-                              "Mean PHRED Score: %{x}<br>" +
+                              "Mean Phred Score: %{x}<br>" +
                               "Proportion: %{z:.2f}%<br>" +
                               "Count: %{customdata[4]:,.0f} reads<extra></extra>",
                 ygap=0.75,
@@ -638,7 +635,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         plot_bgcolor="rgb(8,8,8)",
     )
     fig3.update_xaxes(
-        title="PHRED Score",
+        title="Phred Score",
         ticks="outside",
         matches="x",
         gridcolor="rgb(64,64,64)",
@@ -1333,24 +1330,23 @@ def build_assembly_report(out_dir, asm_stats_tsv):
     df.rename(
         columns={
             "sample": "Sample",
-            "total_length": "Total Length",
+            "total_length": "Total Length (bp)",
             "n_contigs": "Number of Contigs",
-            "avg_length": "Average Length",
-            "N50": "Contig N50",
-            "longest_contig": "Longest Contig",
-            "shortest_contig": "Shortest Contig",
-            "pct_contigs_>=_1kbp": "≥ 1kbp Contig%",
-            "GC_content": "GC Content",
-            "avg_depth": "Average Depth",
+            "avg_length": "Mean Length (bp)",
+            "N50": "Contig N50 (bp)",
+            "longest_contig": "Longest Contig (bp)",
+            "shortest_contig": "Shortest Contig (bp)",
+            "pct_contigs_>=_1kbp": "≥1kbp Contig (%)",
+            "GC_content": "GC Content (%)",
+            "avg_depth": "Mean Depth (x)",
         },
         inplace=True,
     )
 
     colorscale = [
-        [0, "#E6BED4"],
-        [0.1, "#F5F5F5"],
-        [0.9, "#F5F5F5"],
-        [1, "#8DD0BB"]
+        [0, "#F0D9E6"],
+        [0.5, "#F5F5F5"],
+        [1, "#BDE3D8"]
     ]
 
     fig0 = go.Figure()
@@ -1361,18 +1357,17 @@ def build_assembly_report(out_dir, asm_stats_tsv):
                 values=[df[col] for col in df.columns],
                 fill_color=[
                     "#F5F5F5",
-                    sample_colorscale(colorscale, normalize(df["Total Length"])),
+                    sample_colorscale(colorscale, normalize(df["Total Length (bp)"])),
                     sample_colorscale(colorscale, normalize(df["Number of Contigs"])),
-                    sample_colorscale(colorscale, normalize(df["Average Length"])),
-                    sample_colorscale(colorscale, normalize(df["Contig N50"])),
-                    sample_colorscale(colorscale, normalize(df["Longest Contig"])),
-                    sample_colorscale(colorscale, normalize(df["Shortest Contig"])),
-                    sample_colorscale(colorscale, normalize(df["≥ 1kbp Contig%"])),
-                    sample_colorscale(colorscale, normalize(df["GC Content"])),
-                    sample_colorscale(colorscale, normalize(df["Average Depth"])),
+                    sample_colorscale(colorscale, normalize(df["Mean Length (bp)"])),
+                    sample_colorscale(colorscale, normalize(df["Contig N50 (bp)"])),
+                    sample_colorscale(colorscale, normalize(df["Longest Contig (bp)"])),
+                    sample_colorscale(colorscale, normalize(df["Shortest Contig (bp)"])),
+                    sample_colorscale(colorscale, normalize(df["≥1kbp Contig (%)"])),
+                    sample_colorscale(colorscale, normalize(df["GC Content (%)"])),
+                    sample_colorscale(colorscale, normalize(df["Mean Depth (x)"])),
                 ],
                 format=[None, ",", ",", ",", ",", ",", ",", ".2f"],
-                suffix=[None, " bp", None, " bp", " bp", " bp", " bp", "%", "%", " ×"],
                 align=["left", "right"],
                 height=21,
             )
@@ -1395,19 +1390,18 @@ def build_assembly_report(out_dir, asm_stats_tsv):
                 fill=dict(
                     color=[
                         "#F5F5F5",
-                        sample_colorscale(colorscale, normalize(df["Total Length"])),
+                        sample_colorscale(colorscale, normalize(df["Total Length (bp)"])),
                         sample_colorscale(colorscale, normalize(df["Number of Contigs"])),
-                        sample_colorscale(colorscale, normalize(df["Average Length"])),
-                        sample_colorscale(colorscale, normalize(df["Contig N50"])),
-                        sample_colorscale(colorscale, normalize(df["Longest Contig"])),
-                        sample_colorscale(colorscale, normalize(df["Shortest Contig"])),
-                        sample_colorscale(colorscale, normalize(df["≥ 1kbp Contig%"])),
-                        sample_colorscale(colorscale, normalize(df["GC Content"])),
-                        sample_colorscale(colorscale, normalize(df["Average Depth"])),
+                        sample_colorscale(colorscale, normalize(df["Mean Length (bp)"])),
+                        sample_colorscale(colorscale, normalize(df["Contig N50 (bp)"])),
+                        sample_colorscale(colorscale, normalize(df["Longest Contig (bp)"])),
+                        sample_colorscale(colorscale, normalize(df["Shortest Contig (bp)"])),
+                        sample_colorscale(colorscale, normalize(df["≥1kbp Contig (%)"])),
+                        sample_colorscale(colorscale, normalize(df["GC Content (%)"])),
+                        sample_colorscale(colorscale, normalize(df["Mean Depth (x)"])),
                     ]
                 ),
                 format=[None, ",", ",", ",", ",", ",", ",", ".2f"],
-                suffix=[None, " bp", None, " bp", " bp", " bp", " bp", "%", "%", " ×"],
                 align=["left", "right"],
                 height=21,
                 )
@@ -1431,7 +1425,7 @@ def build_assembly_report(out_dir, asm_stats_tsv):
         x=1,
         xref="paper",
         xanchor="right",
-        xshift=-150,
+        xshift=-155,
         y=1,
         yref="paper",
         yanchor="top",
@@ -1453,11 +1447,11 @@ def build_assembly_report(out_dir, asm_stats_tsv):
 
     # Variables available as drop-down menu
     var_list = [
-        "n_contigs",
         "total_length",
-        "N50",
+        "n_contigs",
         "avg_length",
         "median_length",
+        "N50",
         "longest_contig",
         "shortest_contig",
         [
@@ -1484,17 +1478,17 @@ def build_assembly_report(out_dir, asm_stats_tsv):
 
     # Button labels
     button_lab_list = [
-        "Number of Contigs",
         "Total Length (bp)",
-        "Contig N50 (bp)",
-        "Average Length (bp)",
+        "Number of Contigs",
+        "Mean Length (bp)",
         "Median Length (bp)",
-        "Maximum Length (bp)",
-        "Minimum Length (bp)",
+        "Contig N50 (bp)",
+        "Longest Contig (bp)",
+        "Shortest Contig (bp)",
         "Contig Breakdown by Length (%)",
         "Length Breakdown by Contig Length (%)",
         "GC Content (%)",
-        "Average Depth (x)",
+        "Mean Depth (x)",
         "Contigs Breakdown by Depth (%)",
     ]
 
@@ -1503,14 +1497,14 @@ def build_assembly_report(out_dir, asm_stats_tsv):
         "Number of Contigs",
         "Total Length (bp)",
         "Contig N50 (bp)",
-        "Average Length (bp)",
-        "Median Length (bp)",
-        "Maximum Length (bp)",
-        "Minimum Length (bp)",
+        "Mean Contig Length (bp)",
+        "Median Contig Length (bp)",
+        "Longest Contig Length (bp)",
+        "Shortest Contig Length (bp)",
         "Contigs (%)",
         "Length (%)",
         "GC Content (%)",
-        "Average Depth (x)",
+        "Mean Depth (x)",
         "Contigs (%)",
     ]
 
@@ -1549,15 +1543,19 @@ def build_assembly_report(out_dir, asm_stats_tsv):
             ]
             name = [re.sub(".*_>=_", "≥ ", name) for name in var_list[j]]
             visible = [True] * 4
+            hovertemplate = [
+                "Sample: %{y}<br>" +
+                xlab_list[j] + ": %{x}"
+            ]
         else:
             x = [df[var_list[j]], None, None, None]
             name = []
             visible = [True, False, False, False]
-
-        hovertemplate = [
-            "Sample: %{y}<br>" +
-            xlab_list[j] + ": %{x}<extra></extra>"
-        ]
+            hovertemplate = [
+                "Sample: %{y}<br>" +
+                xlab_list[j] + ": %{x}<extra></extra>"
+            ]
+        
         button = dict(
             label=button_lab_list[j],
             method="update",
@@ -1573,6 +1571,8 @@ def build_assembly_report(out_dir, asm_stats_tsv):
                         title=xlab_list[j],
                         showgrid=True,
                         gridcolor="rgb(64,64,64)",
+                        ticks="outside",
+                        zeroline=False,
                     )
                 )
             ]
@@ -1603,12 +1603,15 @@ def build_assembly_report(out_dir, asm_stats_tsv):
             title=xlab_list[0],
             showgrid=True,
             gridcolor="rgb(64,64,64)",
+            ticks="outside",
+            zeroline=False,
         ),
         yaxis=dict(
             title="Sample",
             type="category",
             autorange="reversed",
             gridcolor="rgb(64,64,64)",
+            ticks="outside",
         ),
         barmode="overlay",
         updatemenus=updatemenus
@@ -1658,7 +1661,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
             "Ref coords: <b>%{customdata[4]}</b>",
             "Ref type: <b>%{customdata[5]}</b>",
             "Ref len matched: <b>%{customdata[6]:,.0f} %{customdata[20]}</b>",
-            "Number of hits: <b>%{customdata[7]}</b>",
+            "Hit count: <b>%{customdata[7]}</b>",
             "Recovered length: <b>%{customdata[8]:.2f}%</b>",
             "Identity: <b>%{customdata[9]:.2f}%</b>",
             "Score: <b>%{customdata[10]:.3f}</b>",
@@ -1698,22 +1701,39 @@ def build_extraction_report(out_dir, ext_stats_tsv):
         [0.9, "rgb(213,62,79)"],
         [1.0, "rgb(158,1,66)"],
     ]
-    # Button for sorting X-axis
+    # Dropdown for sorting
     buttons2 = [
         dict(
-            label="X",
+            label="None",
             method="relayout",
-            args=[{"xaxis.categoryorder": "sum descending"}],
-            args2=[{"xaxis.categoryorder": "category ascending"}],
+            args=[{
+                "xaxis.categoryorder": "category ascending",
+                "yaxis.categoryorder": "category descending",
+            }],
         ),
-    ]
-    # Button for sorting Y-axis
-    buttons3 = [
         dict(
-            label="Y",
+            label="X only",
             method="relayout",
-            args=[{"yaxis.categoryorder": "sum ascending"}],
-            args2=[{"yaxis.categoryorder": "category descending"}],
+            args=[{
+                "xaxis.categoryorder": "total descending",
+                "yaxis.categoryorder": "category descending",
+            }],
+        ),
+        dict(
+            label="Y only",
+            method="relayout",
+            args=[{
+                "xaxis.categoryorder": "category ascending",
+                "yaxis.categoryorder": "total ascending",
+            }],
+        ),
+        dict(
+            label="Both",
+            method="relayout",
+            args=[{
+                "xaxis.categoryorder": "total descending",
+                "yaxis.categoryorder": "total ascending",
+            }],
         ),
     ]
 
@@ -1794,23 +1814,10 @@ def build_extraction_report(out_dir, ext_stats_tsv):
             ),
             dict(
                 buttons=buttons2,
-                type="buttons",
-                direction="right",
-                pad={"t": 10, "b": 10, "r": 40},
-                showactive=True,
-                active=-1,
-                x=1,
-                xanchor="right",
-                y=1,
-                yanchor="bottom",
-            ),
-            dict(
-                buttons=buttons3,
-                type = "buttons",
-                direction="right",
+                type="dropdown",
+                direction="down",
                 pad={"t": 10, "b": 10},
                 showactive=True,
-                active=-1,
                 x=1,
                 xanchor="right",
                 y=1,
@@ -1917,45 +1924,147 @@ def build_alignment_report(out_dir, aln_stats_tsv):
         [0.5, "#F5F5F5"],
         [1, "#BDE3D8"],
     ]
-
-    header = [
-        "<b>Marker type</b>",
-        "<b>Format</b>",
-        "<b>Locus</b>",
-        "<b>▼02_aligned_untrimmed<br> ▶01_unfiltered</b>",
-        "<b>▼02_aligned_untrimmed<br> ▶02_fast</b>",
-        "<b>▼02_aligned_untrimmed<br> ▶03_careful</b>",
-        "<b>▼02_aligned_untrimmed<br> ▶04_unfiltered_no_refs</b>",
-        "<b>▼02_aligned_untrimmed<br> ▶05_fast_no_refs</b>",
-        "<b>▼02_aligned_untrimmed<br> ▶06_careful_no_refs</b>",
-        "<b>▼03_aligned_trimmed<br> ▶01_unfiltered</b>",
-        "<b>▼03_aligned_trimmed<br> ▶02_fast</b>",
-        "<b>▼03_aligned_trimmed<br> ▶03_careful</b>",
-        "<b>▼03_aligned_trimmed<br> ▶04_unfiltered_no_refs</b>",
-        "<b>▼03_aligned_trimmed<br> ▶05_fast_no_refs</b>",
-        "<b>▼03_aligned_trimmed<br> ▶06_careful_no_refs</b>",
-    ]
-
-    header2 = [
-        "<b>Marker type</b>",
-        "<b>Format</b>",
-        "<b>Locus</b>",
-        "<b>▼02_aligned_untrimmed<br> ▶01_unfiltered</b>",
-        "<b>▼02_aligned_untrimmed<br> ▶02_fast</b>",
-        "<b>▼02_aligned_untrimmed<br> ▶04_unfiltered_no_refs</b>",
-        "<b>▼02_aligned_untrimmed<br> ▶05_fast_no_refs</b>",
-        "<b>▼03_aligned_trimmed<br> ▶01_unfiltered</b>",
-        "<b>▼03_aligned_trimmed<br> ▶02_fast</b>",
-        "<b>▼03_aligned_trimmed<br> ▶04_unfiltered_no_refs</b>",
-        "<b>▼03_aligned_trimmed<br> ▶05_fast_no_refs</b>",
-    ]
+    
+    headers_dict = {
+        "fast": {
+            "ALL": [
+                "<b>Marker type</b>",
+                "<b>Format</b>",
+                "<b>Locus</b>",
+                "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
+                "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
+                "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
+                "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
+                "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
+                "<b>03_aligned_trimmed<br>└ 02_fast</b>",
+                "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
+                "<b>03_aligned_trimmed<br>└ 05_fast_no_refs</b>",
+            ],
+            "CLR": [
+                "<b>Format</b>",
+                "<b>Locus</b>",
+                "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
+                "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
+                "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
+                "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
+                "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
+                "<b>03_aligned_trimmed<br>└ 02_fast</b>",
+                "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
+                "<b>03_aligned_trimmed<br>└ 05_fast_no_refs</b>",
+            ],
+            "others": [
+                "<b>Format</b>",
+                "<b>Locus</b>",
+                "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
+                "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
+                "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
+                "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
+                "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
+                "<b>03_aligned_trimmed<br>└ 02_fast</b>",
+                "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
+                "<b>03_aligned_trimmed<br>└ 05_fast_no_refs</b>",
+            ],
+        },
+        "careful": {
+            "ALL": [
+                "<b>Marker type</b>",
+                "<b>Format</b>",
+                "<b>Locus</b>",
+                "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
+                "<b>02_aligned_untrimmed<br>└ 03_careful</b>",
+                "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
+                "<b>02_aligned_untrimmed<br>└ 06_careful_no_refs</b>",
+                "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
+                "<b>03_aligned_trimmed<br>└ 03_careful</b>",
+                "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
+                "<b>03_aligned_trimmed<br>└ 06_careful_no_refs</b>",
+            ],
+            "CLR": [
+                "<b>Format</b>",
+                "<b>Locus</b>",
+                "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
+                "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
+                "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
+                "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
+            ],
+            "others": [
+                "<b>Format</b>",
+                "<b>Locus</b>",
+                "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
+                "<b>02_aligned_untrimmed<br>└ 03_careful</b>",
+                "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
+                "<b>02_aligned_untrimmed<br>└ 06_careful_no_refs</b>",
+                "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
+                "<b>03_aligned_trimmed<br>└ 03_careful</b>",
+                "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
+                "<b>03_aligned_trimmed<br>└ 06_careful_no_refs</b>",
+            ],
+        },
+        "both": {
+            "ALL": [
+                "<b>Marker type</b>",
+                "<b>Format</b>",
+                "<b>Locus</b>",
+                "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
+                "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
+                "<b>02_aligned_untrimmed<br>└ 03_careful</b>",
+                "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
+                "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
+                "<b>02_aligned_untrimmed<br>└ 06_careful_no_refs</b>",
+                "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
+                "<b>03_aligned_trimmed<br>└ 02_fast</b>",
+                "<b>03_aligned_trimmed<br>└ 03_careful</b>",
+                "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
+                "<b>03_aligned_trimmed<br>└ 05_fast_no_refs</b>",
+                "<b>03_aligned_trimmed<br>└ 06_careful_no_refs</b>",
+            ],
+            "CLR": [
+                "<b>Format</b>",
+                "<b>Locus</b>",
+                "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
+                "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
+                "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
+                "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
+                "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
+                "<b>03_aligned_trimmed<br>└ 02_fast</b>",
+                "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
+                "<b>03_aligned_trimmed<br>└ 05_fast_no_refs</b>",
+            ],
+            "others": [
+                "<b>Format</b>",
+                "<b>Locus</b>",
+                "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
+                "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
+                "<b>02_aligned_untrimmed<br>└ 03_careful</b>",
+                "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
+                "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
+                "<b>02_aligned_untrimmed<br>└ 06_careful_no_refs</b>",
+                "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
+                "<b>03_aligned_trimmed<br>└ 02_fast</b>",
+                "<b>03_aligned_trimmed<br>└ 03_careful</b>",
+                "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
+                "<b>03_aligned_trimmed<br>└ 05_fast_no_refs</b>",
+                "<b>03_aligned_trimmed<br>└ 06_careful_no_refs</b>",
+            ],
+        },
+    }
+    
+    filter_type = df['paralog_filter'].unique()
+    if "careful" not in filter_type:
+        headers = headers_dict["fast"]
+    elif "fast" not in filter_type:
+        headers = headers_dict["careful"]
+    else:
+        headers = headers_dict["both"]
 
     figs = []
     for j, marker in enumerate(marker_type):
         if marker == "ALL":
             data = df
+            index = ["marker_type", "format", "locus"]
         else:
             data = df[df["marker_type"] == marker]
+            index = ["format", "locus"]
         format_list = data["format"].sort_values().unique()
         if len(format_list) > 1:
             format_list = np.insert(format_list, 0, "ALL")
@@ -1966,7 +2075,7 @@ def build_alignment_report(out_dir, aln_stats_tsv):
             if format == "ALL":
                 data_pivot = (
                     data.pivot(
-                        index=["marker_type", "format", "locus"],
+                        index=index,
                         columns=["paralog_filter", "no_refs", "trimmed"],
                         values=list(var_dict.values())[0],
                     )
@@ -1975,7 +2084,7 @@ def build_alignment_report(out_dir, aln_stats_tsv):
                 data_pivot = (
                     data[data["format"] == format]
                     .pivot(
-                        index=["marker_type", "format", "locus"],
+                        index=index,
                         columns=["paralog_filter", "no_refs", "trimmed"],
                         values=list(var_dict.values())[0],
                     )
@@ -2000,13 +2109,14 @@ def build_alignment_report(out_dir, aln_stats_tsv):
 
             trace = go.Table(
                 header=dict(
-                    values=header2 if marker == "CLR" else header,
+                    values=headers["ALL"] if marker == "ALL" else headers["CLR"] if marker == "CLR" else headers["others"],
+                    align=["center", "center", "center", "left"] if marker == "ALL" else ["center", "center", "left"],
                 ),
                 cells=dict(
                     values=[data_pivot[col] for col in data_pivot.columns],
                     height=21,
-                    format=[None, None, None, ","],
-                    align=["center", "center", "center", "right"],
+                    format=[None, None, None, ","] if marker == "ALL" else [None, None, ","],
+                    align=["center", "center", "left", "right"] if marker == "ALL" else ["center", "left", "right"],
                     fill=dict(
                         color=colors
                     )
@@ -2033,7 +2143,7 @@ def build_alignment_report(out_dir, aln_stats_tsv):
                 if format == "ALL":
                     data_pivot = (
                         data.pivot(
-                            index=["marker_type", "format", "locus"],
+                            index=index,
                             columns=["paralog_filter", "no_refs", "trimmed"],
                             values=var,
                         )
@@ -2042,7 +2152,7 @@ def build_alignment_report(out_dir, aln_stats_tsv):
                     data_pivot = (
                         data[data["format"] == format]
                         .pivot(
-                            index=["marker_type", "format", "locus"],
+                            index=index,
                             columns=["paralog_filter", "no_refs", "trimmed"],
                             values=var,
                         )
@@ -2068,9 +2178,9 @@ def build_alignment_report(out_dir, aln_stats_tsv):
                         colors.append(sample_colorscale(colorscale, data_norm[col]))
                 colors_list.append(colors)
                 if var == "avg_pid" or var == "missingness":
-                    cell_form = [[None, None, None, ".2f"]] * len(format_list)
+                    cell_form = [[None, None, None, ".2f"]] * len(format_list) if marker == "ALL" else [[None, None, ".2f"]] * len(format_list)
                 else:
-                    cell_form = [[None, None, None, ","]] * len(format_list)
+                    cell_form = [[None, None, None, ","]] * len(format_list) if marker == "ALL" else [[None, None, ","]] * len(format_list)
             button = dict(
                 label=lab,
                 method="restyle",
