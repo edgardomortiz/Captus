@@ -201,7 +201,7 @@ def align(full_command, args):
     if not filtering_refs:
         if args.filter_method == "careful":
             filter_method = None
-        elif args.filiter_method == "both":
+        elif args.filter_method == "both":
             filter_method = "fast"
 
     log.log(f'{"Concurrent processes":>{mar}}: {bold(concurrent)}')
