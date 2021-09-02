@@ -11,7 +11,7 @@ At this point you should have *de novo* assemblies from your samples ready. Howe
 In order to add your own FASTA assembly files, a <i class="fas fa-exclamation-triangle"></i> **VERY IMPORTANT** step is to rename them so they are clearly identified throughout the rest of the analysis.
 {{% /notice %}}
 
-The same tips apply for renaming you FASTA assemblies. In general, a good tip for renaming your samples is to think on how you want the names in your final phylogenetic tree.
+In general, a good tip for renaming your samples is to think on how you want the names in your final phylogenetic tree.
 
 The only special characters that are safe to use in the sample name are `-`, and `_` (`_` is commonly used to replace spaces in many phylogenetic programs). Otherwise, do not use spaces other special characters (``! " # $ % & ( ) * + , . / : ; < = > ? @ [ \ ] ^ ` { | } ~``) or accented letters (like `á`, `è`, `ü`, `ç`, `ñ`), they are just guaranteed to give you headaches at some point.
 
@@ -36,7 +36,7 @@ And here, some examples or **invalid** FASTA filenames:
 - `Malus_spontánea.fna.gz`, the sample name contains and accent `á`, it is better to change it to `Malus_spontanea.fna.gz`
 {{% /expand %}}
 ___
-### *Reference dataset formatting*
+### *Reference datasets formatting*
 
 Most importantly, in order to extract markers, the sequences in your reference datasets have to follow a simple naming convention if you want to take advantage of using multiple reference sequences per locus and our paralog filtering method. When multiple reference sequences per locus are found in the reference dataset, `Captus` will decide during the extraction which of those references matches your assembly best based on similarity and total recovered length percentage.
 

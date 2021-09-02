@@ -224,6 +224,9 @@ def extract(full_command, args):
         log.log(bold(f'{"Nuclear proteins":>{mar}}:'))
         log.log(f'{"reference":>{mar}}: {protein_refs["NUC"]["AA_msg"]}')
         if protein_refs["NUC"]["AA_path"]:
+            nuc_query = fasta_to_dict(protein_refs["NUC"]["AA_path"], ordered=True)
+            nuc_query_info = reference_info(nuc_query)
+            log.log(f'{"reference info":>{mar}}: {nuc_query_info["info_msg"]}')
             log.log(f'{"min_score":>{mar}}: {bold(args.nuc_min_score)}')
             nuc_min_identity = adjust_min_identity(args.nuc_min_identity, args.nuc_transtable)
             log.log(f'{"min_identity":>{mar}}: {bold(nuc_min_identity)}')
@@ -235,6 +238,9 @@ def extract(full_command, args):
         log.log(bold(f'{"Plastidial proteins":>{mar}}:'))
         log.log(f'{"reference":>{mar}}: {protein_refs["PTD"]["AA_msg"]}')
         if protein_refs["PTD"]["AA_path"]:
+            ptd_query = fasta_to_dict(protein_refs["PTD"]["AA_path"], ordered=True)
+            ptd_query_info = reference_info(ptd_query)
+            log.log(f'{"reference info":>{mar}}: {ptd_query_info["info_msg"]}')
             log.log(f'{"min_score":>{mar}}: {bold(args.ptd_min_score)}')
             ptd_min_identity = adjust_min_identity(args.ptd_min_identity, args.ptd_transtable)
             log.log(f'{"min_identity":>{mar}}: {bold(ptd_min_identity)}')
@@ -246,6 +252,9 @@ def extract(full_command, args):
         log.log(bold(f'{"Mitochondrial proteins":>{mar}}:'))
         log.log(f'{"reference":>{mar}}: {protein_refs["MIT"]["AA_msg"]}')
         if protein_refs["MIT"]["AA_path"]:
+            mit_query = fasta_to_dict(protein_refs["MIT"]["AA_path"], ordered=True)
+            mit_query_info = reference_info(mit_query)
+            log.log(f'{"reference info":>{mar}}: {mit_query_info["info_msg"]}')
             log.log(f'{"min_score":>{mar}}: {bold(args.mit_min_score)}')
             mit_min_identity = adjust_min_identity(args.mit_min_identity, args.mit_transtable)
             log.log(f'{"min_identity":>{mar}}: {bold(mit_min_identity)}')
@@ -258,6 +267,9 @@ def extract(full_command, args):
         log.log(bold(f'{"Miscellaneous DNA":>{mar}}:'))
         log.log(f'{"reference":>{mar}}: {dna_ref["DNA"]["NT_msg"]}')
         if dna_ref["DNA"]["NT_path"]:
+            dna_query = fasta_to_dict(dna_ref["DNA"]["NT_path"], ordered=True)
+            dna_query_info = reference_info(dna_query)
+            log.log(f'{"reference info":>{mar}}: {dna_query_info["info_msg"]}')
             log.log(f'{"min_identity":>{mar}}: {bold(args.dna_min_identity)}')
             log.log(f'{"min_coverage":>{mar}}: {bold(args.dna_min_coverage)}')
         log.log("")
@@ -287,6 +299,8 @@ def extract(full_command, args):
                         fastas_to_extract[sample]["sample_dir"],
                         sample,
                         protein_refs["NUC"]["AA_path"],
+                        nuc_query,
+                        nuc_query_info,
                         "NUC",
                         args.nuc_transtable,
                         args.max_loci_files,
@@ -305,6 +319,8 @@ def extract(full_command, args):
                         fastas_to_extract[sample]["sample_dir"],
                         sample,
                         protein_refs["PTD"]["AA_path"],
+                        ptd_query,
+                        ptd_query_info,
                         "PTD",
                         args.ptd_transtable,
                         args.max_loci_files,
@@ -323,6 +339,8 @@ def extract(full_command, args):
                         fastas_to_extract[sample]["sample_dir"],
                         sample,
                         protein_refs["MIT"]["AA_path"],
+                        mit_query,
+                        mit_query_info,
                         "MIT",
                         args.mit_transtable,
                         args.max_loci_files,
@@ -339,6 +357,8 @@ def extract(full_command, args):
                         fastas_to_extract[sample]["sample_dir"],
                         sample,
                         dna_ref["DNA"]["NT_path"],
+                        dna_query,
+                        dna_query_info,
                         "DNA",
                         args.max_loci_files
                     ))
@@ -523,6 +543,9 @@ def extract(full_command, args):
             clust_ref = prepare_dna_refs(captus_clusters_ref, cluster=True)
             log.log(f'{"reference":>{mar}}: {clust_ref["CLR"]["NT_msg"]}')
             if clust_ref["CLR"]["NT_path"]:
+                clust_query = fasta_to_dict(clust_ref["CLR"]["NT_path"], ordered=True)
+                clust_query_info = reference_info(clust_query)
+                log.log(f'{"reference info":>{mar}}: {clust_query_info["info_msg"]}')
                 log.log(f'{"dna_min_identity":>{mar}}: {bold(args.dna_min_identity)}')
                 log.log(f'{"dna_min_coverage":>{mar}}: {bold(args.dna_min_coverage)}')
             log.log("")
@@ -542,6 +565,8 @@ def extract(full_command, args):
                         fastas_to_extract[sample]["sample_dir"],
                         sample,
                         clust_ref["CLR"]["NT_path"],
+                        clust_query,
+                        clust_query_info,
                         "CLR",
                         args.max_loci_files
                     ))
@@ -973,14 +998,15 @@ def adjust_min_coverage(min_coverage):
 
 
 def scipio_coding(
-        scipio_path, min_score, min_identity, min_coverage, blat_path, overwrite, keep_all, target,
-        sample_dir, sample_name, query, marker_type, transtable, max_loci_files, max_loci_scipio2x
+        scipio_path, min_score, min_identity, min_coverage, blat_path, overwrite, keep_all,
+        target_path, sample_dir, sample_name, query_path, query_dict, query_info, marker_type,
+        transtable, max_loci_files, max_loci_scipio2x
 ):
     """
     Perform two consecutive rounds of Scipio, the first run with mostly default settings and with a
-    more lenient 'min_score' (multiplied by 'settings.SCIPIO_SCORE_FACTOR'). This round narrows the
-    set of target contigs (your assembly) to only those with hits and the set of reference proteins
-    to those that produced the best hits (just when you provided multiple reference proteins of the
+    'min_score' multiplied by 'settings.SCIPIO_SCORE_FACTOR'. This round narrows down the set of
+    target contigs (your assembly) to only those with hits and the set of reference proteins to
+    those that produced the best hits (just when you provided multiple reference proteins of the
     same cluster, for more details check the section 'REFERENCE_CLUSTER_SEPARATOR' in the file
     'settings_assembly.py')
     """
@@ -989,9 +1015,7 @@ def scipio_coding(
 
     genes = {"NUC": "nuclear genes", "PTD": "plastidial genes", "MIT": "mitochondrial genes"}
 
-    initial_proteins = fasta_to_dict(query, ordered=True)
-    initial_contigs = fasta_to_dict(target, ordered=True)
-    num_refs, total_length_refs = reference_stats(initial_proteins)
+    initial_contigs = fasta_to_dict(target_path, ordered=True)
 
     # Set programs' paths in case of using the bundled versions
     if scipio_path == "bundled":
@@ -1012,12 +1036,12 @@ def scipio_coding(
         keep_all,       # 8
     ]
 
-    # Run Scipio twice if 'num_refs' does not exceed 'max_loci_scipio2x'
-    if num_refs <= max_loci_scipio2x:
+    # Run Scipio twice if 'query_info["num_loci"]' does not exceed 'max_loci_scipio2x'
+    if query_info["num_loci"] <= max_loci_scipio2x:
 
         # Use the function run_scipio_command() that to run Scipio and also get the name of the YAML
         # output 'yaml_out_file'
-        yaml_initial_file = run_scipio_command(scipio_params, target, query,
+        yaml_initial_file = run_scipio_command(scipio_params, target_path, query_path,
                                                overwrite, stage="initial")
         if yaml_initial_file is None:
             message = dim(
@@ -1036,7 +1060,7 @@ def scipio_coding(
             message = red(f"'{sample_name}': FAILED extraction of {genes[marker_type]}")
             return message
         else:
-            final_target, final_query = filter_query_and_target(initial_proteins, initial_contigs,
+            final_target, final_query = filter_query_and_target(query_dict, initial_contigs,
                                                                 yaml_initial_dir, initial_models,
                                                                 marker_type)
 
@@ -1046,7 +1070,8 @@ def scipio_coding(
 
     # Run a single Scipio run when 'num_refs' exceeds 'max_loci_scipio2x'
     else:
-        yaml_final_file = run_scipio_command(scipio_params, target, query, overwrite, stage="single")
+        yaml_final_file = run_scipio_command(scipio_params, target_path, query_path,
+                                             overwrite, stage="single")
 
     if yaml_final_file is None:
         message = dim(
@@ -1069,37 +1094,59 @@ def scipio_coding(
                                                  max_loci_files)
         message = (
             f"'{sample_name}': recovered {recovery_stats['num_loci']} {genes[marker_type]}"
-            f' ({recovery_stats["num_loci"] / num_refs:.1%} of {num_refs}),'
-            f' {recovery_stats["total_length_best_hits"] / total_length_refs:.1%} of total'
+            f' ({recovery_stats["num_loci"] / query_info["num_loci"]:.1%} of {query_info["num_loci"]}),'
+            f' {recovery_stats["total_length_best_hits"] / query_info["total_length_loci"]:.1%} of total'
             f' reference length, {recovery_stats["num_paralogs"]} paralogs'
             f" found [{elapsed_time(time.time() - start)}]"
         )
         return message
 
 
-def reference_stats(query_dict):
-    refs_have_separators = True
-    for marker_name in query_dict:
-        if settings.REFERENCE_CLUSTER_SEPARATOR not in marker_name:
-            refs_have_separators = False
-            break
-    lengths_refs = []
-    if refs_have_separators:
-        cluster_lengths = {}
-        for marker_name in query_dict:
-            cluster_name = marker_name.split(settings.REFERENCE_CLUSTER_SEPARATOR)[-1]
-            if cluster_name not in cluster_lengths:
-                cluster_lengths[cluster_name] = [len(query_dict[marker_name]["sequence"])]
+def reference_info(query_dict):
+    num_seqs = len(query_dict)
+    separators_found = 0
+
+    for seq_name in query_dict:
+        if settings.REFERENCE_CLUSTER_SEPARATOR in seq_name:
+            if len(list(filter(None, seq_name.split(settings.REFERENCE_CLUSTER_SEPARATOR)))) > 1:
+                separators_found += 1
+
+    loci_lengths = {}
+    if separators_found == num_seqs:
+        for seq_name in query_dict:
+            locus_name = seq_name.split(settings.REFERENCE_CLUSTER_SEPARATOR)[-1]
+            if locus_name not in loci_lengths:
+                loci_lengths[locus_name] = [len(query_dict[seq_name]["sequence"])]
             else:
-                cluster_lengths[cluster_name].append(len(query_dict[marker_name]["sequence"]))
-        for cluster_name in cluster_lengths:
-            lengths_refs.append(statistics.mean(cluster_lengths[cluster_name]))
-        num_references = len(cluster_lengths)
+                loci_lengths[locus_name].append(len(query_dict[seq_name]["sequence"]))
+        for locus_name in loci_lengths:
+            loci_lengths[locus_name] = statistics.mean(loci_lengths[locus_name])
     else:
-        num_references = len(query_dict)
-        for marker_name in query_dict:
-            lengths_refs.append(len(query_dict[marker_name]["sequence"]))
-    return num_references, round(sum(lengths_refs))
+        for seq_name in query_dict:
+            loci_lengths[seq_name] = len(query_dict[seq_name]["sequence"])
+
+    num_loci = len(loci_lengths)
+    total_length_loci = round(sum(list(loci_lengths.values())))
+    info_msg = bold(f'{num_loci} loci, {num_seqs} sequences ')
+    if separators_found == num_seqs:
+        if num_loci == num_seqs:
+            info_msg += dim(f'(loci names found, detected a single sequence per locus)')
+        elif num_loci < num_seqs:
+            info_msg += dim(f'(loci names found, detected multiple sequences per locus)')
+    else:
+        info_msg += dim(
+            f'(locus name separator "{settings.REFERENCE_CLUSTER_SEPARATOR}" missing in '
+            f'{num_seqs - separators_found} sequences, each sequence taken as a different locus)')
+
+    ref_info = {
+        "num_seqs": num_seqs,
+        "separators_found": separators_found,
+        "num_loci": num_loci,
+        "total_length_loci": total_length_loci,
+        "info_msg": info_msg
+    }
+
+    return ref_info
 
 
 def run_scipio_command(scipio_params, target, query, overwrite, stage):
@@ -1426,7 +1473,7 @@ def write_fastas_and_report(
 
 def blat_misc_dna(
         blat_path, min_identity, min_coverage, overwrite, keep_all, target, sample_dir, sample_name,
-        query, marker_type, max_loci_files
+        query_path, query_dict, query_info, marker_type, max_loci_files
 ):
     """
     Extract matches of miscellaneous DNA sequences by comparing the assemblies to a set of
@@ -1436,7 +1483,6 @@ def blat_misc_dna(
     start = time.time()
 
     dna_target = fasta_to_dict(target)
-    dna_query = fasta_to_dict(query)
 
     # Set BLAT path in case of using the bundled version
     if blat_path == "bundled":
@@ -1457,7 +1503,7 @@ def blat_misc_dna(
             "-noHead",
             f"-minIdentity={min_identity}",
             f"{target}",
-            f"{query}",
+            f"{query_path}",
             f"{blat_dna_out_file}"
         ]
         with open(blat_dna_log_file, "w") as blat_log:
@@ -1477,12 +1523,12 @@ def blat_misc_dna(
             recovery_stats = write_fastas_and_report(dna_hits, sample_name, dna_target,
                                                      blat_dna_out_dir, marker_type, overwrite,
                                                      max_loci_files)
-            num_refs, total_length_refs = reference_stats(dna_query)
             message = (
                 f"'{sample_name}': recovered {recovery_stats['num_loci']} DNA markers"
-                f' ({recovery_stats["num_loci"] / num_refs:.1%} of {num_refs}),'
-                f' {recovery_stats["total_length_best_hits"] / total_length_refs:.1%} of total'
-                f' reference length, {recovery_stats["num_paralogs"]} paralogs found'
+                f' ({recovery_stats["num_loci"] / query_info["num_loci"]:.1%} of'
+                f' {query_info["num_loci"]}),'
+                f' {recovery_stats["total_length_best_hits"] / query_info["total_length_loci"]:.1%}'
+                f' of total reference length, {recovery_stats["num_paralogs"]} paralogs found'
                 f" [{elapsed_time(time.time() - start)}]"
             )
             return message
