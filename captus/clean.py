@@ -288,9 +288,7 @@ def clean(full_command, args):
                     "BEFORE"
                 ))
         all_clean_fastqs = find_and_match_fastqs(out_dir)
-        print(all_clean_fastqs)
         clean_fastqs = {k:v for (k,v) in all_clean_fastqs.items() if k in fastqs_raw}
-        print(clean_fastqs)
         for fastq_r1 in sorted(clean_fastqs):
             qc_stats_params.append((
                 args.qc_program,
