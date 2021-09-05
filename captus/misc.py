@@ -386,6 +386,16 @@ def mafft_path_version(mafft_path):
     return found_mafft_path, version, "OK"
 
 
+def falco_path_version(falco_path):
+    found_falco_path = shutil.which(falco_path)
+    if found_falco_path is None:
+        return falco_path, "", "not found"
+    command = [found_falco_path, "--version"]
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    version = process.communicate()[0].decode().strip("\n").split()[-1]
+    return found_falco_path, version, "OK"
+
+
 def fastqc_path_version(fastqc_path):
     found_fastqc_path = shutil.which(fastqc_path)
     if found_fastqc_path is None:

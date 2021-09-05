@@ -78,28 +78,48 @@ Leading and trailing read regions with average PHRED quality score below this va
 
 Many people raise this value to 20 or even higher but that usually [discards lots of useful data for *de novo* assembly](https://www.biostars.org/p/124207/). In general, unless you have really high sequencing depth, don't increase this threshold beyond ~13.
 
-This argument is optional, the default is **10**.
+This argument is optional, the default is **13**.
 ___
 #### **`--maq`**
 Once the trimming of low-quality bases from both ends of the reads has been completed, the average PHRED score of the entire read is recalculated and reads that do not have at least this **m**inimum **a**verage **q**uality are discarded.
 
 Again, very high thresholds will throw away useful data. In general, set it to at least `trimq` or just a couple numbers higher.
 
-This argument is optional, the default is **12**.
+This argument is optional, the default is **16**.
+___
+#### **`--ftl`**
+Trim any base to the left of this position. For example, if you want to remove 4 bases from the left of the reads set this number to 5.
+
+This argument is optional, the default is **0**.
+___
+#### **`--ftr`**
+Trim any base to the right of this position. For example, if you want to truncate your reads length to 100 bp set this number to 100
+
+This argument is optional, the default is **0**.
+___
+### *QC Statistics*
+___
+#### **`--qc_program`**
+Select the program for obtaining the statistics from your FASTQ files. Both programs should return identical results, but `Falco` is much faster. Valid options are:
+- `Falco`
+- `FastQC`
+
+This argument is optional, the default is **Falco**.
+___
+#### **`--skip_qc_stats`**
+This flag disables the `Falco` or `FastQC` analysis, keep in mind that the final HTML report can't be created without the results from this analysis.
 ___
 ### *Other*
 ___
-#### **`--bbduk_path`**, **`--fastqc_path`**
-If you have installed your own copies of `bbduk.sh` or `FastQC` you can provide the full path to those copies.
+#### **`--bbduk_path`**, **`--falco_path`**, **`--fastqc_path`**
+If you have installed your own copies of `bbduk.sh`, `Falco`, or `FastQC` you can provide the full path to those copies.
 
-These arguments are optional, the defaults are **bbduk.sh** and **fastqc** respectively.
-___
-#### **`--skip_fastqc`**
-This flag disables the `FastQC` analysis, keep in mind that the final HTML report can't be created without the results from `FastQC`.
+These arguments are optional, the defaults are **bbduk.sh**, **falco**, and **fastqc** respectively.
+
 ___
 #### **`--ram`**, **`--threads`**, **`--concurrent`**, **`--debug`**, **`--show_less`**
 See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-08-06)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-08-15)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-09-05)
