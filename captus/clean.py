@@ -161,7 +161,7 @@ def clean(full_command, args):
     log.log(f'{"Trim poly-A tails":>{mar}}: {bold(args.rna)}')
     log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
     log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
-    fastqs_raw = find_and_match_fastqs(args.reads)
+    fastqs_raw = find_and_match_fastqs(args.reads, recursive=True)
     adaptors_trimmed_dir, adaptors_trimmed_msg = make_output_dir(Path(out_dir, "00_adaptors_trimmed"))
     log.log(f'{"Samples to trim":>{mar}}: {bold(len(fastqs_raw))}')
     log.log("")
@@ -288,7 +288,9 @@ def clean(full_command, args):
                     "BEFORE"
                 ))
         all_clean_fastqs = find_and_match_fastqs(out_dir)
+        print(all_clean_fastqs)
         clean_fastqs = {k:v for (k,v) in all_clean_fastqs.items() if k in fastqs_raw}
+        print(clean_fastqs)
         for fastq_r1 in sorted(clean_fastqs):
             qc_stats_params.append((
                 args.qc_program,
@@ -433,11 +435,6 @@ def bbduk_trim_adaptors(
 
     # Two simulaneous processes run smoother if RAM is halved for each
     ram_MB = ram_MB // 2
-
-    # Also, there is no apparent speed improvement by using more than 16 threads to process reads
-    # because of current hard drive speed limits.
-    if threads >= 32:
-        threads = threads // 2
 
     fixed = [
         bbduk_path,
@@ -589,6 +586,9 @@ def set_qc_stats_concurrency(concurrent, threads_max):
 def qc_stats(qc_program_name, qc_program_path, in_fastq, qc_stats_out_dir, overwrite, stage):
     start = time.time()
 
+    in_fastq_parts = in_fastq.parts[-1].split("_R")
+    file_out_dir = f'{"_R".join(in_fastq_parts[:-1])}_R{in_fastq_parts[-1][0]}_fastqc'
+
     if qc_program_name == "FastQC":
         qc_stats_cmd = [
             qc_program_path,
@@ -600,8 +600,6 @@ def qc_stats(qc_program_name, qc_program_path, in_fastq, qc_stats_out_dir, overw
             f"{in_fastq}"
         ]
     elif qc_program_name == "Falco":
-        in_fastq_parts = in_fastq.parts[-1].split("_R")
-        file_out_dir = f'{"_R".join(in_fastq_parts[:-1])}_R{in_fastq_parts[-1][0]}_fastqc'
         qc_stats_cmd = [
             qc_program_path,
             "--outdir", f"{Path(qc_stats_out_dir, file_out_dir)}",
@@ -619,6 +617,7 @@ def qc_stats(qc_program_name, qc_program_path, in_fastq, qc_stats_out_dir, overw
     file_name_stage = f"'{in_fastq.name}' ({stage} cleaning)"
 
     if overwrite is True or not qc_stats_log_file.exists():
+        shutil.rmtree(Path(qc_stats_out_dir, file_out_dir), ignore_errors=True)
         with open(qc_stats_log_file, "w") as qc_stats_log:
             subprocess.call(qc_stats_cmd, stdout=qc_stats_log, stderr=qc_stats_log)
         message = f"{file_name_stage}: {qc_program_name} finished [{elapsed_time(time.time() - start)}]"
