@@ -249,7 +249,7 @@ def has_valid_ext(file_path, valid_extensions_list):
     return False
 
 
-def find_and_match_fastqs(reads, recursive=True):
+def find_and_match_fastqs(reads, recursive=False):
     """
     Receives a list of files or a drectory name. Only FASTQ files in the list or inside the folder
     are retained. Returns a dictionary with the items formatted as:
