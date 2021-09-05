@@ -9,7 +9,7 @@ The easiest way (until we eventually get `Captus` installing directly from Bioco
 
 First, let's create the `conda` environment:
 ```console
-conda create -n captus -c bioconda -c conda-forge -c jlsteenwyk clipkit "python>=3.6" pandas plotly tqdm "perl-bioperl-core>=1.007002" bbmap fastqc mafft mmseqs2 megahit pigz vsearch
+conda create -n captus -c bioconda -c conda-forge -c jlsteenwyk clipkit "python>=3.6" pandas plotly tqdm "perl-bioperl-core>=1.007002" bbmap falco fastqc mafft mmseqs2 megahit pigz vsearch
 ```
 
 Once the environment is ready, let's activate it:
@@ -31,25 +31,21 @@ And that is all!, just to verify it is installed try typing `captus_assembly --h
 (captus)$ captus_assembly --help
 usage: captus_assembly command [options]
 
-Captus 0.0.12: Assembly of phylogenomic datasets from High-Throughput
-Sequencing data
+Captus 0.0.17: Assembly of Phylogenomic Datasets from High-Throughput Sequencing data
 
 Captus-assembly commands:
   command     Program commands (in typical order of execution)
-                clean = Trim adaptors and quality filter reads with BBTools,
-                        run FastQC on the raw and cleaned reads
-                assemble = Perform de novo assembly with MEGAHIT: Assembling
-                           reads that were cleaned with the 'clean' command is
-                           recommended, but any other reads are also allowed
-                extract = Recover targeted markers with BLAT and Scipio:
-                          Extracting markers from the assembly obtained with
-                          the 'assemble' command is recommended, but any other
-                          assemblies in FASTA format are also allowed.
-                align = Align extracted markers across samples with MAFFT:
-                        Marker alignment depends on the directory structure
-                        created by the 'extract' command. This step also
-                        performs paralog filtering and alignment trimming
-                        using ClipKIT
+                clean = Trim adaptors and quality filter reads with BBTools, run FastQC on the raw
+                        and cleaned reads
+                assemble = Perform de novo assembly with MEGAHIT: Assembling reads that were
+                           cleaned with the 'clean' command is recommended, but reads cleaned
+                           elsewhere are also allowed
+                extract = Recover targeted markers with BLAT and Scipio: Extracting markers from
+                          the assembly obtained with the 'assemble' command is recommended, but
+                          any other assemblies in FASTA format are also allowed.
+                align = Align extracted markers across samples with MAFFT: Marker alignment
+                        depends on the directory structure created by the 'extract' command. This
+                        step also performs paralog filtering and alignment trimming using ClipKIT
 
 Help:
   -h, --help  Show this help message and exit
@@ -70,7 +66,7 @@ You will have to install all the the dependencies separately yourself:
 
 - `BBTools` (https://jgi.doe.gov/data-and-tools/bbtools/)
 
-- `FastQC` (https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
+- `Falco` (https://github.com/smithlabcode/falco) or `FastQC` (https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
 
 - `MEGAHIT` (https://github.com/voutcn/megahit)
 
@@ -99,4 +95,7 @@ git clone https://github.com/edgardomortiz/Captus.git
 cd Captus
 pip install .
 ```
+
 ___
+Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-08-06)  
+Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-09-05)

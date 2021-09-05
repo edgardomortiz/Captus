@@ -168,7 +168,7 @@ class CaptusAssembly(object):
         quality_group.add_argument(
             "--trimq",
             action="store",
-            default=10,
+            default=13,
             type=int,
             dest="trimq",
             help="Leading and trailing read regions with average PHRED quality score below this"
@@ -177,11 +177,50 @@ class CaptusAssembly(object):
         quality_group.add_argument(
             "--maq",
             action="store",
-            default=12,
+            default=16,
             type=int,
             dest="maq",
             help="After quality trimming, reads with average PHRED quality score below this value"
                  " will be removed"
+        )
+        quality_group.add_argument(
+            "--ftl",
+            action="store",
+            default=0,
+            type=int,
+            dest="ftl",
+            help="Trim any base to the left of this position. For example, if you want to remove 4"
+                 " bases from the left of the reads set this number to 5"
+        )
+        quality_group.add_argument(
+            "--ftr",
+            action="store",
+            default=0,
+            type=int,
+            dest="ftr",
+            help="Trim any base to the right of this position. For example, if you want to truncate"
+                 " your reads length to 100 bp set this number to 100"
+        )
+
+        qcstats_group = parser.add_argument_group("QC Statistics")
+        qcstats_group.add_argument(
+            "--qc_program",
+            action="store",
+            choices=[
+                "FastQC",
+                "Falco",
+            ],
+            default="Falco",
+            type=str,
+            dest="qc_program",
+            help="Which program to use to obtain the statistics from the raw and cleaned FASTQ files."
+                 "Falco should produce identical results to FastQC while being much faster"
+        )
+        qcstats_group.add_argument(
+            "--skip_qc_stats",
+            action="store_true",
+            dest="skip_qc_stats",
+            help="Enable to skip FastQC/Falco analysis on raw and cleaned reads"
         )
 
         other_group = parser.add_argument_group("Other")
@@ -194,18 +233,20 @@ class CaptusAssembly(object):
             help="Path to bbduk.sh"
         )
         other_group.add_argument(
+            "--falco_path",
+            action="store",
+            default="falco",
+            type=str,
+            dest="falco_path",
+            help="Path to Falco"
+        )
+        other_group.add_argument(
             "--fastqc_path",
             action="store",
             default="fastqc",
             type=str,
             dest="fastqc_path",
             help="Path to FastQC"
-        )
-        other_group.add_argument(
-            "--skip_fastqc",
-            action="store_true",
-            dest="skip_fastqc",
-            help="Enable to skip FASTQC analysis on raw and cleaned reads"
         )
         other_group.add_argument(
             "--ram",
@@ -231,7 +272,7 @@ class CaptusAssembly(object):
             type=str,
             dest="concurrent",
             help="Captus will attempt to run FastQC concurrently on this many samples. If set to"
-                 f" 'auto', Captus will run at most {settings.FASTQC_MAX_INSTANCES} instances of"
+                 f" 'auto', Captus will run at most {settings.QC_STATS_MAX_INSTANCES} instances of"
                  " FastQC or as many CPU cores are available, whatever number is lower"
         )
         other_group.add_argument(

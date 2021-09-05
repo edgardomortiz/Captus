@@ -53,6 +53,9 @@ PHIX_REF_GENOME = Path(DATA_DIR, "phix174_ill.ref.fa.gz")
 # FASTA file of sequencing artifacts
 SEQUENCING_ARTIFACTS = Path(DATA_DIR, "sequencing_artifacts.fasta")
 
+# Adaptor list for FastQC or Falco
+QC_ADAPTORS_LIST = Path(DATA_DIR, "qc_adaptors_list.txt")
+
 # Keep reads with a minimum length of this value after trimming, for the adaptor removal stage and
 # the quality filtering/trimming stage
 BBDUK_MIN_LENGTH = 21
@@ -90,9 +93,9 @@ BBDUK_QUALITY_MAXNS = 5
 # Compression level for final FASTQ files, lower is faster
 BBDUK_QUALITY_ZIPLEVEL = 5
 
-# Maximum number of concurrent FastQC instances, there may not be increase on speed after around 16
-# simultaneous runs of FastQC because of hard drive limitations (may improve with SSDs)
-FASTQC_MAX_INSTANCES = 16
+# Maximum number of concurrent FastQC or Falco instances, there may not be increase on speed after
+# 16 simultaneous runs of FastQC or Falco because of hard drive limitations (may improve with SSDs)
+QC_STATS_MAX_INSTANCES = 16
 
 # Compression level for subsampled FASTQ files
 REFORMAT_ZIPLEVEL = 5

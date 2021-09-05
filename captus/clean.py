@@ -24,9 +24,9 @@ from pathlib import Path
 from . import log
 from . import settings_assembly as settings
 from .misc import (bbtools_path_version, bold, dim, elapsed_time, execute_jupyter_report,
-                   fastqc_path_version, find_and_match_fastqs, format_dep_msg, has_valid_ext,
-                   make_output_dir, python_library_check, quit_with_error, red, set_ram,
-                   set_threads, tqdm_parallel_async_run, tqdm_serial_run)
+                   falco_path_version, fastqc_path_version, find_and_match_fastqs, format_dep_msg,
+                   has_valid_ext, make_output_dir, python_library_check, quit_with_error, red,
+                   set_ram, set_threads, tqdm_parallel_async_run, tqdm_serial_run)
 from .version import __version__
 
 
@@ -61,12 +61,26 @@ def clean(full_command, args):
             " Sample names are derived from the text found before the _R1 string."
         )
     log.log_explanation(intro_msg, extra_empty_lines_after=0)
-    if args.skip_fastqc:
+    if args.skip_qc_stats:
         fastqc_version, fastqc_status = "", "not used"
-        intro_msg = ("FastQC will not be run after the cleaning has been completed.")
+        falco_version, falco_status = "", "not used"
+        intro_msg = ("QC statistics will not be analyzed after the cleaning has been completed.")
     else:
         _, fastqc_version, fastqc_status = fastqc_path_version(args.fastqc_path)
-        intro_msg = ("FastQC will run after the cleaning has been completed.")
+        _, falco_version, falco_status = falco_path_version(args.falco_path)
+        if args.qc_program == "Falco" and falco_status == "not found":
+            if fastqc_status == "OK":
+                args.qc_program = "FastQC"
+                intro_msg = ("FastQC will run after the cleaning has been completed.")
+            else:
+                args.skip_qc_stats = True
+        elif args.qc_program == "FastQC" and fastqc_status == "not found":
+            if falco_status == "OK":
+                args.qc_program = "Falco"
+                intro_msg = ("Falco will run after the cleaning has been completed.")
+            else:
+                args.skip_qc_stats = True
+
     log.log_explanation(intro_msg, extra_empty_lines_after=0)
     log.log_explanation("For more information, please see https://github.com/edgardomortiz/Captus")
 
@@ -81,7 +95,12 @@ def clean(full_command, args):
     log.log(f'{"Dependencies":>{mar}}:')
     _, bbduk_version, bbduk_status = bbtools_path_version(args.bbduk_path)
     log.log(format_dep_msg(f'{"BBTools":>{mar}}: ', bbduk_version, bbduk_status))
-    log.log(format_dep_msg(f'{"FastQC":>{mar}}: ', fastqc_version, fastqc_status))
+    if args.qc_program == "Falco":
+        log.log(format_dep_msg(f'{"Falco":>{mar}}: ', falco_version, falco_status))
+        log.log(format_dep_msg(f'{"FastQC":>{mar}}: ', "", "not used"))
+    if args.qc_program == "FastQC":
+        log.log(format_dep_msg(f'{"Falco":>{mar}}: ', "", "not used"))
+        log.log(format_dep_msg(f'{"FastQC":>{mar}}: ', fastqc_version, fastqc_status))
     log.log("")
 
     log.log(f'{"Python libraries":>{mar}}:')
@@ -102,12 +121,12 @@ def clean(full_command, args):
             "bbduk.sh could not be found, please verify you have it installed or provide the full"
             " path to the progam with '--bbduk_path'"
         )
-    if fastqc_status == "not found":
-        args.skip_fastqc = True
+    if fastqc_status == "not found" and falco_status == "not found":
         log.log(
-            f"{bold('WARNING:')} FastQC could not be found, the program will be skipped after"
-            " cleaning the reads. Please verify you have it installed or provide the full path to"
-            " the program with '--fastqc_path'\n"
+            f"{bold('WARNING:')} Neither FastQC nor Falco could not be found, the QC statistics"
+            " analysis will be skipped after cleaning the reads. Please verify you have at least one"
+            " of these programs installed or provide the full path of either with '--fastqc_path' or"
+            " '--falco_path'\n"
         )
 
 
@@ -188,6 +207,8 @@ def clean(full_command, args):
 
     log.log(f'{"trimq":>{mar}}: {bold(args.trimq)}')
     log.log(f'{"maq":>{mar}}: {bold(args.maq)}')
+    log.log(f'{"ftl":>{mar}}: {bold(args.ftl)}')
+    log.log(f'{"ftr":>{mar}}: {bold(args.ftr)}')
     log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
     log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
     all_fastqs_no_adaptors = find_and_match_fastqs(adaptors_trimmed_dir)
@@ -213,6 +234,8 @@ def clean(full_command, args):
                 out_dir,
                 args.trimq,
                 args.maq,
+                args.ftl,
+                args.ftr,
                 args.overwrite
             ))
         tqdm_serial_run(bbduk_filter_quality, bbduk_filter_quality_params,
@@ -228,71 +251,87 @@ def clean(full_command, args):
 
 
     ################################################################################################
-    ################################################################################# FASTQC SECTION
-    log.log_section_header("FastQC Analysis: Raw and Clean Reads")
-    log.log_explanation("Now Captus will run FastQC on the raw reads as well as on the clean reads.")
-    if  args.skip_fastqc:
-        log.log(red("Skipping FastQC analyses... (to enable omit '--skip_fastqc')"))
+    ############################################################################### QC STATS SECTION
+    log.log_section_header("Quality Control Statistics: Raw and Clean Reads")
+    log.log_explanation(
+        f'Now Captus will run {args.qc_program} on the raw reads as well as on the clean reads to'
+        f' obtain QC statistics.'
+    )
+    if  args.skip_qc_stats:
+        log.log(red("Skipping QC statistics analyses... (to enable omit '--skip_qc_stats')"))
         log.log("")
     else:
-        fastqc_before_dir, fastqc_before_msg = make_output_dir(Path(out_dir, "01_fastqc_before"))
-        fastqc_after_dir, fastqc_after_msg = make_output_dir(Path(out_dir, "02_fastqc_after"))
-        fastqc_params = []
+        qc_stats_before_dir, qc_stats_before_msg = make_output_dir(Path(out_dir, "01_qc_stats_before"))
+        qc_stats_after_dir, qc_stats_after_msg = make_output_dir(Path(out_dir, "02_qc_stats_after"))
+        if args.qc_program == "FastQC":
+            qc_program_path = args.fastqc_path
+        elif args.qc_program == "Falco":
+            qc_program_path = args.falco_path
+
+        qc_stats_params = []
         for fastq_r1 in sorted(fastqs_raw):
-            fastqc_params.append((
-                args.fastqc_path,
+            qc_stats_params.append((
+                args.qc_program,
+                qc_program_path,
                 Path(fastqs_raw[fastq_r1]["fastq_dir"], fastq_r1),
-                fastqc_before_dir,
+                qc_stats_before_dir,
                 args.overwrite,
                 "BEFORE"
             ))
             if fastqs_raw[fastq_r1]["fastq_r2"] is not None:
-                fastqc_params.append((
-                    args.fastqc_path,
+                qc_stats_params.append((
+                    args.qc_program,
+                    qc_program_path,
                     Path(fastqs_raw[fastq_r1]["fastq_dir"], fastqs_raw[fastq_r1]["fastq_r2"]),
-                    fastqc_before_dir,
+                    qc_stats_before_dir,
                     args.overwrite,
                     "BEFORE"
                 ))
         all_clean_fastqs = find_and_match_fastqs(out_dir)
         clean_fastqs = {k:v for (k,v) in all_clean_fastqs.items() if k in fastqs_raw}
         for fastq_r1 in sorted(clean_fastqs):
-            fastqc_params.append((
-                args.fastqc_path,
+            qc_stats_params.append((
+                args.qc_program,
+                qc_program_path,
                 Path(clean_fastqs[fastq_r1]["fastq_dir"], fastq_r1),
-                fastqc_after_dir,
+                qc_stats_after_dir,
                 args.overwrite,
                 "AFTER"
             ))
             if clean_fastqs[fastq_r1]["fastq_r2"] is not None:
-                fastqc_params.append((
-                    args.fastqc_path,
+                qc_stats_params.append((
+                    args.qc_program,
+                    qc_program_path,
                     Path(clean_fastqs[fastq_r1]["fastq_dir"], clean_fastqs[fastq_r1]["fastq_r2"]),
-                    fastqc_after_dir,
+                    qc_stats_after_dir,
                     args.overwrite,
                     "AFTER"
                 ))
-        concurrent = set_fastqc_concurrency(args.concurrent, threads_max)
+
+        concurrent = set_qc_stats_concurrency(args.concurrent, threads_max)
+        log.log(f'{"QC program":>{mar}}: {bold(args.qc_program)}')
         log.log(f'{"Concurrent samples":>{mar}}: {bold(concurrent)}')
         log.log("")
         log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
         log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
-        log.log(f'{"Files to analyze":>{mar}}: {bold(len(fastqc_params))}')
+        log.log(f'{"Files to analyze":>{mar}}: {bold(len(qc_stats_params))}')
         log.log("")
-        log.log(f'{"BEFORE cleaning":>{mar}}: {bold(fastqc_before_dir)}')
-        log.log(f'{"":>{mar}}  {dim(fastqc_before_msg)}')
-        log.log(f'{"AFTER cleaning":>{mar}}: {bold(fastqc_after_dir)}')
-        log.log(f'{"":>{mar}}  {dim(fastqc_after_msg)}')
+        log.log(f'{"BEFORE cleaning":>{mar}}: {bold(qc_stats_before_dir)}')
+        log.log(f'{"":>{mar}}  {dim(qc_stats_before_msg)}')
+        log.log(f'{"AFTER cleaning":>{mar}}: {bold(qc_stats_after_dir)}')
+        log.log(f'{"":>{mar}}  {dim(qc_stats_after_msg)}')
         log.log("")
 
         if args.debug:
-            tqdm_serial_run(fastqc, fastqc_params,
-                            "Running FastQC", "FastQC analysis completed",
+            tqdm_serial_run(qc_stats, qc_stats_params,
+                            f"Running {args.qc_program}",
+                            f"{args.qc_program} analysis completed",
                             "file", args.show_less)
         else:
-            tqdm_parallel_async_run(fastqc, fastqc_params,
-                                    "Running FastQC", "FastQC analysis completed", "file",
-                                    concurrent, args.show_less)
+            tqdm_parallel_async_run(qc_stats, qc_stats_params,
+                                    f"Running {args.qc_program}",
+                                    f"{args.qc_program} analysis completed",
+                                    "file", concurrent, args.show_less)
         log.log("")
 
 
@@ -300,9 +339,9 @@ def clean(full_command, args):
     ################################################################################ CLEANUP SECTION
     log.log_section_header("Logs Summarization and File Cleanup")
     log.log_explanation(
-        "Now Captus will summarize the logs from 'bbduk.sh' and 'FastQC' to produce a final report"
-        " in HTML format. The data tables and individual graphs associated with the HTML report will"
-        " be placed in a subdirectory  called '03_qc_extras'."
+        "Now Captus will summarize the logs from 'bbduk.sh' and 'FastQC' or 'Falco' to produce a"
+        " final report in HTML format. The data tables and individual graphs associated with the"
+        " HTML report will be placed in a subdirectory  called '03_qc_extras'."
     )
     qc_extras_dir, qc_extras_msg = make_output_dir(Path(out_dir, "03_qc_extras"))
     log.log("")
@@ -310,8 +349,8 @@ def clean(full_command, args):
     log.log(f'{"QC extras directory":>{mar}}: {bold(qc_extras_dir)}')
     log.log(f'{"":>{mar}}  {dim(qc_extras_msg)}')
     log.log("")
-    bbduk_summarize_logs(out_dir, qc_extras_dir, mar)
-    fastqc_summarize_logs(out_dir, qc_extras_dir, fastqc_before_dir, fastqc_after_dir, mar)
+    summarize_bbduk_logs(out_dir, qc_extras_dir, mar)
+    summarize_qc_stats(out_dir, qc_extras_dir, qc_stats_before_dir, qc_stats_after_dir, mar)
     log.log("")
 
     if all([numpy_found, pandas_found, plotly_found]):
@@ -341,11 +380,11 @@ def clean(full_command, args):
         reclaimed_bytes = 0
         files_to_delete = [fq for fq in adaptors_trimmed_dir.resolve().glob("*")
                            if has_valid_ext(fq, settings.FASTQ_VALID_EXTENSIONS)]
-        if not args.skip_fastqc:
-            files_to_delete += [html for html in fastqc_before_dir.resolve().glob("*")
-                                if has_valid_ext(html, [".html"])]
-            files_to_delete += [html for html in fastqc_after_dir.resolve().glob("*")
-                                if has_valid_ext(html, [".html"])]
+        if not args.skip_qc_stats:
+            files_to_delete += [fastqc for fastqc in qc_stats_before_dir.resolve().glob("*")
+                                if has_valid_ext(fastqc, [".html", ".zip"])]
+            files_to_delete += [fastqc for fastqc in qc_stats_after_dir.resolve().glob("*")
+                                if has_valid_ext(fastqc, [".html", ".zip"])]
         for del_file in files_to_delete:
             reclaimed_bytes += del_file.stat().st_size
             del_file.unlink()
@@ -391,6 +430,14 @@ def bbduk_trim_adaptors(
     start = time.time()
 
     sample_name = "_R".join(in_fastq.split("_R")[:-1])
+
+    # Two simulaneous processes run smoother if RAM is halved for each
+    ram_MB = ram_MB // 2
+
+    # Also, there is no apparent speed improvement by using more than 16 threads to process reads
+    # because of current hard drive speed limits.
+    if threads >= 32:
+        threads = threads // 2
 
     fixed = [
         bbduk_path,
@@ -468,7 +515,7 @@ def bbduk_trim_adaptors(
 
 
 def bbduk_filter_quality(
-        bbduk_path, ram_MB, threads, in_dir, in_fastq, out_dir, trimq, maq, overwrite
+        bbduk_path, ram_MB, threads, in_dir, in_fastq, out_dir, trimq, maq, ftl, ftr, overwrite
 ):
     """
     Use bbduk.sh from BBTools to quality-filter reads and filter sequencing artifacts and reads
@@ -478,6 +525,9 @@ def bbduk_filter_quality(
     start = time.time()
 
     sample_name = "_R".join(in_fastq.split("_R")[:-1])
+
+    if ftr > 0:
+        ftr -= 1
 
     bbduk_cmd = [
         bbduk_path,
@@ -491,6 +541,8 @@ def bbduk_filter_quality(
         f"qtrim={settings.BBDUK_QUALITY_QTRIM}",
         f"trimq={trimq}",
         f"maq={maq}",
+        f"ftl={ftl}",
+        f"ftr={ftr}",
         f"minlength={settings.BBDUK_MIN_LENGTH}",
         f"maxns={settings.BBDUK_QUALITY_MAXNS}",
         f"ziplevel={settings.BBDUK_QUALITY_ZIPLEVEL}"
@@ -522,9 +574,9 @@ def bbduk_filter_quality(
     return message
 
 
-def set_fastqc_concurrency(concurrent, threads_max):
+def set_qc_stats_concurrency(concurrent, threads_max):
     if concurrent == "auto":
-        concurrent = settings.FASTQC_MAX_INSTANCES
+        concurrent = settings.QC_STATS_MAX_INSTANCES
     else:
         try:
             concurrent = int(concurrent)
@@ -534,35 +586,49 @@ def set_fastqc_concurrency(concurrent, threads_max):
     return min(concurrent, threads_max)
 
 
-def fastqc(fastqc_path, in_fastq, fastqc_out_dir, overwrite, stage):
+def qc_stats(qc_program_name, qc_program_path, in_fastq, qc_stats_out_dir, overwrite, stage):
     start = time.time()
 
-    fastqc_cmd = [
-        fastqc_path,
-        "--outdir", f"{fastqc_out_dir}",
-        "--nogroup",
-        "--threads", "1",
-        f"{in_fastq}"
-    ]
+    if qc_program_name == "FastQC":
+        qc_stats_cmd = [
+            qc_program_path,
+            "--outdir", f"{qc_stats_out_dir}",
+            "--extract",
+            "--nogroup",
+            "--threads", "1",
+            "--adapters", f"{settings.QC_ADAPTORS_LIST}",
+            f"{in_fastq}"
+        ]
+    elif qc_program_name == "Falco":
+        in_fastq_parts = in_fastq.parts[-1].split("_R")
+        file_out_dir = f'{"_R".join(in_fastq_parts[:-1])}_R{in_fastq_parts[-1][0]}_fastqc'
+        qc_stats_cmd = [
+            qc_program_path,
+            "--outdir", f"{Path(qc_stats_out_dir, file_out_dir)}",
+            "--nogroup",
+            "--threads", "1",
+            "--adapters", f"{settings.QC_ADAPTORS_LIST}",
+            f"{in_fastq}"
+        ]
 
     if "_R1" in in_fastq.name:
         idx = in_fastq.name.find("_R1") + 3
     elif "_R2" in in_fastq.name:
         idx = in_fastq.name.find("_R2") + 3
-    fastqc_log_file = Path(fastqc_out_dir, f"{in_fastq.name[:idx]}.fastqc.log")
+    qc_stats_log_file = Path(qc_stats_out_dir, f"{in_fastq.name[:idx]}.qc_stats.log")
     file_name_stage = f"'{in_fastq.name}' ({stage} cleaning)"
 
-    if overwrite is True or not fastqc_log_file.exists():
-        with open(fastqc_log_file, "w") as fastqc_log:
-            subprocess.call(fastqc_cmd, stdout=fastqc_log, stderr=fastqc_log)
-        message = f"{file_name_stage}: FastQC finished [{elapsed_time(time.time() - start)}]"
+    if overwrite is True or not qc_stats_log_file.exists():
+        with open(qc_stats_log_file, "w") as qc_stats_log:
+            subprocess.call(qc_stats_cmd, stdout=qc_stats_log, stderr=qc_stats_log)
+        message = f"{file_name_stage}: {qc_program_name} finished [{elapsed_time(time.time() - start)}]"
     else:
-        message = dim(f"{file_name_stage}: skipped (FastQC report already exists)")
+        message = dim(f"{file_name_stage}: skipped ({qc_program_name} report already exists)")
 
     return message
 
 
-def bbduk_summarize_logs(out_dir, qc_extras_dir, margin):
+def summarize_bbduk_logs(out_dir, qc_extras_dir, margin):
     round1_logs = list(out_dir.rglob("*.round1.log"))
     round2_logs = list(out_dir.rglob("*.round2.log"))
     cleaning_logs = list(out_dir.rglob("*.cleaning.log"))
@@ -750,15 +816,15 @@ def bbduk_summarize_logs(out_dir, qc_extras_dir, margin):
     log.log(f'{"Contaminants":>{margin}}: {bold(contaminants_summary)}')
 
 
-def fastqc_summarize_logs(out_dir, qc_extras_dir, fastqc_before_dir, fastqc_after_dir, margin):
+def summarize_qc_stats(out_dir, qc_extras_dir, qc_stats_before_dir, qc_stats_after_dir, margin):
     """
-    Summarize FastQC reports into a nice multisample .html, replacement for NGSReports which is
-    cumbersome to install and very slow
+    Summarize FastQC or Falco reports into a nice multisample .html
     """
-    reports = list(Path(out_dir, fastqc_before_dir).rglob("*_fastqc.zip"))
-    reports += list(Path(out_dir, fastqc_after_dir).rglob("*_fastqc.zip"))
+    reports = list(Path(out_dir, qc_stats_before_dir).rglob("*_fastqc"))
+    reports += list(Path(out_dir, qc_stats_after_dir).rglob("*_fastqc"))
+    reports = [d for d in reports if d.is_dir()]
 
-    fastqc_stats = {
+    qc_stats = {
         "per_base_seq_qual_data":    ["\t".join(["sample_name", "read", "stage",
                                                  "base", "mean", "median",
                                                  "upper_quartile", "lower_quartile",
@@ -780,100 +846,110 @@ def fastqc_summarize_logs(out_dir, qc_extras_dir, fastqc_before_dir, fastqc_afte
                                                  "Illumina_small_RNA_3'_adaptor",
                                                  "Illumina_small_RNA_5'_adaptor",
                                                  "Nextera_transposase_sequence",
-                                                 "SOLID_small_RNA_adaptor"])],
+                                                 "SOLID_small_RNA_adaptor",
+                                                 "BGI_Forward", "BGI_Reverse"])],
     }
 
-    for file in sorted(reports):
-        if "_R1_fastqc.zip" in file.name:
-            sample_name = file.name.replace("_R1_fastqc.zip", "")
+    for report_dir in sorted(reports):
+        if "_R1_fastqc" in report_dir.name:
+            sample_name = report_dir.name.replace("_R1_fastqc", "")
             read = "R1"
-        elif "_R2_fastqc.zip" in file.name:
-            sample_name = file.name.replace("_R2_fastqc.zip", "")
+        elif "_R2_fastqc" in report_dir.name:
+            sample_name = report_dir.name.replace("_R2_fastqc", "")
             read = "R2"
         else:
-            sample_name = file.name.replace("_fastqc.zip", "")
+            sample_name = report_dir.name.replace("_fastqc", "")
             read = "UNK"
-        if "fastqc_before" in str(file):
+        if "qc_stats_before" in str(report_dir):
             stage = "before"
-        elif "fastqc_after" in str(file):
+        elif "qc_stats_after" in str(report_dir):
             stage = "after"
         else:
             stage = "UNK"
         prepend = [sample_name, read, stage]
 
-        with zipfile.ZipFile(file) as z:
-            add_to = ""
-            with z.open(str(Path(file.stem, "fastqc_data.txt"))) as data_txt:
-                for line in data_txt:
-                    line = line.decode()
-                    if not line.startswith("#") and not line.startswith(">>END_MODULE"):
-                        if line.startswith(">>Basic Statistics"):
-                            add_to = ""
-                        if line.startswith(">>Per base sequence quality"):
-                            add_to = "per_base_seq_qual_data"
-                            continue
-                        if line.startswith(">>Per tile sequence quality"):
-                            add_to = ""
-                        if line.startswith(">>Per sequence quality scores"):
-                            add_to = "per_seq_qual_scores_data"
-                            continue
-                        if line.startswith(">>Per base sequence content"):
-                            add_to = "per_base_seq_content_data"
-                            continue
-                        if line.startswith(">>Per sequence GC content"):
-                            add_to = "per_seq_gc_content_data"
-                            continue
-                        if line.startswith(">>Per base N content"):
-                            add_to = ""
-                        if line.startswith(">>Sequence Length Distribution"):
-                            add_to = "seq_len_dist_data"
-                            continue
-                        if line.startswith(">>Sequence Duplication Levels"):
-                            add_to = "seq_dup_levels_data"
-                            continue
-                        if line.startswith(">>Overrepresented sequences"):
-                            add_to = ""
-                        if line.startswith(">>Adapter Content"):
-                            add_to = "adaptor_content_data"
-                            continue
-                        if add_to == "":
-                            continue
+        add_to = ""
+        length = -1
+        with open(Path(report_dir, "fastqc_data.txt"), "rt") as data_txt:
+            for line in data_txt:
+                if not line.startswith("#") and not line.startswith(">>END_MODULE"):
+                    if line.startswith(">>Basic Statistics"):
+                        add_to = ""
+                    if line.startswith(">>Per base sequence quality"):
+                        add_to = "per_base_seq_qual_data"
+                        continue
+                    if line.startswith(">>Per tile sequence quality"):
+                        add_to = ""
+                    if line.startswith(">>Per sequence quality scores"):
+                        add_to = "per_seq_qual_scores_data"
+                        continue
+                    if line.startswith(">>Per base sequence content"):
+                        add_to = "per_base_seq_content_data"
+                        continue
+                    if line.startswith(">>Per sequence GC content"):
+                        add_to = "per_seq_gc_content_data"
+                        continue
+                    if line.startswith(">>Per base N content"):
+                        add_to = ""
+                    if line.startswith(">>Sequence Length Distribution"):
+                        add_to = "seq_len_dist_data"
+                        continue
+                    if line.startswith(">>Sequence Duplication Levels"):
+                        add_to = "seq_dup_levels_data"
+                        continue
+                    if line.startswith(">>Overrepresented sequences"):
+                        add_to = ""
+                    if line.startswith(">>Adapter Content"):
+                        add_to = "adaptor_content_data"
+                        continue
+                    if add_to == "":
+                        continue
+                    else:
+                        if add_to == "seq_len_dist_data":
+                            record = prepend + line.strip("\n").split()
+                            if length == -1:
+                                length = int(record[-2])
+                            else:
+                                while length + 1 < int(record[-2]):
+                                    length += 1
+                                    qc_stats[add_to].append("\t".join(prepend + [str(length), "0.0"]))
+                                length = int(record[-2])
+                            qc_stats[add_to].append("\t".join(record))
                         else:
                             record = "\t".join(prepend + line.strip("\n").split())
-                            fastqc_stats[add_to].append(record)
+                            qc_stats[add_to].append(record)
 
     per_base_seq_qual = Path(qc_extras_dir, settings.QC_FILES["PBSQ"])
     with open(per_base_seq_qual, "wt") as stats_out:
-        stats_out.write("\n".join(fastqc_stats["per_base_seq_qual_data"]))
+        stats_out.write("\n".join(qc_stats["per_base_seq_qual_data"]))
     log.log(f'{"Per base seq. qual.":>{margin}}: {bold(per_base_seq_qual)}')
 
     per_seq_qual_scores = Path(qc_extras_dir, settings.QC_FILES["PSQS"])
     with open(per_seq_qual_scores, "wt") as stats_out:
-        stats_out.write("\n".join(fastqc_stats["per_seq_qual_scores_data"]))
+        stats_out.write("\n".join(qc_stats["per_seq_qual_scores_data"]))
     log.log(f'{"Per seq. qual. scores":>{margin}}: {bold(per_seq_qual_scores)}')
 
     per_base_seq_content = Path(qc_extras_dir, settings.QC_FILES["PBSC"])
     with open(per_base_seq_content, "wt") as stats_out:
-        stats_out.write("\n".join(fastqc_stats["per_base_seq_content_data"]))
+        stats_out.write("\n".join(qc_stats["per_base_seq_content_data"]))
     log.log(f'{"Per base seq. content":>{margin}}: {bold(per_base_seq_content)}')
 
     per_seq_gc_content = Path(qc_extras_dir, settings.QC_FILES["PSGC"])
     with open(per_seq_gc_content, "wt") as stats_out:
-        stats_out.write("\n".join(fastqc_stats["per_seq_gc_content_data"]))
+        stats_out.write("\n".join(qc_stats["per_seq_gc_content_data"]))
     log.log(f'{"Per seq. GC content":>{margin}}: {bold(per_seq_gc_content)}')
 
     seq_len_dist = Path(qc_extras_dir, settings.QC_FILES["SLEN"])
     with open(seq_len_dist, "wt") as stats_out:
-        stats_out.write("\n".join(fastqc_stats["seq_len_dist_data"]))
+        stats_out.write("\n".join(qc_stats["seq_len_dist_data"]))
     log.log(f'{"Seq. length distr.":>{margin}}: {bold(seq_len_dist)}')
 
     seq_dup_levels = Path(qc_extras_dir, settings.QC_FILES["SDUP"])
     with open(seq_dup_levels, "wt") as stats_out:
-        stats_out.write("\n".join(fastqc_stats["seq_dup_levels_data"]))
+        stats_out.write("\n".join(qc_stats["seq_dup_levels_data"]))
     log.log(f'{"Seq. duplication":>{margin}}: {bold(seq_dup_levels)}')
 
     adaptor_content = Path(qc_extras_dir, settings.QC_FILES["ADCO"])
     with open(adaptor_content, "wt") as stats_out:
-        stats_out.write("\n".join(fastqc_stats["adaptor_content_data"]))
+        stats_out.write("\n".join(qc_stats["adaptor_content_data"]))
     log.log(f'{"Adaptor content":>{margin}}: {bold(adaptor_content)}')
-
