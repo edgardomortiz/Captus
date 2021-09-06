@@ -94,8 +94,8 @@ BBDUK_QUALITY_MAXNS = 5
 BBDUK_QUALITY_ZIPLEVEL = 5
 
 # Maximum number of concurrent FastQC or Falco instances, there may not be increase on speed after
-# 16 simultaneous runs of FastQC or Falco because of hard drive limitations (may improve with SSDs)
-QC_STATS_MAX_INSTANCES = 16
+# 4 simultaneous runs of FastQC or Falco because of hard drive limitations (may improve with SSDs)
+QC_STATS_MAX_INSTANCES = 4
 
 # Compression level for subsampled FASTQ files
 REFORMAT_ZIPLEVEL = 5
