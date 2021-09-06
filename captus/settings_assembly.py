@@ -118,6 +118,9 @@ QC_FILES = {
 # Caculate the average read length of a FASTQ with this many reads
 NUM_READS_TO_CALCULATE_MEAN_READ_LENGTH = 100000
 
+# Caculate the maximum read length of a FASTQ with this many reads
+NUM_READS_TO_CALCULATE_MAX_READ_LENGTH = 100000
+
 # Include largest kmer sizes in MEGAHIT's 'k_list' if they are at most this larger than the mean
 # read length of the input FASTQs
 DELTA_MEAN_READ_LENGTH_TO_MAX_KMER_SIZE = 31
