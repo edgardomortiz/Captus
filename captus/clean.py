@@ -13,6 +13,7 @@ not, see <http://www.gnu.org/licenses/>.
 """
 
 
+import gzip
 import multiprocessing
 import shutil
 import subprocess
@@ -407,6 +408,27 @@ def clean(full_command, args):
     log.log("")
 
 
+def get_max_read_length(fastq_path, num_reads):
+    """
+    Determine maximum read length to trim last base (151 to 150, 101 to 100, etc.) since last cycle
+    in Illumina (and BGI?) is mostly erroneous
+    """
+    line_count = 0
+    read_lengths = []
+    if f"{fastq_path}".endswith(".gz"):
+        opener = gzip.open
+    else:
+        opener = open
+    with opener(fastq_path, "rt") as fastq:
+        for line in fastq:
+            line_count += 1
+            if line_count % 4 == 0:
+                read_lengths.append(len(line.strip("\n")))
+            if line_count == num_reads * 4:
+                break
+    return max(read_lengths)
+
+
 def bbduk_trim_adaptors(
         bbduk_path, ram_MB, threads, in_dir, in_fastq, out_dir, adaptor_set, rna, overwrite
 ):
@@ -434,6 +456,15 @@ def bbduk_trim_adaptors(
     # Two simulaneous processes run smoother if RAM is halved for each
     ram_MB = ram_MB // 2
 
+    # Determine max read length to set ftr and remove last base if reads are 151, 126, 101, etc. to
+    # make them 150, 125, 100, etc.
+    max_read_length = get_max_read_length(Path(in_dir, in_fastq.replace("#", "1")),
+                                          settings.NUM_READS_TO_CALCULATE_MAX_READ_LENGTH)
+    if max_read_length % 5 > 0:
+        ftr = max_read_length - (max_read_length % 5) - 1
+    else:
+        ftr = 0
+
     fixed = [
         bbduk_path,
         f"-Xmx{ram_MB}m",
@@ -458,6 +489,7 @@ def bbduk_trim_adaptors(
     round_1 = [
         f"in={Path(in_dir, in_fastq)}",
         "out=stdout.fq",
+        f"ftr={ftr}",
         f"k={settings.BBDUK_ADAPTOR_ROUND1_K}",
         f"mink={settings.BBDUK_ADAPTOR_ROUND1_MINK}",
         f"hdist={settings.BBDUK_ADAPTOR_ROUND1_HDIST}",
