@@ -1254,9 +1254,9 @@ def build_qc_report(out_dir, qc_extras_dir):
         yaxis=dict(title="Sample - Stage"),
         coloraxis=dict(
             colorscale="Spectral_r",
+            cmin=0 if max(df["adapter_content"]) < 10 else None,
+            cmax=10 if max(df["adapter_content"]) < 10 else None,
             colorbar=dict(
-                cmin=0 if max(df["adapter_content"]) < 10 else None,
-                cmax=10 if max(df["adapter_content"]) < 10 else None,
                 title="Proportion",
                 lenmode="pixels",
                 len=200,
