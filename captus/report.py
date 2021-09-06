@@ -79,6 +79,8 @@ def build_qc_report(out_dir, qc_extras_dir):
         "GC%": gc.xs("after", level="stage").reset_index()[0],
     })
 
+    sample_list = df['Sample'].unique()
+
     colorscale = [
         [0, "#F0D9E6"],
         [0.5, "#F5F5F5"],
@@ -92,16 +94,16 @@ def build_qc_report(out_dir, qc_extras_dir):
             values=[df[col] for col in df.columns],
             fill_color=[
                 "#F5F5F5",
-                sample_colorscale(colorscale, normalize(df["Input Reads"])),
-                sample_colorscale(colorscale, normalize(df["Input Bases"])),
-                sample_colorscale(colorscale, normalize(df["Output Reads"])),
-                sample_colorscale(colorscale, normalize(df["Output Reads%"])),
-                sample_colorscale(colorscale, normalize(df["Output Bases"])),
-                sample_colorscale(colorscale, normalize(df["Output Bases%"])),
-                sample_colorscale(colorscale, normalize(df["Mean Read Length%"])),
-                sample_colorscale(colorscale, normalize(df["≥Q20 Reads%"])),
-                sample_colorscale(colorscale, normalize(df["≥Q30 Reads%"])),
-                sample_colorscale(colorscale, normalize(df["GC%"])),
+                sample_colorscale(colorscale, normalize(df["Input Reads"].fillna(0))),
+                sample_colorscale(colorscale, normalize(df["Input Bases"].fillna(0))),
+                sample_colorscale(colorscale, normalize(df["Output Reads"].fillna(0))),
+                sample_colorscale(colorscale, normalize(df["Output Reads%"].fillna(0))),
+                sample_colorscale(colorscale, normalize(df["Output Bases"].fillna(0))),
+                sample_colorscale(colorscale, normalize(df["Output Bases%"].fillna(0))),
+                sample_colorscale(colorscale, normalize(df["Mean Read Length%"].fillna(0))),
+                sample_colorscale(colorscale, normalize(df["≥Q20 Reads%"].fillna(0))),
+                sample_colorscale(colorscale, normalize(df["≥Q30 Reads%"].fillna(0))),
+                sample_colorscale(colorscale, normalize(df["GC%"].fillna(0))),
             ],
             format=[None, ",", ",", ",", ".2f", ",", ".2f"],
             align=["left", "right"],
@@ -122,16 +124,16 @@ def build_qc_report(out_dir, qc_extras_dir):
                 fill=dict(
                     color=[
                         "#F5F5F5",
-                        sample_colorscale(colorscale, normalize(df["Input Reads"])),
-                        sample_colorscale(colorscale, normalize(df["Input Bases"])),
-                        sample_colorscale(colorscale, normalize(df["Output Reads"])),
-                        sample_colorscale(colorscale, normalize(df["Output Reads%"])),
-                        sample_colorscale(colorscale, normalize(df["Output Bases"])),
-                        sample_colorscale(colorscale, normalize(df["Output Bases%"])),
-                        sample_colorscale(colorscale, normalize(df["Mean Read Length%"])),
-                        sample_colorscale(colorscale, normalize(df["≥Q20 Reads%"])),
-                        sample_colorscale(colorscale, normalize(df["≥Q30 Reads%"])),
-                        sample_colorscale(colorscale, normalize(df["GC%"])),
+                        sample_colorscale(colorscale, normalize(df["Input Reads"].fillna(0))),
+                        sample_colorscale(colorscale, normalize(df["Input Bases"].fillna(0))),
+                        sample_colorscale(colorscale, normalize(df["Output Reads"].fillna(0))),
+                        sample_colorscale(colorscale, normalize(df["Output Reads%"].fillna(0))),
+                        sample_colorscale(colorscale, normalize(df["Output Bases"].fillna(0))),
+                        sample_colorscale(colorscale, normalize(df["Output Bases%"].fillna(0))),
+                        sample_colorscale(colorscale, normalize(df["Mean Read Length%"].fillna(0))),
+                        sample_colorscale(colorscale, normalize(df["≥Q20 Reads%"].fillna(0))),
+                        sample_colorscale(colorscale, normalize(df["≥Q30 Reads%"].fillna(0))),
+                        sample_colorscale(colorscale, normalize(df["GC%"].fillna(0))),
                     ]
                 ),
                 format=[None, ",", ",", ",", ".2f", ",", ".2f"],
@@ -170,6 +172,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     fig0.update_layout(
         font_family="Arial",
         title="<b>Captus-assembly: Clean (Quality Control Report)<br>1. Summary Table</b>",
+        height=230 + 21 * len(sample_list) if len(sample_list) < 31 else None,
         updatemenus=updatemenus,
         annotations=annotations,
     )
@@ -188,7 +191,6 @@ def build_qc_report(out_dir, qc_extras_dir):
     df["reads_passed_cleaning_%"] = df["reads_passed_cleaning"] / df["reads_input"] * 100
     df["bases_passed_cleaning_%"] = df["bases_passed_cleaning"] / df["bases_input"] * 100
 
-    sample_list = df["sample"].unique()
     var_suffix_list = ["_input", "_passed_round1", "_passed_round2", "_passed_cleaning"]
     legend_list = ["Input", "Round1", "Round2", "Cleaned"]
     colors = ["#CC79A7", "#E69F00", "#009E73", "#56B4E9"]
@@ -1253,6 +1255,8 @@ def build_qc_report(out_dir, qc_extras_dir):
         coloraxis=dict(
             colorscale="Spectral_r",
             colorbar=dict(
+                cmin=0 if max(df["adapter_content"]) < 10 else None,
+                cmax=10 if max(df["adapter_content"]) < 10 else None,
                 title="Proportion",
                 lenmode="pixels",
                 len=200,
@@ -1342,6 +1346,8 @@ def build_assembly_report(out_dir, asm_stats_tsv):
         },
         inplace=True,
     )
+
+    sample_list = df['Sample'].unique()
 
     colorscale = [
         [0, "#F0D9E6"],
@@ -1437,6 +1443,7 @@ def build_assembly_report(out_dir, asm_stats_tsv):
     fig0.update_layout(
         font_family="Arial",
         title="<b>Captus-assembly: Assemble (<i>De Novo</i> Assembly Report<br>1. Summary Table</b>",
+        height=230 + 21 * len(sample_list) if len(sample_list) < 31 else None,
         updatemenus=updatemenus,
         annotations=annotations,
     )
@@ -2106,7 +2113,9 @@ def build_alignment_report(out_dir, aln_stats_tsv):
                     colors.append("#F5F5F5")
                 else:
                     colors.append(sample_colorscale(colorscale, data_norm[col]))
-
+            if i == 0:
+                num_rows = len(data_pivot)
+            
             trace = go.Table(
                 header=dict(
                     values=headers["ALL"] if marker == "ALL" else headers["CLR"] if marker == "CLR" else headers["others"],
@@ -2256,6 +2265,7 @@ def build_alignment_report(out_dir, aln_stats_tsv):
         fig.update_layout(
             font_family="Arial",
             title=title,
+            height=230 + 21 * num_rows if num_rows < 31 else None,
             updatemenus=updatemenus,
             annotations=annotations,
         )
