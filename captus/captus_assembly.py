@@ -19,7 +19,6 @@ not, see <http://www.gnu.org/licenses/>.
 
 
 import argparse
-import pathlib
 import sys
 
 from . import settings_assembly as settings

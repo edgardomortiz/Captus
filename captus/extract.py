@@ -14,13 +14,10 @@ not, see <http://www.gnu.org/licenses/>.
 
 import json
 import math
-import multiprocessing
 import shutil
 import statistics
 import subprocess
-import sys
 import time
-import urllib
 from collections import OrderedDict
 from pathlib import Path
 
@@ -32,10 +29,10 @@ from .bioformats import (blat_misc_dna_psl_to_dict, dict_to_fasta, fasta_headers
                          fasta_to_dict, fasta_type, fix_premature_stops, scipio_yaml_to_dict,
                          split_mmseqs_clusters_file, translate_fasta_dict, write_gff3)
 from .misc import (ElapsedTimeThread, bioperl_get_version, blat_path_version, bold, bold_green,
-                   bold_yellow, compress_list_files, dim, elapsed_time, execute_jupyter_report,
-                   format_dep_msg, has_valid_ext, is_dir_empty, make_output_dir,
-                   make_tmp_dir_within, mmseqs_path_version, python_library_check, quit_with_error,
-                   red, remove_formatting, scipio_path_version, set_ram, set_threads,
+                   bold_yellow, compress_list_files, dim, elapsed_time, format_dep_msg,
+                   has_valid_ext, is_dir_empty, make_output_dir, make_tmp_dir_within,
+                   mmseqs_path_version, python_library_check, quit_with_error, red,
+                   remove_formatting, scipio_path_version, set_ram, set_threads,
                    tqdm_parallel_async_run, tqdm_serial_run, yaml_perl_get_version)
 from .version import __version__
 

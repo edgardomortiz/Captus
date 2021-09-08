@@ -14,20 +14,17 @@ not, see <http://www.gnu.org/licenses/>.
 
 
 import gzip
-import multiprocessing
 import shutil
 import subprocess
-import sys
 import time
-import zipfile
 from pathlib import Path
 
 from . import log
 from . import settings_assembly as settings
-from .misc import (bbtools_path_version, bold, dim, elapsed_time, execute_jupyter_report,
-                   falco_path_version, fastqc_path_version, find_and_match_fastqs, format_dep_msg,
-                   has_valid_ext, make_output_dir, python_library_check, quit_with_error, red,
-                   set_ram, set_threads, tqdm_parallel_async_run, tqdm_serial_run)
+from .misc import (bbtools_path_version, bold, dim, elapsed_time, falco_path_version,
+                   fastqc_path_version, find_and_match_fastqs, format_dep_msg, has_valid_ext,
+                   make_output_dir, python_library_check, quit_with_error, red, set_ram,
+                   set_threads, tqdm_parallel_async_run, tqdm_serial_run)
 from .version import __version__
 
 
@@ -87,7 +84,7 @@ def clean(full_command, args):
 
     log.log(f'{"Captus version":>{mar}}: {bold(f"v{__version__}")}')
     log.log(f'{"Command":>{mar}}: {bold(full_command)}')
-    ram_B, ram_MB, ram_GB, ram_GB_total = set_ram(args.ram)
+    _, ram_MB, ram_GB, ram_GB_total = set_ram(args.ram)
     log.log(f'{"Max. RAM":>{mar}}: {bold(f"{ram_GB:.1f}GB")} {dim(f"(out of {ram_GB_total:.1f}GB)")}')
     threads_max, threads_total = set_threads(args.threads)
     log.log(f'{"Max. Threads":>{mar}}: {bold(threads_max)} {dim(f"(out of {threads_total})")}')
@@ -416,17 +413,10 @@ def trim_AT_bias(in_dir, in_fastq):
     """
     num_reads = settings.NUM_READS_TO_CALCULATE_MAX_READ_LENGTH
     max_length = 0
-    nt = {
-        "A": 0,
-        "C": 0,
-        "G": 0,
-        "T": 0,
-        "N": 0
-    }
+    nt = {"A": 0, "C": 0, "G": 0, "T": 0, "N": 0}
 
     if "#" in in_fastq:
-        files = [Path(in_dir, in_fastq.replace("#", "1")),
-                 Path(in_dir, in_fastq.replace("#", "2"))]
+        files = [Path(in_dir, in_fastq.replace("#", "1")), Path(in_dir, in_fastq.replace("#", "2"))]
     else:
         files = [Path(in_dir, in_fastq)]
 
@@ -447,9 +437,8 @@ def trim_AT_bias(in_dir, in_fastq):
                 if line_count == num_reads * 4:
                     break
 
-    if "#" in in_fastq:
-        num_reads *= 2
-    delta_AT = abs((nt["A"] / num_reads) - (nt["T"] / num_reads))
+    reads_processed = sum(nt.values())
+    delta_AT = abs((nt["A"] / reads_processed) - (nt["T"] / reads_processed))
 
     if delta_AT > settings.MAX_DELTA_AT / 100:
         ftr = max_length - 2 # ftr is 0-based, we need to substract 2 instead of 1

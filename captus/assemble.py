@@ -14,7 +14,6 @@ not, see <http://www.gnu.org/licenses/>.
 
 import gzip
 import math
-import multiprocessing
 import shutil
 import statistics
 import subprocess
@@ -613,7 +612,6 @@ def get_asm_stats(sample_megahit_out_dir):
         for i in range(0, len(stats_tsv), 2):
             tsv_out.write(f"{stats_tsv[i].rjust(20)} : {stats_tsv[i+1]}\n")
     with open(Path(sample_megahit_out_dir, "assembly.stats.t.tsv"), "wt") as tsv_out:
-        # tsv_out.write("\t".join(stats_tsv[i] for i in range(0, len(stats_tsv), 2)) + "\n")
         tsv_out.write("\t".join(f"{stats_tsv[i+1]}" for i in range(0, len(stats_tsv), 2)) + "\n")
 
     asm_msg = (
