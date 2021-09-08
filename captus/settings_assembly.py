@@ -121,6 +121,10 @@ NUM_READS_TO_CALCULATE_MEAN_READ_LENGTH = 100000
 # Caculate the maximum read length of a FASTQ with this many reads
 NUM_READS_TO_CALCULATE_MAX_READ_LENGTH = 100000
 
+# Maximum difference between percetange of A and T in the last base of a read, if the difference is
+# larger thatn this value the last base of the reads is trimmed (Illumina sequencing artifact)
+MAX_DELTA_AT = 20
+
 # Include largest kmer sizes in MEGAHIT's 'k_list' if they are at most this larger than the mean
 # read length of the input FASTQs
 DELTA_MEAN_READ_LENGTH_TO_MAX_KMER_SIZE = 31

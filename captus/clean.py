@@ -408,25 +408,55 @@ def clean(full_command, args):
     log.log("")
 
 
-def get_max_read_length(fastq_path, num_reads):
+def trim_AT_bias(in_dir, in_fastq):
     """
-    Determine maximum read length to trim last base (151 to 150, 101 to 100, etc.) since last cycle
-    in Illumina (and BGI?) is mostly erroneous
+    Determine the delta between the frequency of As and Ts at the last base of the reads. If the
+    delta exceeds 'settings.MAX_DELTA_AT', return the final lengtht to which the reads have to be
+    trimmed ('max_length' - 1) or 0 if they should not be trimmed
     """
-    line_count = 0
-    read_lengths = []
-    if f"{fastq_path}".endswith(".gz"):
-        opener = gzip.open
+    num_reads = settings.NUM_READS_TO_CALCULATE_MAX_READ_LENGTH
+    max_length = 0
+    nt = {
+        "A": 0,
+        "C": 0,
+        "G": 0,
+        "T": 0,
+        "N": 0
+    }
+
+    if "#" in in_fastq:
+        files = [Path(in_dir, in_fastq.replace("#", "1")),
+                 Path(in_dir, in_fastq.replace("#", "2"))]
     else:
-        opener = open
-    with opener(fastq_path, "rt") as fastq:
-        for line in fastq:
-            line_count += 1
-            if line_count % 4 == 0:
-                read_lengths.append(len(line.strip("\n")))
-            if line_count == num_reads * 4:
-                break
-    return max(read_lengths)
+        files = [Path(in_dir, in_fastq)]
+
+    for fq in files:
+        line_count = 0
+        if f"{fq}".endswith(".gz"):
+            opener = gzip.open
+        else:
+            opener = open
+        with opener(fq, "rt") as fastq:
+            for line in fastq:
+                line_count += 1
+                if line_count % 4 == 0:
+                    seq = line.strip("\n")
+                    nt[seq[-1]] += 1
+                    if len(seq) > max_length:
+                        max_length = len(seq)
+                if line_count == num_reads * 4:
+                    break
+
+    if "#" in in_fastq:
+        num_reads *= 2
+    delta_AT = abs((nt["A"] / num_reads) - (nt["T"] / num_reads))
+
+    if delta_AT > settings.MAX_DELTA_AT / 100:
+        ftr = max_length - 2 # ftr is 0-based, we need to substract 2 instead of 1
+    else:
+        ftr = 0
+
+    return ftr
 
 
 def bbduk_trim_adaptors(
@@ -456,14 +486,8 @@ def bbduk_trim_adaptors(
     # Two simulaneous processes run smoother if RAM is halved for each
     ram_MB = ram_MB // 2
 
-    # Determine max read length to set ftr and remove last base if reads are 151, 126, 101, etc. to
-    # make them 150, 125, 100, etc.
-    max_read_length = get_max_read_length(Path(in_dir, in_fastq.replace("#", "1")),
-                                          settings.NUM_READS_TO_CALCULATE_MAX_READ_LENGTH)
-    if max_read_length % 5 > 0:
-        ftr = max_read_length - (max_read_length % 5) - 1
-    else:
-        ftr = 0
+    # Determine length to which the reads need to be trimmed due to A-T bias in the last base
+    ftr = trim_AT_bias(in_dir, in_fastq)
 
     fixed = [
         bbduk_path,
