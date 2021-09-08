@@ -439,7 +439,7 @@ def trim_AT_bias(in_dir, in_fastq):
         with opener(fq, "rt") as fastq:
             for line in fastq:
                 line_count += 1
-                if line_count % 4 == 0:
+                if line_count % 4 == 2:
                     seq = line.strip("\n")
                     nt[seq[-1]] += 1
                     if len(seq) > max_length:
