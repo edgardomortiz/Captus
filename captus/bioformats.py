@@ -19,10 +19,8 @@ import re
 import statistics
 import urllib
 from collections import OrderedDict
-from pathlib import Path
 
 from . import settings_assembly as set_a
-from .misc import bold, dim, red
 
 # Regular expression to match MEGAHIT headers assembled within Captus
 CAPTUS_MEGAHIT_HEADER_REGEX = r'^NODE_\d+_length_\d+_cov_\d+\.\d+_k_\d{2,3}_flag_\d'

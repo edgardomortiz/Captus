@@ -24,6 +24,7 @@ import subprocess
 import sys
 import threading
 import time
+from importlib import util
 from pathlib import Path
 
 from tqdm import tqdm
@@ -504,7 +505,7 @@ def clipkit_path_version(clipkit_path):
 
 
 def python_library_check(library_name):
-    library_found = bool(importlib.util.find_spec(library_name))
+    library_found = bool(util.find_spec(library_name))
     library_version = ""
     library_status = "not found"
     if library_found:

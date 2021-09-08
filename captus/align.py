@@ -18,18 +18,15 @@ import subprocess
 import time
 from multiprocessing import Manager
 from pathlib import Path
-from threading import Timer
 
 from tqdm import tqdm
 
 from . import log
 from . import settings_assembly as settings
-from .bioformats import (alignment_stats, dict_to_fasta, fasta_to_dict, fasta_type,
-                         pairwise_identity, translate_fasta_dict)
+from .bioformats import alignment_stats, dict_to_fasta, fasta_to_dict, pairwise_identity
 from .misc import (bold, clipkit_path_version, dim, elapsed_time, format_dep_msg, is_dir_empty,
                    mafft_path_version, make_output_dir, python_library_check, quit_with_error, red,
-                   set_ram, set_threads, tqdm_parallel_async_run, tqdm_parallel_async_write,
-                   tqdm_serial_run)
+                   set_ram, set_threads, tqdm_parallel_async_run, tqdm_serial_run)
 from .version import __version__
 
 
@@ -54,7 +51,7 @@ def align(full_command, args):
 
     log.log(f'{"Captus version":>{mar}}: {bold(f"v{__version__}")}')
     log.log(f'{"Command":>{mar}}: {bold(full_command)}')
-    ram_B, ram_MB, ram_GB, ram_GB_total = set_ram(args.ram)
+    _, _, ram_GB, ram_GB_total = set_ram(args.ram)
     log.log(f'{"Max. RAM":>{mar}}: {bold(f"{ram_GB:.1f}GB")} {dim(f"(out of {ram_GB_total:.1f}GB)")}')
     threads_max, threads_total = set_threads(args.threads)
     log.log(f'{"Max. Threads":>{mar}}: {bold(threads_max)} {dim(f"(out of {threads_total})")}')
@@ -94,7 +91,7 @@ def align(full_command, args):
             " it installed or provide the full path to the program with '--mafft_path'"
         )
     skip_trimming = False
-    if clipkit == "not found":
+    if clipkit_status == "not found":
         skip_trimming = True
         log.log(
             f"{bold('WARNING:')} ClipKIT could not be found, the alignments will not be trimmed."
@@ -118,10 +115,7 @@ def align(full_command, args):
     formats, formats_ignored = check_value_list(args.formats, settings.FORMAT_DIRS)
     log.log(f'{"Alignment formats":>{mar}}: {bold(formats)} {dim(formats_ignored)}')
     log.log("")
-    refs_paths = prepare_refs(args.captus_extractions_dir,
-                              None, None, None, None, # Not needed since we import refpaths in JSON
-                              mar,
-                              args.overwrite)
+    refs_paths = prepare_refs(args.captus_extractions_dir, mar)
     log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
     log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
     extracted_sample_dirs = find_extracted_sample_dirs(args.captus_extractions_dir)
@@ -142,50 +136,57 @@ def align(full_command, args):
         " used as alignment guides Captus will produce a directory with alignments including the"
         " references and a separate one with the references removed. "
     )
-    concurrent, threads_per_alignment = adjust_mafft_concurrency(args.concurrent, threads_max)
-    log.log(f'{"Concurrent alignments":>{mar}}: {bold(concurrent)}')
-    log.log(f'{"Threads per alignment":>{mar}}: {bold(threads_per_alignment)}')
-    log.log("")
-    log.log(f'{"Algorithm":>{mar}}: {bold(args.mafft_algorithm)}'
-            f' {dim(settings.MAFFT_ALGORITHMS[args.mafft_algorithm]["aka"])}')
-    log.log(f'{"Timeout":>{mar}}: {bold(args.mafft_timeout)}'
-            f' {dim(f"[{elapsed_time(args.mafft_timeout)}]")}')
-    log.log("")
-    log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
-    log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
-    fastas_to_align = fastas_origs_dests(out_dir,
-                                         settings.ALN_DIRS["UNAL"],
-                                         Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"]))
-    log.log(f'{"FASTA files to align":>{mar}}: {bold(len(fastas_to_align))}')
-    log.log("")
-    log.log(make_output_dirtree(markers,
-                                formats,
-                                out_dir,
-                                Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"]),
-                                mar))
-    log.log("")
-
-    mafft_params = []
-    for fasta_orig in fastas_to_align:
-        mafft_params.append((
-            mafft_path,
-            args.mafft_algorithm,
-            threads_per_alignment,
-            args.mafft_timeout,
-            fasta_orig,
-            fastas_to_align[fasta_orig],
-            args.overwrite,
-        ))
-
-    if args.debug:
-        tqdm_serial_run(mafft, mafft_params,
-                        "Aligning with MAFFT", "MAFFT alignment completed",
-                        "alignment", args.show_less)
+    if skip_alignment:
+        quit_with_error(
+            "MAFFT could not be found, markers were collected across samples but they will not be"
+            " aligned. Verify you have MAFFT installed or provide the full path to the program with"
+            " '--mafft_path'"
+        )
     else:
-        tqdm_parallel_async_run(mafft, mafft_params,
-                                "Aligning with MAFFT", "MAFFT alignment completed",
-                                "alignment", concurrent, args.show_less)
-    log.log("")
+        concurrent, threads_per_alignment = adjust_mafft_concurrency(args.concurrent, threads_max)
+        log.log(f'{"Concurrent alignments":>{mar}}: {bold(concurrent)}')
+        log.log(f'{"Threads per alignment":>{mar}}: {bold(threads_per_alignment)}')
+        log.log("")
+        log.log(f'{"Algorithm":>{mar}}: {bold(args.mafft_algorithm)}'
+                f' {dim(settings.MAFFT_ALGORITHMS[args.mafft_algorithm]["aka"])}')
+        log.log(f'{"Timeout":>{mar}}: {bold(args.mafft_timeout)}'
+                f' {dim(f"[{elapsed_time(args.mafft_timeout)}]")}')
+        log.log("")
+        log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
+        log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
+        fastas_to_align = fastas_origs_dests(out_dir,
+                                            settings.ALN_DIRS["UNAL"],
+                                            Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"]))
+        log.log(f'{"FASTA files to align":>{mar}}: {bold(len(fastas_to_align))}')
+        log.log("")
+        log.log(make_output_dirtree(markers,
+                                    formats,
+                                    out_dir,
+                                    Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"]),
+                                    mar))
+        log.log("")
+
+        mafft_params = []
+        for fasta_orig in fastas_to_align:
+            mafft_params.append((
+                mafft_path,
+                args.mafft_algorithm,
+                threads_per_alignment,
+                args.mafft_timeout,
+                fasta_orig,
+                fastas_to_align[fasta_orig],
+                args.overwrite,
+            ))
+
+        if args.debug:
+            tqdm_serial_run(mafft, mafft_params,
+                            "Aligning with MAFFT", "MAFFT alignment completed",
+                            "alignment", args.show_less)
+        else:
+            tqdm_parallel_async_run(mafft, mafft_params,
+                                    "Aligning with MAFFT", "MAFFT alignment completed",
+                                    "alignment", concurrent, args.show_less)
+        log.log("")
 
 
     ################################################################################################
@@ -339,81 +340,87 @@ def align(full_command, args):
         " specified with the flag --clipkit_algorithm. Trimmed alignments are saved separately in a"
         " new directory called '03_aligned_trimmed'"
     )
-    log.log(f'{"Concurrent processes":>{mar}}: {bold(concurrent)}')
-    log.log("")
-    log.log(f'{"Algorithm":>{mar}}: {bold(args.clipkit_algorithm)}')
-    log.log(f'{"Gaps threshold":>{mar}}: {bold(args.clipkit_gaps)}')
-    log.log("")
-    log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
-    log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
-    fastas_to_trim = fastas_origs_dests(out_dir,
-                                        settings.ALN_DIRS["ALND"],
-                                        settings.ALN_DIRS["TRIM"])
-    log.log(f'{"FASTA files to trim":>{mar}}: {bold(len(fastas_to_trim))}')
-    log.log("")
-    log.log("Creating output directories:")
-    if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"]).exists():
-        log.log(make_output_dirtree(markers,
-                                    formats,
-                                    out_dir,
-                                    Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["UNFI"]),
-                                    mar))
-        log.log("")
-    if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["FAST"]).exists():
-        log.log(make_output_dirtree(markers,
-                                    formats,
-                                    out_dir,
-                                    Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["FAST"]),
-                                    mar))
-        log.log("")
-    if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["CARE"]).exists():
-        log.log(make_output_dirtree(markers,
-                                    formats,
-                                    out_dir,
-                                    Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["CARE"]),
-                                    mar))
-        log.log("")
-    if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NREF"]).exists():
-        log.log(make_output_dirtree(markers,
-                                    formats,
-                                    out_dir,
-                                    Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["NREF"]),
-                                    mar))
-        log.log("")
-    if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NRFA"]).exists():
-        log.log(make_output_dirtree(markers,
-                                    formats,
-                                    out_dir,
-                                    Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["NRFA"]),
-                                    mar))
-        log.log("")
-    if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NRCA"]).exists():
-        log.log(make_output_dirtree(markers,
-                                    formats,
-                                    out_dir,
-                                    Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["NRCA"]),
-                                    mar))
-        log.log("")
-
-    clipkit_params = []
-    for fasta_orig in fastas_to_trim:
-        clipkit_params.append((
-            clipkit_path,
-            args.clipkit_algorithm,
-            args.clipkit_gaps,
-            fasta_orig,
-            fastas_to_trim[fasta_orig],
-            args.overwrite,
+    if skip_trimming:
+        log.log(red(
+            "ClipKIT could not be found, alignments cannot be trimmed. Verify you have ClipKIT"
+            " installed or provide the full path to the program with '--clipkit_path'"
         ))
-
-    if args.debug:
-        tqdm_serial_run(clipkit, clipkit_params,
-                        "Trimming alignments with ClipKIT", "ClipKIT trimming completed",
-                        "alignment", args.show_less)
     else:
-        tqdm_parallel_async_run(clipkit, clipkit_params,
-                                "Trimming alignments with ClipKIT", "ClipKIT trimming completed",
-                                "alignment", concurrent, args.show_less)
+        log.log(f'{"Concurrent processes":>{mar}}: {bold(concurrent)}')
+        log.log("")
+        log.log(f'{"Algorithm":>{mar}}: {bold(args.clipkit_algorithm)}')
+        log.log(f'{"Gaps threshold":>{mar}}: {bold(args.clipkit_gaps)}')
+        log.log("")
+        log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
+        log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
+        fastas_to_trim = fastas_origs_dests(out_dir,
+                                            settings.ALN_DIRS["ALND"],
+                                            settings.ALN_DIRS["TRIM"])
+        log.log(f'{"FASTA files to trim":>{mar}}: {bold(len(fastas_to_trim))}')
+        log.log("")
+        log.log("Creating output directories:")
+        if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"]).exists():
+            log.log(make_output_dirtree(markers,
+                                        formats,
+                                        out_dir,
+                                        Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["UNFI"]),
+                                        mar))
+            log.log("")
+        if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["FAST"]).exists():
+            log.log(make_output_dirtree(markers,
+                                        formats,
+                                        out_dir,
+                                        Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["FAST"]),
+                                        mar))
+            log.log("")
+        if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["CARE"]).exists():
+            log.log(make_output_dirtree(markers,
+                                        formats,
+                                        out_dir,
+                                        Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["CARE"]),
+                                        mar))
+            log.log("")
+        if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NREF"]).exists():
+            log.log(make_output_dirtree(markers,
+                                        formats,
+                                        out_dir,
+                                        Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["NREF"]),
+                                        mar))
+            log.log("")
+        if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NRFA"]).exists():
+            log.log(make_output_dirtree(markers,
+                                        formats,
+                                        out_dir,
+                                        Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["NRFA"]),
+                                        mar))
+            log.log("")
+        if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NRCA"]).exists():
+            log.log(make_output_dirtree(markers,
+                                        formats,
+                                        out_dir,
+                                        Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["NRCA"]),
+                                        mar))
+            log.log("")
+
+        clipkit_params = []
+        for fasta_orig in fastas_to_trim:
+            clipkit_params.append((
+                clipkit_path,
+                args.clipkit_algorithm,
+                args.clipkit_gaps,
+                fasta_orig,
+                fastas_to_trim[fasta_orig],
+                args.overwrite,
+            ))
+
+        if args.debug:
+            tqdm_serial_run(clipkit, clipkit_params,
+                            "Trimming alignments with ClipKIT", "ClipKIT trimming completed",
+                            "alignment", args.show_less)
+        else:
+            tqdm_parallel_async_run(clipkit, clipkit_params,
+                                    "Trimming alignments with ClipKIT", "ClipKIT trimming completed",
+                                    "alignment", concurrent, args.show_less)
     log.log("")
 
 
@@ -424,7 +431,6 @@ def align(full_command, args):
         "Empty directories will be removed as well as MAFFT and ClipKIT logs unless the flag"
         " '--keep_all' is enabled."
     )
-    tmp_dir, _ = make_output_dir(Path(out_dir, "tmp"))
     fastas_to_stats = list(Path(out_dir, settings.ALN_DIRS["ALND"]).rglob("*.f[an]a"))
     fastas_to_stats += list(Path(out_dir, settings.ALN_DIRS["TRIM"]).rglob("*.f[an]a"))
     manager = Manager()
@@ -579,106 +585,9 @@ def find_extracted_sample_dirs(captus_extractions_dir):
     return extracted_sample_dirs
 
 
-def prepare_refs(captus_ext_dir, nuc_refs, ptd_refs, mit_refs, dna_refs, margin, overwrite):
-
-    def get_protref_paths(refs, marker: str, margin, overwrite):
-        aa_path, nt_path, aa_msg, nt_msg = None, None, dim("not used"), dim("not used")
-        if refs is None:
-            return {"AA_path": aa_path, "AA_msg": aa_msg, "NT_path": nt_path, "NT_msg": nt_msg}
-        refs = refs.split(",")
-        if len(refs) == 1:
-            refs = refs[0]
-            if f"{refs}".lower() in settings.PROT_REFS[marker]:
-                aa_path = settings.PROT_REFS[marker][f"{refs}".lower()]["AA"]
-                aa_msg = f'{bold(refs)} {dim(aa_path)}'
-                nt_path = settings.PROT_REFS[marker][f"{refs}".lower()]["NT"]
-                nt_msg = f'{bold(refs)} {dim(nt_path)}'
-            elif Path(refs).is_file() and fasta_type(refs) == "AA":
-                aa_path = Path(refs).resolve()
-                aa_msg = bold(aa_path)
-                nt_path = None
-                nt_msg = "not provided"
-            elif Path(refs).is_file() and fasta_type(refs) == "NT":
-                nt_path = Path(refs).resolve()
-                nt_msg = bold(nt_path)
-                aa_path, aa_msg = translate_ref(nt_path,
-                                                settings.DEFAULT_GENETIC_CODES[marker]["id"],
-                                                margin,
-                                                overwrite)
-            elif Path(refs).is_file() and fasta_type(refs) == "invalid":
-                aa_msg = nt_msg = red("not a valid FASTA")
-            else:
-                aa_msg = nt_msg = red("file not found")
-        elif len(refs) == 2:
-            try:
-                transtable = int(refs[1])
-            except ValueError:
-                transtable = False
-            if bool(transtable):
-                if Path(refs[0]).is_file() and fasta_type(refs[0]) == "NT":
-                    nt_path = Path(refs[0]).resolve()
-                    nt_msg = bold(nt_path)
-                    aa_path, aa_msg = translate_ref(nt_path, transtable, margin, overwrite)
-                elif Path(refs[0]).is_file() and fasta_type(refs[0]) == "AA":
-                    aa_path = Path(refs[0]).resolve()
-                    aa_msg = (
-                        f'{bold(aa_path)}\n{" " * (margin + 2)}'
-                        f'{dim("(This FASTA contained aminoacids, the Genetic Code was ignored)")}'
-                    )
-                elif Path(refs[0]).is_file() and fasta_type(refs[0]) == "invalid":
-                    aa_msg = nt_msg = red("not a valid FASTA")
-                else:
-                    aa_msg = nt_msg = red("file not found")
-            else:
-                if all([Path(refs[0]).is_file(), fasta_type(refs[0]) == "AA",
-                        Path(refs[1]).is_file(), fasta_type(refs[1]) == "NT"]):
-                    aa_path, nt_path = Path(refs[0]).resolve(), Path(refs[1]).resolve()
-                    aa_msg, nt_msg = bold(aa_path), bold(nt_path)
-                else:
-                    aa_msg = red(f"'{refs[0]}' does not contain aminoacids, or it was not found.")
-                    nt_msg = red(
-                        f"'{refs[1]}' file does not contain nucleotides, or it was not found."
-                    )
-        return {"AA_path": aa_path, "AA_msg": aa_msg, "NT_path": nt_path, "NT_msg": nt_msg}
-
-    def translate_ref(nt_path, transtable, margin, overwrite):
-        start = time.time()
-        suffix = settings.TRANSLATED_REF_SUFFIX
-        if f"{nt_path}".endswith(".gz"):
-            aa_path = Path(Path(nt_path).resolve().parent,
-                           f'{Path(nt_path.replace(".gz", "")).stem}{suffix}')
-        else:
-            aa_path = Path(Path(nt_path).resolve().parent, f'{Path(nt_path).stem}{suffix}')
-        if not aa_path.exists() or overwrite:
-            nt_translated = translate_fasta_dict(fasta_to_dict(nt_path, ordered=True), transtable)
-            dict_to_fasta(nt_translated, aa_path, wrap=80)
-            aa_msg = (
-                f'{bold(aa_path)}\n{" " * (margin + 2)}'
-                f'{dim(f"(Translated using Genetic Code {transtable}")}'
-                f'{dim(f" [{elapsed_time(time.time() - start)}])")}'
-            )
-        elif aa_path.exists():
-            aa_msg = (
-                f'{bold(aa_path)}\n{" " * (margin + 2)}'
-                f'{dim(f"(Captus-translated FASTA found in the same location)")}'
-            )
-        return aa_path, aa_msg
-
-    def get_dnaref_path(refs, margin):
-        aa_path, nt_path, aa_msg, nt_msg = None, None, None, dim("not used")
-        if refs is None:
-            return {"AA_path": aa_path, "AA_msg": aa_msg, "NT_path": nt_path, "NT_msg": nt_msg}
-        elif f"{refs}".lower() in settings.DNA_REFS:
-            nt_path = settings.DNA_REFS[f"{refs}".lower()]
-            nt_msg = f"{bold(refs)} {dim(nt_path)}"
-        elif Path(refs).is_file() and fasta_type(refs) == "NT":
-            nt_path = Path(refs).resolve()
-            nt_msg = bold(nt_path)
-        else:
-            nt_msg = red("not a valid FASTA")
-        return {"AA_path": aa_path, "AA_msg": aa_msg, "NT_path": nt_path, "NT_msg": nt_msg}
-
+def prepare_refs(captus_ext_dir, margin):
     json_path = Path(captus_ext_dir, settings.JSON_REFS)
+
     try:
         with open(json_path, "rt") as jin:
             refs_paths = json.load(jin)
@@ -696,36 +605,6 @@ def prepare_refs(captus_ext_dir, nuc_refs, ptd_refs, mit_refs, dna_refs, margin,
         }
 
     log.log(bold(f'{"Reference datasets":>{margin}}:'))
-
-    # The following lines are no longer needed since we import the JSON file with the reference paths
-    # from the 'captus_ext_dir' (Captus' extractions directory). Maybe in the future I will remove
-    # al extra code from this function
-    # if nuc_refs:
-    #     refs_pats["NUC"] = get_protref_paths(nuc_refs, "NUC", margin, overwrite)
-    # if refs_paths["NUC"]["AA_path"] or refs_paths["NUC"]["NT_path"]:
-    #     log.log(f'{"Nuclear proteins AA":>{margin}}: {refs_paths["NUC"]["AA_msg"]}')
-    #     log.log(f'{"Nuclear proteins NT":>{margin}}: {refs_paths["NUC"]["NT_msg"]}')
-    #     log.log("")
-
-    # if ptd_refs:
-    #     refs_pats["PTD"] = get_protref_paths(nuc_refs, "PTD", margin, overwrite)
-    # if refs_paths["PTD"]["AA_path"] or refs_paths["PTD"]["NT_path"]:
-    #     log.log(f'{"Plastidial proteins AA":>{margin}}: {refs_paths["PTD"]["AA_msg"]}')
-    #     log.log(f'{"Plastidial proteins NT":>{margin}}: {refs_paths["PTD"]["NT_msg"]}')
-    #     log.log("")
-
-    # if mit_refs:
-    #     refs_pats["MIT"] = get_protref_paths(nuc_refs, "MIT", margin, overwrite)
-    # if refs_paths["MIT"]["AA_path"] or refs_paths["MIT"]["NT_path"]:
-    #     log.log(f'{"Mitochondrial proteins AA":>{margin}}: {refs_paths["MIT"]["AA_msg"]}')
-    #     log.log(f'{"Mitochondrial proteins NT":>{margin}}: {refs_paths["MIT"]["NT_msg"]}')
-    #     log.log("")
-
-    # if dna_refs:
-    #     refs_paths["DNA"] = get_dnaref_path(dna_refs, margin)
-    # if refs_paths["DNA"]["NT_path"]:
-    #     log.log(f'{"Miscellaneous DNA":>{margin}}: {refs_paths["DNA"]["NT_msg"]}')
-    #     log.log("")
 
     return refs_paths
 
@@ -869,13 +748,11 @@ def collect_extracted_markers(
         ]
         mrks = ["NUC", "NUC", "PTD", "PTD", "MIT", "MIT", "DNA", "DNA"]
         fmts = ["AA", "NT", "AA", "NT", "AA", "NT", "MA", "MF"]
-        exts = [".faa", ".fna", ".faa", ".fna", ".faa", ".fna", ".fna", ".fna"]
         add_refs_params = []
-        for r, m, f, e in zip(refs, mrks, fmts, exts):
+        for r, m, f in zip(refs, mrks, fmts):
             if all([r, m in markers.upper().split(","), f in formats.upper().split(",")]):
                 add_refs_params.append((
-                    r, Path(out_dir, base_dir, settings.MARKER_DIRS[m], settings.FORMAT_DIRS[f]), e,
-                    overwrite
+                    r, Path(out_dir, base_dir, settings.MARKER_DIRS[m], settings.FORMAT_DIRS[f])
                 ))
         if bool(add_refs_params):
             log.log("")
@@ -918,13 +795,12 @@ def collect_sample_markers(write_fastas, sample_dir, source_files, out_dirs, ove
     return "\n".join(messages)
 
 
-def add_refs(ref_path, dest_dir, extension, overwrite):
+def add_refs(ref_path, dest_dir):
     start = time.time()
     fastas_in_dest = list(Path(dest_dir).rglob("*.f[an]a"))
     ref_fasta = fasta_to_dict(ref_path)
     markers_in_ref = []
     fastas_found = []
-    messages = []
 
     for fasta in fastas_in_dest:
         refs_needed = []
@@ -1248,6 +1124,8 @@ def rem_refs(refs_paths, fastas_paths, overwrite, concurrent, show_less, debug):
             ref_path = refs_paths[marker]["NT_path"]
         elif refs_paths[marker]["AA_path"]:
             ref_path = refs_paths[marker]["AA_path"]
+        else:
+            continue
         for seq_name in fasta_to_dict(ref_path):
             name_parts = seq_name.split(settings.REFERENCE_CLUSTER_SEPARATOR)
             ref_name = f"{settings.REFERENCE_CLUSTER_SEPARATOR.join(name_parts[0:-1])}|ref"

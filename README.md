@@ -7,25 +7,25 @@ ___
 The simplest way to install Captus is to first create an isolated software environment with the dependencies with **`miniconda`**:
 
 ```bash
-$ conda create -n captus -c bioconda -c conda-forge -c jlsteenwyk clipkit "python>=3.6" pandas plotly tqdm "perl-bioperl-core>=1.007002" bbmap falco fastqc mafft mmseqs2 megahit pigz vsearch
+conda create -n captus -c bioconda -c conda-forge -c jlsteenwyk clipkit "python>=3.6" pandas plotly tqdm "perl-bioperl-core>=1.007002" bbmap falco fastqc mafft mmseqs2 megahit pigz vsearch
 ```
 
 Then clone the Captus repository:
 
 ```bash
-$ git clone https://github.com/edgardomortiz/Captus
+git clone https://github.com/edgardomortiz/Captus
 ```
 
 Now install Captus within the `conda` environment you created:
 
 ```bash
-$ conda activate captus
-$ cd Captus
-$ pip install .
+conda activate captus
+cd Captus
+pip install .
 ```
 Run the following command:
 ```bash
-$ captus_assembly
+captus_assembly
 ```
 And if the program was correctly installed you will see the main help page of Captus:
 ```text
@@ -55,5 +55,5 @@ ERROR: Missing command
 ```
 Alternatively, you can skip the installation with `pip` and simply run the following command in your `conda` environment (you will need to add Captus' directory to your `$PATH` to make it available from anywhere in the computer):
 ```bash
-$ captus_assembly-runner.py
+captus_assembly-runner.py
 ```
