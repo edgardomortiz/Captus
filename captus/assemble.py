@@ -40,7 +40,7 @@ def assemble(full_command, args):
 
     ################################################################################################
     ############################################################################### STARTING SECTION
-    log.log_section_header("Starting Captus-assembly: Assemble", single_newline=False)
+    log.log_section_header("Starting Captus-assembly: ASSEMBLE", single_newline=False)
     log.log_explanation(
         "Welcome to the de novo assembly step of Captus-assembly. In this step, Captus will use"
         " MEGAHIT to assemble your input reads. It is also possible to subsample a number of reads"

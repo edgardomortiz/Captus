@@ -46,7 +46,7 @@ def extract(full_command, args):
 
     ################################################################################################
     ############################################################################### STARTING SECTION
-    log.log_section_header("Starting Captus-assembly: Extract", single_newline=False)
+    log.log_section_header("Starting Captus-assembly: EXTRACT", single_newline=False)
     log.log_explanation(
         "Welcome to the marker extraction step of Captus-assembly. In this step, Captus will use"
         " Scipio to search within your FASTA assemblies and recover any set of reference proteins"

@@ -40,7 +40,7 @@ def align(full_command, args):
 
     ################################################################################################
     ############################################################################### STARTING SECTION
-    log.log_section_header("Starting Captus-assembly: Align", single_newline=False)
+    log.log_section_header("Starting Captus-assembly: ALIGN", single_newline=False)
     log.log_explanation(
         "Welcome to the alignment step of Captus-assembly. In this step, Captus will collect all the"
         f" extracted markers across all samples in '{args.captus_extractions_dir}' and group them by"
