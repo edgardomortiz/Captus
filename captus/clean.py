@@ -38,7 +38,7 @@ def clean(full_command, args):
 
     ################################################################################################
     ############################################################################### STARTING SECTION
-    log.log_section_header("Starting Captus-assembly: Clean", single_newline=False)
+    log.log_section_header("Starting Captus-assembly: CLEAN", single_newline=False)
     log.log_explanation(
         "Welcome to the read cleaning step of Captus-assembly. In this step, Captus will perform"
         " adaptor trimming and quality filtering/trimming on your input reads using bbduk.sh from"
