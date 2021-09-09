@@ -475,8 +475,17 @@ def bbduk_trim_adaptors(
     # Two simulaneous processes run smoother if RAM is halved for each
     ram_MB = ram_MB // 2
 
-    # Determine length to which the reads need to be trimmed due to A-T bias in the last base
-    ftr = trim_AT_bias(in_dir, in_fastq)
+    # Set error and log files
+    bbduk_stderr_file = Path(out_dir, f"{sample_name}.stderr.log")
+    bbduk_log1_file = Path(out_dir, f"{sample_name}.round1.log")
+    bbduk_log2_file = Path(out_dir, f"{sample_name}.round2.log")
+
+    # Determine length to which the reads need to be trimmed due to A-T bias in the last base,
+    # this takes a couple of seconds, so just run when overwriting or output is empty
+    if overwrite is True or not bbduk_log2_file.exists():
+        ftr = trim_AT_bias(in_dir, in_fastq)
+    else:
+        ftr = 0
 
     fixed = [
         bbduk_path,
@@ -520,9 +529,6 @@ def bbduk_trim_adaptors(
         f"2>{round_2_stdout_file}",
     ]
 
-    bbduk_stderr_file = Path(out_dir, f"{sample_name}.stderr.log")
-    bbduk_log1_file = Path(out_dir, f"{sample_name}.round1.log")
-    bbduk_log2_file = Path(out_dir, f"{sample_name}.round2.log")
     if overwrite is True or not bbduk_log2_file.exists():
         fixed += ["overwrite=t"]
         bbduk_cmd = fixed + ref + round_1 + ["|"] + fixed + ref + round_2
