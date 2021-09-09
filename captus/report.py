@@ -350,6 +350,13 @@ def build_qc_report(out_dir, qc_extras_dir):
     ### Per Base Quality ###
     df = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["PBSQ"]))
     df["stage"] = df["stage"].str.capitalize()
+
+    # Covert Phred64 to Phred33
+    if df['percentile_90'].max() > 41:
+        phred64_sample_list = df.query('percentile_90 > 41')['sample_name'].unique()
+        phred64_index = df[(df['sample_name'].isin(phred64_sample_list)) & (df['stage'] == "Before")].index
+        df.iloc[phred64_index,4:] = df.iloc[phred64_index,4:] - 31
+
     var_list = [
         "mean",
         "percentile_90",
@@ -491,8 +498,8 @@ def build_qc_report(out_dir, qc_extras_dir):
         yaxis=dict(title="Sample - Stage"),
         coloraxis=dict(
             colorscale="Spectral",
-            cmin=2,
-            cmax=41,
+            cmin=0,
+            cmax=42,
             colorbar=dict(
                 title="Phred<br>Score",
                 lenmode="pixels",
@@ -527,6 +534,13 @@ def build_qc_report(out_dir, qc_extras_dir):
     ### Per Read Quality ###
     df = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["PSQS"]))
     df["stage"] = df["stage"].str.capitalize()
+
+    # Convert Phred64 to Phred33
+    if df['quality'].max() > 41:
+        phred64_sample_list = df.query('quality > 41')['sample_name'].unique()
+        phred64_index = df[(df['sample_name'].isin(phred64_sample_list)) & (df['stage'] == "Before")].index
+        df.iloc[phred64_index,3] = df.iloc[phred64_index,3] - 31
+
     df_pivot = df.pivot(
         index=["sample_name", "read", "stage"], columns="quality", values="count"
     )
@@ -1160,7 +1174,15 @@ def build_qc_report(out_dir, qc_extras_dir):
     ### Adapter Content ###
     df = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["ADCO"]))
     df["stage"] = df["stage"].str.capitalize()
-    df["adapter_content"] = df.iloc[:,4:].sum(axis=1)
+    df["Total adapter content"] = df.iloc[:,4:].sum(axis=1)
+
+    hover_info_list = []
+    col_num = 4
+    for col in df.columns[4:]:
+        hover_info_list.append(col + ": %{customdata[" + str(col_num) + "]:.2f}%")
+        col_num += 1
+    hover_info_list.insert(0, "<b>%{y}</b><br>Position: %{x} bp")
+    hovertemplate = "<br>".join(hover_info_list) + "<extra></extra>"
 
     # For paired-end
     if "R2" in df["read"].to_list():
@@ -1178,18 +1200,11 @@ def build_qc_report(out_dir, qc_extras_dir):
             go.Heatmap(
                 x=df_R1["position"],
                 y=[df_R1["sample_name"], df_R1["stage"]],
-                z=df_R1["adapter_content"],
+                z=df_R1["Total adapter content"],
                 coloraxis="coloraxis",
                 name="Read 1",
                 customdata=df_R1,
-                hovertemplate="<b>%{y}</b><br>" +
-                              "Position: %{x} bp<br>" +
-                              "Illumina universal adaptor: %{customdata[4]:.2f}%<br>" +
-                              "Illumina small RNA 3' adaptor: %{customdata[5]:.2f}%<br>" +
-                              "Illumina small RNA 5' adaptor: %{customdata[6]:.2f}%<br>" +
-                              "Nextera transposase sequence: %{customdata[7]:.2f}%<br>" +
-                              "SOLID small RNA adaptor: %{customdata[8]:.2f}%<br>" +
-                              "Total adapter content: %{z:.2f}%<extra></extra>",
+                hovertemplate=hovertemplate,
                 hoverongaps=False,
                 ygap=0.75,
             ),
@@ -1201,18 +1216,11 @@ def build_qc_report(out_dir, qc_extras_dir):
             go.Heatmap(
                 x=df_R2["position"],
                 y=[df_R2["sample_name"], df_R2["stage"]],
-                z=df_R2["adapter_content"],
+                z=df_R2["Total adapter content"],
                 coloraxis="coloraxis",
                 name="Read 2",
                 customdata=df_R2,
-                hovertemplate="<b>%{y}</b><br>" +
-                              "Position: %{x} bp<br>" +
-                              "Illumina universal adaptor: %{customdata[4]:.2f}%<br>" +
-                              "Illumina small RNA 3' adaptor: %{customdata[5]:.2f}%<br>" +
-                              "Illumina small RNA 5' adaptor: %{customdata[6]:.2f}%<br>" +
-                              "Nextera transposase sequence: %{customdata[7]:.2f}%<br>" +
-                              "SOLID small RNA adaptor: %{customdata[8]:.2f}%<br>" +
-                              "Total adapter content: %{z:.2f}%<extra></extra>",
+                hovertemplate=hovertemplate,
                 hoverongaps=False,
                 ygap=0.75,
             ),
@@ -1227,16 +1235,9 @@ def build_qc_report(out_dir, qc_extras_dir):
             go.Heatmap(
                 x=df["position"],
                 y=[df["sample_name"], df["stage"]],
-                z=df["adapter_content"],
+                z=df["Total adapter content"],
                 customdata=df_R2,
-                hovertemplate="<b>%{y}</b><br>" +
-                              "Position: %{x} bp<br>" +
-                              "Illumina universal adaptor: %{customdata[4]:.2f}%<br>" +
-                              "Illumina small RNA 3' adaptor: %{customdata[5]:.2f}%<br>" +
-                              "Illumina small RNA 5' adaptor: %{customdata[6]:.2f}%<br>" +
-                              "Nextera transposase sequence: %{customdata[7]:.2f}%<br>" +
-                              "SOLID small RNA adaptor: %{customdata[8]:.2f}%<br>" +
-                              "Total adapter content: %{z:.2f}%<extra></extra>",
+                hovertemplate=hovertemplate,
                 hoverongaps=False,
                 ygap=0.75,
             )
@@ -1254,8 +1255,8 @@ def build_qc_report(out_dir, qc_extras_dir):
         yaxis=dict(title="Sample - Stage"),
         coloraxis=dict(
             colorscale="Spectral_r",
-            cmin=0 if max(df["adapter_content"]) < 10 else None,
-            cmax=10 if max(df["adapter_content"]) < 10 else None,
+            cmin=0 if max(df["Total adapter content"]) < 10 else None,
+            cmax=10 if max(df["Total adapter content"]) < 10 else None,
             colorbar=dict(
                 title="Proportion",
                 lenmode="pixels",
@@ -1719,7 +1720,31 @@ def build_extraction_report(out_dir, ext_stats_tsv):
             }],
         ),
         dict(
-            label="X only",
+            label="Mean X",
+            method="relayout",
+            args=[{
+                "xaxis.categoryorder": "mean descending",
+                "yaxis.categoryorder": "category descending",
+            }],
+        ),
+        dict(
+            label="Mean Y",
+            method="relayout",
+            args=[{
+                "xaxis.categoryorder": "category ascending",
+                "yaxis.categoryorder": "mean ascending",
+            }],
+        ),
+        dict(
+            label="Mean Both",
+            method="relayout",
+            args=[{
+                "xaxis.categoryorder": "mean descending",
+                "yaxis.categoryorder": "mean ascending",
+            }],
+        ),
+        dict(
+            label="Total X",
             method="relayout",
             args=[{
                 "xaxis.categoryorder": "total descending",
@@ -1727,7 +1752,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
             }],
         ),
         dict(
-            label="Y only",
+            label="Total Y",
             method="relayout",
             args=[{
                 "xaxis.categoryorder": "category ascending",
@@ -1851,7 +1876,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
                 x=1,
                 xref="paper",
                 xanchor="right",
-                xshift=-80,
+                xshift=-102,
                 y=1,
                 yref="paper",
                 yanchor="top",
@@ -1931,130 +1956,217 @@ def build_alignment_report(out_dir, aln_stats_tsv):
         [0.5, "#F5F5F5"],
         [1, "#BDE3D8"],
     ]
-    
-    headers_dict = {
-        "fast": {
-            "ALL": [
-                "<b>Marker type</b>",
-                "<b>Format</b>",
-                "<b>Locus</b>",
-                "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
-                "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
-                "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
-                "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
-                "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
-                "<b>03_aligned_trimmed<br>└ 02_fast</b>",
-                "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
-                "<b>03_aligned_trimmed<br>└ 05_fast_no_refs</b>",
-            ],
-            "CLR": [
-                "<b>Format</b>",
-                "<b>Locus</b>",
-                "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
-                "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
-                "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
-                "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
-                "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
-                "<b>03_aligned_trimmed<br>└ 02_fast</b>",
-                "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
-                "<b>03_aligned_trimmed<br>└ 05_fast_no_refs</b>",
-            ],
-            "others": [
-                "<b>Format</b>",
-                "<b>Locus</b>",
-                "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
-                "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
-                "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
-                "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
-                "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
-                "<b>03_aligned_trimmed<br>└ 02_fast</b>",
-                "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
-                "<b>03_aligned_trimmed<br>└ 05_fast_no_refs</b>",
-            ],
-        },
-        "careful": {
-            "ALL": [
-                "<b>Marker type</b>",
-                "<b>Format</b>",
-                "<b>Locus</b>",
-                "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
-                "<b>02_aligned_untrimmed<br>└ 03_careful</b>",
-                "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
-                "<b>02_aligned_untrimmed<br>└ 06_careful_no_refs</b>",
-                "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
-                "<b>03_aligned_trimmed<br>└ 03_careful</b>",
-                "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
-                "<b>03_aligned_trimmed<br>└ 06_careful_no_refs</b>",
-            ],
-            "CLR": [
-                "<b>Format</b>",
-                "<b>Locus</b>",
-                "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
-                "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
-                "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
-                "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
-            ],
-            "others": [
-                "<b>Format</b>",
-                "<b>Locus</b>",
-                "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
-                "<b>02_aligned_untrimmed<br>└ 03_careful</b>",
-                "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
-                "<b>02_aligned_untrimmed<br>└ 06_careful_no_refs</b>",
-                "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
-                "<b>03_aligned_trimmed<br>└ 03_careful</b>",
-                "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
-                "<b>03_aligned_trimmed<br>└ 06_careful_no_refs</b>",
-            ],
-        },
-        "both": {
-            "ALL": [
-                "<b>Marker type</b>",
-                "<b>Format</b>",
-                "<b>Locus</b>",
-                "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
-                "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
-                "<b>02_aligned_untrimmed<br>└ 03_careful</b>",
-                "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
-                "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
-                "<b>02_aligned_untrimmed<br>└ 06_careful_no_refs</b>",
-                "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
-                "<b>03_aligned_trimmed<br>└ 02_fast</b>",
-                "<b>03_aligned_trimmed<br>└ 03_careful</b>",
-                "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
-                "<b>03_aligned_trimmed<br>└ 05_fast_no_refs</b>",
-                "<b>03_aligned_trimmed<br>└ 06_careful_no_refs</b>",
-            ],
-            "CLR": [
-                "<b>Format</b>",
-                "<b>Locus</b>",
-                "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
-                "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
-                "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
-                "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
-                "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
-                "<b>03_aligned_trimmed<br>└ 02_fast</b>",
-                "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
-                "<b>03_aligned_trimmed<br>└ 05_fast_no_refs</b>",
-            ],
-            "others": [
-                "<b>Format</b>",
-                "<b>Locus</b>",
-                "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
-                "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
-                "<b>02_aligned_untrimmed<br>└ 03_careful</b>",
-                "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
-                "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
-                "<b>02_aligned_untrimmed<br>└ 06_careful_no_refs</b>",
-                "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
-                "<b>03_aligned_trimmed<br>└ 02_fast</b>",
-                "<b>03_aligned_trimmed<br>└ 03_careful</b>",
-                "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
-                "<b>03_aligned_trimmed<br>└ 05_fast_no_refs</b>",
-                "<b>03_aligned_trimmed<br>└ 06_careful_no_refs</b>",
-            ],
-        },
-    }
+
+    if True in df['trimmed'].to_list():
+        headers_dict = {
+            "fast": {
+                "ALL": [
+                    "<b>Marker type</b>",
+                    "<b>Format</b>",
+                    "<b>Locus</b>",
+                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
+                    "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
+                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
+                    "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
+                    "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
+                    "<b>03_aligned_trimmed<br>└ 02_fast</b>",
+                    "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
+                    "<b>03_aligned_trimmed<br>└ 05_fast_no_refs</b>",
+                ],
+                "CLR": [
+                    "<b>Format</b>",
+                    "<b>Locus</b>",
+                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
+                    "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
+                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
+                    "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
+                    "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
+                    "<b>03_aligned_trimmed<br>└ 02_fast</b>",
+                    "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
+                    "<b>03_aligned_trimmed<br>└ 05_fast_no_refs</b>",
+                ],
+                "others": [
+                    "<b>Format</b>",
+                    "<b>Locus</b>",
+                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
+                    "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
+                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
+                    "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
+                    "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
+                    "<b>03_aligned_trimmed<br>└ 02_fast</b>",
+                    "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
+                    "<b>03_aligned_trimmed<br>└ 05_fast_no_refs</b>",
+                ],
+            },
+            "careful": {
+                "ALL": [
+                    "<b>Marker type</b>",
+                    "<b>Format</b>",
+                    "<b>Locus</b>",
+                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
+                    "<b>02_aligned_untrimmed<br>└ 03_careful</b>",
+                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
+                    "<b>02_aligned_untrimmed<br>└ 06_careful_no_refs</b>",
+                    "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
+                    "<b>03_aligned_trimmed<br>└ 03_careful</b>",
+                    "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
+                    "<b>03_aligned_trimmed<br>└ 06_careful_no_refs</b>",
+                ],
+                "CLR": [
+                    "<b>Format</b>",
+                    "<b>Locus</b>",
+                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
+                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
+                    "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
+                    "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
+                ],
+                "others": [
+                    "<b>Format</b>",
+                    "<b>Locus</b>",
+                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
+                    "<b>02_aligned_untrimmed<br>└ 03_careful</b>",
+                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
+                    "<b>02_aligned_untrimmed<br>└ 06_careful_no_refs</b>",
+                    "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
+                    "<b>03_aligned_trimmed<br>└ 03_careful</b>",
+                    "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
+                    "<b>03_aligned_trimmed<br>└ 06_careful_no_refs</b>",
+                ],
+            },
+            "both": {
+                "ALL": [
+                    "<b>Marker type</b>",
+                    "<b>Format</b>",
+                    "<b>Locus</b>",
+                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
+                    "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
+                    "<b>02_aligned_untrimmed<br>└ 03_careful</b>",
+                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
+                    "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
+                    "<b>02_aligned_untrimmed<br>└ 06_careful_no_refs</b>",
+                    "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
+                    "<b>03_aligned_trimmed<br>└ 02_fast</b>",
+                    "<b>03_aligned_trimmed<br>└ 03_careful</b>",
+                    "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
+                    "<b>03_aligned_trimmed<br>└ 05_fast_no_refs</b>",
+                    "<b>03_aligned_trimmed<br>└ 06_careful_no_refs</b>",
+                ],
+                "CLR": [
+                    "<b>Format</b>",
+                    "<b>Locus</b>",
+                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
+                    "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
+                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
+                    "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
+                    "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
+                    "<b>03_aligned_trimmed<br>└ 02_fast</b>",
+                    "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
+                    "<b>03_aligned_trimmed<br>└ 05_fast_no_refs</b>",
+                ],
+                "others": [
+                    "<b>Format</b>",
+                    "<b>Locus</b>",
+                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
+                    "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
+                    "<b>02_aligned_untrimmed<br>└ 03_careful</b>",
+                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
+                    "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
+                    "<b>02_aligned_untrimmed<br>└ 06_careful_no_refs</b>",
+                    "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
+                    "<b>03_aligned_trimmed<br>└ 02_fast</b>",
+                    "<b>03_aligned_trimmed<br>└ 03_careful</b>",
+                    "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
+                    "<b>03_aligned_trimmed<br>└ 05_fast_no_refs</b>",
+                    "<b>03_aligned_trimmed<br>└ 06_careful_no_refs</b>",
+                ],
+            },
+        }
+    else:
+        headers_dict = {
+            "fast": {
+                "ALL": [
+                    "<b>Marker type</b>",
+                    "<b>Format</b>",
+                    "<b>Locus</b>",
+                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
+                    "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
+                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
+                    "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
+                ],
+                "CLR": [
+                    "<b>Format</b>",
+                    "<b>Locus</b>",
+                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
+                    "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
+                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
+                    "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
+                ],
+                "others": [
+                    "<b>Format</b>",
+                    "<b>Locus</b>",
+                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
+                    "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
+                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
+                    "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
+                ],
+            },
+            "careful": {
+                "ALL": [
+                    "<b>Marker type</b>",
+                    "<b>Format</b>",
+                    "<b>Locus</b>",
+                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
+                    "<b>02_aligned_untrimmed<br>└ 03_careful</b>",
+                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
+                    "<b>02_aligned_untrimmed<br>└ 06_careful_no_refs</b>",
+                ],
+                "CLR": [
+                    "<b>Format</b>",
+                    "<b>Locus</b>",
+                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
+                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
+                ],
+                "others": [
+                    "<b>Format</b>",
+                    "<b>Locus</b>",
+                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
+                    "<b>02_aligned_untrimmed<br>└ 03_careful</b>",
+                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
+                    "<b>02_aligned_untrimmed<br>└ 06_careful_no_refs</b>",
+                ],
+            },
+            "both": {
+                "ALL": [
+                    "<b>Marker type</b>",
+                    "<b>Format</b>",
+                    "<b>Locus</b>",
+                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
+                    "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
+                    "<b>02_aligned_untrimmed<br>└ 03_careful</b>",
+                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
+                    "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
+                    "<b>02_aligned_untrimmed<br>└ 06_careful_no_refs</b>",
+                ],
+                "CLR": [
+                    "<b>Format</b>",
+                    "<b>Locus</b>",
+                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
+                    "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
+                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
+                    "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
+                ],
+                "others": [
+                    "<b>Format</b>",
+                    "<b>Locus</b>",
+                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
+                    "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
+                    "<b>02_aligned_untrimmed<br>└ 03_careful</b>",
+                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
+                    "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
+                    "<b>02_aligned_untrimmed<br>└ 06_careful_no_refs</b>",
+                ],
+            },
+        }
     
     filter_type = df['paralog_filter'].unique()
     if "careful" not in filter_type:
