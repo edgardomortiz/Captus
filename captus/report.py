@@ -670,20 +670,21 @@ def build_qc_report(out_dir, qc_extras_dir):
 
     ### Read Length Distribution ###
     df = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["SLEN"]))
-    df = df[df["stage"] == "after"]
+    df["stage"] = df["stage"].str.capitalize()
     df_pivot = df.pivot(
-        index=["sample_name", "read"], columns="length", values="count"
+        index=["sample_name", "stage", "read"], columns="length", values="count"
     )
-    col = 0
-    while df_pivot.iloc[:,col].isnull().any() == True:
-        df_pivot.iloc[:,col].fillna(0, inplace=True)
-        col = col + 1
+    # col = 0
+    # while df_pivot.iloc[:,col].isnull().any() == True:
+    #     df_pivot.iloc[:,col].fillna(0, inplace=True)
+    #     col = col + 1
+
     df = df_pivot.reset_index().melt(
-        id_vars=["sample_name", "read"], value_name="count").sort_values(
-            by="sample_name", ascending=True
+        id_vars=["sample_name", "read", "stage"], value_name="count").sort_values(
+            by=["sample_name", "stage"], ascending=[True, False]
     )
-    df_grouped = df.groupby(["sample_name", "read"], as_index=False)["count"].sum()
-    df_merged = pd.merge(df, df_grouped, on=["sample_name", "read"], how="outer")
+    df_grouped = df.groupby(["sample_name", "stage", "read"], as_index=False)["count"].sum()
+    df_merged = pd.merge(df, df_grouped, on=["sample_name", "stage", "read"], how="outer")
     df_merged["freq"] = df_merged["count_x"] / df_merged["count_y"] * 100
     df = df_merged
 
@@ -698,8 +699,8 @@ def build_qc_report(out_dir, qc_extras_dir):
         [0.5,  "#FECE7C"],
         [0.6,  "#FB9C59"],
         [0.7,  "#EE6445"],
-        [0.8,  "#D0384E"],
-        [1,    "#9E0142"],
+        [1.0,  "#D0384E"],
+        # [1,    "#9E0142"],
     ]
 
     # For paired-end
@@ -717,14 +718,14 @@ def build_qc_report(out_dir, qc_extras_dir):
         fig4.add_trace(
             go.Heatmap(
                 x=df_R1["length"],
-                y=df_R1["sample_name"],
+                y=[df_R1["sample_name"], df_R1["stage"]],
                 z=df_R1["freq"],
                 coloraxis="coloraxis",
                 customdata=df_R1,
                 hovertemplate="<b>%{y}</b><br>" +
                               "Length: %{x} bp<br>" +
                               "Proportion: %{z:.2f}%<br>" +
-                              "Count: %{customdata[3]:,.0f} reads<extra></extra>",
+                              "Count: %{customdata[4]:,.0f} reads<extra></extra>",
                 hoverongaps=False,
                 ygap=2,
             ),
@@ -735,14 +736,14 @@ def build_qc_report(out_dir, qc_extras_dir):
         fig4.add_trace(
             go.Heatmap(
                 x=df_R2["length"],
-                y=df_R2["sample_name"],
+                y=[df_R2["sample_name"], df_R2["stage"]],
                 z=df_R2["freq"],
                 coloraxis="coloraxis",
                 customdata=df_R2,
                 hovertemplate="<b>%{y}</b><br>" +
                               "Length: %{x} bp<br>" +
                               "Proportion: %{z:.2f}%<br>" +
-                              "Count: %{customdata[3]:,.0f} reads<extra></extra>",
+                              "Count: %{customdata[4]:,.0f} reads<extra></extra>",
                 hoverongaps=False,
                 ygap=2,
             ),
@@ -756,22 +757,28 @@ def build_qc_report(out_dir, qc_extras_dir):
         fig4.add_trace(
             go.Heatmap(
                 x=df["length"],
-                y=df["sample_name"],
+                y=[df["sample_name"], df["stage"]],
                 z=df["freq"],
                 coloraxis="coloraxis",
                 customdata=df,
                 hovertemplate="<b>%{y}</b><br>" +
                               "Length: %{x} bp<br>" +
                               "Proportion: %{z:.2f}%<br>" +
-                              "Count: %{customdata[3]:,.0f} reads<extra></extra>",
+                              "Count: %{customdata[4]:,.0f} reads<extra></extra>",
                 ygap=2,
             )
         )
+    
+    # Draw boundaries between samples
+    y = 1.5
+    while y < (len(sample_list) - 1) * 2:
+        fig4.add_hline(y=y, line_width=2, line_color="rgb(8,8,8)")
+        y = y + 2
 
     fig4.update_layout(
         font_family="Arial",
         title_text="<b>5. Read Length Distribution</b>",
-        yaxis=dict(title="Sample"),
+        yaxis=dict(title="Sample - Stage"),
         coloraxis=dict(
             colorscale=colorscale,
             colorbar=dict(
@@ -786,7 +793,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                 y=1 if len(sample_list) > 7 else 0.5,
             )
         ),
-        height=180 + 15 * len(sample_list),
+        height=180 + 30 * len(sample_list),
         plot_bgcolor="rgb(8,8,8)",
     )
     fig4.update_xaxes(
