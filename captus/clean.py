@@ -405,7 +405,7 @@ def clean(full_command, args):
     log.log("")
 
 
-def trim_AT_bias(in_dir, in_fastq):
+def trim_AT_GC_bias(in_dir, in_fastq):
     """
     Determine the delta between the frequency of As and Ts at the last base of the reads. If the
     delta exceeds 'settings.MAX_DELTA_AT', return the final lengtht to which the reads have to be
@@ -431,16 +431,25 @@ def trim_AT_bias(in_dir, in_fastq):
                 line_count += 1
                 if line_count % 4 == 2:
                     seq = line.strip("\n")
-                    nt[seq[-1]] += 1
                     if len(seq) > max_length:
                         max_length = len(seq)
                 if line_count == num_reads * 4:
                     break
+        with opener(fq, "rt") as fastq:
+            for line in fastq:
+                line_count += 1
+                if line_count % 4 == 2:
+                    seq = line.strip("\n")
+                    if len(seq) == max_length:
+                        nt[seq[-1]] += 1
+                if line_count == num_reads * 4:
+                    break
 
     reads_processed = sum(nt.values())
-    delta_AT = abs((nt["A"] / reads_processed) - (nt["T"] / reads_processed))
+    delta_AT = abs((nt["A"] / reads_processed) - (nt["T"] / reads_processed)) * 100
+    delta_GC = abs((nt["C"] / reads_processed) - (nt["G"] / reads_processed)) * 100
 
-    if delta_AT > settings.MAX_DELTA_AT / 100:
+    if delta_AT > settings.MAX_DELTA_AT_GC or delta_GC > settings.MAX_DELTA_AT_GC:
         ftr = max_length - 2 # ftr is 0-based, we need to substract 2 instead of 1
     else:
         ftr = 0
@@ -480,10 +489,10 @@ def bbduk_trim_adaptors(
     bbduk_log1_file = Path(out_dir, f"{sample_name}.round1.log")
     bbduk_log2_file = Path(out_dir, f"{sample_name}.round2.log")
 
-    # Determine length to which the reads need to be trimmed due to A-T bias in the last base,
+    # Determine length to which the reads need to be trimmed due to A-T or G-C bias in the last base,
     # this takes a couple of seconds, so just run when overwriting or output is empty
     if overwrite is True or not bbduk_log2_file.exists():
-        ftr = trim_AT_bias(in_dir, in_fastq)
+        ftr = trim_AT_GC_bias(in_dir, in_fastq)
     else:
         ftr = 0
 
