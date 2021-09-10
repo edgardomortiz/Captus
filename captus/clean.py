@@ -421,12 +421,12 @@ def trim_AT_GC_bias(in_dir, in_fastq):
         files = [Path(in_dir, in_fastq)]
 
     for fq in files:
-        line_count = 0
         if f"{fq}".endswith(".gz"):
             opener = gzip.open
         else:
             opener = open
         with opener(fq, "rt") as fastq:
+            line_count = 0
             for line in fastq:
                 line_count += 1
                 if line_count % 4 == 2:
@@ -434,8 +434,8 @@ def trim_AT_GC_bias(in_dir, in_fastq):
                     if len(seq) > max_length:
                         max_length = len(seq)
                 if line_count == num_reads * 4:
+                    line_count = 0
                     break
-        with opener(fq, "rt") as fastq:
             for line in fastq:
                 line_count += 1
                 if line_count % 4 == 2:
