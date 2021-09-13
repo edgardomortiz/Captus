@@ -26,7 +26,7 @@ from .bioformats import dict_to_fasta, fasta_headers_to_spades, fasta_to_dict
 from .misc import (bbtools_path_version, bold, dim, elapsed_time, find_and_match_fastqs,
                    format_dep_msg, make_output_dir, make_tmp_dir_within, megahit_path_version,
                    megahit_tk_path_version, python_library_check, quit_with_error, red, set_ram,
-                   set_threads, tqdm_parallel_async_run, tqdm_serial_run)
+                   set_threads, successful_exit, tqdm_parallel_async_run, tqdm_serial_run)
 from .version import __version__
 
 
@@ -298,11 +298,10 @@ def assemble(full_command, args):
 
     ################################################################################################
     ################################################################################# ENDING SECTION
-    log.log_section_header(
-        "Captus-assembly: Assemble -> successfully completed"
+    successful_exit(
+        "Captus-assembly: ASSEMBLE -> successfully completed"
         f" [{elapsed_time(time.time() - captus_start)}]"
     )
-    log.log("")
 
 
 def subsample_reads(

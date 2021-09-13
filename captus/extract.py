@@ -32,7 +32,7 @@ from .misc import (ElapsedTimeThread, bioperl_get_version, blat_path_version, bo
                    bold_yellow, compress_list_files, dim, elapsed_time, format_dep_msg,
                    has_valid_ext, is_dir_empty, make_output_dir, make_tmp_dir_within,
                    mmseqs_path_version, python_library_check, quit_with_error, red,
-                   remove_formatting, scipio_path_version, set_ram, set_threads,
+                   remove_formatting, scipio_path_version, set_ram, set_threads, successful_exit,
                    tqdm_parallel_async_run, tqdm_serial_run, yaml_perl_get_version)
 from .version import __version__
 
@@ -661,11 +661,10 @@ def extract(full_command, args):
 
     ################################################################################################
     ################################################################################# ENDING SECTION
-    log.log_section_header(
-        "Captus-assembly: Extract -> successfully completed"
+    successful_exit(
+        "Captus-assembly: EXTRACT -> successfully completed"
         f" [{elapsed_time(time.time() - captus_start)}]"
     )
-    log.log("")
 
 
 def adjust_blat_concurrency(concurrent, threads_max, ram_B):
