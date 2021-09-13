@@ -26,7 +26,7 @@ from . import settings_assembly as settings
 from .bioformats import alignment_stats, dict_to_fasta, fasta_to_dict, pairwise_identity
 from .misc import (bold, clipkit_path_version, dim, elapsed_time, format_dep_msg, is_dir_empty,
                    mafft_path_version, make_output_dir, python_library_check, quit_with_error, red,
-                   set_ram, set_threads, tqdm_parallel_async_run, tqdm_serial_run)
+                   set_ram, set_threads, successful_exit, tqdm_parallel_async_run, tqdm_serial_run)
 from .version import __version__
 
 
@@ -509,11 +509,10 @@ def align(full_command, args):
 
     ################################################################################################
     ################################################################################# ENDING SECTION
-    log.log_section_header(
-        "Captus-assembly: Align -> successfully completed"
+    successful_exit(
+        "Captus-assembly: ALIGN -> successfully completed"
         f" [{elapsed_time(time.time() - captus_start)}]"
     )
-    log.log("")
 
 
 def prepare_redo(out_dir, redo_from):

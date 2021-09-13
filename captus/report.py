@@ -32,7 +32,7 @@ def normalize(l):
         l_max = max(l)
         return [(i - l_min) / (l_max - l_min) for i in l] if l_max > l_min else 0.5
     else:
-        return(0.5)
+        return 0.5
 
 def build_qc_report(out_dir, qc_extras_dir):
     start = time.time()
@@ -768,7 +768,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                 ygap=2,
             )
         )
-    
+
     # Draw boundaries between samples
     y = 1.5
     while y < (len(sample_list) - 1) * 2:
@@ -1570,7 +1570,7 @@ def build_assembly_report(out_dir, asm_stats_tsv):
                 "Sample: %{y}<br>" +
                 xlab_list[j] + ": %{x}<extra></extra>"
             ]
-        
+
         button = dict(
             label=button_lab_list[j],
             method="update",
@@ -1666,28 +1666,32 @@ def build_extraction_report(out_dir, ext_stats_tsv):
     if len(marker_type) > 1:
         marker_type = np.insert(marker_type, 0, "ALL")
     var_list = ["pct_recovered", "pct_identity", "hit", "score", "lwscore"]
-    var_lab_list = ["Recovered Length (%)", "Identity (%)", "Hit Count (Paralogs)", "Score", "Length-weighted score"]
-    hovertemplate = "<br>".join(
-        [
-            "Sample: <b>%{customdata[0]}</b>",
-            "Marker type: <b>%{customdata[1]}</b>",
-            "Locus: <b>%{customdata[2]}</b>",
-            "Ref name: <b>%{customdata[3]}</b>",
-            "Ref coords: <b>%{customdata[4]}</b>",
-            "Ref type: <b>%{customdata[5]}</b>",
-            "Ref len matched: <b>%{customdata[6]:,.0f} %{customdata[20]}</b>",
-            "Hit count: <b>%{customdata[7]}</b>",
-            "Recovered length: <b>%{customdata[8]:.2f}%</b>",
-            "Identity: <b>%{customdata[9]:.2f}%</b>",
-            "Score: <b>%{customdata[10]:.3f}</b>",
-            "Length-weighted score: <b>%{customdata[11]:.3f}</b>",
-            "Hit length: <b>%{customdata[12]:,.0f} bp</b>",
-            "CDS length: <b>%{customdata[13]:,.0f} bp</b>",
-            "Intron length: <b>%{customdata[14]:,.0f} bp</b>",
-            "Flanking length: <b>%{customdata[15]:,.0f} bp</b>",
-            "Frameshift: <b>%{customdata[16]}</b><extra></extra>",
-        ]
-    )
+    var_lab_list = [
+        "Recovered Length (%)",
+        "Identity (%)",
+        "Hit Count (Paralogs)",
+        "Score",
+        "Length-weighted score"
+    ]
+    hovertemplate = "<br>".join([
+        "Sample: <b>%{customdata[0]}</b>",
+        "Marker type: <b>%{customdata[1]}</b>",
+        "Locus: <b>%{customdata[2]}</b>",
+        "Ref name: <b>%{customdata[3]}</b>",
+        "Ref coords: <b>%{customdata[4]}</b>",
+        "Ref type: <b>%{customdata[5]}</b>",
+        "Ref len matched: <b>%{customdata[6]:,.0f} %{customdata[20]}</b>",
+        "Hit count: <b>%{customdata[7]}</b>",
+        "Recovered length: <b>%{customdata[8]:.2f}%</b>",
+        "Identity: <b>%{customdata[9]:.2f}%</b>",
+        "Score: <b>%{customdata[10]:.3f}</b>",
+        "Length-weighted score: <b>%{customdata[11]:.3f}</b>",
+        "Hit length: <b>%{customdata[12]:,.0f} bp</b>",
+        "CDS length: <b>%{customdata[13]:,.0f} bp</b>",
+        "Intron length: <b>%{customdata[14]:,.0f} bp</b>",
+        "Flanking length: <b>%{customdata[15]:,.0f} bp</b>",
+        "Frameshift: <b>%{customdata[16]}</b><extra></extra>",
+    ])
     colorscale = [
         [0.0, "rgb(94,79,162)"],
         [0.1, "rgb(50,136,189)"],
@@ -2174,7 +2178,7 @@ def build_alignment_report(out_dir, aln_stats_tsv):
                 ],
             },
         }
-    
+
     filter_type = df['paralog_filter'].unique()
     if "careful" not in filter_type:
         headers = headers_dict["fast"]
@@ -2234,7 +2238,7 @@ def build_alignment_report(out_dir, aln_stats_tsv):
                     colors.append(sample_colorscale(colorscale, data_norm[col]))
             if i == 0:
                 num_rows = len(data_pivot)
-            
+
             trace = go.Table(
                 header=dict(
                     values=headers["ALL"] if marker == "ALL" else headers["CLR"] if marker == "CLR" else headers["others"],

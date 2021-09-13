@@ -24,7 +24,7 @@ from . import settings_assembly as settings
 from .misc import (bbtools_path_version, bold, dim, elapsed_time, falco_path_version,
                    fastqc_path_version, find_and_match_fastqs, format_dep_msg, has_valid_ext,
                    make_output_dir, python_library_check, quit_with_error, red, set_ram,
-                   set_threads, tqdm_parallel_async_run, tqdm_serial_run)
+                   set_threads, successful_exit, tqdm_parallel_async_run, tqdm_serial_run)
 from .version import __version__
 
 
@@ -398,11 +398,10 @@ def clean(full_command, args):
 
     ################################################################################################
     ################################################################################# ENDING SECTION
-    log.log_section_header(
-        "Captus-assembly: Clean -> successfully completed"
+    successful_exit(
+        "Captus-assembly: CLEAN -> successfully completed"
         f" [{elapsed_time(time.time() - captus_start)}]"
     )
-    log.log("")
 
 
 def trim_AT_GC_bias(in_dir, in_fastq):
@@ -431,16 +430,8 @@ def trim_AT_GC_bias(in_dir, in_fastq):
                 line_count += 1
                 if line_count % 4 == 2:
                     seq = line.strip("\n")
-                    if len(seq) > max_length:
+                    if len(seq) >= max_length:
                         max_length = len(seq)
-                if line_count == num_reads * 4:
-                    line_count = 0
-                    break
-            for line in fastq:
-                line_count += 1
-                if line_count % 4 == 2:
-                    seq = line.strip("\n")
-                    if len(seq) == max_length:
                         nt[seq[-1]] += 1
                 if line_count == num_reads * 4:
                     break
@@ -647,20 +638,20 @@ def qc_stats(qc_program_name, qc_program_path, in_fastq, qc_stats_out_dir, overw
     in_fastq_parts = in_fastq.parts[-1].split("_R")
     file_out_dir = f'{"_R".join(in_fastq_parts[:-1])}_R{in_fastq_parts[-1][0]}_fastqc'
 
-    if qc_program_name == "FastQC":
+    if qc_program_name == "Falco":
         qc_stats_cmd = [
             qc_program_path,
-            "--outdir", f"{qc_stats_out_dir}",
-            "--extract",
+            "--outdir", f"{Path(qc_stats_out_dir, file_out_dir)}",
             "--nogroup",
             "--threads", "1",
             "--adapters", f"{settings.QC_ADAPTORS_LIST}",
             f"{in_fastq}"
         ]
-    elif qc_program_name == "Falco":
+    elif qc_program_name == "FastQC":
         qc_stats_cmd = [
             qc_program_path,
-            "--outdir", f"{Path(qc_stats_out_dir, file_out_dir)}",
+            "--outdir", f"{qc_stats_out_dir}",
+            "--extract",
             "--nogroup",
             "--threads", "1",
             "--adapters", f"{settings.QC_ADAPTORS_LIST}",

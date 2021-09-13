@@ -288,7 +288,16 @@ def quit_with_error(message):
     Displays the given message and ends the program's execution.
     """
     log.log(red(f"\nERROR: {message}\n"), 0, stderr=True)
-    sys.exit(1)
+    sys.exit(os.EX_SOFTWARE)
+
+
+def successful_exit(message):
+    """
+    Exit the program showing a message with a successful status for UNIX
+    """
+    log.log_section_header(message)
+    log.log("")
+    sys.exit(os.EX_OK)
 
 
 def gzip_compress(file_in):
