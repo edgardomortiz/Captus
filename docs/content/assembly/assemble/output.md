@@ -51,7 +51,7 @@ ___
 The assembly graph in [FASTG format](http://fastg.sourceforge.net/FASTG_Spec_v1.00.pdf). This file can be explored in [Bandage](https://rrwick.github.io/Bandage/) or similar software which are able to plot the connections between contigs, loops, circular segments, etc.
 ![FASTG in Bandage](/images/fastg_in_bandage.png?classes=shadow)
 ___
-### 6. **`assembly.stats.tsv`, `assembly.stats.t.tsv`**
+### 6. **`assembly.stats.tsv`**, **`assembly.stats.t.tsv`**
 Assembly statistics, the `assembly.stats.t.tsv` is just a transposed version of `assembly.stats.tsv`:
 ```text
               sample : GenusA_speciesA_CAP
@@ -78,7 +78,7 @@ pct_contigs_>=_10kbp : 0.984
   pct_contigs_>=_10x : 38.47
 ```
 ___
-### 7. **`megahit.brief.log`, `megahit.full.log`**
+### 7. **`megahit.brief.log`**, **`megahit.full.log`**
 `MEGAHIT` program logs, the _brief_ version contains just the screen output from each `MEGAHIT` run.
 ___
 ### 8. **`captus-assembly_assemble.stats.tsv`**

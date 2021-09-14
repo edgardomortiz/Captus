@@ -205,21 +205,20 @@ def assemble(full_command, args):
     log.log(f'{"Threads per assembly":>{mar}}: {bold(threads_per_assembly)}')
     log.log("")
 
-    k_list, min_count, prune_level = args.k_list, args.min_count, args.prune_level
-    if args.preset:
-        if args.preset.upper() in settings.MEGAHIT_PRESETS:
-            if k_list == settings.MEGAHIT_K_LIST:
-                k_list = settings.MEGAHIT_PRESETS[args.preset.upper()]["k_list"]
-            if min_count == settings.MEGAHIT_MIN_COUNT:
-                min_count = settings.MEGAHIT_PRESETS[args.preset.upper()]["min_count"]
-            if prune_level == settings.MEGAHIT_PRUNE_LEVEL:
-                prune_level = settings.MEGAHIT_PRESETS[args.preset.upper()]["prune_level"]
-            log.log(f'{"preset":>{mar}}: {bold(args.preset.upper())}')
-        else:
-            log.log(f'{"preset":>{mar}}: {bold(args.preset)} not valid, using defaults!')
-
+    if not args.preset:
+        args.preset = "CAP"
+    if args.preset.upper() not in settings.MEGAHIT_PRESETS:
+        invalid_preset = args.preset
+        args.preset = "CAP"
+        log.log(f'{"preset":>{mar}}: {bold(args.preset)} ({invalid_preset} is not a valid preset)')
+    else:
+        args.preset = args.preset.upper()
+        log.log(f'{"preset":>{mar}}: {bold(args.preset.upper())}')
+    k_list = args.k_list if args.k_list else settings.MEGAHIT_PRESETS[args.preset]["k_list"]
     log.log(f'{"k_list":>{mar}}: {bold(k_list)}')
+    min_count = args.min_count if args.min_count else settings.MEGAHIT_PRESETS[args.preset]["min_count"]
     log.log(f'{"min_count":>{mar}}: {bold(min_count)}')
+    prune_level = args.prune_level if args.prune_level else settings.MEGAHIT_PRESETS[args.preset]["prune_level"]
     log.log(f'{"prune_level":>{mar}}: {bold(prune_level)}')
     log.log(f'{"merge_level":>{mar}}: {bold(args.merge_level)}')
     log.log(f'{"min_contig_len":>{mar}}: {bold(args.min_contig_len)}')
@@ -244,9 +243,9 @@ def assemble(full_command, args):
             fastq_dir,
             fastq_r1,
             fastq_r2,
-            args.k_list,
-            args.min_count,
-            args.prune_level,
+            k_list,
+            min_count,
+            prune_level,
             args.merge_level,
             ram_B_per_assembly,
             threads_per_assembly,
