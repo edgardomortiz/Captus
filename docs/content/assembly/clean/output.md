@@ -18,7 +18,7 @@ Notice we are using default settings, the only required argument is the location
 
 ![Clean reads](/images/clean_reads.png?width=604)
 
-### 1. **`[sample]_R1.fq.gz`, `[sample]_R2.fq.gz`**
+### 1. **`[sample]_R1.fq.gz`**, **`[sample]_R2.fq.gz`**
 In case of paired-end input we will have a pair of file like in the image, the forward reads are indicated by _R1 and the reverse reads by _R2. Single-end input will only return forward reads.
 ___
 ### 2. **`[sample].cleaning.log`**
@@ -36,7 +36,7 @@ ___
 ### 6. **`00_adaptors_trimmed`**
 This is an intermediate directory that contains the FASTQ files without adaptors, prior to quality-trimming and filtering. The directory also stores `bbduk.sh` commands and logs for the adaptor trimming stage. If the option `--keep_all` was enabled the FASTQs from this intermediate are kept after the run, otherwise they are deleted.
 ___
-### 7. **`01_qc_stats_before`, `02_qc_stats_after`**
+### 7. **`01_qc_stats_before`**, **`02_qc_stats_after`**
 These directories contain the results from either `Falco` or `FastQC`, organized in a subdirectory per FASTQ file analyzed.
 ___
 ### 8. **`03_qc_extras`**
