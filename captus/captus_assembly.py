@@ -421,12 +421,13 @@ class CaptusAssembly(object):
             action="store",
             type=str,
             dest="preset",
-            help="B|The defaults work well with either hybridization capture or genome skimming data"
-                 " up to 10M reads. You can assemble RNA-Seq reads or WGS reads using these presets."
-                 " Be aware, these will require a minimum of 8GB of RAM to work well.\n"
+            help="B|The default preset is 'CAP', these settings work well with either hybridization"
+                 " capture or genome skimming data up to 10M reads. You can assemble RNA-Seq reads"
+                 " with preset 'RNA' or high-coverage Whole Genome Sequencing reads with preset 'WGS',"
+                 " but these settings require a minimum of 8GB of RAM to work well.\n"
                  "CAP = --k-list 31,39,47,63,79,95,111,127,143,159,175 --min-count 2 --prune-level 2\n"
                  "RNA = --k-list 27,47,67,87,107,127,147,167 --min-count 2 --prune-level 2\n"
-                 "WGS = --k-list 31,39,51,71,91,111,131,151,171 --min-count 3 --prune-level 2"
+                 "WGS = --k-list 31,39,49,69,89,109,129,149,169 --min-count 3 --prune-level 2"
         )
         megahit_group.add_argument(
             "--min_contig_len",
