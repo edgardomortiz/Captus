@@ -48,10 +48,11 @@ def build_qc_report(out_dir, qc_extras_dir):
     df1["bases_passed_cleaning_%"] = df1["bases_passed_cleaning"] / df1["bases_input"] * 100
     # Mean read length%
     df3["length * count"] = df3["length"] * df3["count"]
-    read_len_pct = (df3.groupby(["sample_name", "stage"])["length * count"].sum()
+    avg_read_len = (
+        df3.groupby(['sample_name', 'stage'])["length * count"].sum()
         / df3.groupby(["sample_name", "stage"])["count"].sum()
-        / df3.groupby(["sample_name", "stage"])["length"].max() * 100
     )
+    read_len_pct = avg_read_len.loc[:, 'after'] / avg_read_len.loc[:, 'before'] * 100
     # Q20, Q30 reads%
     q20 = (df2[df2["quality"] >= 20].groupby(["sample_name", "stage"])["count"].sum()
         / df2.groupby(["sample_name", "stage"])["count"].sum() * 100
@@ -73,7 +74,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         "Output Reads%": df1["reads_passed_cleaning_%"],
         "Output Bases": df1["bases_passed_cleaning"],
         "Output Bases%": df1["bases_passed_cleaning_%"],
-        "Mean Read Length%": read_len_pct.xs("after", level="stage").reset_index()[0],
+        "Mean Read Length%": read_len_pct.reset_index()[0],
         "≥Q20 Reads%": q20.xs("after", level="stage").reset_index()["count"],
         "≥Q30 Reads%": q30.xs("after", level="stage").reset_index()["count"],
         "GC%": gc.xs("after", level="stage").reset_index()[0],
@@ -352,8 +353,8 @@ def build_qc_report(out_dir, qc_extras_dir):
     df["stage"] = df["stage"].str.capitalize()
 
     # Covert Phred64 to Phred33
-    if df['percentile_90'].max() > 41:
-        phred64_sample_list = df.query('percentile_90 > 41')['sample_name'].unique()
+    if df['percentile_90'].max() > 42:
+        phred64_sample_list = df.query('percentile_90 > 42')['sample_name'].unique()
         phred64_index = df[(df['sample_name'].isin(phred64_sample_list)) & (df['stage'] == "Before")].index
         df.iloc[phred64_index,4:] = df.iloc[phred64_index,4:] - 31
 
@@ -536,8 +537,8 @@ def build_qc_report(out_dir, qc_extras_dir):
     df["stage"] = df["stage"].str.capitalize()
 
     # Convert Phred64 to Phred33
-    if df['quality'].max() > 41:
-        phred64_sample_list = df.query('quality > 41')['sample_name'].unique()
+    if df['quality'].max() > 42:
+        phred64_sample_list = df.query('quality > 42')['sample_name'].unique()
         phred64_index = df[(df['sample_name'].isin(phred64_sample_list)) & (df['stage'] == "Before")].index
         df.iloc[phred64_index,3] = df.iloc[phred64_index,3] - 31
 
@@ -1450,7 +1451,7 @@ def build_assembly_report(out_dir, asm_stats_tsv):
 
     fig0.update_layout(
         font_family="Arial",
-        title="<b>Captus-assembly: Assemble (<i>De Novo</i> Assembly Report<br>1. Summary Table</b>",
+        title="<b>Captus-assembly: Assemble (<i>De Novo</i> Assembly Report)<br>1. Summary Table</b>",
         height=230 + 21 * len(sample_list) if len(sample_list) < 31 else None,
         updatemenus=updatemenus,
         annotations=annotations,
@@ -1504,23 +1505,23 @@ def build_assembly_report(out_dir, asm_stats_tsv):
         "Length Breakdown by Contig Length (%)",
         "GC Content (%)",
         "Mean Depth (x)",
-        "Contigs Breakdown by Depth (%)",
+        "Contig Breakdown by Depth (%)",
     ]
 
     # X axis labels
     xlab_list = [
-        "Number of Contigs",
         "Total Length (bp)",
+        "Number of Contigs",
+        "Mean Length (bp)",
+        "Median Length (bp)",
         "Contig N50 (bp)",
-        "Mean Contig Length (bp)",
-        "Median Contig Length (bp)",
         "Longest Contig Length (bp)",
         "Shortest Contig Length (bp)",
-        "Contigs (%)",
-        "Length (%)",
+        "Proportion of Contigs (%)",
+        "Proportion of Total Length (%)",
         "GC Content (%)",
         "Mean Depth (x)",
-        "Contigs (%)",
+        "Proportion of Contigs (%)",
     ]
 
     colors = ["#56B4E9", "#009E73", "#E69F00", "#CC79A7"]
@@ -1609,11 +1610,25 @@ def build_assembly_report(out_dir, asm_stats_tsv):
         )
     ]
 
+    annotations=[dict(
+        text="<b>Variable:</b>",
+        x=1,
+        xref="paper",
+        xanchor="right",
+        xshift=-260,
+        y=1,
+        yref="paper",
+        yanchor="top",
+        yshift=36,
+        align="right",
+        showarrow=False
+    )]
+
     # Layout setting
     fig1.update_layout(
         plot_bgcolor="rgb(8,8,8)",
         font_family="Arial",
-        title="<b>2. Detailed Stats</b>",
+        title="<b>2. Visual Stats</b>",
         xaxis=dict(
             title=xlab_list[0],
             showgrid=True,
@@ -1629,7 +1644,8 @@ def build_assembly_report(out_dir, asm_stats_tsv):
             ticks="outside",
         ),
         barmode="overlay",
-        updatemenus=updatemenus
+        updatemenus=updatemenus,
+        annotations=annotations,
     )
 
     # Save plot in HTML
@@ -1671,7 +1687,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
         "Identity (%)",
         "Hit Count (Paralogs)",
         "Score",
-        "Length-weighted score"
+        "Length-weighted Score"
     ]
     hovertemplate = "<br>".join([
         "Sample: <b>%{customdata[0]}</b>",
@@ -1681,7 +1697,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
         "Ref coords: <b>%{customdata[4]}</b>",
         "Ref type: <b>%{customdata[5]}</b>",
         "Ref len matched: <b>%{customdata[6]:,.0f} %{customdata[20]}</b>",
-        "Hit count: <b>%{customdata[7]}</b>",
+        "Hit count (paralogs): <b>%{customdata[7]}</b>",
         "Recovered length: <b>%{customdata[8]:.2f}%</b>",
         "Identity: <b>%{customdata[9]:.2f}%</b>",
         "Score: <b>%{customdata[10]:.3f}</b>",
@@ -1771,7 +1787,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
             }],
         ),
         dict(
-            label="Both",
+            label="Total Both",
             method="relayout",
             args=[{
                 "xaxis.categoryorder": "total descending",
@@ -1952,13 +1968,13 @@ def build_alignment_report(out_dir, aln_stats_tsv):
         marker_type = np.insert(marker_type, 0, "ALL")
 
     var_dict = {
-        "Number of sequences": "seqs",
-        "Alignment length": "sites",
-        "Informative sites": "informative",
-        "Constant sites": "constant",
-        "Singleton sites": "singleton",
+        "Number of Sequences": "seqs",
+        "Alignment Length": "sites",
+        "Informative Sites": "informative",
+        "Constant Sites": "constant",
+        "Singleton Sites": "singleton",
         "Patterns": "patterns",
-        "Mean pairwise identity (%)": "avg_pid",
+        "Mean Pairwise Identity (%)": "avg_pid",
         "Missingness (%)": "missingness",
     }
 

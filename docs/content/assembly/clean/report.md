@@ -4,211 +4,230 @@ weight: 15
 pre: '<i class="fas fa-chart-bar"></i> '
 plotly: true
 ---
-
-`captus-assembly_clean.report.html`
-you can open the file with browsers (internet connection required)
-[Plotly](https://plotly.com/python/)
-
-Plotly zoom-in/out, pan, export as image
-for details, please visit following sites
-<https://plotly.com/chart-studio-help/getting-to-know-the-plotly-modebar/>
-<https://plotly.com/chart-studio-help/zoom-pan-hover-controls/>
-
-Captus runs [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/) internally, 
-This report enables you to have an overview of the quality of your data.
-
-the report comprise one table and eight plots below.
-
-- [1. *Summary Table*](#1-summary-table)
-- [2. *Stats on Reads/Bases*](#2-stats-on-readsbases)
-- [3. *Per Base Quality*](#3-per-base-quality)
-- [4. *Per Read Quality*](#4-per-read-quality)
-- [5. *Read Length Distribution*](#5-read-length-distribution)
-- [6. *Per Base Nucleotide Content*](#6-per-base-nucleotide-content)
-- [7. *Per Read GC Content*](#7-per-read-gc-content)
-- [8. *Sequence Duplication Level*](#8-sequence-duplication-level)
-- [9. *Adapter Content*](#9-adapter-content)
-
-By switching tabs, you can compare with corresponding plot from [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/).
-
-### 1. *Summary Table*
+### Concept
 
 ---
-This table shows the general statistics.
-{{< tabs >}}
+**Proper cleaning is the first step to perform proper analysis** on high-throughput sequencing data.
+To evaluate the quality of the input reads and how it has been improved by the cleaning, `Captus` internally runs the well-known quality check program, [`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc), or its faster emulator, [`Falco`](https://github.com/smithlabcode/falco) on the reads before and after cleaning.
+Although both programs generate nice visual reports, those reports are generated as separate files for each sample, for each read direction (for paired-end), and before and after cleaning.
+This makes it tedious to check every reports, and may lead to overlooking some serious problems, such as residual low-quality bases and adapter sequences, contamination of different samples, and inappropriate settings of cleaning parameters.
+
+`Captus` summarizes the information in those disparate reports into a single HTML file, `captus-assembly_clean.report.html`. All you need to do is open this single file in your browser (Microsoft Edge, Google Chrome, Mozilla Firefox, Safari, etc., internet connection required) to get a quick overview on all your samples, both reads (for paired-end), and before and after cleaning!
+{{% notice info %}}
+Since all tables and plots in the report are created using [`Plotly`](https://plotly.com/python), you can use some interactive functions such as zoom in/out, pan, hover, and download plot as a PNG.
+For more information, please visit the following sites:
+
+- <https://plotly.com/chart-studio-help/zoom-pan-hover-controls>
+- <https://plotly.com/chart-studio-help/getting-to-know-the-plotly-modebar>
+
+{{% /notice %}}
+
+### Contents
+
+---
+
+1. [*Summary Table*](#1-summary-table)
+2. [*Stats on Reads/Bases*](#2-stats-on-readsbases)
+3. [*Per Base Quality*](#3-per-base-quality)
+4. [*Per Read Quality*](#4-per-read-quality)
+5. [*Read Length Distribution*](#5-read-length-distribution)
+6. [*Per Base Nucleotide Content*](#6-per-base-nucleotide-content)
+7. [*Per Read GC Content*](#7-per-read-gc-content)
+8. [*Sequence Duplication Level*](#8-sequence-duplication-level)
+9. [*Adapter Content*](#9-adapter-content)
+
+A brief description and interactive example for each section is given below.  
+By switching the tabs at the top of each plot, you can compare the plot produced by `Captus` with the corresponding plot from [`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc), which you may be familiar with.
+
+---
+
+#### 1. Summary Table
+
+This table shows the general statistics for each sample.
+
+##### Features:
+
+- The cells are colored according to their relative value within each column (green = high; pink = low).
+- By switching `Sort by` dropdown, you can re-sort the table in descending order according to the values in each column (by default, the table is sorted alpha-numerically by sample name).
+
+Original data for this table is stored in the files, `03_qc_extras/reads_bases.tsv`, `03_qc_extras/seq_len_dist.tsv`, `03_qc_extras/per_seq_qual_scores.tsv`, and `03_qc_extras/per_seq_gc_content.tsv`.
+{{< tabs groupId="Summary Table" >}}
 {{% tab name="Captus" %}}
-{{< plotly json="/plotly/cleaning_report_1_summary_table.json" height="225px" >}}
+{{< plotly json="/plotly/cleaning_report_summary_table.json" height="210px" >}}
 {{% /tab %}}
 {{% tab name="FastQC" %}}
-![fastqc_per_base_qual](/images/fastqc_per_base_qual.png)
+<!-- GenusA_speciesA_CAP Read1 Before cleaning -->
+![fastqc_basic_statistics](/images/fastqc_basic_statistics.png?height=200px)
 {{% /tab %}}
 {{< /tabs >}}
-
-Description of columns
-
-- **Sample** = Sample name
-- **Input Reads** = Number of reads before cleaning
-- **Input Bases** = Number of bases before cleaning
-- **Output Reads** = Number of reads after cleaning
-- **Output Reads%** = Percentage of reads passed cleaning
-- **Output Bases** = Number of bases after cleaning
-- **Output Bases%** = Percentage of bases passed cleaning
-- **Mean Read Length%** = Mean cleaned read length / Original read length * 100
-- **≥Q20 Reads%** = Percentage of reads with mean Phred quality score ≥ 20 after cleaning
-- **≥Q30 Reads%** = Percentage of reads with mean Phred quality score ≥ 30 after cleaning
-- **GC%** = Mean GC content after cleaning
-
-cell colors represent normalized values for each column (Green = high, Red = low).  
-By switching `Sort by` dropdown at the top of the table, you can sort descending  
-The original data of this table are stored in  
-
-- `03_qc_extras/reads_bases.tsv`
-- `seq_len_dist.tsv`
-- `per_seq_qual_scores.tsv`
-- `per_seq_gc_content.tsv`
-
-### 2. *Stats on Reads/Bases*
+{{% expand "Description of each column" %}}
+|Column|Description|
+|-|-|
+|**Sample**|Sample name|
+|**Input Reads**|Number of reads before cleaning|
+|**Input Bases**|Number of bases before cleaning|
+|**Output Reads**|Number of reads after cleaning|
+|**Output Reads%**|Percentage of reads passed cleaning|
+|**Output Bases**|Number of bases after cleaning|
+|**Output Bases%**|Percentage of bases passed cleaning|
+|**Mean Read Length%**|Percentage of mean read length after cleaning to the mean read length before cleaning|
+|**≥Q20 Reads%**|Percentage of reads with mean Phred quality score ≥ 20 after cleaning|
+|**≥Q30 Reads%**|Percentage of reads with mean Phred quality score ≥ 30 after cleaning|
+|**GC%**|Mean GC content of reads after cleaning|
+{{% /expand %}}
 
 ---
-This plot shows the changes on read and bases due to cleaning.  
-{{< tabs >}}
+
+#### 2. Stats on Reads/Bases
+
+`Captus` cleans the reads through two consecutive rounds of adapter trimming (`Round1`, `Round2`) followed by quality filtering.  
+This plot shows the change in the number of reads (left panel) and bases (right panel) at each step of the cleaning process.
+
+##### Features:
+
+- By switching the buttons at the top of the plot, you can choose whether to show counts or percentages.
+- By clicking on the legend, you can toggle between showing and hiding each series.
+
+Original data for this plot is stored in `03_qc_extras/reads_bases.tsv`.
+{{< tabs groupId="Stats on Reads/Bases" >}}
 {{% tab name="Captus" %}}
-{{< plotly json="/plotly/cleaning_report_2_stats_on_reads_bases.json" height="240px" >}}
+{{< plotly json="/plotly/cleaning_report_stats_on_reads_bases.json" height="240px" >}}
 {{% /tab %}}
 {{% tab name="FastQC" %}}
 There is no corresponding plot.
 {{% /tab %}}
 {{< /tabs >}}
 
-The original data of this plot is stored in `03_qc_extras/reads_bases.tsv`
-
-### 3. *Per Base Quality*
-
 ---
-This plot shows the range of Phred quality score at each base position in the reads as a heatmap.
-color scale shows 
 
+#### 3. Per Base Quality
 
-- Mean
-- 90<sub>th</sub> Percentile
-- 75<sub>th</sub> Percentile
-- 50<sub>th</sub> Percentile (= Median)
-- 25<sub>th</sub> Percentile
-- 10<sub>th</sub> Percentile
+This plot shows the range of Phred quality score at each position in the reads before and after cleaning.  
+For more details, read [<i class="fab fa-readme"></i> FastQC documentation](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/3%20Analysis%20Modules/2%20Per%20Base%20Sequence%20Quality.html).  
 
-For more details, read [<i class="fab fa-readme"></i> FastQC documentation](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/3%20Analysis%20Modules/2%20Per%20Base%20Sequence%20Quality.html)
+##### Feature:
 
-The original data of this plot is stored in `03_qc_extras/per_base_seq_qual.tsv`
-{{< tabs >}}
+- By switching the dropdown at the top of the plot, you can change the variable to show.
+
+Original data for this plot is stored in `03_qc_extras/per_base_seq_qual.tsv`.
+{{< tabs groupId="Per Base Quality" >}}
 {{% tab name="Captus" %}}
-{{< plotly json="/plotly/cleaning_report_3_per_base_quality.json" height="300px" >}}
+{{< plotly json="/plotly/cleaning_report_per_base_quality.json" height="300px" >}}
 {{% /tab %}}
 {{% tab name="FastQC" %}}
-GenusC_speciesC_CAP After cleaning
-![per_base_quality](/images/per_base_quality.png?height=300)
-![per_base_quality](/images/per_base_quality.png)
+<!-- GenusC_speciesC_CAP Read2 Before cleaning -->
+![fastqc_per_base_quality](/images/fastqc_per_base_quality.png?height=300px)
 {{% /tab %}}
 {{< /tabs >}}
 
-### 4. *Per Read Quality*
-
 ---
-This plot shows distribution of Phred quality score in your data as heatmap.  
-The x-axis shows the Phred quality score.  
-The y-axis shows the sample and stage (before or after cleaning).  
-The color scale shows the proportion of reads.  
-The number of reads with average quality scores. Shows if a subset of reads has poor quality.
 
-For more details, read [<i class="fab fa-readme"></i> FastQC documentation](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/3%20Analysis%20Modules/3%20Per%20Sequence%20Quality%20Scores.html)
-The original data of this plot is stored in `03_qc_extras/per_seq_qual_scores.tsv`
-{{< tabs >}}
+#### 4. Per Read Quality
+
+This plot shows the distribution of the mean Phred quality score of the reads before and after cleaning.  
+For more details, read [<i class="fab fa-readme"></i> FastQC documentation](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/3%20Analysis%20Modules/3%20Per%20Sequence%20Quality%20Scores.html).  
+Original data for this plot is stored in `03_qc_extras/per_seq_qual_scores.tsv`.
+{{< tabs groupId="Per Read Quality" >}}
 {{% tab name="Captus" %}}
-{{< plotly json="/plotly/cleaning_report_4_per_read_quality.json" height="300px" >}}
+{{< plotly json="/plotly/cleaning_report_per_read_quality.json" height="300px" >}}
 {{% /tab %}}
 {{% tab name="FastQC" %}}
-
+<!-- GenusC_speciesC_CAP Read1 Before cleaning -->
+![fastqc_per_sequence_quality](/images/fastqc_per_sequence_quality.png?height=300px)
 {{% /tab %}}
 {{< /tabs >}}
 
-### 5. *Read Length Distribution*
-
 ---
-This plot shows the read length distribution after cleaning.  
-For more details, read [<i class="fab fa-readme"></i> FastQC documentation](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/3%20Analysis%20Modules/7%20Sequence%20Length%20Distribution.html)  
-The original data of this plot is stored in `03_qc_extras/seq_len_dist.tsv`
-{{< tabs >}}
+
+#### 5. Read Length Distribution
+
+This plot shows the distribution of the read length before and after cleaning.  
+For more details, read [<i class="fab fa-readme"></i> FastQC documentation](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/3%20Analysis%20Modules/7%20Sequence%20Length%20Distribution.html).  
+Original data for this plot is stored in `03_qc_extras/seq_len_dist.tsv`.
+{{< tabs groupId="Read Length Distribution" >}}
 {{% tab name="Captus" %}}
-{{< plotly json="/plotly/cleaning_report_5_seq_len_dist.json" height="240px" >}}
+{{< plotly json="/plotly/cleaning_report_seq_len_dist.json" height="300px" >}}
 {{% /tab %}}
 {{% tab name="FastQC" %}}
-
+<!-- GenusB_speciesB_CAP Read1 After cleaning -->
+![fastqc_sequence_length_distribution](/images/fastqc_sequence_length_distribution.png?height=300px)
 {{% /tab %}}
 {{< /tabs >}}
 
-### 6. *Per Base Nucleotide Content*
-
 ---
-The proportion of the four nucleotides (A, T, G, C) at each base position in the read.
-If there is a distortion, that region will turn red (high frequency) or blue (low frequency).
 
-For more details, read [<i class="fab fa-readme"></i> FastQC documentation](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/3%20Analysis%20Modules/4%20Per%20Base%20Sequence%20Content.html)
-The original data of this plot is stored in `03_qc_extras/per_base_seq_content.tsv`
-{{< tabs >}}
+#### 6. Per Base Nucleotide Content
+
+This plot shows the composition of the four nucleotides (A, T, G, C) at each position in the reads before and after cleaning.  
+For more details, read [<i class="fab fa-readme"></i> FastQC documentation](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/3%20Analysis%20Modules/4%20Per%20Base%20Sequence%20Content.html).  
+Original data for this plot is stored in `03_qc_extras/per_base_seq_content.tsv`.
+{{< tabs groupId="Per Base Nucleotide Content" >}}
 {{% tab name="Captus" %}}
-{{< plotly json="/plotly/cleaning_report_6_per_base_seq_content.json" height="750px" >}}
+{{< plotly json="/plotly/cleaning_report_per_base_seq_content.json" height="750px" >}}
 {{% /tab %}}
 {{% tab name="FastQC" %}}
-
+<!-- GenusB_speciesB_CAP Read1 Before cleaning -->
+![fastqc_per_base_sequence_content](/images/fastqc_per_base_sequence_content.png?height=300px)
 {{% /tab %}}
 {{< /tabs >}}
 
-### 7. *Per Read GC Content*
-
 ---
-The mean GC content of reads. fit normal distribution. if multiple peaks are observed, it may be a sign of contamination.
-Broader or multiple peaks may represent contamination with different species.
-For more details, read [<i class="fab fa-readme"></i> FastQC documentation](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/3%20Analysis%20Modules/5%20Per%20Sequence%20GC%20Content.html)
-The original data of this plot is stored in `03_qc_extras/per_seq_gc_content.tsv`
-{{< tabs >}}
+
+#### 7. Per Read GC Content
+
+This plot shows the distribution of GC content in the reads before and after cleaning.
+Broader or multiple peaks might be a sign of contamination with different sample.  
+For more details, read [<i class="fab fa-readme"></i> FastQC documentation](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/3%20Analysis%20Modules/5%20Per%20Sequence%20GC%20Content.html).  
+Original data for this plot is stored in `03_qc_extras/per_seq_gc_content.tsv`.  
+{{< tabs groupId="Per Read GC Content" >}}
 {{% tab name="Captus" %}}
-{{< plotly json="/plotly/cleaning_report_7_per_seq_gc_content.json" height="300px" >}}
+{{< plotly json="/plotly/cleaning_report_per_seq_gc_content.json" height="300px" >}}
 {{% /tab %}}
 {{% tab name="FastQC" %}}
-
+<!-- GenusC_speciesC_CAP Read1 Before cleaning -->
+![fastqc_per_sequence_gc_content](/images/fastqc_per_sequence_gc_content.png?height=300px)
 {{% /tab %}}
 {{< /tabs >}}
 
-### 8. *Sequence Duplication Level*
-
 ---
-For more details, read [<i class="fab fa-readme"></i> FastQC documentation](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/3%20Analysis%20Modules/8%20Duplicate%20Sequences.html)
-The original data of this plot is stored in `03_qc_extras/seq_dup_levels.tsv`
-{{< tabs >}}
+
+#### 8. Sequence Duplication Level
+
+This plot shows the percentage of sequences with different degrees of duplication before and after cleaning.  
+For more details, read [<i class="fab fa-readme"></i> FastQC documentation](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/3%20Analysis%20Modules/8%20Duplicate%20Sequences.html).  
+
+##### Feature:
+
+- By clicking on the legend, you can toggle between showing and hiding each series.
+
+Original data for this plot is stored in `03_qc_extras/seq_dup_levels.tsv`.  
+{{< tabs groupId="Sequence Duplication Level" >}}
 {{% tab name="Captus" %}}
-{{< plotly json="/plotly/cleaning_report_8_seq_dup_level.json" height="300px" >}}
+{{< plotly json="/plotly/cleaning_report_seq_dup_level.json" height="300px" >}}
 {{% /tab %}}
 {{% tab name="FastQC" %}}
-
+<!-- GenusC_speciesC_CAP Read1 Before cleaning -->
+![fastqc_duplication_levels](/images/fastqc_duplication_levels.png?height=300px)
 {{% /tab %}}
 {{< /tabs >}}
-{{% notice note %}}
-in non-random library (RNA-Seq, Target sequencing, etc.).
-{{% /notice %}}
-
-### 9. *Adapter Content*
 
 ---
-For more details, read [<i class="fab fa-readme"></i> FastQC documentation](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/3%20Analysis%20Modules/10%20Adapter%20Content.html)  
-The original data of this plot is stored in `03_qc_extras/adapter_content.tsv`
-{{< tabs >}}
+
+#### 9. Adapter Content
+
+This plot shows the cumulative adapter content at each position in the reads before and after cleaning.  
+For more details, read [<i class="fab fa-readme"></i> FastQC documentation](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/3%20Analysis%20Modules/10%20Adapter%20Content.html).  
+Original data for this plot is stored in `03_qc_extras/adapter_content.tsv`.
+{{< tabs groupId="Adapter Content" >}}
 {{% tab name="Captus" %}}
-{{< plotly json="/plotly/cleaning_report_9_adapter_content.json" height="300px" >}}
+{{< plotly json="/plotly/cleaning_report_adapter_content.json" height="300px" >}}
 {{% /tab %}}
 {{% tab name="FastQC" %}}
-![fastqc_adapt_content](/images/adapter_content.png?height=200px)
+<!-- GenusB_speciesB_CAP Read1 Before cleaning -->
+![fastqc_adapter_content](/images/fastqc_adapter_content.png?height=300px)
 {{% /tab %}}
 {{< /tabs >}}
 
 ---
 Created by [Gentaro Shigita]({{< ref "../../credits/#gentaro-shigita">}}) (11.08.2021)  
-Last modified by [Gentaro Shigita]({{< ref "../../credits/#gentaro-shigita">}}) (11.08.2021)
+Last modified by [Gentaro Shigita]({{< ref "../../credits/#gentaro-shigita">}}) (29.09.2021)
