@@ -176,6 +176,9 @@ SCIPIO_MIN_GAP_MATCHES = 1
 # performed by Captus after checking and fixing the gene model
 SCIPIO_MAX_MISMATCHES = 3
 
+# Minimum stretch of missing aminoacids in recovered protein to be filled by "X"
+SCIPIO_MIN_GAP_TO_FILL = 5
+
 # Separator between sample and protein cluster for Scipio's reference proteins. For example,
 # Angiosperms353 uses a '-', meaning that anything before the '-' is the sample name and after the
 # '-' is the protein cluster identifier
