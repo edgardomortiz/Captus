@@ -8,7 +8,7 @@ Imagine we start with a directory called `00_raw_reads` with the following conte
 
 ![Raw reads](/images/raw_reads.png?width=604)
 
-We have a samples with different data types, to distinguish them we added `_CAP` to the samples where hybridization-capture was used, `_WGS` for high-coverage whole genome sequencing, `_RNA` for RNA-Seq reads, and `_GSK` for genome skimming data (notice also the difference in file sizes). For this example, we only want to clean the samples in red rectangles correspondig to capture data. We run the following `Captus` command:
+We have a samples with different data types, to distinguish them we added `_CAP` to the samples where hybridization-capture was used, `_WGS` for high-coverage whole genome sequencing, `_RNA` for RNA-Seq reads, and `_GSK` for genome skimming data (notice also the difference in file sizes). For this example, we only want to clean the samples in red rectangles corresponding to capture data. We run the following `Captus` command:
 
 ```console
 captus_assembly clean --reads ./00_raw_reads/*_CAP_R?.fq.gz
