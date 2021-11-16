@@ -76,7 +76,7 @@ ___
 #### **`--trimq`**
 Leading and trailing read regions with average PHRED quality score below this value will be trimmed.
 
-Many people raise this value to 20 or even higher but that usually [discards lots of useful data for *de novo* assembly](https://www.biostars.org/p/124207/). In general, unless you have really high sequencing depth, don't increase this threshold beyond ~13.
+Many people raise this value to 20 or even higher but that usually [discards lots of useful data for *de novo* assembly](https://www.biostars.org/p/124207/). In general, unless you have really high sequencing depth, don't increase this threshold beyond ~16.
 
 This argument is optional, the default is **13**.
 ___
@@ -90,12 +90,12 @@ ___
 #### **`--ftl`**
 Trim any base to the left of this position. For example, if you want to remove 4 bases from the left of the reads set this number to 5.
 
-This argument is optional, the default is **0**.
+This argument is optional, the default is **0** (no `ftl` applied).
 ___
 #### **`--ftr`**
 Trim any base to the right of this position. For example, if you want to truncate your reads length to 100 bp set this number to 100
 
-This argument is optional, the default is **0**.
+This argument is optional, the default is **0** (no `ftr` applied).
 ___
 ### *QC Statistics*
 ___
@@ -122,4 +122,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-08-06)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-09-05)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-09-15)

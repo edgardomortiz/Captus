@@ -62,12 +62,11 @@ def assemble(full_command, args):
             " respective '_R2' pairs. If the '_R2' can not be found, the sample is treated as"
             " single-end. Sample names are derived from the text found before the '_R1' string."
         )
-    log.log_explanation(intro_msg, extra_empty_lines_after=0)
     if args.sample_reads_target > 0:
         fastqs_to_subsample = find_and_match_fastqs(args.reads)
         skip_subsampling = False
         _, reformat_version, reformat_status = bbtools_path_version(args.reformat_path)
-        intro_msg = (
+        intro_msg += (
             f"MEGAHIT de novo assemblies will start after subsampling {args.sample_reads_target}"
             " read pairs (or single-end reads)."
         )
@@ -75,7 +74,7 @@ def assemble(full_command, args):
         fastqs_to_assemble = find_and_match_fastqs(args.reads, recursive=False)
         skip_subsampling = True
         reformat_version, reformat_status = "", "not used"
-        intro_msg = (
+        intro_msg += (
             "The full set of reads per sample will be assembled, no subsampling will be performed."
         )
     log.log_explanation(intro_msg, extra_empty_lines_after=0)
@@ -129,7 +128,7 @@ def assemble(full_command, args):
     log.log_section_header("Subsampling Reads with reformat.sh")
     log.log_explanation(
         f"Now Captus will randomly subsample {args.sample_reads_target} read pairs (or single-end"
-        " reads) from every sample prior to de novo assembly with MEGAHIT."
+        " reads) from each sample prior to de novo assembly with MEGAHIT."
     )
     if skip_subsampling:
         log.log(red(
@@ -205,21 +204,20 @@ def assemble(full_command, args):
     log.log(f'{"Threads per assembly":>{mar}}: {bold(threads_per_assembly)}')
     log.log("")
 
-    if not args.preset:
-        args.preset = "CAP"
+    if not args.preset: args.preset = "HYB"
     if args.preset.upper() not in settings.MEGAHIT_PRESETS:
         invalid_preset = args.preset
-        args.preset = "CAP"
+        args.preset = "HYB"
         log.log(f'{"preset":>{mar}}: {bold(args.preset)} ({invalid_preset} is not a valid preset)')
     else:
         args.preset = args.preset.upper()
         log.log(f'{"preset":>{mar}}: {bold(args.preset.upper())}')
-    k_list = args.k_list if args.k_list else settings.MEGAHIT_PRESETS[args.preset]["k_list"]
-    log.log(f'{"k_list":>{mar}}: {bold(k_list)}')
-    min_count = args.min_count if args.min_count else settings.MEGAHIT_PRESETS[args.preset]["min_count"]
-    log.log(f'{"min_count":>{mar}}: {bold(min_count)}')
-    prune_level = args.prune_level if args.prune_level else settings.MEGAHIT_PRESETS[args.preset]["prune_level"]
-    log.log(f'{"prune_level":>{mar}}: {bold(prune_level)}')
+    if not args.k_list: args.k_list = settings.MEGAHIT_PRESETS[args.preset]["k_list"]
+    log.log(f'{"k_list":>{mar}}: {bold(args.k_list)}')
+    if not args.min_count: args.min_count = settings.MEGAHIT_PRESETS[args.preset]["min_count"]
+    log.log(f'{"min_count":>{mar}}: {bold(args.min_count)}')
+    if not args.prune_level: args.prune_level = settings.MEGAHIT_PRESETS[args.preset]["prune_level"]
+    log.log(f'{"prune_level":>{mar}}: {bold(args.prune_level)}')
     log.log(f'{"merge_level":>{mar}}: {bold(args.merge_level)}')
     log.log(f'{"min_contig_len":>{mar}}: {bold(args.min_contig_len)}')
     tmp_dir = make_tmp_dir_within(args.tmp_dir, "captus_megahit_tmp")
@@ -230,7 +228,7 @@ def assemble(full_command, args):
     log.log(f'{"Samples to assemble":>{mar}}: {bold(len(fastqs_to_assemble))}')
     log.log("")
     log.log(f'{"Output directories":>{mar}}: {bold(f"{out_dir}/[Sample_name]__captus-asm/01_assembly")}')
-    log.log(f'{"":>{mar}}  {dim("A directory will be created for every sample")}')
+    log.log(f'{"":>{mar}}  {dim("A directory will be created for each sample")}')
     log.log("")
 
     megahit_params = []
@@ -243,9 +241,9 @@ def assemble(full_command, args):
             fastq_dir,
             fastq_r1,
             fastq_r2,
-            k_list,
-            min_count,
-            prune_level,
+            args.k_list,
+            args.min_count,
+            args.prune_level,
             args.merge_level,
             ram_B_per_assembly,
             threads_per_assembly,

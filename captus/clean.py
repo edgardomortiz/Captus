@@ -59,10 +59,11 @@ def clean(full_command, args):
             " Sample names are derived from the text found before the _R1 string."
         )
     log.log_explanation(intro_msg, extra_empty_lines_after=0)
+
     if args.skip_qc_stats:
         fastqc_version, fastqc_status = "", "not used"
         falco_version, falco_status = "", "not used"
-        intro_msg = ("QC statistics will not be analyzed after the cleaning has been completed.")
+        intro_msg += ("QC statistics will not be analyzed after the cleaning has been completed.")
     else:
         _, fastqc_version, fastqc_status = fastqc_path_version(args.fastqc_path)
         _, falco_version, falco_status = falco_path_version(args.falco_path)
@@ -120,6 +121,7 @@ def clean(full_command, args):
             " path to the progam with '--bbduk_path'"
         )
     if fastqc_status == "not found" and falco_status == "not found":
+        args.skip_qc_stats = True
         log.log(
             f"{bold('WARNING:')} Neither FastQC nor Falco could not be found, the QC statistics"
             " analysis will be skipped after cleaning the reads. Please verify you have at least one"
@@ -364,7 +366,7 @@ def clean(full_command, args):
         log.log("")
     else:
         log.log(
-            f"{bold('WARNING:')} Captus uses 'numpy', 'pandas', and 'plotly' to generate  an HTML"
+            f"{bold('WARNING:')} Captus uses 'numpy', 'pandas', and 'plotly' to generate an HTML"
             " report based on the read QC statistics. At least one of these libraries could not be"
             " found, please verify these libraries are installed and available."
         )
@@ -502,8 +504,7 @@ def bbduk_trim_adaptors(
         ref[0] += f",{settings.POLYA_ADAPTORS}"
         fixed += ["trimpolya=4"]
 
-    if "#" in in_fastq:
-        fixed += ["trimpairsevenly=t", "trimbyoverlap=t"]
+    if "#" in in_fastq: fixed += ["trimpairsevenly=t", "trimbyoverlap=t"]
 
     round_1_stdout_file = Path(out_dir, f"{sample_name}.stdout1.log")
     round_2_stdout_file = Path(out_dir, f"{sample_name}.stdout2.log")
@@ -572,8 +573,7 @@ def bbduk_filter_quality(
 
     sample_name = "_R".join(in_fastq.split("_R")[:-1])
 
-    if ftr > 0:
-        ftr -= 1
+    if ftr > 0: ftr -= 1
 
     bbduk_cmd = [
         bbduk_path,

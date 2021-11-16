@@ -13,6 +13,7 @@ not, see <http://www.gnu.org/licenses/>.
 """
 
 
+import copy
 import gzip
 import math
 import re
@@ -228,7 +229,7 @@ def genetic_code(genetic_code_id):
     return {"aminos": aminos, "starts": starts, "stops": stops}
 
 
-def translate(seq, genetic_code: dict, frame=1):
+def translate(seq, genetic_code: dict, frame=1, start_as_M=False):
     """
     Translate nucleotide sequence `seq` given a specific reading `frame` and the dictionary
     produced by the function `genetic_code()`
@@ -259,6 +260,7 @@ def translate(seq, genetic_code: dict, frame=1):
                                     for p2 in NT_IUPAC[codon[1]]
                                     for p3 in NT_IUPAC[codon[2]]]
 
+
     def unresolve_aminoacid(aminos: list):
         """
         Because of fuzzy translation, a codon may produce several aminoacids. This function reduces
@@ -274,26 +276,29 @@ def translate(seq, genetic_code: dict, frame=1):
         else:
             return "X"
 
-    if frame < 0:
-        seq = reverse_complement(seq)
 
-    codons = [seq[p:p + 3].upper() for p in range(abs(frame) - 1, len(seq), 3)
+    seq = seq.upper()
+    if frame < 0: seq = reverse_complement(seq)
+
+    codons = [seq[p:p + 3] for p in range(abs(frame) - 1, len(seq), 3)
               if len(seq[p:p + 3]) == 3]
 
-    if len(codons) < 2:
+    if len(codons) < 1:
         return ""
 
     seq_AA = ""
 
     starts_fuzzy = []
     for triplet in resolve_codon(codons[0]):
-        if triplet in genetic_code["starts"]:
+        if triplet in genetic_code["starts"] and start_as_M:
             starts_fuzzy.append(genetic_code["starts"][triplet])
         elif triplet in genetic_code["aminos"]:
             starts_fuzzy.append(genetic_code["aminos"][triplet])
         else:
             starts_fuzzy.append("X")
     seq_AA += unresolve_aminoacid(starts_fuzzy)
+
+    if len(codons) == 1: return seq_AA
 
     for codon in codons[1:-1]:
         aminos_fuzzy = []
@@ -317,7 +322,7 @@ def translate(seq, genetic_code: dict, frame=1):
     return seq_AA
 
 
-def translate_fasta_dict(in_fasta_dict: dict, genetic_code_id: int, frame="guess"):
+def translate_fasta_dict(in_fasta_dict: dict, genetic_code_id: int, frame="guess", start_as_M=False):
     """
     Translates `in_fasta_dict` with `genetic_code_id`. If `frame` is not specified, every sequence
     is translated in the 6 reading frames and the one with the fewest stop codons is returned, when
@@ -337,10 +342,10 @@ def translate_fasta_dict(in_fasta_dict: dict, genetic_code_id: int, frame="guess
     dict
         A `fasta_to_dict` structure with the translated sequences
     """
-    def guess_frame(seq, genetic_code):
+    def guess_frame(seq, genetic_code, start_as_M):
         translations, counts_Xs, counts_stops = [], [], []
         for f in [1, 2, 3, -1, -2, -3]:
-            translation = translate(seq, genetic_code, frame=f)
+            translation = translate(seq, genetic_code, f, start_as_M)
             counts_Xs.append(translation.count("X"))
             counts_stops.append(translation.count("*"))
             translations.append(translation)
@@ -359,12 +364,12 @@ def translate_fasta_dict(in_fasta_dict: dict, genetic_code_id: int, frame="guess
         for seq_name in in_fasta_dict:
             translated_fasta[seq_name] = {
                 "description": in_fasta_dict[seq_name]["description"],
-                "sequence": guess_frame(in_fasta_dict[seq_name]["sequence"], gc)}
+                "sequence": guess_frame(in_fasta_dict[seq_name]["sequence"], gc, start_as_M)}
     else:
         for seq_name in in_fasta_dict:
             translated_fasta[seq_name] = {
                 "description": in_fasta_dict[seq_name]["description"],
-                "sequence": translate(in_fasta_dict[seq_name]["sequence"], gc)}
+                "sequence": translate(in_fasta_dict[seq_name]["sequence"], gc, frame, start_as_M)}
     return translated_fasta
 
 
@@ -747,6 +752,81 @@ def alignment_stats(fasta_path):
     return stats
 
 
+def align_gapless(s1, s2):
+    """
+    Alignment two strings, case insensitive, without internal gaps. Returns the alignment
+    in a dictionary that includes number of matches, list of mismatches in the coordinates of the
+    longest sequence, and start and end coordinates of the aligned portion for each sequence
+
+    Parameters
+    ----------
+    s1 : str
+        Sequence 1
+    s2 : str
+        Sequence 2
+
+    Returns
+    -------
+    dict
+        Dictionary that includes several features of the alignment, like number of matches,
+        list of mismatches, start and end coordinates of the aligned portion of each sequence, see
+        'aln' template
+    """
+
+    # This is the template for output dictionary with the elements of the alignment:
+    aln = {
+        "matches":    0,
+        "mismatches": [],
+        "match_rate": 0.0,
+        "s1_start":   0,
+        "s1_end":     0,
+        "s1_aln":     "",
+        "s2_start":   0,
+        "s2_end":     0,
+        "s2_aln":     "",
+    }
+    len_s1  = len(s1)
+    len_s2  = len(s2)
+    max_len = max(len(s1), len(s2))
+    min_len = min(len(s1), len(s2))
+    for i in range(max_len - min_len + 1):
+        matches, mismatches = 0, []
+        s1_aln, s1_start, s1_end = s1, 0, len_s1
+        s2_aln, s2_start, s2_end = s2, 0, len_s2
+        if len_s2 < len_s1:
+            s2_aln, s2_start, s2_end = list("-" * max_len), i, i + len_s2
+        else:
+            s1_aln, s1_start, s1_end = list("-" * max_len), i, i + len_s1
+        for j in range(min_len):
+            if len_s2 < len_s1:
+                if s2[j].lower() == s1[i+j].lower():
+                    matches += 1
+                else:
+                    mismatches.append(i+j)
+                s2_aln[i+j] = s2[j]
+            else:
+                if s1[j].lower() == s2[i+j].lower():
+                    matches += 1
+                else:
+                    mismatches.append(i+j)
+                s1_aln[i+j] = s1[j]
+        try:
+            match_rate = matches / min_len
+        except ZeroDivisionError:
+            match_rate = 0.0
+        if match_rate > aln["match_rate"]:
+            aln["matches"]    = matches
+            aln["mismatches"] = mismatches
+            aln["match_rate"] = match_rate
+            aln["s1_aln"]     = "".join(s1_aln)
+            aln["s1_start"]   = s1_start
+            aln["s1_end"]     = s1_end
+            aln["s2_aln"]     = "".join(s2_aln)
+            aln["s2_start"]   = s2_start
+            aln["s2_end"]     = s2_end
+    return aln
+
+
 def fasta_headers_to_spades(fasta_dict, ordered=True):
     """
     Given a `fasta_dict` from the function `fasta_to_dict()`, transform MEGAHIT or SKESA headers
@@ -821,256 +901,784 @@ def fasta_headers_to_spades(fasta_dict, ordered=True):
         return fasta_dict, assembler
 
 
-def scipio_yaml_to_dict(yaml_path, min_identity, min_coverage, marker_type):
+def scipio_yaml_to_dict(yaml_path, min_identity, min_coverage, marker_type, transtable):
     """
-    Takes a Scipio's YAML output file 'yaml_path' and returns a dictionary of all the hits per
-    protein and their curated sequence
-    The function creates a new score based on Scipio's own score and the length of the hit
+    Process Scipio's YAML output, verify translation of each model, add extra aminoacid in gaps if
+    they can be translated
+
+    Parameters
+    ----------
+    yaml_path : Path
+        Path to Scipio's YAML path
+    min_identity : int
+        Filter model with at leas this percentage of identity to the reference protein
+    min_coverage : int
+        Filter model with at leas this percentage of coverage to the reference protein
+    marker_type : str
+        Protein origin: NUC, PTD, MIT
+    transtable : int
+        Translation table number
     """
 
-    def insert_shifts(seq_in, shifts_dict):
+    def load_scipio_yaml(yaml_path):
         """
-        Given a dictionary of the form {pos: "nn"}, loop the sequence and insert the values AFTER
-        the index coordinate
+        Load YAML output from Scipio, returns a dictionary
+
+        Parameters
+        ----------
+        yaml_path : Path or str
+            Path to the .yaml file from Scipio
+
+        Returns
+        -------
+        dict
+            A dictionary containing the YAML data
         """
-        seq_out = ""
-        for pos in range(len(seq_in)):
-            seq_out += seq_in[pos]
-            if pos in shifts_dict:
-                seq_out += shifts_dict[pos]
-        return seq_out
 
-    # Initialize variables before starting the loop along the YAML file
-    raw = {}  # raw models dictionary, need to be filtered by 'min_coverage' and 'min_identity' after
-    protein = ""
-    hit = 0
-    match_type = ""
-    overlapped = False
-    include = False
-    # Elements within target separated by ',' between targets by '\n'
-    hit_data = {
-        "ref_name": "",     # full name of reference protein sequence
-        "ref_size": 0,      # length of reference protein sequence
-        "ref_coords": "",   # interval(s) of protein matched
-        "hit_id": "",       # 'NUC', 'PTD', or 'MIT' followed by Scipio's ID(s)
-        "hit_contig": "",   # contig name(s) used in assembly
-        "hit_coords": "",   # matching interval(s) in hit(s)
-        "strand": "",       # strand(s)
-        "matches": 0,       # accumulated number of matches across targets
-        "mismatches": 0,    # accumulated number of mismatches across targets
-        "coverage": 0.0,    # reference coverage as ((matches + mismatches) / ref_size) * 100
-        "identity": 0.0,    # identity percentage as (matches / (matches + mismatches)) * 100
-        "score": 0.0,       # Scipio-like score as (matches - mismatches) / ref_size
-        "lwscore": 0.0,     # Scipio-like score multiplied by ((matches + mismatches) / ref_size)
-        "region": "",       # included here to match BLAT's data for non-coding extraction
-        "gapped": False,    # hit contains gaps with respect to reference
-        "seq_flanked": "",  # concatenation of contigs, overlaps merged or 50 'n's in between
-        "seq_gene": "",     # gene sequence excluding upstream and downstream regions
-        "seq_nt": "",       # concatenation of CDS in nucleotide (includes STOP codon)
-        "seq_aa": "",       # concatenation of CDS in aminoacid (STOP codon excluded)
-    }
+        nones = ["''", "~", "[]"]
+        seqshift = {
+            "nucl_start": None,
+            "nucl_end": None,
+            "dna_start": None,
+            "dna_end": None,
+            "prot_start": None,
+            "prot_end": None,
+        }
+        skeys = {
+            "          - nucl_start": "nucl_start",
+            "            nucl_end": "nucl_end",
+            "            dna_start": "dna_start",
+            "            dna_end": "dna_end",
+            "            prot_start": "prot_start",
+            "            prot_end": "prot_end",
+        }
+        matching = {
+            "type": None,
+            "nucl_start": None,
+            "nucl_end": None,
+            "dna_start": None,
+            "dna_end": None,
+            "seq": "",
+            "prot_start": None,
+            "prot_end": None,
+            "seqshifts": [],
+            "mismatchlist": [],
+            "undeterminedlist": [],
+            "inframe_stopcodons": [],
+            "translation": "",
+            "overlap": None,
+        }
+        mkeys = {
+            "      - type": "type",
+            "        nucl_start": "nucl_start",
+            "        nucl_end": "nucl_end",
+            "        dna_start": "dna_start",
+            "        dna_end": "dna_end",
+            "        seq": "seq",
+            "        prot_start": "prot_start",
+            "        prot_end": "prot_end",
+            "        seqshifts": "seqshifts",
+            "        mismatchlist": "mismatchlist",
+            "        undeterminedlist": "undeterminedlist",
+            "        inframe_stopcodons": "inframe_stopcodons",
+            "        translation": "translation",
+            "        overlap": "overlap",
+        }
+        hit = {
+            "ID": None,
+            "status": None,
+            "reason": "",
+            "prot_len": None,
+            "prot_start": None,
+            "prot_end": None,
+            "prot_seq": None,
+            "target": None,
+            "target_len": None,
+            "strand": None,
+            "dna_start": None,
+            "dna_end": None,
+            "matches": None,
+            "mismatches": None,
+            "undetermined": None,
+            "unmatched": None,
+            "additional": None,
+            "score": None,
+            "upstream": None,
+            "upstream_gap": None,
+            "matchings": [],
+            "stopcodon": None,
+            "downstream": None,
+            "downstream_gap": None,
+        }
+        hkeys = {
+            "  - ID": "ID",
+            "    status": "status",
+            "    reason": "reason",
+            "    prot_len": "prot_len",
+            "    prot_start": "prot_start",
+            "    prot_end": "prot_end",
+            "    prot_seq": "prot_seq",
+            "    target": "target",
+            "    target_len": "target_len",
+            "    strand": "strand",
+            "    dna_start": "dna_start",
+            "    dna_end": "dna_end",
+            "    matches": "matches",
+            "    mismatches": "mismatches",
+            "    undetermined": "undetermined",
+            "    unmatched": "unmatched",
+            "    additional": "additional",
+            "    score": "score",
+            "    upstream": "upstream",
+            "    upstream_gap": "upstream_gap",
+            "    matchings": "matchings",
+            "    stopcodon": "stopcodon",
+            "    downstream": "downstream",
+            "    downstream_gap": "downstream_gap",
+        }
 
-    # The processing loop for the YAML file starts here
-    with open(yaml_path) as yaml_in:
-        for line in yaml_in:
-            line = line.strip("\n")
-
-            # Skip empty and comment lines
-            if line and not line.startswith("---") and not line.startswith("#"):
-
-                # Lines with no indentation mark the start of each model
-                if not line.startswith(" "):
-
-                    # Only paralogs end in '_(1)', '_(2)', etc.  Since the best model doesn't have
-                    # a subindex we call it '0'. Extract 'protein' ignoring paralog subindex, and
-                    # set 'hit' to paralog subindex or to '0' for best model
-                    if "_(" in line:
-                        protein = line.split("_(")[0]
-                    else:
-                        protein = line.split(":")[0]
-
-                    # Add the protein hit to 'raw' dictionary
-                    if protein not in raw:
-                        raw[protein] = [dict(hit_data)] # first hit in list has index 0
-                    else:
-                        raw[protein].append(dict(hit_data)) # paralogs will have index > 0
-                    raw[protein][-1]["ref_name"] = protein
-
-                # Parse model info
-                if line.startswith("  "):
-                    if len(line.split(": ")) > 1:
-                        value = line.split(": ")[1]
-                        if value in ["~", "''"]:
-                            value = ""
-
-                    if line.startswith("  - ID:"):
-                        hit_id = value
-
-                    if line.startswith("    reason:"):
-                        if "gap" in line:
-                            gapped = True
-                        else:
-                            gapped = raw[protein][-1]["gapped"]
-
-                    if line.startswith("    prot_len:"):
-                        prot_len = int(value)
-
-                    if line.startswith("    prot_start:"):
-                        prot_start = abs(int(value))
-
-                    if line.startswith("    prot_end:"):
-                        include = False if abs(int(value)) < prot_start else True
-
-                    if include:
-                        if raw[protein][-1]["hit_id"] == "":
-                            raw[protein][-1]["hit_id"] = f"{marker_type}{hit_id}"
-                        else:
-                            raw[protein][-1]["hit_id"] += f"\n{marker_type}{hit_id}"
-
-                    if include:
-                        raw[protein][-1]["gapped"] = gapped
-
-                    if include:
-                        raw[protein][-1]["ref_size"] = prot_len
-
-                    if include and line.startswith("    target:"):
-                        target = value.split()[0].strip("'")
-                        if raw[protein][-1]["hit_contig"] == "":
-                            raw[protein][-1]["hit_contig"] = target
-                        else:
-                            raw[protein][-1]["hit_contig"] += f"\n{target}"
-                            raw[protein][-1]["ref_coords"] += "\n"
-                            raw[protein][-1]["hit_coords"] += "\n"
-                            if not overlapped:
-                                raw[protein][-1]["seq_flanked"] += set_a.SCIPIO_CONTIG_SEPARATOR
-                                raw[protein][-1]["seq_gene"] += set_a.SCIPIO_CONTIG_SEPARATOR
-
-                    if include and line.startswith("    strand:"):
-                        if raw[protein][-1]["strand"] == "":
-                            raw[protein][-1]["strand"] = value.strip("'")
-                        else:
-                            raw[protein][-1]["strand"] += f"""\n{value.strip("'")}"""
-
-                    if include and line.startswith("    matches:"):
-                        raw[protein][-1]["matches"] += int(value)
-
-                    if include and line.startswith("    mismatches:"):
-                        raw[protein][-1]["mismatches"] += int(value)
-                        raw[protein][-1]["coverage"] = (
-                            ((raw[protein][-1]["matches"] + raw[protein][-1]["mismatches"])
-                            / raw[protein][-1]["ref_size"]) * 100
-                        )
+        yaml = {}
+        with open(yaml_path, "rt") as yaml_in:
+            protein = ""
+            hit_num = ""
+            for line in yaml_in:
+                line = line.strip("\n")
+                if all([not line.startswith("#"), line !=  "---", line]):
+                    if not line.startswith(" "):
+                        protein = line.split("_(")[0] if "_(" in line else line.split(":")[0]
+                        hit_num = int(line.split("_(")[1].replace("):", "")) if "_(" in line else 0
+                    elif ": " in line:
+                        k, v = line.split(": ")[0], ": ".join(line.split(": ")[1:])
+                        if v in nones: continue
                         try:
-                            raw[protein][-1]["identity"] = (
-                                (raw[protein][-1]["matches"]
-                                / (raw[protein][-1]["matches"]
-                                    + raw[protein][-1]["mismatches"])) * 100
-                            )
-                        except ZeroDivisionError:
-                            raw[protein][-1]["identity"] = 0.0
-                        raw[protein][-1]["score"] = (
-                            (raw[protein][-1]["matches"] - raw[protein][-1]["mismatches"])
-                            / raw[protein][-1]["ref_size"]
-                        )
-                        raw[protein][-1]["lwscore"] = (
-                            raw[protein][-1]["score"] * (
-                                (raw[protein][-1]["matches"] + raw[protein][-1]["mismatches"])
-                                / raw[protein][-1]["ref_size"]
-                            )
-                        )
+                            v = int(v)
+                        except ValueError:
+                            try:
+                                v = float(v)
+                            except ValueError:
+                                if v == "'-'": v = "-"
+                                if v.startswith("["): v = [int(n) for n in v[1:-1].split(", ")]
+                        if k == "  - ID":
+                            if protein not in yaml:
+                                yaml[protein] = {hit_num: [copy.deepcopy(hit)]}
+                            else:
+                                if hit_num not in yaml[protein]:
+                                    yaml[protein][hit_num] = [copy.deepcopy(hit)]
+                                else:
+                                    yaml[protein][hit_num].append(copy.deepcopy(hit))
+                            yaml[protein][hit_num][-1][hkeys[k]] = v
+                        elif k in hkeys:
+                            yaml[protein][hit_num][-1][hkeys[k]] = v
+                        elif k == "      - type":
+                            yaml[protein][hit_num][-1][
+                                "matchings"].append(copy.deepcopy(matching))
+                            yaml[protein][hit_num][-1][
+                                "matchings"][-1][mkeys[k]] = v
+                        elif k in mkeys:
+                            yaml[protein][hit_num][-1][
+                                "matchings"][-1][mkeys[k]] = v
+                        elif k == "          - nucl_start":
+                            yaml[protein][hit_num][-1][
+                                "matchings"][-1][
+                                "seqshifts"].append(copy.deepcopy(seqshift))
+                            yaml[protein][hit_num][-1][
+                                "matchings"][-1][
+                                "seqshifts"][-1][skeys[k]] = v
+                        elif k in skeys:
+                            yaml[protein][hit_num][-1][
+                                "matchings"][-1][
+                                "seqshifts"][-1][skeys[k]] = v
+                    elif line.startswith("          - "):
+                        mm = int(line.replace("          - ", ""))
+                        yaml[protein][hit_num][-1][
+                            "matchings"][-1][
+                            "mismatchlist"].append(mm)
+        return yaml
 
-                    if include and line.startswith("    upstream:"):
-                        raw[protein][-1]["seq_flanked"] += value
+    def insert_shifts(mat: dict):
+        """
+        Scipio provides a list of sequence shifts, these include insertions of new aminoacids by
+        adding 3n nucleotides to specific positions, as well as insertion of single-Ns or double-Ns
+        in order to repair frameshifts. This functions inserts the proper number of Ns to
+        fix errors in translation due to shifts in reading frame.
 
-                    if include and line.startswith("    upstream_gap:"):
-                        raw[protein][-1]["seq_flanked"] += value
-                        # raw[protein][-1]["seq_gene"] += value
+        Parameters
+        ----------
+        mat : dict
+            Contains all the needed data for an exon (protein coordinates, contig coordinates,
+            translation, etc.), it follows Scipio's structure.
 
-                    if include and line.startswith("      - type:"):
-                        match_type = value.strip("?")
-                        if match_type == "exon":
-                            shifts_dict = {}
+        Returns
+        -------
+        str, str
+            First element of the tuple is the sequence with inserted shifts in nucleotides,
+            second element is its corresponding translation as it comes from Scipio.
+        """
+        translation_out = mat["translation"].strip("'")
+        seq_out = ""
+        inserts = {}
+        if mat["seqshifts"]:
+            for shift in mat["seqshifts"]:
+                shift_len = shift["dna_end"] - shift["dna_start"]
+                outside_codons = shift_len % 3
+                if outside_codons > 0:
+                    pos = shift["dna_start"] - mat["dna_start"] + shift_len - 1
+                    inserts[pos] = "N" * (3 - outside_codons)
+            for pos in range(len(mat["seq"])):
+                seq_out += mat["seq"][pos]
+                if pos in inserts: seq_out += inserts[pos]
+        else:
+            seq_out = mat["seq"]
+        if seq_out == "": translation_out = ""
+        return seq_out, translation_out
 
-                    if include and match_type == "exon" and line.startswith("        dna_start:"):
-                        exon_start = int(value)
-                        match_interval = value.strip("-")
+    def concat_cds(mod: dict):
+        """
+        Concatenate coding sequence in the model
 
-                    if include and match_type == "exon" and line.startswith("        dna_end:"):
-                        match_interval += f'-{value.strip("-")}'
-                        if (raw[protein][-1]["hit_coords"] == "" or
-                            raw[protein][-1]["hit_coords"].endswith("\n")):
-                            raw[protein][-1]["hit_coords"] += match_interval
+        Parameters
+        ----------
+        mod : dict
+            Gene model formatted by function parse_model()
+
+        Returns
+        -------
+        str, str
+            First element in tuple is concatenated sequence in nucleotide, second tuple item is
+            concatenated sequence in aminoacid as it comes from Scipio
+        """
+        cds_nt, cds_aa = "", ""
+        for i in range(len(mod["mat_types"])):
+            if mod["mat_types"][i] == "exon":
+                cds_nt += mod["mat_nt"][i]
+                cds_aa += mod["mat_aa"][i]
+        return cds_nt, cds_aa
+
+    def align_nt_to_aa(seq_nt: str, gencode: dict, seq_aa: str, stop_penalty=0.0):
+        """
+        Given a nucleotide `seq_nt` and an aminoacid sequence `seq_aa`, translate `seq_nt` using
+        `gencode` in the three positive reading frames, align the translations to `seq_aa`, and
+        determine the best alignment
+
+        Parameters
+        ----------
+        seq_nt : str
+            Sequence in nucleotide
+        gencode : dict
+            Genetic code, output from function genetic_code()
+        seq_aa : str
+            Sequence in aminoacid
+        stop_penalty : float, optional
+            Substract this number from the total matches for each stop codon in the translated
+            sequence, by default 0.0
+
+        Returns
+        -------
+        dict
+            Dictionary with the alignment information, including reading frame and number of
+            leading and trailing untranslated nucleotides
+        """
+        rfs  = {i: translate(seq_nt, gencode, frame=i, start_as_M=False) for i in [1,2,3]}
+        alns = {i: align_gapless(rfs[i], seq_aa) for i in rfs}
+        for rf in alns:
+            alns[rf]["matches"] -= (alns[rf]["s1_aln"].count("*")) * stop_penalty
+        rf, aln = max(alns.items(), key=(lambda x: x[1]["matches"])) # By GS
+        aln["rf"]    = rf
+        aln["lead"]  = rf - 1
+        aln["trail"] = (len(seq_nt) - aln["lead"]) % 3
+        return aln
+
+    def remove_leading(mod: dict, i: int, lead: int, aln: dict):
+        """
+        Remove leading untranslated nucleotides from exonic sequence, add them to the end of the
+        previous non-coding segment, and adjust match starting coordinate if needed
+
+        Parameters
+        ----------
+        mod : dict
+            Gene model formatted by function parse_model()
+        i : int
+            Current exon index in the model
+        lead : int
+            Number of leading nucleotides to remove
+        aln : dict
+            Alignment output from function align_nt_to_aa()
+
+        Returns
+        -------
+        dict
+            Modified gene model
+        """
+        non_coding = ["intron", "intron?", "gap", "upstream"]
+        if lead > 0:
+            # Remove leading bases from exonic nucleotide sequence
+            mod["hit_starts"][i] += lead
+            mod["mat_nt"][i] = mod["mat_nt"][i][lead:]
+            # Append removed bases to previous non-coding segment if in same contig
+            if (i > 0 and mod["mat_types"][i-1] in non_coding
+                and mod["hit_ids"][i] == mod["hit_ids"][i-1]):
+                mod["mat_nt"][i-1] += mod["mat_nt"][i][:lead]
+        # Remove initial extra aminoacid from translation if needed
+        if aln["s1_start"] > 0:
+            mod["ref_starts"][i] += aln["s1_start"]
+            mod["mat_aa"][i] = mod["mat_aa"][i][aln["s1_start"]:]
+        return mod
+
+    def remove_trailing(mod: dict, i: int, trail: int, aln: dict, mod_len: int):
+        """
+        Remove trailing untranslated nucleotides from exonic sequence, add them to the beggining of
+        the next non-coding segment, and adjust match ending coordinate if needed
+
+        Parameters
+        ----------
+        mod : dict
+            Gene model formatted by function parse_model()
+        i : int
+            Current exon index in the model
+        trail : int
+            Number of trailing nucleotides to remove
+        aln : dict
+            Alignment output from function align_nt_to_aa()
+        mod_len : int
+            Length of mod["hit_ids"]
+
+        Returns
+        -------
+        dict
+            Modified gene model
+        """
+        non_coding = ["intron", "intron?", "gap", "downstream"]
+        if trail > 0:
+            # Remove trailing bases from exonic nucleotide sequence
+            mod["hit_ends"][i] -= trail
+            mod["mat_nt"][i] = mod["mat_nt"][i][:-trail]
+            # Prepend removed bases to next non-coding segment if in same contig
+            if (i < mod_len - 1 and mod["mat_types"][i+1] in non_coding
+                and mod["hit_ids"][i] == mod["hit_ids"][i+1]):
+                mod["mat_nt"][i+1] = f'{mod["mat_nt"][i][-trail:]}{mod["mat_nt"][i+1]}'
+        # Remove final extra aminoacid from translation if needed
+        if aln["s1_end"] < aln["s2_end"]:
+            mod["ref_ends"][i] -= aln["s2_end"] - aln["s1_end"]
+            mod["mat_aa"][i] = mod["mat_aa"][i][:aln["s1_end"]]
+        return mod
+
+    def fix_model(mod: dict, gencode: dict, max_mismatches: int):
+        """
+        When translation of concatenated exons does not match the translation given by Scipio, we
+        need to check every exon for inconsistencies like extra dangling nucleotides that break the
+        reading frame
+
+        Parameters
+        ----------
+        mod : dict
+            Gene model formatted by function parse_model()
+        gencode : dict
+            Genetic code, output from function genetic_code()
+        max_mismatches : int
+            Maximum mismatches allowed between Scipio's and Captus' translation
+
+        Returns
+        -------
+        dict
+            Modified gene model
+        """
+        mod_len = len(mod["mat_types"])
+
+        # 1. Fix cases where Scipio's translation is longer than possible given the exon seq
+        for i in range(mod_len):
+            if mod["mat_types"][i] == "exon":
+                aln = align_nt_to_aa(mod["mat_nt"][i], gencode, mod["mat_aa"][i])
+
+                if aln["s1_start"] > 0:
+                    start_aa = aln["s1_start"] - 1 if aln["lead"] > 1 else aln["s1_start"]
+                    mod["mat_aa"][i] = mod["mat_aa"][i][start_aa:]
+
+                if aln["s2_end"] - aln["s1_end"] > 0:
+                    end_aa = aln["s1_end"] + 1 if aln["trail"] > 1 else aln["s1_end"]
+                    mod["mat_aa"][i] = mod["mat_aa"][i][:end_aa]
+        cds_nt, cds_aa = concat_cds(mod)
+        if translate(cds_nt, gencode, frame=1, start_as_M=False) == cds_aa:
+            return mod
+
+        # 2. Fix dangling nucleotides in exons when gaps are found, fixes coordinates as well
+        for i in range(mod_len):
+            if mod["mat_types"][i] == "exon":
+                if "gap before" in mod["mat_notes"][i]:
+                    aln = align_nt_to_aa(mod["mat_nt"][i], gencode, mod["mat_aa"][i])
+                    mod = remove_leading(mod, i, aln["lead"], aln)
+
+                if "gap after" in mod["mat_notes"][i]:
+                    aln = align_nt_to_aa(mod["mat_nt"][i], gencode, mod["mat_aa"][i])
+                    mod = remove_trailing(mod, i, aln["trail"], aln, mod_len)
+        cds_nt, cds_aa = concat_cds(mod)
+        if translate(cds_nt, gencode, frame=1, start_as_M=False) == cds_aa:
+            return mod
+
+        # 3. Remove extra dangling bases that break reading frame
+        last_trail = None
+        last_exon = None
+        for i in range(mod_len):
+            if mod["mat_types"][i] == "exon":
+                aln = align_nt_to_aa(mod["mat_nt"][i], gencode, mod["mat_aa"][i])
+                # Remove extra leading nucleotides/aminoacids from first exon
+                if last_exon is None:
+                    if aln["lead"] > 0:
+                        mod = remove_leading(mod, i, aln["lead"], aln)
+                # Continue with remaining exons
+                else:
+                    if last_trail + aln["lead"] in [0, 3]:
+                        pass
+                    elif last_trail == 0 and aln["lead"] in [1, 2]:
+                        mod = remove_leading(mod, i, aln["lead"], aln)
+                    elif last_trail == 1 and aln["lead"] in [0, 1]:
+                        last_aln = align_nt_to_aa(mod["mat_nt"][last_exon], gencode,
+                                                  mod["mat_aa"][last_exon])
+                        mod = remove_trailing(mod, last_exon, last_trail, last_aln, mod_len)
+                        mod = remove_leading(mod, i, aln["lead"], aln)
+                    elif last_trail == 2:
+                        if aln["lead"] == 0:
+                            last_aln = align_nt_to_aa(mod["mat_nt"][last_exon], gencode,
+                                                      mod["mat_aa"][last_exon])
+                            mod = remove_trailing(mod, last_exon, last_trail, last_aln, mod_len)
+                        elif aln["lead"] == 2:
+                            last_aln = align_nt_to_aa(mod["mat_nt"][last_exon], gencode,
+                                                      mod["mat_aa"][last_exon])
+                            # If last exon has an extra terminal aminoacid
+                            if last_aln["s1_end"] < last_aln["s2_end"]:
+                                # Trim a single base from the start of current exon
+                                mod = remove_leading(mod, i, 1, aln)
+                            # If last exon has two extra bp but not extra amino
+                            else:
+                                # Trim a single base from the end of last exon
+                                mod = remove_trailing(mod, last_exon, 1, last_aln, mod_len)
+                aln = align_nt_to_aa(mod["mat_nt"][i], gencode, mod["mat_aa"][i])
+                last_trail = aln["trail"]
+                last_exon = i
+
+        cds_nt, cds_aa = concat_cds(mod)
+        cds_nt_translated = translate(cds_nt, gencode, frame=1, start_as_M=False)
+        if cds_nt_translated == cds_aa:
+            return mod
+        else:
+            aln = align_gapless(cds_nt_translated, cds_aa)
+            mismatches = (len(aln["mismatches"])
+                          - sum(aln["s2_aln"][i] == "X" for i in aln["mismatches"]))
+            if max_mismatches >= mismatches:
+                return mod
+            else:
+                return None
+
+    def check_gaps_and_concat_seqs(mod, gencode, min_matches=1):
+        last_exon = None
+        for i in range(len(mod["mat_types"])):
+            if mod["mat_types"][i] == "upstream":
+                mod["seq_flanked"] += mod["mat_nt"][i].lower()
+            if mod["mat_types"][i] == "exon":
+                if last_exon is not None: # if this is the first exon
+                    if ("gap before" in mod["mat_notes"][i]
+                        and "gap after" in mod["mat_notes"][last_exon]):
+                        gap_len = mod["ref_starts"][i] - mod["ref_ends"][last_exon]
+                        mod["seq_nt"] += "n" * 3 * gap_len
+                mod["seq_flanked"] += mod["mat_nt"][i].upper()
+                mod["seq_gene"] += mod["mat_nt"][i].upper()
+                mod["seq_nt"] += mod["mat_nt"][i].upper()
+                last_exon = i
+            if mod["mat_types"][i] == "gap":
+                if (len(mod["mat_nt"][i]) > 2
+                    and mod["mat_types"][i-1] == mod["mat_types"][i+1] == "exon"
+                    and mod["hit_ids"][i-1] == mod["hit_ids"][i] == mod["hit_ids"][i+1]):
+                    ref_seq = mod["ref_seqs"][mod["hit_ids"][i]]
+                    s = max(mod["ref_ends"][i-1] - ref_seq[1] - 1, 0)
+                    e = min(mod["ref_starts"][i+1] - ref_seq[1] + 1, len(ref_seq[0]))
+                    aln = align_nt_to_aa(mod["mat_nt"][i],
+                                         gencode,
+                                         ref_seq[0][s:e],
+                                         stop_penalty=1.1)
+                    lead, trail = aln["lead"], aln["trail"]
+                    if (not "*" in aln["s1_aln"]
+                        and
+                        ((0 in [lead, trail] and aln["matches"] >= min_matches)
+                         or
+                         (0 not in [lead, trail] and aln["matches"] > min_matches))):
+                        if trail > 0:
+                            seq_chunks = [f'{mod["mat_nt"][i][:lead].lower()}',
+                                          f'{mod["mat_nt"][i][lead:-trail].upper()}',
+                                          f'{mod["mat_nt"][i][-trail:].lower()}']
                         else:
-                            raw[protein][-1]["hit_coords"] += f",{match_interval}"
+                            seq_chunks = [f'{mod["mat_nt"][i][:lead].lower()}',
+                                          f'{mod["mat_nt"][i][lead:].upper()}']
+                        mod["seq_flanked"] += "".join(seq_chunks)
+                        mod["seq_gene"] += "".join(seq_chunks)
+                        mod["seq_nt"] += seq_chunks[1]
+                        mod["ref_starts"][i] = max(mod["ref_ends"][i-1] + aln["s1_start"] - 1,
+                                                   mod["ref_ends"][i-1])
+                        mod["ref_ends"][i] = min(len(seq_chunks[1]) // 3 + mod["ref_starts"][i],
+                                                 mod["ref_ends"][i+1])
+                        mod["hit_starts"][i] = mod["hit_ends"][i-1] + lead
+                        mod["hit_ends"][i] = mod["hit_starts"][i+1] - trail
+                        mod["mat_notes"][i] += "/translated"
+                    else:
+                        mod["seq_flanked"] += mod["mat_nt"][i].lower()
+                        mod["seq_gene"] += mod["mat_nt"][i].lower()
+                else:
+                    mod["seq_flanked"] += mod["mat_nt"][i].lower()
+                    mod["seq_gene"] += mod["mat_nt"][i].lower()
+            if mod["mat_types"][i] in ["intron", "intron?", "separator"]:
+                mod["seq_flanked"] += mod["mat_nt"][i].lower()
+                mod["seq_gene"] += mod["mat_nt"][i].lower()
+            if mod["mat_types"][i] == "stopcodon":
+                mod["seq_flanked"] += mod["mat_nt"][i].upper()
+                mod["seq_gene"] += mod["mat_nt"][i].upper()
+            if mod["mat_types"][i] == "downstream":
+                mod["seq_flanked"] += mod["mat_nt"][i].lower()
+        mod["seq_aa"] = translate(mod["seq_nt"], gencode, frame=1, start_as_M=False)
+        return mod
 
-                    if include and match_type == "exon" and line.startswith("        prot_start:"):
-                        prot_interval = value
+    def concat_coords(ids: list, starts: list, ends: list):
+        coords = ""
+        last_exon = None
+        for i in range(len(ids)):
+            if starts[i] is not None:
+                coord = f'{abs(starts[i])}-{abs(ends[i])}'
+                if last_exon is None:
+                    coords += coord
+                else:
+                    if ids[i] == ids[last_exon]:
+                        coords += f',{coord}'
+                    else:
+                        coords += f'\n{coord}'
+                last_exon = i
+        return coords
 
-                    if include and match_type == "exon" and line.startswith("        prot_end:"):
-                        prot_interval += f"-{value}"
-                        if (raw[protein][-1]["ref_coords"] == "" or
-                            raw[protein][-1]["ref_coords"].endswith("\n")):
-                            raw[protein][-1]["ref_coords"] += prot_interval
-                        else:
-                            raw[protein][-1]["ref_coords"] += f",{prot_interval}"
+    def parse_model(
+        yaml_mod: dict, protein_name: str, marker_type: str, gencode: dict, max_mismatches: int
+        ):
+        """
+        A gene model is composed by several sequence matchings (e.g. exons, introns, etc.) which can
+        be found across several contigs. This function organizes all relevant matching across
+        multiple contigs in a dictionary of lists for easy manipulation.
 
-                    if include and line.startswith("        seq:"):
-                        if match_type == "intron" or match_type == "gap":
-                            raw[protein][-1]["seq_flanked"] += value
-                            raw[protein][-1]["seq_gene"] += value
-                        if match_type == "exon":
-                            exon_raw_seq = value
+        Parameters
+        ----------
+        mod : dict
+            Gene model directly imported from Scipio's YAML output
+        protein_name : str
+            Name of protein sequence used as reference
+        marker_type : str
+            NUC, PTD, or PTD
 
-                    if include and match_type == "exon" and line.startswith("            dna_start:"):
-                        shift_start = int(value)
-                    if include and match_type == "exon" and line.startswith("            dna_end:"):
-                        shift_end = int(value)
-                        if (shift_end - shift_start) % 3 > 0:
-                            shifts_dict[shift_start - exon_start - 1] = (
-                                (3 - (shift_end - shift_start)) * "N"
-                            )
+        Returns
+        -------
+        [type]
+            Model data parsed as a dictionary
+        """
 
-                    if include and line.startswith("        translation:"):
-                        raw[protein][-1]["seq_aa"] += value.strip("'")
-                        if shifts_dict:
-                            exon_seq = insert_shifts(exon_raw_seq, shifts_dict).upper()
-                        else:
-                            exon_seq = exon_raw_seq.upper()
-                        raw[protein][-1]["seq_flanked"] += exon_seq
-                        raw[protein][-1]["seq_gene"] += exon_seq
-                        raw[protein][-1]["seq_nt"] += exon_seq
-                        shifts_dict = {}
+        # This is the dictionary structure for containing the gene model:
+        mod = {
+            "ref_name":    "",    # full name of protein sequence used as reference
+            "ref_seqs":    {},    # segments of reference protein matched, with start and end coords
+            "ref_size":    0,     # length of protein sequence used as reference
+            "ref_coords":  "",    # reference protein matching intervals
+            "ref_starts":  [],    # 'prot_start' per accepted exon matching
+            "ref_ends":    [],    # 'prot_end' per accepted exon matching
+            "hit_ids":     [],    # NUC, PTD, or MIT followed by Scipio's hit 'ID'(s)
+            "hit_contigs": [],    # accepted 'target' names (= contig names in assembly)
+            "hit_coords":  "",    # matching intervals per 'target'
+            "hit_starts":  [],    # 'dna_start' for each accepted exon
+            "hit_ends":    [],    # 'dna_end' for each accepted exon
+            "mat_types":   [],    # 'type' of each 'matching' across 'target'(s)
+            "mat_notes":   [],    # info about the 'matching', e.g.: exon followed by gap
+            "mat_nt":      [],    # 'seq' in nucleotides for each accepted 'matching'
+            "mat_aa":      [],    # 'translation' in aminoacids for each accepted exon
+            "strand":      [],    # 'strand' matched per 'target'
+            "matches":     [],    # number of aminoacid matches per 'target'
+            "mismatches":  [],    # number of aminoacid mismatches per 'target'
+            "coverage":    0.0,   # (matches + mismatches) / ref_size * 100
+            "identity":    0.0,   # matches / (matches + mismatches) * 100
+            "score":       0.0,   # (matches - mismatches) / ref_size
+            "lwscore":     0.0,   # score * (matches + mismatches) / ref_size
+            "gapped":      False, # recovered protein has gaps with respect to the reference
+            "seq_flanked": "",    # concatenation of 'mat_nt'
+            "seq_gene":    "",    # 'seq_flanked' without 'upstream' or 'downstream' nucleotides
+            "seq_nt":      "",    # concatenation of 'mat_nt' only for exons
+            "seq_aa":      "",    # concatenation of 'mat_aa'
+        }
+        add_separator = False
 
-                    if include and line.startswith("        overlap:"):
-                        overlapped = bool(value)
+        for ctg in yaml_mod: # ctg = contig (gene models can span several contigs)
+            if ctg["prot_start"] < ctg["prot_end"]: # only accept protein stretches longer than 0 bp
+                ref_starts = []
+                ref_ends =   []
+                hit_ids =    []
+                hit_starts = []
+                hit_ends =   []
+                mat_types =  []
+                mat_notes =  []
+                mat_nt =     []
+                mat_aa =     []
+                mismatches = []
+                has_overlap =  False
+                hit_id = f'{marker_type}{ctg["ID"]}'
+                if add_separator:
+                    ref_starts.append(None)
+                    ref_ends.append(None)
+                    hit_ids.append(None)
+                    hit_starts.append(None)
+                    hit_ends.append(None)
+                    mat_types.append("separator")
+                    mat_notes.append("separator")
+                    mat_nt.append(set_a.SCIPIO_CONTIG_SEPARATOR)
+                    mat_aa.append(None)
+                if ctg["upstream"]:
+                    ref_starts.append(None)
+                    ref_ends.append(None)
+                    hit_ids.append(hit_id)
+                    hit_starts.append(None)
+                    hit_ends.append(None)
+                    mat_types.append("upstream")
+                    mat_notes.append("upstream")
+                    mat_nt.append(ctg["upstream"])
+                    mat_aa.append(None)
+                exons_in_ctg = sum(mat["type"] == "exon" for mat in ctg["matchings"])
+                current_exon = 0
+                for mat in ctg["matchings"]:
+                    if mat["type"] == "exon":
+                        mat["seq"], mat["translation"] = insert_shifts(mat)
+                        current_exon += 1
+                        note = ""
+                        if (current_exon == 1
+                            and "gap to querystart" in ctg["reason"]):
+                            note += "gap before/"
+                        if (current_exon == 1
+                            and "gap to previous hit" in ctg["reason"]):
+                            note += "gap before/"
+                        if (current_exon == exons_in_ctg
+                            and "gap to next hit" in ctg["reason"]):
+                            note += "gap after/"
+                        if (current_exon == exons_in_ctg
+                            and "gap to queryend" in ctg["reason"]):
+                            note += "gap after/"
+                        if mat["seq"]:
+                            ref_starts.append(mat["prot_start"])
+                            ref_ends.append(mat["prot_end"])
+                            hit_ids.append(hit_id)
+                            hit_starts.append(mat["dna_start"])
+                            hit_ends.append(mat["dna_end"])
+                            mat_types.append("exon")
+                            mat_notes.append(note)
+                            mat_nt.append(mat["seq"])
+                            mat_aa.append(mat["translation"])
+                            mismatches += mat["mismatchlist"]
+                            if mat["overlap"]: has_overlap = True
+                    else:
+                        ref_starts.append(None)
+                        ref_ends.append(None)
+                        hit_ids.append(hit_id)
+                        hit_starts.append(None)
+                        hit_ends.append(None)
+                        mat_types.append(mat["type"])
+                        mat_notes.append(mat["type"])
+                        mat_nt.append(mat["seq"])
+                        mat_aa.append(None)
+                if ctg["stopcodon"]:
+                    ref_starts.append(None)
+                    ref_ends.append(None)
+                    hit_ids.append(hit_id)
+                    hit_starts.append(None)
+                    hit_ends.append(None)
+                    mat_types.append("stopcodon")
+                    mat_notes.append("stopcodon")
+                    mat_nt.append(ctg["stopcodon"])
+                    mat_aa.append(None)
+                if ctg["downstream"]:
+                    ref_starts.append(None)
+                    ref_ends.append(None)
+                    hit_ids.append(hit_id)
+                    hit_starts.append(None)
+                    hit_ends.append(None)
+                    mat_types.append("downstream")
+                    mat_notes.append("downstream")
+                    mat_nt.append(ctg["downstream"])
+                    mat_aa.append(None)
+                if "exon" in mat_types:
+                    mod["ref_name"]         = protein_name
+                    mod["ref_seqs"][hit_id] = (ctg["prot_seq"],
+                                               ctg["prot_start"],
+                                               ctg["prot_end"])
+                    mod["ref_size"]         = ctg["prot_len"]
+                    mod["ref_starts"]      += ref_starts
+                    mod["ref_ends"]        += ref_ends
+                    mod["hit_ids"]         += hit_ids
+                    mod["hit_contigs"]     += [ctg["target"]]
+                    mod["hit_starts"]      += hit_starts
+                    mod["hit_ends"]        += hit_ends
+                    mod["mat_types"]       += mat_types
+                    mod["mat_notes"]       += mat_notes
+                    mod["mat_nt"]          += mat_nt
+                    mod["mat_aa"]          += mat_aa
+                    mod["strand"]          += [ctg["strand"]]
+                    mod["matches"]         += [ctg["matches"]]
+                    mod["mismatches"]      += mismatches
+                    add_separator = False if has_overlap else True
 
-                    if include and line.startswith("    stopcodon:"):
-                        raw[protein][-1]["seq_flanked"] += value.upper()
-                        raw[protein][-1]["seq_gene"] += value.upper()
-                        raw[protein][-1]["seq_nt"] += value.upper()
+        mod = fix_model(mod, gencode, max_mismatches)
+        if not mod: return None
 
-                    if include and line.startswith("    downstream:"):
-                        raw[protein][-1]["seq_flanked"] += value
+        prot_len_before_gap_check = sum(len(mod["mat_aa"][i])
+                                        for i in range(len(mod["mat_types"]))
+                                        if mod["mat_types"][i] == "exon")
+        mod = check_gaps_and_concat_seqs(mod, gencode, min_matches=set_a.SCIPIO_MIN_GAP_MATCHES)
+        mod["ref_coords"] = concat_coords(mod["hit_ids"], mod["ref_starts"], mod["ref_ends"])
+        mod["hit_coords"] = concat_coords(mod["hit_ids"], mod["hit_starts"], mod["hit_ends"])
+        mod["hit_ids"]    = "\n".join(list(dict.fromkeys(list(filter(None, mod["hit_ids"])))))
+        mod["hit_contigs"] = "\n".join(mod["hit_contigs"])
+        mod["strand"]     = "\n".join(mod["strand"])
+        prot_len_after_gap_check = len(mod["seq_nt"].replace("n", "")) // 3
+        mismatch_ratio = len(set(mod["mismatches"])) / prot_len_before_gap_check
+        mismatches = mismatch_ratio * prot_len_after_gap_check
+        matches = prot_len_after_gap_check - mismatches
+        mod["coverage"]   = (matches + mismatches) / mod["ref_size"] * 100
+        mod["identity"]   = matches / (matches + mismatches) * 100
+        mod["score"]      = (matches - mismatches) / mod["ref_size"]
+        mod["lwscore"]    = mod["score"] * (matches + mismatches) / mod["ref_size"]
+        mod["gapped"]     = bool("gap" in "".join(mod["mat_notes"]))
+        return mod
 
-                    if include and line.startswith("    downstream_gap:"):
-                        raw[protein][-1]["seq_flanked"] += value
-                        # raw[protein][-1]["seq_gene"] += value
 
-    models = {}  # for models filtered by 'min_coverage' and 'min_identity'
-    for protein in raw:
-        accepted_hits = []
-        for hit in raw[protein]:
-            if hit["identity"] >= min_identity and hit["coverage"] >= min_coverage:
-                accepted_hits.append(hit)
-        if accepted_hits:
-            models[protein] = accepted_hits
-    raw = None
+    gencode = genetic_code(transtable)
+    yaml = load_scipio_yaml(yaml_path)
+    unfiltered_models = {}
+    for prot in yaml: # prot = protein (reference protein)
+        for yaml_mod in yaml[prot]: # yaml_mod = gene model (hit, or paralog)
+            mod = parse_model(yaml[prot][yaml_mod],
+                              prot,
+                              marker_type,
+                              gencode,
+                              set_a.SCIPIO_MAX_MISMATCHES)
+            if mod:
+                if prot in unfiltered_models:
+                    unfiltered_models[prot][yaml_mod] = mod
+                else:
+                    unfiltered_models[prot] = {yaml_mod: mod}
+
+    # Filter models by 'min_identity' and 'min_coverage'
+    filtered_models = {}
+    for protein in unfiltered_models:
+        accepted_models = []
+        for model in unfiltered_models[protein]:
+            if (unfiltered_models[protein][model]["identity"] >= min_identity
+                and unfiltered_models[protein][model]["identity"] >= min_coverage):
+                accepted_models.append(unfiltered_models[protein][model])
+        if accepted_models:
+            accepted_models = sorted(accepted_models, key=lambda i: i["lwscore"], reverse=True)
+            filtered_models[protein] = accepted_models
+    unfiltered_models = None
 
     # Separate reference protein names formatted like in the Angiosperms353.FAA file to get
     # the name of the protein cluster only when EVERY reference protein has the
     # 'set_a.REFERENCE_CLUSTER_SEPARATOR'
     refs_have_separators = True
-    for protein in models:
+    for protein in filtered_models:
         if set_a.REFERENCE_CLUSTER_SEPARATOR not in protein:
             refs_have_separators = False
             break
@@ -1078,19 +1686,19 @@ def scipio_yaml_to_dict(yaml_path, min_identity, min_coverage, marker_type):
     # Keep only the best hit 'models[protein][0]' with highest score and its paralogs for each
     # protein cluster. Check 'settings_assembly.py' for a more detailed description of how to
     # format your protein reference files under 'REFERENCE_CLUSTER_SEPARATOR'
-    if models:
+    if filtered_models:
         best_models = {}
-        for protein in models:
+        for protein in filtered_models:
             if refs_have_separators:
                 protein_cluster = protein.split(set_a.REFERENCE_CLUSTER_SEPARATOR)[-1]
             else:
                 protein_cluster = protein
             if protein_cluster not in best_models:
-                best_models[protein_cluster] = models[protein]
+                best_models[protein_cluster] = filtered_models[protein]
             else:
-                if models[protein][0]["lwscore"] > best_models[protein_cluster][0]["lwscore"]:
-                    best_models[protein_cluster] = models[protein]
-        models = None
+                if filtered_models[protein][0]["lwscore"] > best_models[protein_cluster][0]["lwscore"]:
+                    best_models[protein_cluster] = filtered_models[protein]
+        filtered_models = None
         return best_models
     else:
         return None
@@ -1213,8 +1821,8 @@ def blat_misc_dna_psl_to_dict(psl_path, target_dict, min_identity, min_coverage,
                 "ref_name": path[0]["ref_name"],        # full name of non-coding reference sequence
                 "ref_size": path[0]["ref_size"],           # length of non-coding reference sequence
                 "ref_coords": join_coords(path[0]["q_start"], path[0]["q_end"]),     # coords in ref
-                "hit_id": path[0]["hit_id"],                                    # 'DNA##' or 'CLR##'
-                "hit_contig": path[0]["hit_contig"],               # contig name(s) used in assembly
+                "hit_ids": path[0]["hit_id"],                                   # 'DNA##' or 'CLR##'
+                "hit_contigs": path[0]["hit_contig"],              # contig name(s) used in assembly
                 "hit_coords": join_coords(path[0]["t_start"], path[0]["t_end"]),   # coords in match
                 "strand": path[0]["strand"],                                     # contigs strand(s)
                 "matches": path[0]["matches"],                  # accumulated matches across targets
@@ -1253,8 +1861,8 @@ def blat_misc_dna_psl_to_dict(psl_path, target_dict, min_identity, min_coverage,
                 mismatch_props = [path[0]["mismatches"] / len(asm_hit["seq_gene"])]
                 score_corr = 1
                 for h in range(len(path) - 1):
-                    asm_hit["hit_id"] += f'\n{path[h + 1]["hit_id"]}'
-                    asm_hit["hit_contig"] += f'\n{path[h + 1]["hit_contig"]}'
+                    asm_hit["hit_ids"] += f'\n{path[h + 1]["hit_id"]}'
+                    asm_hit["hit_contigs"] += f'\n{path[h + 1]["hit_contig"]}'
                     asm_hit["hit_coords"] += (
                         f'\n{join_coords(path[h + 1]["t_start"], path[h + 1]["t_end"])}'
                     )
@@ -1527,26 +2135,29 @@ def write_gff3(hits, marker_type, out_gff_path):
         """
         Split coordinate pairs by segment and change coordinates to 1-based, closed system for GFF3
         """
-        changed_coords = []
-        for fragment in coords.split("\n"):
-            fragment_coords_strings = []
-            fragment_coords_tuples = []
-            for coord in fragment.split(","):
-                start, end = int(coord.split("-")[0]), int(coord.split("-")[1])
-                if start > end:
-                    fragment_coords_strings.append(f"{end + 1}-{start}")
-                    fragment_coords_tuples.append((f"{end + 1}", f"{start}"))
-                elif start == end:
-                    fragment_coords_strings.append(f"{start}-{end}")
-                    fragment_coords_tuples.append((f"{start}", f"{end}"))
+        try:
+            changed_coords = []
+            for fragment in coords.split("\n"):
+                fragment_coords_strings = []
+                fragment_coords_tuples = []
+                for coord in fragment.split(","):
+                    start, end = int(coord.split("-")[0]), int(coord.split("-")[1])
+                    if start > end:
+                        fragment_coords_strings.append(f"{end + 1}-{start}")
+                        fragment_coords_tuples.append((f"{end + 1}", f"{start}"))
+                    elif start == end:
+                        fragment_coords_strings.append(f"{start}-{end}")
+                        fragment_coords_tuples.append((f"{start}", f"{end}"))
+                    else:
+                        fragment_coords_strings.append(f"{start + 1}-{end}")
+                        fragment_coords_tuples.append((f"{start + 1}", f"{end}"))
+                if as_strings:
+                    changed_coords.append(",".join(fragment_coords_strings))
                 else:
-                    fragment_coords_strings.append(f"{start + 1}-{end}")
-                    fragment_coords_tuples.append((f"{start + 1}", f"{end}"))
-            if as_strings:
-                changed_coords.append(",".join(fragment_coords_strings))
-            else:
-                changed_coords.append(fragment_coords_tuples)
-        return changed_coords
+                    changed_coords.append(fragment_coords_tuples)
+            return changed_coords
+        except ValueError:
+            print(coords)
 
     if marker_type in ["NUC", "PTD", "MIT"]:
         source = urllib.parse.quote("Captus (Scipio)")
@@ -1567,8 +2178,8 @@ def write_gff3(hits, marker_type, out_gff_path):
                 h_name = urllib.parse.quote(f"{ref}|{h:02}")
                 gff.append(f"# {h_name}")
             ref_coords = split_coords(hits[ref][h]["ref_coords"], as_strings=True)
-            hit_ids = hits[ref][h]["hit_id"].split("\n")
-            hit_contigs = hits[ref][h]["hit_contig"].split("\n")
+            hit_ids = hits[ref][h]["hit_ids"].split("\n")
+            hit_contigs = hits[ref][h]["hit_contigs"].split("\n")
             hit_coords = split_coords(hits[ref][h]["hit_coords"])
             strands = hits[ref][h]["strand"].split("\n")
             score = f'{hits[ref][h]["score"]:.3f}'

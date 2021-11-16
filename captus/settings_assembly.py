@@ -135,7 +135,7 @@ MEGAHIT_MIN_RAM_B = 4 * 1024 ** 3
 
 # Presets for MEGAHIT assemblies of RNAseq and WGS
 MEGAHIT_PRESETS = {
-    "CAP": {
+    "HYB": {
         "k_list": "31,39,47,63,79,95,111,127,143,159,175",
         "min_count": 2,
         "prune_level": 2,
@@ -167,6 +167,14 @@ BLAT_MIN_RAM_B = 2 * 1024 ** 3
 
 # Separator in between contigs from the same Scipio's hit
 SCIPIO_CONTIG_SEPARATOR = "n" * 50
+
+# Minimum number of aminoacid matches need to add a segment flagged as 'gap' by Scipio but that
+# can be cleanly translated and incorporated into the recovered coding sequence
+SCIPIO_MIN_GAP_MATCHES = 1
+
+# Maximum number of mismatches between recovered protein as given by Scipio and the new translation
+# performed by Captus after checking and fixing the gene model
+SCIPIO_MAX_MISMATCHES = 3
 
 # Separator between sample and protein cluster for Scipio's reference proteins. For example,
 # Angiosperms353 uses a '-', meaning that anything before the '-' is the sample name and after the
@@ -308,16 +316,16 @@ SCIPIO_MAX_IDENTITY_DIV_CODE = 66
 # Basic Scipio setting that are genome-specific, more importantly make BLAT parameters more
 # restrictive in total assembly size and maximum intron sizes
 SCIPIO_GENOME_BASIC_SETTINGS = {
-    # Change here the settings for nuclear genes:
+    # Change here the initial settings for nuclear genes:
     "NUC": [
     ],
-    # Change here the settings for plastidial genes:
+    # Change here the initial settings for plastidial genes:
     "PTD": [
         "--region_size=0",
         "--blat_params=-maxIntron=2000",
         "--max_assemble_size=9000",
     ],
-    # Change here the settings for mitochondrial genes:
+    # Change here the initial settings for mitochondrial genes:
     "MIT": [
         "--region_size=0",
         "--blat_params=-maxIntron=9000",
@@ -328,15 +336,14 @@ SCIPIO_GENOME_BASIC_SETTINGS = {
 # Extra settings for the final round of Scipio according to the genome of the genes
 # Always keep 'gap_to_close' <= 21 or reconstruction of genes across several contigs breaks down
 SCIPIO_GENOME_EXTRA_SETTINGS = {
-    # Change here the settings for nuclear genes:
+    # Change here the final settings for nuclear genes:
     "NUC": [
         "--blat_params=-oneOff=1",
         "--blat_tilesize=6",
         "--exhaust_align_size=5000",
         "--exhaust_gap_size=500",
-        "--max_move_exon=10",
     ],
-    # Change here the settings for plastidial genes:
+    # Change here the final settings for plastidial genes:
     "PTD": [
         "--region_size=0",
         "--blat_params=-oneOff=1 -maxIntron=2000",
@@ -345,10 +352,9 @@ SCIPIO_GENOME_EXTRA_SETTINGS = {
         "--exhaust_gap_size=900",
         "--max_assemble_size=9000",
         "--min_intron_len=500",
-        "--max_move_exon=10",
         "--gap_to_close=120",
     ],
-    # Change here the settings for mitochondrial genes:
+    # Change here the final settings for mitochondrial genes:
     "MIT": [
         "--region_size=0",
         "--blat_params=-oneOff=1 -maxIntron=9000",
@@ -356,7 +362,6 @@ SCIPIO_GENOME_EXTRA_SETTINGS = {
         "--exhaust_align_size=9000",
         "--exhaust_gap_size=900",
         "--max_assemble_size=50000",
-        "--max_move_exon=10",
         "--gap_to_close=120",
     ],
 }
@@ -390,9 +395,9 @@ DNA_UP_DOWN_STREAM_BP = 1000
 # if HDD, it may improve with SSDs
 MAX_WRITING_INSTANCES = 16
 
-# Clustering identity percentage, if '--cl_min_identity' is left as 'auto' it becomes 98% of the
+# Clustering identity percentage, if '--cl_min_identity' is left as 'auto' it becomes 99% of the
 # '--dna_min_identity' value
-MMSEQS2_BLAT_DNA_IDENTITY_FACTOR = 0.98
+MMSEQS2_BLAT_DNA_IDENTITY_FACTOR = 0.99
 
 # Minimum clustering identity when set to 'auto'
 MMSEQS_MIN_AUTO_MIN_IDENTITY = 75
@@ -475,5 +480,6 @@ MAFFT_ALGORITHMS = {
     },
 }
 
-# Minimum of sequences allowed in an alignment
-MIN_SAMPLES_ALN = 3
+# Minimum of sequences allowed in an alignment, we use 4 to be able to use quartet decomposition
+# methods like SVDquartets or ASTRAL
+MIN_SAMPLES_ALN = 4

@@ -45,7 +45,7 @@ ___
 #### **`--sample_reads_target`**
 In case that you want to subsample a fixed amount of reads (e.g. if your FASTQ files have hundreds of millions of reads) you can indicate the number with this option. For example, `--sample_reads_target 10_000_000` will randomly sample 10 million reads (if single-end) or 10 million pairs (if paired-end).
 
-This argument is optional, the default is **0** (= no subsampling).
+This argument is optional, the default is **0** (no subsampling).
 ___
 ### *Output*
 ___
@@ -66,18 +66,12 @@ ___
 ___
 #### **`--k_list`**
 Comma-separated list (no spaces) of kmer sizes, all must be odd values in the range 15-255, in increments of at most 28. The final kmer size will be adjusted automatically so it never exceeds the mean read length of the sample by more than 31 (so don't worry if the largest kmer size in the default list seems too big for your read length).
-
-This argument is optional, the default is **31,39,47,63,79,95,111,127,143,159,175** (= optimized for hybridization capture and/or genome skimming data).
 ___
 #### **`--min_count`**
 Minimum contig depth (called multiplicity in MEGAHIT). Acceptable values are integers >= 1. If your FASTQ files have many tens of million reads, it is recommended to use `--min_count 3` or higher to avoid low-coverage contigs resulting from erroneous reads (the higher the sequencing depth, the higher the number of reads with errors that will get assembled into spurious contigs).
-
-This argument is optional, the default is **2**.
 ___
 #### **`--prune_level`**
 Prunning strength for low-coverage edges during graph cleaning. Increasing the value beyond 2 can speed up the assembly at the cost of losing low-depth contigs. Acceptable values are integers between 0 and 3.
-
-This argument is optional, the dedfault is **2**.
 ___
 #### **`--merge_level`**
 Thresholds for merging complex bubbles, the first number multiplied by the kmer size represents the maximum bubble length to merge, the second number represents the minimum similarity required to merge bubbles. For example, `--merge_level 20,0.97` at kmer 175 will merge any two paths of at least 175 bp x 20 (3500 bp) with a similarity >= 97%.
@@ -85,11 +79,12 @@ Thresholds for merging complex bubbles, the first number multiplied by the kmer 
 This argument is optional, the default is **20,0.95**.
 ___
 #### **`--preset`**
-We have optimized other MEGAHIT parameter combinations specific to high-coverage (>= 30x depth) `WGS` data or `RNA`-Seq data. These modes will only work well with at least 8 GB of RAM. If, in addition to a `preset`, you provide your own `k_list`, `min_count`, or `prune_level`, your settings take priority over the preset's.
+The default preset 'HYB' has optimized settings that work well with either hybridization capture or genome skimming data (or a combination of both). We have also optimized other MEGAHIT parameter combinations specific to high-coverage (>= 30x depth) `WGS` data or `RNA`-Seq data. These modes will only work well with at least 8 GB of RAM. If, in addition to a `preset`, you provide your own `k_list`, `min_count`, or `prune_level`, your settings take priority over the preset's.
+- `HYB` = `--k-list 31,39,47,63,79,95,111,127,143,159,175 --min-count 2 --prune-level 2`
 - `RNA` = `--k-list 27,47,67,87,107,127,147,167 --min-count 2 --prune-level 2`
-- `WGS` = `--k-list 31,39,51,71,91,111,131,151,171 --min-count 3 --prune-level 2`
+- `WGS` = `--k-list 31,39,49,69,89,109,129,149,169 --min-count 3 --prune-level 2`
 
-This argument is optional and has no default.
+This argument is optional, the default is **HYB**.
 ___
 #### **`--min_contig_len`**
 Minimum contig length in bp in output assembly.
@@ -113,4 +108,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-08-06)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-08-15)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-09-15)
