@@ -690,17 +690,17 @@ def build_qc_report(out_dir, qc_extras_dir):
     df = df_merged
 
     colorscale = [
-        [0,    "#5E4FA2"],
-        [0.01, "#3683BB"],
-        [0.05, "#5DB7A9"],
-        [0.1,  "#98D6A4"],
-        [0.2,  "#D1EC9C"],
-        [0.3,  "#F4FAAD"],
-        [0.4,  "#FFF1A7"],
-        [0.5,  "#FECE7C"],
-        [0.6,  "#FB9C59"],
-        [0.7,  "#EE6445"],
-        [1.0,  "#D0384E"],
+        [0,     "#5E4FA2"],
+        [0.002, "#3683BB"],
+        [0.006, "#5DB7A9"],
+        [0.01,  "#98D6A4"],
+        [0.05,  "#D1EC9C"],
+        [0.09,  "#F4FAAD"],
+        [0.2,   "#FFF1A7"],
+        [0.4,   "#FECE7C"],
+        [0.6,   "#FB9C59"],
+        [0.8,   "#EE6445"],
+        [1.0,   "#D0384E"],
         # [1,    "#9E0142"],
     ]
 
@@ -2245,6 +2245,7 @@ def build_alignment_report(out_dir, aln_stats_tsv):
                 .reset_index()
                 .fillna(0.5)
             )
+            data_norm["locus"] = data_norm["locus"].astype("object")
             data_pivot = data_pivot.reset_index().fillna("NaN")
             colors = []
             for col in data_norm.columns:
@@ -2315,6 +2316,7 @@ def build_alignment_report(out_dir, aln_stats_tsv):
                     .reset_index()
                     .fillna(0.5)
                 )
+                data_norm["locus"] = data_norm["locus"].astype("object")
                 data_pivot = data_pivot.reset_index().fillna("NaN")
                 value = [data_pivot[col] for col in data_pivot.columns]
                 values.append(value)

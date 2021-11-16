@@ -114,6 +114,7 @@ def align(full_command, args):
     log.log(f'{"Markers to collect":>{mar}}: {bold(markers)} {dim(markers_ignored)}')
     formats, formats_ignored = check_value_list(args.formats, settings.FORMAT_DIRS)
     log.log(f'{"Alignment formats":>{mar}}: {bold(formats)} {dim(formats_ignored)}')
+    log.log(f'{"Max. paralogs":>{mar}}: {bold(args.max_paralogs)}')
     log.log("")
     refs_paths = prepare_refs(args.captus_extractions_dir, mar)
     log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
@@ -123,7 +124,7 @@ def align(full_command, args):
     log.log("")
     log.log(make_output_dirtree(markers, formats, out_dir, settings.ALN_DIRS["UNAL"], mar))
     log.log("")
-    collect_extracted_markers(markers, formats, extracted_sample_dirs, out_dir,
+    collect_extracted_markers(markers, formats, args.max_paralogs, extracted_sample_dirs, out_dir,
                               settings.ALN_DIRS["UNAL"], refs_paths, args.overwrite, args.show_less)
     log.log("")
 
@@ -559,8 +560,7 @@ def check_value_list(input_values: str, valid_values: dict):
     else:
         checked = ",".join([v for v in input_values.upper().split(",") if v in valid_values])
         ignored = ",".join([v for v in input_values.split(",") if v.upper() not in valid_values])
-    if ignored:
-        ignored = f'(ignored values: {ignored})'
+    if ignored: ignored = f'(ignored values: {ignored})'
     return checked, ignored
 
 
@@ -674,7 +674,8 @@ def make_output_dirtree(markers, formats, out_dir, base_dir, margin):
 
 
 def collect_extracted_markers(
-    markers, formats, extracted_sample_dirs, out_dir, base_dir, refs_paths, overwrite, show_less
+    markers, formats, max_paralogs, extracted_sample_dirs, out_dir, base_dir, refs_paths,
+    overwrite, show_less
 ):
     # Collect markers from extraction folder
     source_files = [Path(settings.MARKER_DIRS[m], f"{m}{settings.FORMAT_SUFFIXES[f]}")
@@ -709,6 +710,7 @@ def collect_extracted_markers(
     for sample_dir in extracted_sample_dirs:
         collect_sample_markers_params.append([
             write_fastas,
+            max_paralogs,
             sample_dir,
             source_files,
             out_dirs,
@@ -760,7 +762,7 @@ def collect_extracted_markers(
                             "reference", show_less)
 
 
-def collect_sample_markers(write_fastas, sample_dir, source_files, out_dirs, overwrite):
+def collect_sample_markers(write_fastas, max_paralogs, sample_dir, source_files, out_dirs, overwrite):
     start = time.time()
     sample_name = sample_dir.parts[-1].replace("__captus-ext", "")
     markers_collected = []
@@ -777,15 +779,21 @@ def collect_sample_markers(write_fastas, sample_dir, source_files, out_dirs, ove
                 seq_name = seq_name_parts[0]
                 if len(seq_name_parts) == 3:
                     seq_name += f"|{seq_name_parts[2]}"
-                fasta_out = Path(destination, f"{marker_name}{source.suffix}")
-                if fasta_out in write_fastas:
-                    markers_collected.append(marker_name)
-                    fastas_created.append(str(fasta_out))
-                    dict_to_fasta({seq_name: dict(fasta_in[seq_name_full])}, fasta_out, append=True)
+                    paralog_rank = int(seq_name_parts[2])
                 else:
-                    messages.append(dim(
-                        f"'{Path(*fasta_out.parts[-4:])}': skipped (output FASTA already exists)"
-                    ))
+                    paralog_rank = 0
+                if paralog_rank < max_paralogs:
+                    fasta_out = Path(destination, f"{marker_name}{source.suffix}")
+                    if fasta_out in write_fastas:
+                        markers_collected.append(marker_name)
+                        fastas_created.append(str(fasta_out))
+                        dict_to_fasta({seq_name: dict(fasta_in[seq_name_full])},
+                                      fasta_out,
+                                      append=True)
+                    else:
+                        messages.append(dim(
+                            f"'{Path(*fasta_out.parts[-4:])}': skipped (output FASTA already exists)"
+                        ))
     messages = sorted(list(set(messages)))
     messages.append(
         f"'{sample_name}': {len(set(fastas_created))} FASTA files created for"
@@ -852,8 +860,7 @@ def adjust_mafft_concurrency(concurrent, threads_max):
             concurrent = int(concurrent)
         except ValueError:
             quit_with_error("Invalid value for '--concurrent', set it to 'auto' or use a number")
-    if concurrent > threads_max:
-        concurrent = min(threads_max, concurrent)
+    if concurrent > threads_max: concurrent = min(threads_max, concurrent)
     threads_per_alignment = threads_max // concurrent
     return concurrent, threads_per_alignment
 
@@ -1011,10 +1018,7 @@ def filter_paralogs_careful(shared_paralog_stats, fasta_model, fastas_paths, ove
     for seq in aln:
         if "query=" in aln[seq]["description"] and "hit=00" in aln[seq]["description"]:
             ref = aln[seq]["description"].split("query=")[1].split(":")[0]
-            if ref in refs:
-                refs[ref] += 1
-            else:
-                refs[ref] = 1
+            refs[ref] += 1 if ref in refs else 1
     best_ref_full_name = max(refs, key=refs.get)
     s = settings.REFERENCE_CLUSTER_SEPARATOR
     best_ref = s.join(best_ref_full_name.split(s)[:-1])
@@ -1056,8 +1060,7 @@ def filter_paralogs_careful(shared_paralog_stats, fasta_model, fastas_paths, ove
         accepted.append(max(samples_with_paralogs[sample], key=samples_with_paralogs[sample].get))
 
     for row in tsv:
-        if row[6] in accepted:
-            row[10] = f"{True}"
+        if row[6] in accepted: row[10] = f"{True}"
 
     shared_paralog_stats += tsv
     messages = []
@@ -1221,11 +1224,9 @@ def compute_aln_stats(shared_aln_stats, fasta_path):
 
     aln_marker, aln_format= "", ""
     for m in settings.MARKER_DIRS:
-        if fasta_path_parts[-3] == settings.MARKER_DIRS[m]:
-            aln_marker = m
+        if fasta_path_parts[-3] == settings.MARKER_DIRS[m]: aln_marker = m
     for f in settings.FORMAT_DIRS:
-        if fasta_path_parts[-2] == settings.FORMAT_DIRS[f]:
-            aln_format = f
+        if fasta_path_parts[-2] == settings.FORMAT_DIRS[f]: aln_format = f
 
     aln_stats = alignment_stats(fasta_path)
 

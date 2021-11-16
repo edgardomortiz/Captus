@@ -18,7 +18,7 @@ Path to the output directory from the `extract` command, (e.g. `03_extractions` 
 
 This argument is **required** <i class="fas fa-exclamation-triangle"></i>, the default is **./03_extractions/**
 ___
-#### **`-k, --markers`**
+#### **`-m, --markers`**
 Which type(s) of markers to align, you can provide a comma-separated list (no spaces). These are the available marker types:
 - `NUC` = **Nuc**lear proteins inside directories '01_coding_NUC'
 - `PTD` = **P**las**t**i**d**ial proteins inside directories '02_coding_PTD'
@@ -42,6 +42,11 @@ For each marker type, `Captus` creates several different formats. You can provid
 \* AA, NT, GE, and GF are valid only for NUC, PTD, and MIT markers, while MA and MF are valid only for DNA and CLR
 
 This argument is optional, the default is **AA,NT,GE,MA**
+___
+#### **`-p, --max_paralogs`**
+Maximum number of marker copies (paralogs) allowed per sample in an alignment. Large numbers of marker copies per sample can increase alignment times. Copies are ranked from best to worst during the extraction step, this number selects the top _n_ copies to align.
+
+This argument is optional, the default is **5**
 ___
 ### *Output*
 ___

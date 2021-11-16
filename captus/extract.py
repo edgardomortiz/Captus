@@ -1014,10 +1014,8 @@ def scipio_coding(
     initial_contigs = fasta_to_dict(target_path, ordered=True)
 
     # Set programs' paths in case of using the bundled versions
-    if scipio_path == "bundled":
-        scipio_path = settings.BUNDLED_SCIPIO
-    if blat_path == "bundled":
-        blat_path = settings.BUNDLED_BLAT
+    if scipio_path == "bundled": scipio_path = settings.BUNDLED_SCIPIO
+    if blat_path == "bundled": blat_path = settings.BUNDLED_BLAT
 
     # Group Scipio's basic parameters, the 'sample_dir', and the 'marker_type' into a list
     scipio_params = [
@@ -1048,7 +1046,7 @@ def scipio_coding(
         else:
             yaml_initial_dir = yaml_initial_file.parent
             initial_models = scipio_yaml_to_dict(yaml_initial_file, min_identity,
-                                                 min_coverage, marker_type)
+                                                 min_coverage, marker_type, transtable)
 
         # Parse YAML to subselect only the best proteins from the 'query' and the contigs with hits
         # from the assembly ('target')
@@ -1077,7 +1075,8 @@ def scipio_coding(
         return message
     else:
         yaml_final_dir = yaml_final_file.parent
-        final_models = scipio_yaml_to_dict(yaml_final_file, min_identity, min_coverage, marker_type)
+        final_models = scipio_yaml_to_dict(yaml_final_file, min_identity,
+                                           min_coverage, marker_type, transtable)
 
     # Parse final YAML to produce output FASTA files and reports
     if final_models is None:
@@ -1211,8 +1210,7 @@ def run_scipio_command(scipio_params, target, query, overwrite, stage):
                 subprocess.run(scipio_cmd, stdout=yaml_out, stderr=yaml_log)
 
         # Erase BLAT .psl files if 'keep_all' is disabled
-        if not scipio_params[8]:
-            blat_out_file.unlink()
+        if not scipio_params[8]: blat_out_file.unlink()
 
         return scipio_out_file
 
@@ -1230,7 +1228,7 @@ def filter_query_and_target(query_dict, target_dict, yaml_initial_dir, initial_m
         best_protein_name = initial_models[protein][0]["ref_name"]
         best_proteins[best_protein_name] = query_dict[best_protein_name]
         for h in range(len(initial_models[protein])):
-            for contig in initial_models[protein][h]["hit_contig"].split("\n"):
+            for contig in initial_models[protein][h]["hit_contigs"].split("\n"):
                 if contig not in hit_contigs:
                     hit_contigs[contig] = target_dict[contig]
     final_query = Path(yaml_initial_dir, f"{marker_type}_best_proteins.faa")
@@ -1278,7 +1276,8 @@ def write_fastas_and_report(
         num_loci += 1
         for h in range(len(hits[ref])):
 
-            length = hits[ref][h]["matches"] + hits[ref][h]["mismatches"]
+            # length = hits[ref][h]["matches"] + hits[ref][h]["mismatches"]
+            length = len(hits[ref][h]["seq_aa"])
             if h == 0:
                 lengths_best_hits.append(length)
                 coverages_best_hits.append(hits[ref][h]["coverage"])
@@ -1303,7 +1302,7 @@ def write_fastas_and_report(
             ref_coords = format_coords(hits[ref][h]["ref_coords"])
             query = (
                 f'|query={hits[ref][h]["ref_name"]}:{ref_coords}'
-                f'|contigs={hits[ref][h]["hit_contig"]}'.replace("\n", ";")
+                f'|contigs={hits[ref][h]["hit_contigs"]}'.replace("\n", ";")
             )
 
             shifts_flanked, shifts_gene, shifts_nt, shifts_aa = "", "", "", ""
@@ -1386,12 +1385,12 @@ def write_fastas_and_report(
                                     stats_row["intron_len"],
                                     f'{flanks_len}',
                                     stats_row["frameshifts"],
-                                    f'{hits[ref][h]["hit_contig"]}'.replace("\n", ";"),
+                                    f'{hits[ref][h]["hit_contigs"]}'.replace("\n", ";"),
                                     f'{hits[ref][h]["strand"]}'.replace("\n", ";"),
                                     format_coords(hits[ref][h]["hit_coords"]),
                                     ]))
 
-            for contig in hits[ref][h]["hit_contig"].split("\n"):
+            for contig in hits[ref][h]["hit_contigs"].split("\n"):
                 if contig not in hit_contigs:
                     hit_contigs[contig] = dict(target_dict[contig])
 
@@ -1481,8 +1480,7 @@ def blat_misc_dna(
     dna_target = fasta_to_dict(target)
 
     # Set BLAT path in case of using the bundled version
-    if blat_path == "bundled":
-        blat_path = settings.BUNDLED_BLAT
+    if blat_path == "bundled": blat_path = settings.BUNDLED_BLAT
 
     # Create output directory
     blat_dna_out_dir  = Path(sample_dir, settings.MARKER_DIRS[marker_type])
@@ -1609,8 +1607,7 @@ def cleanup_post_extraction(
                             if line != stats_header:
                                 tsv_out.write(line)
                                 tsv_lines += 1
-        if tsv_lines == 0:
-            tsv_out.unlink()
+        if tsv_lines == 0: tsv_out.unlink()
 
         # Write FASTAs of contigs with and without hits
         names_hit_contigs = []
@@ -1757,7 +1754,8 @@ def mmseqs2_cluster(
         "--gap-open", f"{max(1, clust_gap_open)}",
         "--gap-extend", f"{max(1, clust_gap_extend)}",
         "--kmer-per-seq-scale", f"{settings.MMSEQS2_KMER_PER_SEQ_SCALE}",
-        "--threads", f"{threads}"
+        "--threads", f"{threads}",
+        "--max-seq-len", f"{clust_max_seq_len}",
     ]
     mmseqs2_log_file = Path(clustering_dir, f"{files_prefix}.log")
     mmseqs2_thread = ElapsedTimeThread()
@@ -1769,8 +1767,7 @@ def mmseqs2_cluster(
     num_clusters = 0
     with open(Path(clustering_dir, f"{files_prefix}_rep_seq.fasta"), "r") as clusters:
         for line in clusters:
-            if line.startswith(">"):
-                num_clusters += 1
+            if line.startswith(">"): num_clusters += 1
     mmseqs2_thread.stop()
     mmseqs2_thread.join()
     print()

@@ -421,13 +421,20 @@ class CaptusAssembly(object):
             action="store",
             type=str,
             dest="preset",
-            help="B|The default preset is 'CAP', these settings work well with either hybridization"
-                 " capture or genome skimming data up to 10M reads. You can assemble RNA-Seq reads"
-                 " with preset 'RNA' or high-coverage Whole Genome Sequencing reads with preset 'WGS',"
-                 " but these settings require a minimum of 8GB of RAM to work well.\n"
-                 "CAP = --k-list 31,39,47,63,79,95,111,127,143,159,175 --min-count 2 --prune-level 2\n"
-                 "RNA = --k-list 27,47,67,87,107,127,147,167 --min-count 2 --prune-level 2\n"
-                 "WGS = --k-list 31,39,49,69,89,109,129,149,169 --min-count 3 --prune-level 2"
+            help="B|The default preset is 'HYB', these settings work well with either hybridization"
+                 " capture or genome skimming data (or a combination of both). You can assemble"
+                 " RNA-Seq reads with the 'RNA' preset or high-coverage Whole Genome Sequencing"
+                 " reads with the 'WGS' preset, however, both presets require a minimum of 8GB of"
+                 " RAM to work well (default: HYB)\n"
+                 f'HYB = --k-list {settings.MEGAHIT_PRESETS["HYB"]["k_list"]}'
+                 f' --min-count {settings.MEGAHIT_PRESETS["HYB"]["min_count"]}'
+                 f' --prune-level {settings.MEGAHIT_PRESETS["HYB"]["prune_level"]}\n'
+                 f'RNA = --k-list {settings.MEGAHIT_PRESETS["RNA"]["k_list"]}'
+                 f' --min-count {settings.MEGAHIT_PRESETS["RNA"]["min_count"]}'
+                 f' --prune-level {settings.MEGAHIT_PRESETS["RNA"]["prune_level"]}\n'
+                 f'WGS = --k-list {settings.MEGAHIT_PRESETS["WGS"]["k_list"]}'
+                 f' --min-count {settings.MEGAHIT_PRESETS["WGS"]["min_count"]}'
+                 f' --prune-level {settings.MEGAHIT_PRESETS["WGS"]["prune_level"]}\n'
         )
         megahit_group.add_argument(
             "--min_contig_len",
@@ -561,10 +568,11 @@ class CaptusAssembly(object):
             type=str,
             required=True,
             dest="captus_assemblies_dir",
-            help="Path to the output directory from the 'assemble' step of Captus-assembly. Within"
-                 " this directory, every '[Sample_name]__captus/01_assembly/assembly.fasta' file"
-                 " will be processed. This directory is called '02_assemblies' if you did not"
-                 " specify a different name during the 'assemble' step"
+            help="Path to an output directory from the 'assemble' step of Captus-assembly which is"
+                 " tipically called '02_assemblies'. If you DID NOT assemble any sample within"
+                 " Captus and want to start exclusivey with FASTAs assembled elsewhere, the path"
+                 " provided here will be created in order to contain your assemblies provided with"
+                 " '-f' into a proper directory structure needed by Captus"
         )
         input_group.add_argument(
             "-f", "--fastas",
@@ -575,8 +583,10 @@ class CaptusAssembly(object):
             help="B|FASTA assembly file(s) that were not assembled with Captus. Valid file name"
                  " extensions are: .fa, .fna, .fasta, .fa.gz, .fna.gz, .fasta.gz. These FASTA files"
                  " must contain only nucleotides (no aminoacids). All the text before the extension"
-                 " of the filename will be used as sample name. These FASTA files will be copied to"
-                 "' --captus_assemblies_dir'. There are a few ways to provide the FASTA files:\n"
+                 " of the filename will be used as sample name. These FASTAs will be automatically"
+                 " copied to the path provided with '-a'/'--captus_assemblies_dir' using the correct"
+                 " directory structure needed by Captus. There are a few ways to provide the FASTA"
+                 " files:\n"
                  "A directory = path to directory containing FASTA files (e.g.: -f ./my_fastas)\n"
                  "A list = filenames separated by space (e.g.: -f speciesA.fa speciesB.fasta.gz)\n"
                  "A pattern = UNIX matching expression (e.g.: -f ./my_fastas/*.fasta)"
@@ -989,7 +999,7 @@ class CaptusAssembly(object):
                  " you did not specify a different name during the 'assemble' or 'extract' steps"
         )
         input_group.add_argument(
-            "-k", "--markers",
+            "-m", "--markers",
             action="store",
             default="all",
             type=str,
@@ -1021,6 +1031,18 @@ class CaptusAssembly(object):
                  "MA = Matched sequences without flanking upstream or downstream basepairs\n"
                  "MF = Matched sequences with flanking upstream and downstream basepairs\n"
                  "ALL = Shortcut for AA,NT,GE,GF,MA,MF"
+        )
+        input_group.add_argument(
+            "-p", "--max_paralogs",
+             action="store",
+             default=5,
+             type=int,
+             dest="max_paralogs",
+             help="Maximum number of marker copies allowed per sample in an alignment. Large numbers"
+                  " of marker copies per sample can increase alignment times. Copies are ranked"
+                  " from best to worst during the extraction step, this number selects the top n"
+                  " copies to align"
+
         )
 
         output_group = parser.add_argument_group("Output")
