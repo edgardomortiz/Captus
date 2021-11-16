@@ -21,7 +21,7 @@ ___
 #### **`-f, --fastas`**
 With this option you can provide the location of your own FASTA assembly files, there are several ways to list them:
 
-- _**Directory:**_ the path to the directory containing your FASTA files assembled elsewhere. Thi will be the typical way to tell `Captus` which assemblies to import prior to marker extraction. All subdirectories will be searched for FASTA (`.fa`, `.fna`, `.fasta`, `.fa.gz`, `.fna.gz`, `.fasta.gz`) files in this case.
+- _**Directory:**_ the path to the directory containing your FASTA files assembled elsewhere. This will be the typical way to tell `Captus` which assemblies to import prior to marker extraction. All subdirectories will be searched for FASTA (`.fa`, `.fna`, `.fasta`, `.fa.gz`, `.fna.gz`, `.fasta.gz`) files in this case.
 
 - _**List of files:**_ you can also provide the individual path to each of your FASTA file separated by a single space. This is useful if you only want to analyze only a couple of samples within a directory with many other samples. Another use for lists is when your FASTA assembly files are located in different directories.
 
@@ -183,7 +183,7 @@ This identity threshold only affects the clustering used for the creation of the
 This argument is optional, the default is **auto** (= 98% of `dna_min_identity`).
 ___
 #### **`--cl_min_coverage`**
-For a sequence to be included in a cluster, this percentage of its length has to be matched by the longest sequence in the cluster [(Coverage Mode 1 in MMSeqs2)](https://github.com/soedinglab/MMseqs2/wiki#how-to-set-the-right-alignment-coverage-to-cluster). Accepted values are ny number betwen 0 and 100.
+For a sequence to be included in a cluster, this percentage of its length has to be matched by the longest sequence in the cluster [(Coverage Mode 1 in MMSeqs2)](https://github.com/soedinglab/MMseqs2/wiki#how-to-set-the-right-alignment-coverage-to-cluster). Accepted values are number between 0 and 100.
 
 This only affects the clustering used for the creation of the new reference of DNA markers, the actual marker extraction still depends of `dna_min_coverage`.
 
