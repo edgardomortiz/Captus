@@ -496,6 +496,7 @@ def extract(full_command, args):
         log.log(f'{"max_seq_len":>{mar}}: {bold(args.cl_max_seq_len)}')
         log.log(f'{"tmp_dir":>{mar}}: {bold(clust_tmp_dir)}')
         log.log("")
+        log.log(f'{"Min. locus length":>{mar}}: {bold(args.cl_min_len)}')
         log.log(f'{"Min. samples per cluster":>{mar}}: {bold(cl_min_samples)}')
         log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
         log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
@@ -518,19 +519,19 @@ def extract(full_command, args):
                 log.log("")
             else:
                 rehead_and_concatenate_fastas(fastas_to_cluster, clustering_dir,
-                                              clustering_input_file,
+                                              clustering_input_file, args.cl_max_seq_len,
                                               min(settings.MAX_WRITING_INSTANCES, threads_max),
                                               args.show_less)
             log.log("")
             log.log(bold("Clustering contigs across samples (this may take a while, please wait):"))
-            clust_prefix, num_clusters = mmseqs2_cluster(args.mmseqs2_path, clustering_input_file,
-                                                         clustering_dir, cl_min_identity,
-                                                         args.cl_min_coverage, args.cl_gap_open,
-                                                         args.cl_gap_extend, args.cl_max_seq_len,
-                                                         clust_tmp_dir, threads_max, args.keep_all)
+            clust_prefix = mmseqs2_cluster(args.mmseqs2_path,
+                                           clustering_input_file, clustering_dir,
+                                           cl_min_identity, args.cl_min_coverage,
+                                           args.cl_gap_open, args.cl_gap_extend,
+                                           clust_tmp_dir, threads_max)
             log.log("")
             log.log(bold("Filtering clusters:"))
-            captus_clusters_ref = filter_clusters(clust_prefix, num_clusters, cl_min_samples)
+            captus_clusters_ref = filter_clusters(clust_prefix, cl_min_samples, args.cl_min_len)
             log.log("")
             log.log("")
             log.log(bold_yellow(
@@ -1677,7 +1678,8 @@ def find_fasta_leftovers(fastas_to_extract):
 
 
 def rehead_and_concatenate_fastas(
-        fastas_to_cluster, clustering_dir, clustering_input_file, threads_max, show_less
+        fastas_to_cluster, clustering_dir, clustering_input_file, clust_max_seq_len,
+        threads_max, show_less
 ):
     """
     Since all the FASTAs coming from all the samples will be joined in a single file for clustering,
@@ -1698,7 +1700,13 @@ def rehead_and_concatenate_fastas(
     tqdm_cols = min(shutil.get_terminal_size().columns, 120)
     with tqdm(total=len(fastas_to_concatenate), ncols=tqdm_cols, unit="file") as pbar:
         for cat_fasta in fastas_to_concatenate:
-            dict_to_fasta(fasta_to_dict(cat_fasta), clustering_input_file, append=True)
+            full_fasta = fasta_to_dict(cat_fasta)
+            if clust_max_seq_len > 0:
+                filtered_fasta = {seq_name:full_fasta[seq_name] for seq_name in full_fasta
+                                if len(full_fasta[seq_name]["sequence"]) <= clust_max_seq_len}
+                dict_to_fasta(filtered_fasta, clustering_input_file, append=True)
+            else:
+                dict_to_fasta(full_fasta, clustering_input_file, append=True)
             cat_fasta.unlink()
             pbar.update()
     log.log(bold(
@@ -1727,7 +1735,7 @@ def rehead_fasta_with_sample_name(sample_name, sample_fasta_path, clustering_dir
 
 def mmseqs2_cluster(
         mmseqs2_path, clustering_input_file, clustering_dir, clust_min_identity, clust_min_coverage,
-        clust_gap_open, clust_gap_extend, clust_max_seq_len, clust_tmp_dir, threads, keep_all
+        clust_gap_open, clust_gap_extend, clust_tmp_dir, threads
 ):
     """
     Run MMseqs easy-linclust but perform some parameter checking/conversion before, the FASTA input
@@ -1755,7 +1763,6 @@ def mmseqs2_cluster(
         "--gap-extend", f"{max(1, clust_gap_extend)}",
         "--kmer-per-seq-scale", f"{settings.MMSEQS2_KMER_PER_SEQ_SCALE}",
         "--threads", f"{threads}",
-        "--max-seq-len", f"{clust_max_seq_len}",
     ]
     mmseqs2_log_file = Path(clustering_dir, f"{files_prefix}.log")
     mmseqs2_thread = ElapsedTimeThread()
@@ -1764,20 +1771,16 @@ def mmseqs2_cluster(
         mmseqs2_log.write(f"Captus' MMseqs2 Command:\n  {' '.join(mmseqs2_cmd)}\n\n")
     with open(mmseqs2_log_file, "a") as mmseqs2_log:
         subprocess.run(mmseqs2_cmd, stdout=mmseqs2_log, stdin=mmseqs2_log)
-    num_clusters = 0
-    with open(Path(clustering_dir, f"{files_prefix}_rep_seq.fasta"), "r") as clusters:
-        for line in clusters:
-            if line.startswith(">"): num_clusters += 1
     mmseqs2_thread.stop()
     mmseqs2_thread.join()
     print()
 
     message = bold(f" \u2514\u2500\u2192 Clustering completed: [{elapsed_time(time.time() - start)}]")
     log.log(message)
-    return result_prefix, num_clusters
+    return result_prefix
 
 
-def filter_clusters(clust_prefix, num_clusters, clust_min_samples):
+def filter_clusters(clust_prefix, clust_min_samples, clust_min_len):
     """
     Write clusters that have at least 'clust_min_samples' to 'clustering_dir'
     """
@@ -1794,7 +1797,8 @@ def filter_clusters(clust_prefix, num_clusters, clust_min_samples):
     with tqdm(total=len(clusters_raw), ncols=tqdm_cols, unit="cluster") as pbar:
         for cluster in clusters_raw:
             sample_names = [cluster[i][1:].split("|")[0] for i in range(0, len(cluster), 2)]
-            if len(set(sample_names)) >= clust_min_samples:
+            if (len(set(sample_names)) >= clust_min_samples
+                and len(cluster[1]) >= clust_min_len):
                 passed.append(cluster)
                 if len(set(sample_names)) == 1:
                     singletons.append(cluster)

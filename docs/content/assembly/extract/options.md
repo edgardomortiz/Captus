@@ -200,14 +200,19 @@ Penalty for extending a gap when aligning sequences during clustering. The lower
 This argument is optional, the default is **1**.
 ___
 #### **`--cl_max_seq_len`**
-Do not cluster sequences longer than this length in bp, the maximum allowed by MMseqs2 is 65535.
+Do not cluster sequences longer than this length in bp, the maximum allowed by MMseqs2 is 65535. Use the value `0` to disable this filter.
 
-This argument is optional, the default is **5000**.
+This argument is optional, the default is **20000**.
 ___
 #### **`--cl_tmp_dir`**
 Path where to create the temporary directory for `MMseqs2`. Clustering can become slow when done on external drives, set this location to an internal drive.
 
 This argument is optional, the default is **$HOME**.
+___
+#### **`--cl_min_len`**
+After clustering is finished, only accept cluster representatives of at least this length to be part of the new miscellaneous DNA reference. This avoids the creation of very short locus alignments. Use the value `0` to disable this filter.
+
+This argument is optional, the default is **200**
 ___
 #### **`--cl_min_samples`**
 Minimum number of samples per cluster.
@@ -231,4 +236,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-08-06)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-08-15)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-11-17)
