@@ -1108,7 +1108,7 @@ class CaptusAssembly(object):
         paralog_group.add_argument(
             "--filter_method",
             action="store",
-            choices=["fast", "careful", "both"],
+            choices=["fast", "careful", "both", "none"],
             default="both",
             type=str,
             dest="filter_method",
@@ -1121,6 +1121,8 @@ class CaptusAssembly(object):
                  " '--mit_refs\n"
                  "both = Two separate folders will be created, each containing the results from each"
                  " filtering method"
+                 "none = Skip paralog removal, just remove reference sequences from the"
+                 " alignments. Useful for phylogenetic methods that allow paralogs like ASTRAL-Pro"
         )
 
         clipkit_group = parser.add_argument_group("ClipKIT")

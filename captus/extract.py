@@ -1286,24 +1286,24 @@ def write_fastas_and_report(
                 num_paralogs += 1
 
             description = (
-                f'hit={h:02}|lwscore={hits[ref][h]["lwscore"]:.3f}|'
-                f'cover={hits[ref][h]["coverage"]:.2f}|ident={hits[ref][h]["identity"]:.2f}|'
-                f'score={hits[ref][h]["score"]:.3f}'
+                f'[hit={h:02}] [lwscore={hits[ref][h]["lwscore"]:.3f}] '
+                f'[cover={hits[ref][h]["coverage"]:.2f}] [ident={hits[ref][h]["identity"]:.2f}] '
+                f'[score={hits[ref][h]["score"]:.3f}] '
             )
 
             seq_flanked = hits[ref][h]["seq_flanked"]
-            len_flanked = f"|length={len(seq_flanked)}"
+            len_flanked = f"[length={len(seq_flanked)}] "
             seq_gene = hits[ref][h]["seq_gene"]
-            len_gene = f"|length={len(seq_gene)}"
+            len_gene = f"[length={len(seq_gene)}] "
             seq_nt = hits[ref][h]["seq_nt"]
-            len_nt = f"|length={len(seq_nt)}"
+            len_nt = f"[length={len(seq_nt)}] "
             seq_aa = hits[ref][h]["seq_aa"]
-            len_aa = f"|length={len(seq_aa)}"
+            len_aa = f"[length={len(seq_aa)}] "
 
             ref_coords = format_coords(hits[ref][h]["ref_coords"])
             query = (
-                f'|query={hits[ref][h]["ref_name"]}:{ref_coords}'
-                f'|contigs={hits[ref][h]["hit_contigs"]}'.replace("\n", ";")
+                f'[query={hits[ref][h]["ref_name"]}:{ref_coords}] '
+                f'[contigs={hits[ref][h]["hit_contigs"]}]'.replace("\n", ";")
             )
 
             shifts_flanked, shifts_gene, shifts_nt, shifts_aa = "", "", "", ""
@@ -1311,26 +1311,26 @@ def write_fastas_and_report(
                 shifts_flanked = [str(p + 1) for p in range(len(seq_flanked))
                                   if seq_flanked[p] == "N"]
                 if shifts_flanked:
-                    shifts_flanked = f'|frameshifts={",".join(shifts_flanked)}'
+                    shifts_flanked = f'[frameshifts={",".join(shifts_flanked)}] '
                 else:
                     shifts_flanked = ""
                 shifts_gene = [str(p + 1) for p in range(len(seq_gene)) if seq_gene[p] == "N"]
                 if shifts_gene:
-                    shifts_gene = f'|frameshifts={",".join(shifts_gene)}'
+                    shifts_gene = f'[frameshifts={",".join(shifts_gene)}] '
                 else:
                     shifts_gene = ""
                 shifts_nt = [str(p + 1) for p in range(len(seq_nt)) if seq_nt[p] == "N"]
                 shifts_aa = [str(math.ceil(int(p) / 3)) for p in shifts_nt]
                 if shifts_nt:
-                    shifts_aa = f'|frameshifts={",".join(shifts_aa)}'
-                    shifts_nt = f'|frameshifts={",".join(shifts_nt)}'
+                    shifts_aa = f'[frameshifts={",".join(shifts_aa)}] '
+                    shifts_nt = f'[frameshifts={",".join(shifts_nt)}] '
                 else:
                     shifts_aa, shifts_nt = "", ""
 
             if len(hits[ref]) == 1:
-                seq_name = "|".join([sample_name, ref])
+                seq_name = settings.SEQ_NAME_SEP.join([sample_name, ref])
             else:
-                seq_name = "|".join([sample_name, ref, f"{h:02}"])
+                seq_name = settings.SEQ_NAME_SEP.join([sample_name, ref, f"{h:02}"])
 
             flanked_seqs[seq_name] = {
                 "description": f"{description}{len_flanked}{shifts_flanked}{query}",
@@ -1363,7 +1363,7 @@ def write_fastas_and_report(
                 stats_row = {"ref_type": "prot",
                              "cds_len": f'{len(seq_nt)}',
                              "intron_len": f'{intron_len}',
-                             "frameshifts": shifts_nt.replace("|frameshifts=", "")}
+                             "frameshifts": shifts_nt.strip().replace("[frameshifts=", "").strip("]")}
             else:
                 stats_row = {"ref_type": "nucl",
                              "cds_len": "NA",
@@ -1438,10 +1438,12 @@ def write_fastas_and_report(
                 fna_file.unlink()
 
         for seq_name_full in sorted(flanked_seqs):
-            if len(seq_name_full.split("|")) == 3:
-                seq_name_short = "|".join(seq_name_full.split("|")[::2])
+            if len(seq_name_full.split(settings.SEQ_NAME_SEP)) == 3:
+                seq_name_short = settings.SEQ_NAME_SEP.join(
+                    seq_name_full.split(settings.SEQ_NAME_SEP)[::2]
+                )
             else:
-                seq_name_short = seq_name_full.split("|")[0]
+                seq_name_short = seq_name_full.split(settings.SEQ_NAME_SEP)[0]
             dict_to_fasta({seq_name_short: dict(flanked_seqs[seq_name_full])},
                           Path(flanked_seqs_dir, f'{flanked_seqs[seq_name_full]["ref_name"]}.fna'),
                           append=True)
@@ -1724,7 +1726,7 @@ def rehead_fasta_with_sample_name(sample_name, sample_fasta_path, clustering_dir
     reheaded_fasta = {}
     reheaded_fasta_file = Path(clustering_dir, f"{sample_name}_leftover_contigs.fasta")
     for header in sample_fasta:
-        reheaded_fasta[f"{sample_name}|{header}"] = dict(sample_fasta[header])
+        reheaded_fasta[f"{sample_name}{settings.SEQ_NAME_SEP}{header}"] = dict(sample_fasta[header])
     dict_to_fasta(reheaded_fasta, reheaded_fasta_file)
     message = (
         f"'{sample_name}': file '{sample_fasta_path.name}'"
@@ -1796,7 +1798,9 @@ def filter_clusters(clust_prefix, clust_min_samples, clust_min_len):
     tqdm_cols = min(shutil.get_terminal_size().columns, 120)
     with tqdm(total=len(clusters_raw), ncols=tqdm_cols, unit="cluster") as pbar:
         for cluster in clusters_raw:
-            sample_names = [cluster[i][1:].split("|")[0] for i in range(0, len(cluster), 2)]
+            sample_names = [
+                cluster[i][1:].split(settings.SEQ_NAME_SEP)[0] for i in range(0, len(cluster), 2)
+            ]
             if (len(set(sample_names)) >= clust_min_samples
                 and len(cluster[1]) >= clust_min_len):
                 passed.append(cluster)
@@ -1843,8 +1847,8 @@ def filter_clusters(clust_prefix, clust_min_samples, clust_min_len):
         # Make new names for a reference file for a Captus' miscellaneous DNA extraction:
         # >sample_name-marker_name
         new_header = (
-            f'{rep_seq_filtered[i].split("|")[0]}{settings.REFERENCE_CLUSTER_SEPARATOR}'
-            f"captus_{num_cluster:0{num_digits}}"
+            f"{rep_seq_filtered[i].split(settings.SEQ_NAME_SEP)[0]}"
+            f"{settings.REFERENCE_CLUSTER_SEPARATOR}captus_{num_cluster:0{num_digits}}"
         )
 
         # Record new and old header in 'names_equivalence_file'

@@ -205,6 +205,7 @@ def align(full_command, args):
             filter_method = None
         elif args.filter_method == "both":
             filter_method = "fast"
+    if filter_method == "none": filter_method = None
 
     log.log(f'{"Concurrent processes":>{mar}}: {bold(concurrent)}')
     log.log(f'{"Filtering method":>{mar}}: {bold(filter_method)}')
@@ -429,17 +430,41 @@ def align(full_command, args):
     ################################################################################ CLEANUP SECTION
     log.log_section_header("Statistics Summarization and File Cleanup")
     log.log_explanation(
-        "Empty directories will be removed as well as MAFFT and ClipKIT logs unless the flag"
-        " '--keep_all' is enabled."
+        "Captus will calculate and then summarize alignment statistics into an HTNL report."
+        " Additionally, the sequence-to-sample equivalence file needed for ASTRAL-Pro will be"
+        " generated. Finally, empty directories will be removed as well as MAFFT and ClipKIT logs"
+        " unless the flag '--keep_all' is enabled."
     )
     fastas_to_stats = list(Path(out_dir, settings.ALN_DIRS["ALND"]).rglob("*.f[an]a"))
     fastas_to_stats += list(Path(out_dir, settings.ALN_DIRS["TRIM"]).rglob("*.f[an]a"))
     manager = Manager()
+    shared_seq_names = manager.list()
     shared_aln_stats = manager.list()
 
+    extract_seq_names_params = []
     compute_aln_stats_params = []
     for fasta in fastas_to_stats:
+        extract_seq_names_params.append((shared_seq_names, fasta))
         compute_aln_stats_params.append((shared_aln_stats, fasta))
+
+    if args.debug:
+        tqdm_serial_run(extract_seq_names, extract_seq_names_params,
+                        "Extracting sequence names from alignments",
+                        "Sequence names extracted",
+                        "alignment", args.show_less)
+    else:
+        tqdm_parallel_async_run(extract_seq_names, extract_seq_names_params,
+                                "Extracting sequence names from alignments",
+                                "Sequence names extracted",
+                                "alignment", concurrent, args.show_less)
+    log.log("")
+    if shared_seq_names:
+        seq_to_sample_file = Path(out_dir, settings.ASTRAL_PRO_EQ)
+        with open(seq_to_sample_file, "wt") as seq_to_sample:
+            seq_to_sample.write("\n".join(sorted(shared_seq_names)))
+        log.log(f'{"ASTRAL-Pro seq-to-sample":>{mar}}: {bold(seq_to_sample_file)}')
+        log.log("")
+        log.log("")
 
     if args.debug:
         tqdm_serial_run(compute_aln_stats, compute_aln_stats_params,
@@ -452,7 +477,6 @@ def align(full_command, args):
                                 "Alignment statistics completed",
                                 "alignment", concurrent, args.show_less)
     log.log("")
-
     aln_stats_tsv = write_aln_stats(out_dir, shared_aln_stats)
     if aln_stats_tsv:
         log.log(f'{"Alignment statistics":>{mar}}: {bold(aln_stats_tsv)}')
@@ -461,6 +485,7 @@ def align(full_command, args):
 
             from .report import build_alignment_report
 
+            log.log("")
             log.log_explanation(
                 "Generating Alignment Statistics report..."
             )
@@ -489,7 +514,6 @@ def align(full_command, args):
         for del_file in files_to_delete:
             reclaimed_bytes += del_file.stat().st_size
             del_file.unlink()
-        log.log("")
         log.log(
             f'    A total of {len(files_to_delete)} files'
             f' amounting to {reclaimed_bytes / 1024 ** 2:.2f}MB'
@@ -696,11 +720,11 @@ def collect_extracted_markers(
             if source_file.exists():
                 fasta_in = fasta_to_dict(source_file, ordered=True)
                 for seq_name_full in fasta_in:
-                    seq_name_parts = seq_name_full.split("|")
+                    seq_name_parts = seq_name_full.split(settings.SEQ_NAME_SEP)
                     marker_name = seq_name_parts[1]
                     seq_name = seq_name_parts[0]
                     if len(seq_name_parts) == 3:
-                        seq_name += f"|{seq_name_parts[2]}"
+                        seq_name += f"{settings.SEQ_NAME_SEP}{seq_name_parts[2]}"
                     fasta_out = Path(destination, f"{marker_name}{source.suffix}")
                     if overwrite is True or not fasta_out.exists():
                         write_fastas.append(fasta_out)
@@ -774,11 +798,11 @@ def collect_sample_markers(write_fastas, max_paralogs, sample_dir, source_files,
         if source_file.exists():
             fasta_in = fasta_to_dict(source_file, ordered=True)
             for seq_name_full in fasta_in:
-                seq_name_parts = seq_name_full.split("|")
+                seq_name_parts = seq_name_full.split(settings.SEQ_NAME_SEP)
                 marker_name = seq_name_parts[1]
                 seq_name = seq_name_parts[0]
                 if len(seq_name_parts) == 3:
-                    seq_name += f"|{seq_name_parts[2]}"
+                    seq_name += f"{settings.SEQ_NAME_SEP}{seq_name_parts[2]}"
                     paralog_rank = int(seq_name_parts[2])
                 else:
                     paralog_rank = 0
@@ -813,13 +837,15 @@ def add_refs(ref_path, dest_dir):
         refs_needed = []
         fasta_in = fasta_to_dict(fasta)
         for seq_name in fasta_in:
-            if "|query=" in fasta_in[seq_name]["description"] and not seq_name.endswith("|ref"):
+            if ("[query=" in fasta_in[seq_name]["description"]
+                and not seq_name.endswith(f"{settings.SEQ_NAME_SEP}ref")):
                 refs_needed.append(
-                    fasta_in[seq_name]["description"].split("|query=")[1].split(":")[0]
+                    fasta_in[seq_name]["description"].split("[query=")[1].split(":")[0]
                 )
         for ref_name in set(refs_needed):
             name_parts = ref_name.split(settings.REFERENCE_CLUSTER_SEPARATOR)
-            ref_out = f"{settings.REFERENCE_CLUSTER_SEPARATOR.join(name_parts[0:-1])}|ref"
+            ref_out = (f"{settings.REFERENCE_CLUSTER_SEPARATOR.join(name_parts[0:-1])}"
+                       f"{settings.SEQ_NAME_SEP}ref")
             if ref_name in ref_fasta:
                 markers_in_ref.append(name_parts[-1])
                 fastas_found.append(ref_name)
@@ -846,8 +872,8 @@ def num_samples(fasta_dict):
     Determine number of different samples in alignment with sequence length greater than 0,
     and excluding sequences whose name ends in '|ref'
     """
-    samples = [seq_name.split("|")[0] for seq_name in fasta_dict
-               if not seq_name.endswith("|ref")
+    samples = [seq_name.split(settings.SEQ_NAME_SEP)[0] for seq_name in fasta_dict
+               if not seq_name.endswith(f"{settings.SEQ_NAME_SEP}ref")
                and len(fasta_dict[seq_name]["sequence"].replace("-","")) > 0]
     return len(set(samples))
 
@@ -955,8 +981,8 @@ def filter_paralogs_fast(fasta_source, fasta_dest, overwrite):
     if overwrite is True or not fasta_dest.exists():
         for seq_name in fasta_with_paralogs:
             if ("hit=00" in fasta_with_paralogs[seq_name]["description"] or
-                "|ref" in seq_name):
-                seq_name_out = seq_name.replace("|00", "")
+                f"{settings.SEQ_NAME_SEP}ref" in seq_name):
+                seq_name_out = seq_name.replace(f"{settings.SEQ_NAME_SEP}00", "")
                 fasta_without_paralogs[seq_name_out] = dict(fasta_with_paralogs[seq_name])
         if num_samples(fasta_without_paralogs) >= settings.MIN_SAMPLES_ALN:
             dict_to_fasta(fasta_without_paralogs, fasta_dest)
@@ -1025,19 +1051,19 @@ def filter_paralogs_careful(shared_paralog_stats, fasta_model, fastas_paths, ove
     best_ref_full_name = max(refs, key=refs.get)
     s = settings.REFERENCE_CLUSTER_SEPARATOR
     best_ref = s.join(best_ref_full_name.split(s)[:-1])
-    best_ref_seq = aln[f"{best_ref}|ref"]["sequence"]
+    best_ref_seq = aln[f"{best_ref}{settings.SEQ_NAME_SEP}ref"]["sequence"]
 
     tsv = []
     accepted = []
     for seq in aln:
-        if "|" not in seq or seq.endswith("|ref"):
+        if settings.SEQ_NAME_SEP not in seq or seq.endswith(f"{settings.SEQ_NAME_SEP}ref"):
             accepted.append(seq)
 
     samples_with_paralogs = {}
     for seq in aln:
-        if "|" in seq and not seq.endswith("|ref"):
-            sample_name = "|".join(seq.split("|")[:-1])
-            hit_num = seq.split("|")[-1]
+        if settings.SEQ_NAME_SEP in seq and not seq.endswith(f"{settings.SEQ_NAME_SEP}ref"):
+            sample_name = settings.SEQ_NAME_SEP.join(seq.split(settings.SEQ_NAME_SEP)[:-1])
+            hit_num = seq.split(settings.SEQ_NAME_SEP)[-1]
             length_seq = len(aln[seq]["sequence"].replace("-", ""))
             lenght_ref = len(best_ref_seq.replace("-", ""))
             pid = pairwise_identity(best_ref_seq, aln[seq]["sequence"], fasta_model_format)
@@ -1073,10 +1099,13 @@ def filter_paralogs_careful(shared_paralog_stats, fasta_model, fastas_paths, ove
         if overwrite is True or not fastas_paths[fasta].exists():
             for seq_name in fasta_with_paralogs:
                 if seq_name in accepted:
-                    if seq_name.endswith("|ref") or not "|" in seq_name:
+                    if (seq_name.endswith(f"{settings.SEQ_NAME_SEP}ref")
+                        or not settings.SEQ_NAME_SEP in seq_name):
                         fasta_without_paralogs[seq_name] = fasta_with_paralogs[seq_name]
                     else:
-                        seq_name_out = "|".join(seq_name.split("|")[:-1])
+                        seq_name_out = settings.SEQ_NAME_SEP.join(
+                            seq_name.split(settings.SEQ_NAME_SEP)[:-1]
+                        )
                         fasta_without_paralogs[seq_name_out] = fasta_with_paralogs[seq_name]
             if num_samples(fasta_without_paralogs) >= settings.MIN_SAMPLES_ALN:
                 dict_to_fasta(fasta_without_paralogs, fastas_paths[fasta])
@@ -1133,7 +1162,8 @@ def rem_refs(refs_paths, fastas_paths, overwrite, concurrent, show_less, debug):
             continue
         for seq_name in fasta_to_dict(ref_path):
             name_parts = seq_name.split(settings.REFERENCE_CLUSTER_SEPARATOR)
-            ref_name = f"{settings.REFERENCE_CLUSTER_SEPARATOR.join(name_parts[0:-1])}|ref"
+            ref_name = (f"{settings.REFERENCE_CLUSTER_SEPARATOR.join(name_parts[0:-1])}"
+                        f"{settings.SEQ_NAME_SEP}ref")
             if not ref_name in ref_names:
                 ref_names.append(ref_name)
 
@@ -1216,6 +1246,20 @@ def clipkit(
             )
     else:
         message = dim(f"'{fasta_out_short}': skipped (output FASTA already exists)")
+    return message
+
+
+def extract_seq_names(shared_seq_names, fasta_path):
+
+    start = time.time()
+
+    for seq_name in fasta_to_dict(fasta_path):
+        equivalence = f"{seq_name}\t{seq_name.split(settings.SEQ_NAME_SEP)[0]}"
+        if equivalence not in shared_seq_names: shared_seq_names.append(equivalence)
+
+    short_path = Path(*fasta_path.parts[-5:])
+    message = f"'{short_path}': names extracted [{elapsed_time(time.time() - start)}]"
+
     return message
 
 

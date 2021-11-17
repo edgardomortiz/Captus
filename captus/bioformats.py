@@ -2176,7 +2176,7 @@ def write_gff3(hits, marker_type, out_gff_path):
             if len(hits[ref]) == 1:
                 h_name = urllib.parse.quote(ref)
             else:
-                h_name = urllib.parse.quote(f"{ref}|{h:02}")
+                h_name = urllib.parse.quote(f"{ref}{set_a.SEQ_NAME_SEP}{h:02}")
                 gff.append(f"# {h_name}")
             ref_coords = split_coords(hits[ref][h]["ref_coords"], as_strings=True)
             hit_ids = hits[ref][h]["hit_ids"].split("\n")
