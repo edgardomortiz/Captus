@@ -486,3 +486,11 @@ MAFFT_ALGORITHMS = {
 # Minimum of sequences allowed in an alignment, we use 4 to be able to use quartet decomposition
 # methods like SVDquartets or ASTRAL
 MIN_SAMPLES_ALN = 4
+
+# Separator used in output sequences names, for example used to distinguish sample name from gene
+# name or to indicate copy number
+SEQ_NAME_SEP = "__"
+
+# File name for sequence-to-sample equivalence table used by ASTRAL-Pro to analyze trees that
+# include paralogs
+ASTRAL_PRO_EQ = "captus-assembly_align.astral-pro.tsv"

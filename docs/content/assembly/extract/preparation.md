@@ -19,6 +19,7 @@ Also, please use this naming convention for your FASTA files:
 
 ![Naming convention for FASTA files](/images/fasta.png?width=600)
 
+- **IMPORTANT:** Even though `_` is allowed for sample names, please **DO NOT** use more than **ONE** consecutive `_` in any case. We use internally `__` to separate several pieces of information during the processing.
 - Any text before the **extension** will become your **sample name** (`Mus_musculus_GRCm39` in this case).
 - Valid extension for assemblies are: `.fa`, `.fna`, `.fasta`, `.fa.gz`, `.fna.gz`, `.fasta.gz`.
 
@@ -82,4 +83,4 @@ When the **separator** is not present (even in a single sequence in the whole re
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-08-06)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-08-15)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-11-17)

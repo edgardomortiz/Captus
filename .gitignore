@@ -14,5 +14,6 @@ build/
 dist/
 
 # Docs for now
-docs/themes
 docs/public
+docs/themes
+docs/server

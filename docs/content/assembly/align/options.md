@@ -87,6 +87,7 @@ We provide two filtering methods for paralog removal, you can select either or b
 - `careful` = Only keep the copy (regardless of hit ranking) that is most similar to the reference sequence that was
  chosen most frequently among all other samples in the alignment. This method was designed to take advantage of references that contain several sequences per locus (like `Angiosperms353`), if the reference only contains a single reference per locus the result will be identical to the `fast` method.
 - `both` = Two separate folders will be created, each containing the results from each filtering method.
+- `none` = Skip paralog removal, just remove reference sequences from the alignments. Useful for phylogenetic methods that allow paralogs like [`ASTRAL-Pro`](https://github.com/chaoszhang/A-pro).
 
 This argument is optional, the default is **both**.
 ___
@@ -131,4 +132,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-08-06)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-11-16)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-11-17)
