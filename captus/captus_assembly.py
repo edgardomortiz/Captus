@@ -857,11 +857,11 @@ class CaptusAssembly(object):
         mmseqs2_group.add_argument(
             "--cl_max_seq_len",
             action="store",
-            default=5000,
+            default=20000,
             type=int,
             dest="cl_max_seq_len",
             help="Do not cluster sequences longer than this length in bp, the maximum allowed by"
-                 " MMseqs2 is 65535"
+                 " MMseqs2 is 65535. Use 0 to disable this filter"
         )
         mmseqs2_group.add_argument(
             "--cl_tmp_dir",
@@ -872,6 +872,16 @@ class CaptusAssembly(object):
             help="Where to create the temporary directory 'captus_mmseqs2_tmp' for MMseqs2."
                  " Clustering can become slow when done on external drives, set this location to a"
                  " fast, preferably local, drive"
+        )
+        mmseqs2_group.add_argument(
+            "--cl_min_len",
+            action="store",
+            default=200,
+            type=int,
+            dest="cl_min_len",
+            help="After clustering is finished, only accept cluster representatives of at least this"
+                 " length to be part of the new miscellaneous DNA reference. Use 0 to disable this"
+                 " filter"
         )
         mmseqs2_group.add_argument(
             "--cl_min_samples",
