@@ -1018,7 +1018,10 @@ def filter_paralogs_careful(shared_paralog_stats, fasta_model, fastas_paths, ove
     for seq in aln:
         if "query=" in aln[seq]["description"] and "hit=00" in aln[seq]["description"]:
             ref = aln[seq]["description"].split("query=")[1].split(":")[0]
-            refs[ref] += 1 if ref in refs else 1
+            if ref in refs:
+                refs[ref] += 1
+            else:
+                refs[ref] = 1
     best_ref_full_name = max(refs, key=refs.get)
     s = settings.REFERENCE_CLUSTER_SEPARATOR
     best_ref = s.join(best_ref_full_name.split(s)[:-1])
