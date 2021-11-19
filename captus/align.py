@@ -705,12 +705,13 @@ def collect_extracted_markers(
     source_files = [Path(settings.MARKER_DIRS[m], f"{m}{settings.FORMAT_SUFFIXES[f]}")
                    for m in markers.split(",") for f in formats.split(",")
                    if (m, f) in settings.VALID_MARKER_FORMAT_COMBO]
+
     out_dirs = [Path(out_dir, base_dir, settings.MARKER_DIRS[m], settings.FORMAT_DIRS[f])
                 for m in markers.split(",") for f in formats.split(",")
                 if (m, f) in settings.VALID_MARKER_FORMAT_COMBO]
-    for o in out_dirs:
-        if is_dir_empty(o) is True or overwrite is True:
-            for fasta_file in o.glob("*"):
+    for od in out_dirs:
+        if is_dir_empty(od) is True or overwrite is True:
+            for fasta_file in od.glob("*"):
                 fasta_file.unlink()
 
     write_fastas = []
@@ -729,6 +730,12 @@ def collect_extracted_markers(
                     if overwrite is True or not fasta_out.exists():
                         write_fastas.append(fasta_out)
     write_fastas = list(set(write_fastas))
+
+    if not write_fastas:
+        quit_with_error(
+            f"No FASTA files found for marker type(s) '{markers}', verify your '--markers' and"
+            " '--formats' parameters, perhaps these markers were not extracted in the previous step"
+        )
 
     collect_sample_markers_params = []
     for sample_dir in extracted_sample_dirs:
