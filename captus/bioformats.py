@@ -1368,6 +1368,25 @@ def scipio_yaml_to_dict(yaml_path, min_identity, min_coverage, marker_type, tran
             else:
                 return None
 
+    def merge_adjoining_exons(mod: dict):
+        last_exon = None
+        for i in range(len(mod["mat_types"])):
+            if mod["mat_types"][i].endswith("exon"):
+                if last_exon is None:
+                    last_exon = i
+                else:
+                    if (mod["hit_ids"][last_exon] == mod["hit_ids"][i]
+                        and mod["hit_starts"][i] <= mod["hit_ends"][last_exon]):
+                        mod["ref_ends"][last_exon] = mod["ref_ends"][i]
+                        mod["hit_ends"][last_exon] = mod["hit_ends"][i]
+                        mod["ref_starts"][i] = None
+                        mod["ref_ends"][i]   = None
+                        mod["hit_starts"][i] = None
+                        mod["hit_ends"][i]   = None
+                    else:
+                        last_exon = i
+        return mod
+
     def check_gaps_and_concat_seqs(mod, gencode, min_matches=1):
         last_exon = None
         for i in range(len(mod["mat_types"])):
@@ -1417,6 +1436,7 @@ def scipio_yaml_to_dict(yaml_path, min_identity, min_coverage, marker_type, tran
                                                  mod["ref_ends"][i+1])
                         mod["hit_starts"][i] = mod["hit_ends"][i-1] + lead
                         mod["hit_ends"][i] = mod["hit_starts"][i+1] - trail
+                        mod["mat_types"][i] += "/exon"
                         mod["mat_notes"][i] += "/translated"
                     else:
                         mod["seq_flanked"] += mod["mat_nt"][i].lower()
@@ -1433,6 +1453,7 @@ def scipio_yaml_to_dict(yaml_path, min_identity, min_coverage, marker_type, tran
             if mod["mat_types"][i] == "downstream":
                 mod["seq_flanked"] += mod["mat_nt"][i].lower()
         mod["seq_aa"] = translate(mod["seq_nt"], gencode, frame=1, start_as_M=False)
+        mod = merge_adjoining_exons(mod)
         return mod
 
     def concat_coords(ids: list, starts: list, ends: list):
