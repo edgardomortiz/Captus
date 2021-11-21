@@ -1451,7 +1451,11 @@ def scipio_yaml_to_dict(yaml_path, min_identity, min_coverage, marker_type, tran
                 mod["seq_flanked"] += mod["mat_nt"][i].upper()
                 mod["seq_gene"] += mod["mat_nt"][i].upper()
             if mod["mat_types"][i] == "downstream":
-                mod["seq_flanked"] += mod["mat_nt"][i].lower()
+                if (mod["mat_types"][i-1] == "stopcodon"
+                    and mod["mat_nt"][i-1] == mod["mat_nt"][i][:3]):
+                    mod["seq_flanked"] += mod["mat_nt"][i][3:].lower()
+                else:
+                    mod["seq_flanked"] += mod["mat_nt"][i].lower()
         mod["seq_aa"] = translate(mod["seq_nt"], gencode, frame=1, start_as_M=False)
         mod = merge_adjoining_exons(mod)
         return mod
