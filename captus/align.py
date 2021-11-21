@@ -111,6 +111,7 @@ def align(full_command, args):
         "nucleotide sequences in the alignments. "
     )
     markers, markers_ignored = check_value_list(args.markers, settings.MARKER_DIRS)
+    show_less = not args.show_more
     log.log(f'{"Markers to collect":>{mar}}: {bold(markers)} {dim(markers_ignored)}')
     formats, formats_ignored = check_value_list(args.formats, settings.FORMAT_DIRS)
     log.log(f'{"Alignment formats":>{mar}}: {bold(formats)} {dim(formats_ignored)}')
@@ -125,7 +126,7 @@ def align(full_command, args):
     log.log(make_output_dirtree(markers, formats, out_dir, settings.ALN_DIRS["UNAL"], mar))
     log.log("")
     collect_extracted_markers(markers, formats, args.max_paralogs, extracted_sample_dirs, out_dir,
-                              settings.ALN_DIRS["UNAL"], refs_paths, args.overwrite, args.show_less)
+                              settings.ALN_DIRS["UNAL"], refs_paths, args.overwrite, show_less)
     log.log("")
 
 
@@ -182,11 +183,11 @@ def align(full_command, args):
         if args.debug:
             tqdm_serial_run(mafft, mafft_params,
                             "Aligning with MAFFT", "MAFFT alignment completed",
-                            "alignment", args.show_less)
+                            "alignment", show_less)
         else:
             tqdm_parallel_async_run(mafft, mafft_params,
                                     "Aligning with MAFFT", "MAFFT alignment completed",
-                                    "alignment", concurrent, args.show_less)
+                                    "alignment", concurrent, show_less)
         log.log("")
 
 
@@ -237,7 +238,7 @@ def align(full_command, args):
                                     mar))
         log.log("")
         paralog_fast_filter(fastas_to_filter, args.overwrite, concurrent,
-                            args.show_less, args.debug)
+                            show_less, args.debug)
         log.log("")
 
     if filter_method in ["careful", "both"]:
@@ -258,7 +259,7 @@ def align(full_command, args):
         manager = Manager()
         shared_paralog_stats = manager.list()
         paralog_careful_filter(shared_paralog_stats, fastas_to_filter, filtering_refs,
-                               concurrent, args.overwrite, args.show_less, args.debug)
+                               concurrent, args.overwrite, show_less, args.debug)
         paralog_stats_tsv = write_paralog_stats(out_dir, shared_paralog_stats)
         log.log("")
         log.log(f'{"Paralog statistics":>{mar}}: {bold(paralog_stats_tsv)}')
@@ -294,7 +295,7 @@ def align(full_command, args):
                                         mar))
             log.log("")
             rem_refs(refs_paths, fastas_to_rem_refs, args.overwrite,
-                     concurrent, args.show_less, args.debug)
+                     concurrent, show_less, args.debug)
             log.log("")
 
         if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["FAST"]).exists():
@@ -312,7 +313,7 @@ def align(full_command, args):
                                         mar))
             log.log("")
             rem_refs(refs_paths, fastas_to_rem_refs, args.overwrite,
-                     concurrent, args.show_less, args.debug)
+                     concurrent, show_less, args.debug)
             log.log("")
 
         if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["CARE"]).exists():
@@ -330,7 +331,7 @@ def align(full_command, args):
                                         mar))
             log.log("")
             rem_refs(refs_paths, fastas_to_rem_refs, args.overwrite,
-                     concurrent, args.show_less, args.debug)
+                     concurrent, show_less, args.debug)
             log.log("")
 
 
@@ -418,11 +419,11 @@ def align(full_command, args):
         if args.debug:
             tqdm_serial_run(clipkit, clipkit_params,
                             "Trimming alignments with ClipKIT", "ClipKIT trimming completed",
-                            "alignment", args.show_less)
+                            "alignment", show_less)
         else:
             tqdm_parallel_async_run(clipkit, clipkit_params,
                                     "Trimming alignments with ClipKIT", "ClipKIT trimming completed",
-                                    "alignment", concurrent, args.show_less)
+                                    "alignment", concurrent, show_less)
     log.log("")
 
 
@@ -451,12 +452,12 @@ def align(full_command, args):
         tqdm_serial_run(extract_seq_names, extract_seq_names_params,
                         "Extracting sequence names from alignments",
                         "Sequence names extracted",
-                        "alignment", args.show_less)
+                        "alignment", show_less)
     else:
         tqdm_parallel_async_run(extract_seq_names, extract_seq_names_params,
                                 "Extracting sequence names from alignments",
                                 "Sequence names extracted",
-                                "alignment", concurrent, args.show_less)
+                                "alignment", concurrent, show_less)
     log.log("")
     if shared_seq_names:
         seq_to_sample_file = Path(out_dir, settings.ASTRAL_PRO_EQ)
@@ -470,12 +471,12 @@ def align(full_command, args):
         tqdm_serial_run(compute_aln_stats, compute_aln_stats_params,
                         "Computing alignment statistics",
                         "Alignment statistics completed",
-                        "alignment", args.show_less)
+                        "alignment", show_less)
     else:
         tqdm_parallel_async_run(compute_aln_stats, compute_aln_stats_params,
                                 "Computing alignment statistics",
                                 "Alignment statistics completed",
-                                "alignment", concurrent, args.show_less)
+                                "alignment", concurrent, show_less)
     log.log("")
     aln_stats_tsv = write_aln_stats(out_dir, shared_aln_stats)
     if aln_stats_tsv:

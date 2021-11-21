@@ -127,9 +127,12 @@ If you have installed your own copies of `MAFFT` or `ClipKIT` you can provide th
 
 These arguments are optional, the defaults are **mafft** and **clipkit** respectively.
 ___
-#### **`--ram`**, **`--threads`**, **`--concurrent`**, **`--debug`**, **`--show_less`**
+#### **`--show_less`**
+Enable this flag to show individual alignment information during the run. Detailed information is written regardless to the log.
+___
+#### **`--ram`**, **`--threads`**, **`--concurrent`**, **`--debug`**, 
 See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-08-06)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-11-17)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-11-20)

@@ -1226,11 +1226,11 @@ class CaptusAssembly(object):
             help="Enable debugging mode, parallelization is disabled so errors are logged to screen"
         )
         other_group.add_argument(
-            "--show_less",
+            "--show_more",
             action="store_true",
-            dest="show_less",
-            help="Do not show individual sample information during the run, the information is still"
-                 " written to the log"
+            dest="show_more",
+            help="Show individual alignment information during the run. Detailed information is"
+                 " written regardless to the log"
         )
 
         help_group = parser.add_argument_group("Help")
