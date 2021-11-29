@@ -1665,7 +1665,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
     start = time.time()
 
     # Load datatable
-    df = pd.read_table(ext_stats_tsv)
+    df = pd.read_table(ext_stats_tsv, low_memory=False)
 
     # Preprocess
     df_best = (

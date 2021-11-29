@@ -196,6 +196,55 @@ GENETIC_CODES = {
          "ss": "---M-------*-------M---------------M---------------M------------"},
 }
 
+def score_matrix_to_dict(matrix):
+    """
+    Convert a matrix given in tabular format into a dictionary for alignment functions
+
+    Parameters
+    ----------
+    matrix : list
+        Two-dimensional matrix defining alignment scores
+    """
+    matrix_as_dict = {}
+    col_labels = matrix[0]
+    for i in range(1, len(matrix)):
+        row_label = matrix[i][0]
+        for j in range(1, len(matrix[i])):
+            key = f"{row_label}{col_labels[j]}"
+            matrix_as_dict[key] = matrix[i][j]
+    matrix_as_dict["gap"] = min(matrix_as_dict.values())
+    return matrix_as_dict
+
+# PAM250 matrix for scoring protein alignments
+PAM250 = score_matrix_to_dict([
+[".","A","R","N","D","C","Q","E","G","H","I","L","K","M","F","P","S","T","W","Y","V","B","J","Z","X","*"],
+["A", 2 ,-2 , 0 , 0 ,-2 , 0 , 0 , 1 ,-1 ,-1 ,-2 ,-1 ,-1 ,-3 , 1 , 1 , 1 ,-6 ,-3 , 0 , 0 ,-1 , 0 ,-1 ,-8 ],
+["R",-2 , 6 , 0 ,-1 ,-4 , 1 ,-1 ,-3 , 2 ,-2 ,-3 , 3 , 0 ,-4 , 0 , 0 ,-1 , 2 ,-4 ,-2 ,-1 ,-3 , 0 ,-1 ,-8 ],
+["N", 0 , 0 , 2 , 2 ,-4 , 1 , 1 , 0 , 2 ,-2 ,-3 , 1 ,-2 ,-3 , 0 , 1 , 0 ,-4 ,-2 ,-2 , 2 ,-3 , 1 ,-1 ,-8 ],
+["D", 0 ,-1 , 2 , 4 ,-5 , 2 , 3 , 1 , 1 ,-2 ,-4 , 0 ,-3 ,-6 ,-1 , 0 , 0 ,-7 ,-4 ,-2 , 3 ,-3 , 3 ,-1 ,-8 ],
+["C",-2 ,-4 ,-4 ,-5 ,12 ,-5 ,-5 ,-3 ,-3 ,-2 ,-6 ,-5 ,-5 ,-4 ,-3 , 0 ,-2 ,-8 , 0 ,-2 ,-4 ,-5 ,-5 ,-1 ,-8 ],
+["Q", 0 , 1 , 1 , 2 ,-5 , 4 , 2 ,-1 , 3 ,-2 ,-2 , 1 ,-1 ,-5 , 0 ,-1 ,-1 ,-5 ,-4 ,-2 , 1 ,-2 , 3 ,-1 ,-8 ],
+["E", 0 ,-1 , 1 , 3 ,-5 , 2 , 4 , 0 , 1 ,-2 ,-3 , 0 ,-2 ,-5 ,-1 , 0 , 0 ,-7 ,-4 ,-2 , 3 ,-3 , 3 ,-1 ,-8 ],
+["G", 1 ,-3 , 0 , 1 ,-3 ,-1 , 0 , 5 ,-2 ,-3 ,-4 ,-2 ,-3 ,-5 , 0 , 1 , 0 ,-7 ,-5 ,-1 , 0 ,-4 , 0 ,-1 ,-8 ],
+["H",-1 , 2 , 2 , 1 ,-3 , 3 , 1 ,-2 , 6 ,-2 ,-2 , 0 ,-2 ,-2 , 0 ,-1 ,-1 ,-3 , 0 ,-2 , 1 ,-2 , 2 ,-1 ,-8 ],
+["I",-1 ,-2 ,-2 ,-2 ,-2 ,-2 ,-2 ,-3 ,-2 , 5 , 2 ,-2 , 2 , 1 ,-2 ,-1 , 0 ,-5 ,-1 , 4 ,-2 , 3 ,-2 ,-1 ,-8 ],
+["L",-2 ,-3 ,-3 ,-4 ,-6 ,-2 ,-3 ,-4 ,-2 , 2 , 6 ,-3 , 4 , 2 ,-3 ,-3 ,-2 ,-2 ,-1 , 2 ,-3 , 5 ,-3 ,-1 ,-8 ],
+["K",-1 , 3 , 1 , 0 ,-5 , 1 , 0 ,-2 , 0 ,-2 ,-3 , 5 , 0 ,-5 ,-1 , 0 , 0 ,-3 ,-4 ,-2 , 1 ,-3 , 0 ,-1 ,-8 ],
+["M",-1 , 0 ,-2 ,-3 ,-5 ,-1 ,-2 ,-3 ,-2 , 2 , 4 , 0 , 6 , 0 ,-2 ,-2 ,-1 ,-4 ,-2 , 2 ,-2 , 3 ,-2 ,-1 ,-8 ],
+["F",-3 ,-4 ,-3 ,-6 ,-4 ,-5 ,-5 ,-5 ,-2 , 1 , 2 ,-5 , 0 , 9 ,-5 ,-3 ,-3 , 0 , 7 ,-1 ,-4 , 2 ,-5 ,-1 ,-8 ],
+["P", 1 , 0 , 0 ,-1 ,-3 , 0 ,-1 , 0 , 0 ,-2 ,-3 ,-1 ,-2 ,-5 , 6 , 1 , 0 ,-6 ,-5 ,-1 ,-1 ,-2 , 0 ,-1 ,-8 ],
+["S", 1 , 0 , 1 , 0 , 0 ,-1 , 0 , 1 ,-1 ,-1 ,-3 , 0 ,-2 ,-3 , 1 , 2 , 1 ,-2 ,-3 ,-1 , 0 ,-2 , 0 ,-1 ,-8 ],
+["T", 1 ,-1 , 0 , 0 ,-2 ,-1 , 0 , 0 ,-1 , 0 ,-2 , 0 ,-1 ,-3 , 0 , 1 , 3 ,-5 ,-3 , 0 , 0 ,-1 ,-1 ,-1 ,-8 ],
+["W",-6 , 2 ,-4 ,-7 ,-8 ,-5 ,-7 ,-7 ,-3 ,-5 ,-2 ,-3 ,-4 , 0 ,-6 ,-2 ,-5 ,17 , 0 ,-6 ,-5 ,-3 ,-6 ,-1 ,-8 ],
+["Y",-3 ,-4 ,-2 ,-4 , 0 ,-4 ,-4 ,-5 , 0 ,-1 ,-1 ,-4 ,-2 , 7 ,-5 ,-3 ,-3 , 0 ,10 ,-2 ,-3 ,-1 ,-4 ,-1 ,-8 ],
+["V", 0 ,-2 ,-2 ,-2 ,-2 ,-2 ,-2 ,-1 ,-2 , 4 , 2 ,-2 , 2 ,-1 ,-1 ,-1 , 0 ,-6 ,-2 , 4 ,-2 , 2 ,-2 ,-1 ,-8 ],
+["B", 0 ,-1 , 2 , 3 ,-4 , 1 , 3 , 0 , 1 ,-2 ,-3 , 1 ,-2 ,-4 ,-1 , 0 , 0 ,-5 ,-3 ,-2 , 3 ,-3 , 2 ,-1 ,-8 ],
+["J",-1 ,-3 ,-3 ,-3 ,-5 ,-2 ,-3 ,-4 ,-2 , 3 , 5 ,-3 , 3 , 2 ,-2 ,-2 ,-1 ,-3 ,-1 , 2 ,-3 , 5 ,-2 ,-1 ,-8 ],
+["Z", 0 , 0 , 1 , 3 ,-5 , 3 , 3 , 0 , 2 ,-2 ,-3 , 0 ,-2 ,-5 , 0 , 0 ,-1 ,-6 ,-4 ,-2 , 2 ,-2 , 3 ,-1 ,-8 ],
+["X",-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-8 ],
+["*",-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 , 1 ],
+])
+
 
 def genetic_code(genetic_code_id):
     """
@@ -409,6 +458,162 @@ def reverse_complement(seq):
     return "".join([REV_COMP_DICT[n] for n in seq[::-1]])
 
 
+def align_prots(s1, s2, method, scoring_matrix=PAM250):
+
+    def gapless(s1, s2, aln):
+        len_s1  = len(s1)
+        len_s2  = len(s2)
+        max_len = max(len(s1), len(s2))
+        min_len = min(len(s1), len(s2))
+        aln["s1_aln"] = s1
+        aln["s2_aln"] = s2
+        if len(s1) < len(s2):
+            aln["s1_aln"] += "-" * (len(s2) - len(s1))
+        elif len(s1) > len(s2):
+            aln["s2_aln"] += "-" * (len(s1) - len(s2))
+        for i in range(max_len - min_len + 1):
+            matches, mismatches = 0, []
+            s1_aln, s1_start, s1_end = s1, 0, len_s1
+            s2_aln, s2_start, s2_end = s2, 0, len_s2
+            if len_s2 < len_s1:
+                s2_aln, s2_start, s2_end = list("-" * max_len), i, i + len_s2
+            else:
+                s1_aln, s1_start, s1_end = list("-" * max_len), i, i + len_s1
+            for j in range(min_len):
+                if len_s2 < len_s1:
+                    pid = AA_PIDS["".join(sorted(f"{s1[i+j]}{s2[j]}"))]
+                    matches += pid
+                    if pid < 0.5: mismatches.append(i+j)
+                    s2_aln[i+j] = s2[j]
+                else:
+                    pid = AA_PIDS["".join(sorted(f"{s1[j]}{s2[i+j]}"))]
+                    matches += pid
+                    if pid < 0.5: mismatches.append(i+j)
+                    s1_aln[i+j] = s1[j]
+            try:
+                match_rate = matches / min_len
+            except ZeroDivisionError:
+                match_rate = 0.0
+            if match_rate > aln["match_rate"]:
+                aln["matches"]    = matches
+                aln["mismatches"] = mismatches
+                aln["match_rate"] = match_rate
+                aln["s1_aln"]     = "".join(s1_aln)
+                aln["s1_start"]   = s1_start
+                aln["s1_end"]     = s1_end
+                aln["s2_aln"]     = "".join(s2_aln)
+                aln["s2_start"]   = s2_start
+                aln["s2_end"]     = s2_end
+        return aln
+
+    def best_score(val_matrix, row, col, nt_left, nt_top, scoring_matrix):
+        left_score = val_matrix[row  ][col-1] + scoring_matrix["gap"]
+        diag_score = val_matrix[row-1][col-1] + scoring_matrix[f"{nt_left}{nt_top}"]
+        up_score   = val_matrix[row-1][col  ] + scoring_matrix["gap"]
+        if diag_score >= left_score and diag_score >= up_score:
+            score = diag_score
+            direction = 3
+        elif left_score > diag_score and left_score >= up_score:
+            score = left_score
+            direction = 2
+        else:
+            score = up_score
+            direction = 1
+        return score, direction
+
+    def nw_matrix(s1, s2, scoring_matrix):
+        seq_left = f" {s1}"
+        seq_top  = f" {s2}"
+        val_matrix = [[0] * len(seq_top) for i in range(len(seq_left))]
+        dir_matrix = [[0] * len(seq_top) for i in range(len(seq_left))]
+        for i in range(len(val_matrix)):
+            val_matrix[i][0] = i * scoring_matrix["gap"]
+            dir_matrix[i][0] = 1
+        for i in range(len(val_matrix[0])):
+            val_matrix[0][i] = i * scoring_matrix["gap"]
+            dir_matrix[0][i] = 2
+        dir_matrix[0][0] = 0
+        for l in range(1, len(seq_left)):
+            for t in range(1, len(seq_top)):
+                val_matrix[l][t], dir_matrix[l][t] = best_score(
+                    val_matrix, l, t, seq_left[l], seq_top[t], scoring_matrix
+                )
+        return dir_matrix
+
+    def traceback(dir_matrix, seq_left, seq_top):
+        seq_left = f" {seq_left}"
+        seq_top  = f" {seq_top}"
+        traceback.align_left = ""
+        traceback.align_top = ""
+        def stepback(dir_matrix, seq_left, seq_top, l, t):
+            if l < 0 or t < 0:
+                return
+            if dir_matrix[l][t] == 3:
+                stepback(dir_matrix, seq_left, seq_top, l-1, t-1)
+                traceback.align_top  += seq_top[t]
+                traceback.align_left += seq_left[l]
+            elif dir_matrix[l][t] == 2:
+                stepback(dir_matrix, seq_left, seq_top, l, t-1)
+                traceback.align_top  += seq_top[t]
+                traceback.align_left += "-"
+            elif dir_matrix[l][t] == 1:
+                stepback(dir_matrix, seq_left, seq_top, l-1, t)
+                traceback.align_top  += "-"
+                traceback.align_left += seq_left[l]
+            else:
+                return
+        stepback(dir_matrix, seq_left, seq_top, len(seq_left)-1, len(seq_top)-1)
+        return traceback.align_left, traceback.align_top
+
+    def needleman_wunsch(s1, s2, aln, scoring_matrix):
+        s1_aln, s2_aln = traceback(nw_matrix(s1, s2, scoring_matrix), s1, s2)
+        aln["s1_start"] = len(s1_aln) - len(s1_aln.lstrip("-"))
+        aln["s1_end"]   = len(s1_aln.rstrip("-"))
+        aln["s1_aln"]   = s1_aln
+        aln["s2_start"] = len(s2_aln) - len(s2_aln.lstrip("-"))
+        aln["s2_end"]   = len(s2_aln.rstrip("-"))
+        aln["s2_aln"]   = s2_aln
+        aln_start = max(aln["s1_start"], aln["s2_start"])
+        aln_end = min(aln["s1_end"], aln["s2_end"])
+        for i in range(aln_start, aln_end):
+            if "-" not in [s1_aln[i], s2_aln[i]]:
+                pid = AA_PIDS["".join(sorted(f"{s1_aln[i]}{s2_aln[i]}"))]
+                aln["matches"] += pid
+                if pid < 0.5: aln["mismatches"].append(i)
+        try:
+            aln["match_rate"] = aln["matches"] / (aln_end - aln_start)
+        except ZeroDivisionError:
+            aln["match_rate"] = 0.0
+        return aln
+
+    valid_methods = ["gapless", "nw"]
+    if method not in valid_methods: return False
+
+    # Alignment data template:
+    aln = {
+        "matches":    0,
+        "mismatches": [],
+        "match_rate": 0.0,
+        "s1_start":   0,
+        "s1_end":     0,
+        "s1_aln":     "",
+        "s2_start":   0,
+        "s2_end":     0,
+        "s2_aln":     "",
+    }
+
+    # Capitalize sequences
+    s1 = s1.upper()
+    s2 = s2.upper()
+
+    if method == "gapless":
+        return gapless(s1, s2, aln)
+    elif method == "nw":
+        return needleman_wunsch(s1, s2, aln, scoring_matrix)
+    else:
+        return False
+
+
 def pairwise_identity(seq1: str, seq2: str, seq_type: str):
     """
     Given a pair of aligned sequences 'seq1' and 'seq2', calculate the identity of the overlapping
@@ -443,7 +648,7 @@ def pairwise_identity(seq1: str, seq2: str, seq_type: str):
     matches = 0
     if overlap_length > 0:
         for pos in range(max(seq1_start, seq2_start), min(seq1_end, seq2_end)):
-            pair = "".join(sorted(seq1[pos]+seq2[pos]))
+            pair = "".join(sorted(f"{seq1[pos]}{seq2[pos]}"))
             matches += PIDS[pair]
             if pair == "--":
                 overlap_length -= 1
@@ -752,81 +957,6 @@ def alignment_stats(fasta_path):
     return stats
 
 
-def align_gapless(s1, s2):
-    """
-    Alignment two strings, case insensitive, without internal gaps. Returns the alignment
-    in a dictionary that includes number of matches, list of mismatches in the coordinates of the
-    longest sequence, and start and end coordinates of the aligned portion for each sequence
-
-    Parameters
-    ----------
-    s1 : str
-        Sequence 1
-    s2 : str
-        Sequence 2
-
-    Returns
-    -------
-    dict
-        Dictionary that includes several features of the alignment, like number of matches,
-        list of mismatches, start and end coordinates of the aligned portion of each sequence, see
-        'aln' template
-    """
-
-    # This is the template for output dictionary with the elements of the alignment:
-    aln = {
-        "matches":    0,
-        "mismatches": [],
-        "match_rate": 0.0,
-        "s1_start":   0,
-        "s1_end":     0,
-        "s1_aln":     "",
-        "s2_start":   0,
-        "s2_end":     0,
-        "s2_aln":     "",
-    }
-    len_s1  = len(s1)
-    len_s2  = len(s2)
-    max_len = max(len(s1), len(s2))
-    min_len = min(len(s1), len(s2))
-    for i in range(max_len - min_len + 1):
-        matches, mismatches = 0, []
-        s1_aln, s1_start, s1_end = s1, 0, len_s1
-        s2_aln, s2_start, s2_end = s2, 0, len_s2
-        if len_s2 < len_s1:
-            s2_aln, s2_start, s2_end = list("-" * max_len), i, i + len_s2
-        else:
-            s1_aln, s1_start, s1_end = list("-" * max_len), i, i + len_s1
-        for j in range(min_len):
-            if len_s2 < len_s1:
-                if s2[j].lower() == s1[i+j].lower():
-                    matches += 1
-                else:
-                    mismatches.append(i+j)
-                s2_aln[i+j] = s2[j]
-            else:
-                if s1[j].lower() == s2[i+j].lower():
-                    matches += 1
-                else:
-                    mismatches.append(i+j)
-                s1_aln[i+j] = s1[j]
-        try:
-            match_rate = matches / min_len
-        except ZeroDivisionError:
-            match_rate = 0.0
-        if match_rate > aln["match_rate"]:
-            aln["matches"]    = matches
-            aln["mismatches"] = mismatches
-            aln["match_rate"] = match_rate
-            aln["s1_aln"]     = "".join(s1_aln)
-            aln["s1_start"]   = s1_start
-            aln["s1_end"]     = s1_end
-            aln["s2_aln"]     = "".join(s2_aln)
-            aln["s2_start"]   = s2_start
-            aln["s2_end"]     = s2_end
-    return aln
-
-
 def fasta_headers_to_spades(fasta_dict, ordered=True):
     """
     Given a `fasta_dict` from the function `fasta_to_dict()`, transform MEGAHIT or SKESA headers
@@ -901,7 +1031,9 @@ def fasta_headers_to_spades(fasta_dict, ordered=True):
         return fasta_dict, assembler
 
 
-def scipio_yaml_to_dict(yaml_path, min_identity, min_coverage, marker_type, transtable):
+def scipio_yaml_to_dict(
+        yaml_path, min_identity, min_coverage, marker_type, transtable, max_paralogs, predict
+):
     """
     Process Scipio's YAML output, verify translation of each model, add extra aminoacid in gaps if
     they can be translated
@@ -918,6 +1050,14 @@ def scipio_yaml_to_dict(yaml_path, min_identity, min_coverage, marker_type, tran
         Protein origin: NUC, PTD, MIT
     transtable : int
         Translation table number
+    predict : bool
+        Attempt translation of introns flagged as doubtful by Scipio. If translation does not
+        introduce preamture stop codons a new coding segment is added to the recovered protein
+
+    Returns
+    -------
+    [type]
+        [description]
     """
 
     def load_scipio_yaml(yaml_path):
@@ -1154,23 +1294,21 @@ def scipio_yaml_to_dict(yaml_path, min_identity, min_coverage, marker_type, tran
                 cds_aa += mod["mat_aa"][i]
         return cds_nt, cds_aa
 
-    def align_nt_to_aa(seq_nt: str, gencode: dict, seq_aa: str, stop_penalty=0.0):
+    def align_exon_nt_to_scipio_aa(seq_nt: str, gencode: dict, seq_aa: str):
         """
-        Given a nucleotide `seq_nt` and an aminoacid sequence `seq_aa`, translate `seq_nt` using
-        `gencode` in the three positive reading frames, align the translations to `seq_aa`, and
-        determine the best alignment
+        Given the exon sequence in nucleotides, translate in the three positive reading frames and
+        align each translation to Scipio's provided translation to determine the exon's correct
+        reading frame as well as the number of leading and trailing bases outside of the reading
+        frame
 
         Parameters
         ----------
         seq_nt : str
-            Sequence in nucleotide
+            Exon sequence in nucleotides
         gencode : dict
             Genetic code, output from function genetic_code()
         seq_aa : str
-            Sequence in aminoacid
-        stop_penalty : float, optional
-            Substract this number from the total matches for each stop codon in the translated
-            sequence, by default 0.0
+            Scipio's provided translation for the exon
 
         Returns
         -------
@@ -1179,10 +1317,8 @@ def scipio_yaml_to_dict(yaml_path, min_identity, min_coverage, marker_type, tran
             leading and trailing untranslated nucleotides
         """
         rfs  = {i: translate(seq_nt, gencode, frame=i, start_as_M=False) for i in [1,2,3]}
-        alns = {i: align_gapless(rfs[i], seq_aa) for i in rfs}
-        for rf in alns:
-            alns[rf]["matches"] -= (alns[rf]["s1_aln"].count("*")) * stop_penalty
-        rf, aln = max(alns.items(), key=(lambda x: x[1]["matches"])) # By GS
+        alns = {i: align_prots(rfs[i], seq_aa, "gapless") for i in rfs}
+        rf, aln = max(alns.items(), key=(lambda x: x[1]["match_rate"])) # By GS
         aln["rf"]    = rf
         aln["lead"]  = rf - 1
         aln["trail"] = (len(seq_nt) - aln["lead"]) % 3
@@ -1262,7 +1398,7 @@ def scipio_yaml_to_dict(yaml_path, min_identity, min_coverage, marker_type, tran
             mod["mat_aa"][i] = mod["mat_aa"][i][:aln["s1_end"]]
         return mod
 
-    def fix_model(mod: dict, gencode: dict, max_mismatches: int):
+    def fix_model(mod: dict, gencode: dict):
         """
         When translation of concatenated exons does not match the translation given by Scipio, we
         need to check every exon for inconsistencies like extra dangling nucleotides that break the
@@ -1274,8 +1410,6 @@ def scipio_yaml_to_dict(yaml_path, min_identity, min_coverage, marker_type, tran
             Gene model formatted by function parse_model()
         gencode : dict
             Genetic code, output from function genetic_code()
-        max_mismatches : int
-            Maximum mismatches allowed between Scipio's and Captus' translation
 
         Returns
         -------
@@ -1287,7 +1421,7 @@ def scipio_yaml_to_dict(yaml_path, min_identity, min_coverage, marker_type, tran
         # 1. Fix cases where Scipio's translation is longer than possible given the exon seq
         for i in range(mod_len):
             if mod["mat_types"][i] == "exon":
-                aln = align_nt_to_aa(mod["mat_nt"][i], gencode, mod["mat_aa"][i])
+                aln = align_exon_nt_to_scipio_aa(mod["mat_nt"][i], gencode, mod["mat_aa"][i])
 
                 if aln["s1_start"] > 0:
                     start_aa = aln["s1_start"] - 1 if aln["lead"] > 1 else aln["s1_start"]
@@ -1304,11 +1438,11 @@ def scipio_yaml_to_dict(yaml_path, min_identity, min_coverage, marker_type, tran
         for i in range(mod_len):
             if mod["mat_types"][i] == "exon":
                 if "gap before" in mod["mat_notes"][i]:
-                    aln = align_nt_to_aa(mod["mat_nt"][i], gencode, mod["mat_aa"][i])
+                    aln = align_exon_nt_to_scipio_aa(mod["mat_nt"][i], gencode, mod["mat_aa"][i])
                     mod = remove_leading(mod, i, aln["lead"], aln)
 
                 if "gap after" in mod["mat_notes"][i]:
-                    aln = align_nt_to_aa(mod["mat_nt"][i], gencode, mod["mat_aa"][i])
+                    aln = align_exon_nt_to_scipio_aa(mod["mat_nt"][i], gencode, mod["mat_aa"][i])
                     mod = remove_trailing(mod, i, aln["trail"], aln, mod_len)
         cds_nt, cds_aa = concat_cds(mod)
         if translate(cds_nt, gencode, frame=1, start_as_M=False) == cds_aa:
@@ -1319,7 +1453,7 @@ def scipio_yaml_to_dict(yaml_path, min_identity, min_coverage, marker_type, tran
         last_exon = None
         for i in range(mod_len):
             if mod["mat_types"][i] == "exon":
-                aln = align_nt_to_aa(mod["mat_nt"][i], gencode, mod["mat_aa"][i])
+                aln = align_exon_nt_to_scipio_aa(mod["mat_nt"][i], gencode, mod["mat_aa"][i])
                 # Remove extra leading nucleotides/aminoacids from first exon
                 if last_exon is None:
                     if aln["lead"] > 0:
@@ -1331,18 +1465,18 @@ def scipio_yaml_to_dict(yaml_path, min_identity, min_coverage, marker_type, tran
                     elif last_trail == 0 and aln["lead"] in [1, 2]:
                         mod = remove_leading(mod, i, aln["lead"], aln)
                     elif last_trail == 1 and aln["lead"] in [0, 1]:
-                        last_aln = align_nt_to_aa(mod["mat_nt"][last_exon], gencode,
-                                                  mod["mat_aa"][last_exon])
+                        last_aln = align_exon_nt_to_scipio_aa(mod["mat_nt"][last_exon], gencode,
+                                                              mod["mat_aa"][last_exon])
                         mod = remove_trailing(mod, last_exon, last_trail, last_aln, mod_len)
                         mod = remove_leading(mod, i, aln["lead"], aln)
                     elif last_trail == 2:
                         if aln["lead"] == 0:
-                            last_aln = align_nt_to_aa(mod["mat_nt"][last_exon], gencode,
-                                                      mod["mat_aa"][last_exon])
+                            last_aln = align_exon_nt_to_scipio_aa(mod["mat_nt"][last_exon], gencode,
+                                                                  mod["mat_aa"][last_exon])
                             mod = remove_trailing(mod, last_exon, last_trail, last_aln, mod_len)
                         elif aln["lead"] == 2:
-                            last_aln = align_nt_to_aa(mod["mat_nt"][last_exon], gencode,
-                                                      mod["mat_aa"][last_exon])
+                            last_aln = align_exon_nt_to_scipio_aa(mod["mat_nt"][last_exon], gencode,
+                                                                  mod["mat_aa"][last_exon])
                             # If last exon has an extra terminal aminoacid
                             if last_aln["s1_end"] < last_aln["s2_end"]:
                                 # Trim a single base from the start of current exon
@@ -1351,7 +1485,7 @@ def scipio_yaml_to_dict(yaml_path, min_identity, min_coverage, marker_type, tran
                             else:
                                 # Trim a single base from the end of last exon
                                 mod = remove_trailing(mod, last_exon, 1, last_aln, mod_len)
-                aln = align_nt_to_aa(mod["mat_nt"][i], gencode, mod["mat_aa"][i])
+                aln = align_exon_nt_to_scipio_aa(mod["mat_nt"][i], gencode, mod["mat_aa"][i])
                 last_trail = aln["trail"]
                 last_exon = i
 
@@ -1360,13 +1494,116 @@ def scipio_yaml_to_dict(yaml_path, min_identity, min_coverage, marker_type, tran
         if cds_nt_translated == cds_aa:
             return mod
         else:
-            aln = align_gapless(cds_nt_translated, cds_aa)
+            aln = align_prots(cds_nt_translated, cds_aa, "gapless")
             mismatches = (len(aln["mismatches"])
                           - sum(aln["s2_aln"][i] == "X" for i in aln["mismatches"]))
-            if max_mismatches >= mismatches:
+            if mismatches <= set_a.SCIPIO_MAX_MISMATCHES:
                 return mod
             else:
                 return None
+
+    def translate_between_exons(mod: dict, i: int, gencode: dict, predict: bool):
+        if (len(mod["mat_nt"][i]) > 2
+            and mod["mat_types"][i-1] == mod["mat_types"][i+1] == "exon"
+            and mod["hit_ids"][i-1] == mod["hit_ids"][i] == mod["hit_ids"][i+1]):
+
+            # Align previous exon to its translation to find out its trailing bases
+            prev_exon_aln = align_exon_nt_to_scipio_aa(mod["mat_nt"][i-1], gencode,
+                                                       mod["mat_aa"][i-1])
+            # Align next exon to to its translation to find out its leading bases
+            next_exon_aln = align_exon_nt_to_scipio_aa(mod["mat_nt"][i+1], gencode,
+                                                       mod["mat_aa"][i+1])
+            # Take trailing bases from previous and leading bases from next and add to current chunk
+            current_chunk = ""
+            if prev_exon_aln["trail"] > 0:
+                current_chunk += mod["mat_nt"][i-1][-prev_exon_aln["trail"]:]
+            current_chunk += mod["mat_nt"][i]
+            current_chunk += mod["mat_nt"][i+1][:next_exon_aln["lead"]]
+
+            # 'seq_chunks', 'lead', and 'trail' only get modified when translation is acceptable
+            seq_chunks = None
+            lead = None
+            trail = None
+
+
+            if mod["mat_types"][i] == "gap":
+                # Attempt translation of current chunk and then alignment to unmatched segment of
+                # reference protein ('prot_gap'):
+                # ref_seq[0] = protein sequence, ref_seq[1] = starting coordinate
+                ref_seq = mod["ref_seqs"][mod["hit_ids"][i]]
+                prot_gap = ref_seq[0][max(mod["ref_ends"][i-1] - ref_seq[1], 0) :
+                                      min(mod["ref_starts"][i+1] - ref_seq[1], len(ref_seq[0]))]
+                rfs  = {i: translate(current_chunk, gencode, frame=i, start_as_M=False)
+                        for i in [1,2,3]}
+                alns = {i: align_prots(rfs[i], prot_gap, "nw") for i in rfs}
+                # Prioritize filling of gap without skipping leading or trailing bases
+                if (len(current_chunk) % 3 == 0 and not "*" in alns[1]["s1_aln"]
+                    and alns[1]["match_rate"] >= set_a.SCIPIO_MIN_GAP_MATCH_RATE):
+                    lead, trail = 0, 0
+                    seq_chunks = ["", mod["mat_nt"][i].upper()]
+                    mod["mismatches"] += [pos+mod["ref_ends"][i-1] for pos in alns[1]["mismatches"]]
+                # Rank reading frames by their match rate penalized by the number of stop codons
+                else:
+                    for rf in alns:
+                        alns[rf]["match_rate"] *= (set_a.SCIPIO_STOP_PENALTY
+                                                   ** alns[rf]["s1_aln"].count("*"))
+                    rf, aln = max(alns.items(), key=(lambda x: x[1]["match_rate"]))
+                    if (aln["match_rate"] >= set_a.SCIPIO_MIN_GAP_MATCH_RATE
+                        and not "*" in aln["s1_aln"]):
+                        lead  = rf - 1
+                        trail = (len(current_chunk) - lead) % 3
+                        if trail > 0:
+                            seq_chunks = [f'{mod["mat_nt"][i][:lead].lower()}',
+                                          f'{mod["mat_nt"][i][lead:-trail].upper()}',
+                                          f'{mod["mat_nt"][i][-trail:].lower()}']
+                        else:
+                            seq_chunks = [f'{mod["mat_nt"][i][:lead].lower()}',
+                                          f'{mod["mat_nt"][i][lead:].upper()}']
+                        mod["mismatches"] += [pos+mod["ref_ends"][i-1] for pos in aln["mismatches"]]
+
+            if predict and mod["mat_types"][i] == "intron?":
+                rfs = {i: translate(current_chunk, gencode, frame=i, start_as_M=False)
+                       for i in [1,2,3]}
+                no_stops = {i: rfs[i] for i in rfs if not "*" in rfs[i]}
+                if no_stops:
+                    if 1 in no_stops:
+                        if len(current_chunk) % 3 == 0:
+                            lead, trail = 0, 0
+                            seq_chunks = ["", mod["mat_nt"][i].upper()]
+                    else:
+                        rf, aa = max(no_stops.items(), key=(lambda x: len(x[1])))
+                        lead = rf - 1
+                        trail = (len(current_chunk) - lead) % 3
+                        if trail > 0:
+                            seq_chunks = [f'{mod["mat_nt"][i][:lead].lower()}',
+                                          f'{mod["mat_nt"][i][lead:-trail].upper()}',
+                                          f'{mod["mat_nt"][i][-trail:].lower()}']
+                        else:
+                            seq_chunks = [f'{mod["mat_nt"][i][:lead].lower()}',
+                                          f'{mod["mat_nt"][i][lead:].upper()}']
+
+            if seq_chunks:
+                mod["seq_flanked"] += "".join(seq_chunks)
+                mod["seq_gene"] += "".join(seq_chunks)
+                mod["seq_nt"] += seq_chunks[1]
+                mod["ref_starts"][i] = mod["ref_ends"][i-1]
+                mod["ref_ends"][i] = mod["ref_starts"][i+1]
+                mod["hit_starts"][i] = mod["hit_ends"][i-1] + lead
+                mod["hit_ends"][i] = mod["hit_starts"][i+1] - trail
+                mod["mat_types"][i] += "/exon"
+                if mod["mat_types"][i] == "gap":
+                    mod["mat_notes"][i] += "/filled"
+                elif mod["mat_types"][i] == "intron?":
+                    mod["mat_notes"][i] += "/predicted"
+            else:
+                mod["seq_flanked"] += mod["mat_nt"][i].lower()
+                mod["seq_gene"] += mod["mat_nt"][i].lower()
+
+        else:
+            mod["seq_flanked"] += mod["mat_nt"][i].lower()
+            mod["seq_gene"] += mod["mat_nt"][i].lower()
+
+        return mod
 
     def merge_adjoining_exons(mod: dict):
         last_exon = None
@@ -1387,7 +1624,7 @@ def scipio_yaml_to_dict(yaml_path, min_identity, min_coverage, marker_type, tran
                         last_exon = i
         return mod
 
-    def check_gaps_and_concat_seqs(mod, gencode, min_matches=1):
+    def check_gaps_and_concat_seqs(mod: dict, gencode: dict, predict: bool):
         last_exon = None
         for i in range(len(mod["mat_types"])):
             if mod["mat_types"][i] == "upstream":
@@ -1403,48 +1640,9 @@ def scipio_yaml_to_dict(yaml_path, min_identity, min_coverage, marker_type, tran
                 mod["seq_gene"] += mod["mat_nt"][i].upper()
                 mod["seq_nt"] += mod["mat_nt"][i].upper()
                 last_exon = i
-            if mod["mat_types"][i] == "gap":
-                if (len(mod["mat_nt"][i]) > 2
-                    and mod["mat_types"][i-1] == mod["mat_types"][i+1] == "exon"
-                    and mod["hit_ids"][i-1] == mod["hit_ids"][i] == mod["hit_ids"][i+1]):
-                    ref_seq = mod["ref_seqs"][mod["hit_ids"][i]]
-                    s = max(mod["ref_ends"][i-1] - ref_seq[1] - 1, 0)
-                    e = min(mod["ref_starts"][i+1] - ref_seq[1] + 1, len(ref_seq[0]))
-                    aln = align_nt_to_aa(mod["mat_nt"][i],
-                                         gencode,
-                                         ref_seq[0][s:e],
-                                         stop_penalty=1.1)
-                    lead, trail = aln["lead"], aln["trail"]
-                    if (not "*" in aln["s1_aln"]
-                        and
-                        ((0 in [lead, trail] and aln["matches"] >= min_matches)
-                         or
-                         (0 not in [lead, trail] and aln["matches"] > min_matches))):
-                        if trail > 0:
-                            seq_chunks = [f'{mod["mat_nt"][i][:lead].lower()}',
-                                          f'{mod["mat_nt"][i][lead:-trail].upper()}',
-                                          f'{mod["mat_nt"][i][-trail:].lower()}']
-                        else:
-                            seq_chunks = [f'{mod["mat_nt"][i][:lead].lower()}',
-                                          f'{mod["mat_nt"][i][lead:].upper()}']
-                        mod["seq_flanked"] += "".join(seq_chunks)
-                        mod["seq_gene"] += "".join(seq_chunks)
-                        mod["seq_nt"] += seq_chunks[1]
-                        mod["ref_starts"][i] = max(mod["ref_ends"][i-1] + aln["s1_start"] - 1,
-                                                   mod["ref_ends"][i-1])
-                        mod["ref_ends"][i] = min(len(seq_chunks[1]) // 3 + mod["ref_starts"][i],
-                                                 mod["ref_ends"][i+1])
-                        mod["hit_starts"][i] = mod["hit_ends"][i-1] + lead
-                        mod["hit_ends"][i] = mod["hit_starts"][i+1] - trail
-                        mod["mat_types"][i] += "/exon"
-                        mod["mat_notes"][i] += "/translated"
-                    else:
-                        mod["seq_flanked"] += mod["mat_nt"][i].lower()
-                        mod["seq_gene"] += mod["mat_nt"][i].lower()
-                else:
-                    mod["seq_flanked"] += mod["mat_nt"][i].lower()
-                    mod["seq_gene"] += mod["mat_nt"][i].lower()
-            if mod["mat_types"][i] in ["intron", "intron?", "separator"]:
+            if mod["mat_types"][i] in ["gap", "intron?"]:
+                mod = translate_between_exons(mod, i, gencode, predict)
+            if mod["mat_types"][i] in ["intron", "separator"]:
                 mod["seq_flanked"] += mod["mat_nt"][i].lower()
                 mod["seq_gene"] += mod["mat_nt"][i].lower()
             if mod["mat_types"][i] == "stopcodon":
@@ -1457,7 +1655,6 @@ def scipio_yaml_to_dict(yaml_path, min_identity, min_coverage, marker_type, tran
                 else:
                     mod["seq_flanked"] += mod["mat_nt"][i].lower()
         mod["seq_aa"] = translate(mod["seq_nt"], gencode, frame=1, start_as_M=False)
-        mod = merge_adjoining_exons(mod)
         return mod
 
     def concat_coords(ids: list, starts: list, ends: list):
@@ -1477,8 +1674,8 @@ def scipio_yaml_to_dict(yaml_path, min_identity, min_coverage, marker_type, tran
         return coords
 
     def parse_model(
-        yaml_mod: dict, protein_name: str, marker_type: str, gencode: dict, max_mismatches: int
-        ):
+            yaml_mod: dict, protein_name: str, marker_type: str, gencode: dict, predict: bool
+    ):
         """
         A gene model is composed by several sequence matchings (e.g. exons, introns, etc.) which can
         be found across several contigs. This function organizes all relevant matching across
@@ -1647,40 +1844,36 @@ def scipio_yaml_to_dict(yaml_path, min_identity, min_coverage, marker_type, tran
                     mod["mismatches"]      += mismatches
                     add_separator = False if has_overlap else True
 
-        mod = fix_model(mod, gencode, max_mismatches)
+        mod = fix_model(mod, gencode)
         if not mod: return None
 
-        prot_len_before_gap_check = sum(len(mod["mat_aa"][i])
-                                        for i in range(len(mod["mat_types"]))
-                                        if mod["mat_types"][i] == "exon")
-        mod = check_gaps_and_concat_seqs(mod, gencode, min_matches=set_a.SCIPIO_MIN_GAP_MATCHES)
-        mod["ref_coords"] = concat_coords(mod["hit_ids"], mod["ref_starts"], mod["ref_ends"])
-        mod["hit_coords"] = concat_coords(mod["hit_ids"], mod["hit_starts"], mod["hit_ends"])
-        mod["hit_ids"]    = "\n".join(list(dict.fromkeys(list(filter(None, mod["hit_ids"])))))
+        mod = check_gaps_and_concat_seqs(mod, gencode, predict)
+        prot_len_predicted = sum(mod["hit_ends"][i] - mod["hit_starts"][i]
+                                 for i in range(len(mod["mat_types"]))
+                                 if "predicted" in mod["mat_notes"][i])
+        mod = merge_adjoining_exons(mod)
+        mod["ref_coords"]  = concat_coords(mod["hit_ids"], mod["ref_starts"], mod["ref_ends"])
+        mod["hit_coords"]  = concat_coords(mod["hit_ids"], mod["hit_starts"], mod["hit_ends"])
+        mod["hit_ids"]     = "\n".join(list(dict.fromkeys(list(filter(None, mod["hit_ids"])))))
         mod["hit_contigs"] = "\n".join(mod["hit_contigs"])
-        mod["strand"]     = "\n".join(mod["strand"])
-        prot_len_after_gap_check = len(mod["seq_nt"].replace("n", "")) // 3
-        mismatch_ratio = len(set(mod["mismatches"])) / prot_len_before_gap_check
-        mismatches = mismatch_ratio * prot_len_after_gap_check
-        matches = prot_len_after_gap_check - mismatches
-        mod["coverage"]   = (matches + mismatches) / mod["ref_size"] * 100
-        mod["identity"]   = matches / (matches + mismatches) * 100
-        mod["score"]      = (matches - mismatches) / mod["ref_size"]
-        mod["lwscore"]    = mod["score"] * (matches + mismatches) / mod["ref_size"]
-        mod["gapped"]     = bool("gap" in "".join(mod["mat_notes"]))
+        mod["strand"]      = "\n".join(mod["strand"])
+        prot_len = (len(mod["seq_nt"].replace("n", "")) - prot_len_predicted) // 3
+        mismatch_rate = len(set(mod["mismatches"])) / prot_len
+        mismatches = mismatch_rate * prot_len
+        matches = prot_len - mismatches
+        mod["coverage"] = (matches + mismatches) / mod["ref_size"] * 100
+        mod["identity"] = matches / (matches + mismatches) * 100
+        mod["score"]    = (matches - mismatches) / mod["ref_size"]
+        mod["lwscore"]  = mod["score"] * (matches + mismatches) / mod["ref_size"]
+        mod["gapped"]   = bool("gap" in "".join(mod["mat_notes"]))
         return mod
-
 
     gencode = genetic_code(transtable)
     yaml = load_scipio_yaml(yaml_path)
     unfiltered_models = {}
     for prot in yaml: # prot = protein (reference protein)
         for yaml_mod in yaml[prot]: # yaml_mod = gene model (hit, or paralog)
-            mod = parse_model(yaml[prot][yaml_mod],
-                              prot,
-                              marker_type,
-                              gencode,
-                              set_a.SCIPIO_MAX_MISMATCHES)
+            mod = parse_model(yaml[prot][yaml_mod], prot, marker_type, gencode, predict)
             if mod:
                 if prot in unfiltered_models:
                     unfiltered_models[prot][yaml_mod] = mod
@@ -1697,6 +1890,8 @@ def scipio_yaml_to_dict(yaml_path, min_identity, min_coverage, marker_type, tran
                 accepted_models.append(unfiltered_models[protein][model])
         if accepted_models:
             accepted_models = sorted(accepted_models, key=lambda i: i["lwscore"], reverse=True)
+            if max_paralogs > 0:
+                accepted_models = accepted_models[:max_paralogs]
             filtered_models[protein] = accepted_models
     unfiltered_models = None
 
@@ -1730,7 +1925,9 @@ def scipio_yaml_to_dict(yaml_path, min_identity, min_coverage, marker_type, tran
         return None
 
 
-def blat_misc_dna_psl_to_dict(psl_path, target_dict, min_identity, min_coverage, marker_type):
+def blat_misc_dna_psl_to_dict(
+        psl_path, target_dict, min_identity, min_coverage, marker_type, max_paralogs
+):
     """
     Parse .psl from BLAT, assemble greedily the partial hits, and return the best set of hits if
     the reference contains more than a single sequence of the same type (analogous to the reference
@@ -1832,7 +2029,7 @@ def blat_misc_dna_psl_to_dict(psl_path, target_dict, min_identity, min_coverage,
         """
         return ",".join([f"{s}-{e}" for s, e in zip(starts, ends)])
 
-    def extract_and_stitch_edges(assembly_paths):
+    def extract_and_stitch_edges(assembly_paths, max_paralogs: int):
         """
         Returns a list of stitched sequences with metadata, sorted by relevance: 'full' hits first
         sorted by 'lwscore', followed by assembled hits sorted by 'lwscore', and finally
@@ -1967,6 +2164,8 @@ def blat_misc_dna_psl_to_dict(psl_path, target_dict, min_identity, min_coverage,
         for hit in raw_assembly:
             if hit["identity"] >= min_identity and hit["coverage"] >= min_coverage:
                 assembly.append(hit)
+        if max_paralogs > 0:
+            assembly = assembly[:max_paralogs]
         raw_assembly = None
         return assembly
 
@@ -1982,7 +2181,7 @@ def blat_misc_dna_psl_to_dict(psl_path, target_dict, min_identity, min_coverage,
             return False
         return bool(overlap <= max_overlap_bp)
 
-    def greedy_assembly_partial_hits(hits_list, max_overlap_bp):
+    def greedy_assembly_partial_hits(hits_list, max_overlap_bp, max_paralogs: int):
         """
         Partial hits are assembled greedily starting by the hits with the highest 'lwscore',
         producing as many paralogs as necessary. Paralogs are merged from partial hits when all
@@ -2034,7 +2233,7 @@ def blat_misc_dna_psl_to_dict(psl_path, target_dict, min_identity, min_coverage,
         assembly_paths = ([[full_hits[f]] for f in range(len(full_hits))] + sorted_paths)
 
         # Search FASTA assembly input ('target_dict') and extract/stitch needed sequence fragments
-        assembly = extract_and_stitch_edges(assembly_paths)
+        assembly = extract_and_stitch_edges(assembly_paths, max_paralogs)
         assembly_paths = None
         return assembly
 
@@ -2062,23 +2261,23 @@ def blat_misc_dna_psl_to_dict(psl_path, target_dict, min_identity, min_coverage,
                 block_sizes = [int(s) for s in cols[18].strip(",").split(",")]
                 q_starts = [int(p) for p in cols[19].strip(",").split(",")]
                 t_starts = [int(p) for p in cols[20].strip(",").split(",")]
-                q_start, q_end, t_start, t_end, t_inserts = split_blat_hit(q_size,
-                                                                           block_sizes,
-                                                                           q_starts,
-                                                                           t_starts,
-                                                                           int(cols[12]),
-                                                                           int(cols[16]))
+                q_start, q_end, t_start, t_end, t_inserts = split_blat_hit(
+                    q_size, block_sizes, q_starts, t_starts, int(cols[12]), int(cols[16])
+                )
             else:
                 q_start, q_end = [int(cols[11])], [int(cols[12])]
                 t_start, t_end, t_inserts = [int(cols[15])], [int(cols[16])], 0
 
             coverage = (matches + rep_matches + mismatches) / q_size * 100
-            identity = calculate_psl_identity(q_end[-1], q_start[0], t_end[-1], t_start[0],
-                                              q_inserts, matches, rep_matches, mismatches)
+            identity = calculate_psl_identity(
+                q_end[-1], q_start[0], t_end[-1], t_start[0],
+                q_inserts, matches, rep_matches, mismatches
+            )
             score = (matches + rep_matches - mismatches) / q_size
             lwscore = score * ((matches + rep_matches + mismatches) / q_size)
-            region = determine_matching_region(q_size, q_start[0], q_end[-1],
-                                               t_size, t_start[0], t_end[-1])
+            region = determine_matching_region(
+                q_size, q_start[0], q_end[-1], t_size, t_start[0], t_end[-1]
+            )
             gapped = not bool(region == "full")
 
             # Ignore hits with not enough coverage of the reference, or partial hits immersed in
@@ -2122,7 +2321,9 @@ def blat_misc_dna_psl_to_dict(psl_path, target_dict, min_identity, min_coverage,
     # Assemble hits, organized by reference
     dna_hits = {}
     for dna_ref in raw_dna_hits:
-        assembled_hits = greedy_assembly_partial_hits(raw_dna_hits[dna_ref], max_overlap_bp)
+        assembled_hits = greedy_assembly_partial_hits(raw_dna_hits[dna_ref],
+                                                      max_overlap_bp,
+                                                      max_paralogs)
         if assembled_hits:
             dna_hits[dna_ref] = assembled_hits
 

@@ -624,6 +624,27 @@ class CaptusAssembly(object):
                  " extremely slow as the number of reference proteins grows"
         )
         output_group.add_argument(
+            "--max_paralogs",
+            action="store",
+            default=0,
+            type=int,
+            dest="max_paralogs",
+            help="Maximum number of hits (paralogs) to a particular reference marker allowed in the"
+                 " output. Use 0 to disable the paralog filtering after extraction (recommended,"
+                 " since the maximum number of paralogs can also be filtered during the alignment"
+                 " step)"
+        )
+        output_group.add_argument(
+            "--predict",
+            action="store_true",
+            dest="predict",
+            help="Scipio flags introns as doubtful when the splice signals are not found at the exon"
+                 " edges, this may indicate that there are additional aminoacids in the recovered"
+                 " protein that are not present in the reference protein. Enable this flag to"
+                 " attempt translation of these doubtful introns, if the translation does not"
+                 " introduce premature stop codons they will be added to the recovered protein"
+        )
+        output_group.add_argument(
             "--keep_all",
             action="store_true",
             dest="keep_all",
