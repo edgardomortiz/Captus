@@ -49,7 +49,15 @@ ___
 When the number of different loci in the reference exceeds this value, `Captus` will not run a second, more exhaustive round of Scipio. Usually the results from the first round are extremely similar and sufficient, the second round can become extremely slow as the number of reference proteins grows.
 
 This argument is optional, the default is **2000**.
+___
+#### **`--max_paralogs`**
+Maximum number of hits (paralogs) to a particular reference marker allowed in the output. Use 0 to disable the paralog filtering after extraction (recommended, since the maximum number of paralogs can also be filtered during the alignment step). This can be useful for exploratory runs, for example: if after an initial run
+allowing all paralogs we found out that the average number of paralogs across samples is 5, we could use this number to get rid of outliers. 
 
+This argument is optional, the default is **0** (include all paralogs in the output).
+___
+#### **`--predict`**
+Scipio flags introns as doubtful when the splice signals are not found at the exon edges, this may indicate that there are additional aminoacids in the recovered protein that are not present in the reference protein. Enable this flag to attempt translation of these doubtful introns, if the translation does not introduce premature stop codons they will be added to the recovered protein.
 ___
 #### **`--keep_all`**
 Many intermediate files are created during the marker extraction, some are large (like `BLAT`'s `.psl` files) while others small temporary logs of intermediate steps, `Captus` deletes all the unnecesary intermediate files unless you enable this flag.
@@ -236,4 +244,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-08-06)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-11-17)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-11-29)

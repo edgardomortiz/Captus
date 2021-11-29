@@ -165,19 +165,24 @@ MIN_KMER_SIZE_FOR_FASTG = 31
 # Minimum RAM reserved a BLAT instance in bytes (2GB)
 BLAT_MIN_RAM_B = 2 * 1024 ** 3
 
-# Separator in between contigs from the same Scipio's hit
-SCIPIO_CONTIG_SEPARATOR = "n" * 50
+# Minimum stretch of missing aminoacids in recovered protein to be filled by "X"
+SCIPIO_MIN_GAP_TO_FILL = 5
 
-# Minimum number of aminoacid matches need to add a segment flagged as 'gap' by Scipio but that
-# can be cleanly translated and incorporated into the recovered coding sequence
-SCIPIO_MIN_GAP_MATCHES = 1
+# Minimum match rate between segment flagged as 'gap' by Scipio but that can be cleanly translated
+# and incorporated into the recovered coding sequence
+SCIPIO_MIN_GAP_MATCH_RATE = 0.1
+
+# When aligning the translations from the three reading frames to a protein segment, penalize the
+# match rate by this number as many times as stop codons are found in the translation corresponding
+# to each reading frame
+SCIPIO_STOP_PENALTY = 0.5
 
 # Maximum number of mismatches between recovered protein as given by Scipio and the new translation
 # performed by Captus after checking and fixing the gene model
 SCIPIO_MAX_MISMATCHES = 3
 
-# Minimum stretch of missing aminoacids in recovered protein to be filled by "X"
-SCIPIO_MIN_GAP_TO_FILL = 5
+# Separator in between contigs from the same Scipio's hit
+SCIPIO_CONTIG_SEPARATOR = "n" * 50
 
 # Separator between sample and protein cluster for Scipio's reference proteins. For example,
 # Angiosperms353 uses a '-', meaning that anything before the '-' is the sample name and after the

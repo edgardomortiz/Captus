@@ -270,6 +270,11 @@ def extract(full_command, args):
             log.log(f'{"min_identity":>{mar}}: {bold(args.dna_min_identity)}')
             log.log(f'{"min_coverage":>{mar}}: {bold(args.dna_min_coverage)}')
         log.log("")
+        log.log(f'{"Max. separate loci files":>{mar}}: {bold(args.max_loci_files)}')
+        log.log(f'{"Max. loci for 2X Scipio":>{mar}}: {bold(args.max_loci_scipio2x)}')
+        log.log(f'{"Max. paralogs":>{mar}}: {bold(args.max_paralogs)}')
+        log.log(f'{"Predict doubtful introns":>{mar}}: {bold(args.predict)}')
+        log.log("")
         log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
         log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
         log.log(f'{"Samples to process":>{mar}}: {bold(len(fastas_to_extract))}')
@@ -301,7 +306,9 @@ def extract(full_command, args):
                         "NUC",
                         args.nuc_transtable,
                         args.max_loci_files,
-                        args.max_loci_scipio2x
+                        args.max_loci_scipio2x,
+                        args.max_paralogs,
+                        args.predict
                     ))
                 if protein_refs["PTD"]["AA_path"]:
                     scipio_params.append((
@@ -321,7 +328,9 @@ def extract(full_command, args):
                         "PTD",
                         args.ptd_transtable,
                         args.max_loci_files,
-                        args.max_loci_scipio2x
+                        args.max_loci_scipio2x,
+                        args.max_paralogs,
+                        args.predict
                     ))
                 if protein_refs["MIT"]["AA_path"]:
                     scipio_params.append((
@@ -341,7 +350,9 @@ def extract(full_command, args):
                         "MIT",
                         args.mit_transtable,
                         args.max_loci_files,
-                        args.max_loci_scipio2x
+                        args.max_loci_scipio2x,
+                        args.max_paralogs,
+                        args.predict
                     ))
                 if dna_ref["DNA"]["NT_path"]:
                     blat_params.append((
@@ -357,7 +368,8 @@ def extract(full_command, args):
                         dna_query,
                         dna_query_info,
                         "DNA",
-                        args.max_loci_files
+                        args.max_loci_files,
+                        args.max_paralogs
                     ))
                 cleanup_params.append((
                     sample,
@@ -997,7 +1009,7 @@ def adjust_min_coverage(min_coverage):
 def scipio_coding(
         scipio_path, min_score, min_identity, min_coverage, blat_path, overwrite, keep_all,
         target_path, sample_dir, sample_name, query_path, query_dict, query_info, marker_type,
-        transtable, max_loci_files, max_loci_scipio2x
+        transtable, max_loci_files, max_loci_scipio2x, max_paralogs, predict
 ):
     """
     Perform two consecutive rounds of Scipio, the first run with mostly default settings and with a
@@ -1047,7 +1059,8 @@ def scipio_coding(
         else:
             yaml_initial_dir = yaml_initial_file.parent
             initial_models = scipio_yaml_to_dict(yaml_initial_file, min_identity,
-                                                 min_coverage, marker_type, transtable)
+                                                 min_coverage, marker_type, transtable,
+                                                 max_paralogs, predict)
 
         # Parse YAML to subselect only the best proteins from the 'query' and the contigs with hits
         # from the assembly ('target')
@@ -1077,7 +1090,8 @@ def scipio_coding(
     else:
         yaml_final_dir = yaml_final_file.parent
         final_models = scipio_yaml_to_dict(yaml_final_file, min_identity,
-                                           min_coverage, marker_type, transtable)
+                                           min_coverage, marker_type, transtable,
+                                           max_paralogs, predict)
 
     # Parse final YAML to produce output FASTA files and reports
     if final_models is None:
@@ -1277,8 +1291,11 @@ def write_fastas_and_report(
         num_loci += 1
         for h in range(len(hits[ref])):
 
-            # length = hits[ref][h]["matches"] + hits[ref][h]["mismatches"]
-            length = len(hits[ref][h]["seq_aa"])
+            if marker_type in ["DNA", "CLR"]:
+                length = hits[ref][h]["matches"] + hits[ref][h]["mismatches"]
+            else:
+                length = len(hits[ref][h]["seq_aa"])
+
             if h == 0:
                 lengths_best_hits.append(length)
                 coverages_best_hits.append(hits[ref][h]["coverage"])
@@ -1471,7 +1488,7 @@ def write_fastas_and_report(
 
 def blat_misc_dna(
         blat_path, min_identity, min_coverage, overwrite, keep_all, target, sample_dir, sample_name,
-        query_path, query_dict, query_info, marker_type, max_loci_files
+        query_path, query_dict, query_info, marker_type, max_loci_files, max_paralogs
 ):
     """
     Extract matches of miscellaneous DNA sequences by comparing the assemblies to a set of
@@ -1509,7 +1526,7 @@ def blat_misc_dna(
             subprocess.run(blat_cmd, stdout=blat_log, stderr=blat_log)
 
         dna_hits = blat_misc_dna_psl_to_dict(blat_dna_out_file, dna_target, min_identity,
-                                             min_coverage, marker_type)
+                                             min_coverage, marker_type, max_paralogs)
         if not dna_hits:
             message = red(f"'{sample_name}': FAILED extraction of miscellaneous DNA markers")
             return message
