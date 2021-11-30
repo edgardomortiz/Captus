@@ -1562,25 +1562,33 @@ def scipio_yaml_to_dict(
                         mod["mismatches"] += [pos+mod["ref_ends"][i-1] for pos in aln["mismatches"]]
 
             if predict and mod["mat_types"][i] == "intron?":
-                rfs = {i: translate(current_chunk, gencode, frame=i, start_as_M=False)
-                       for i in [1,2,3]}
-                no_stops = {i: rfs[i] for i in rfs if not "*" in rfs[i]}
-                if no_stops:
-                    if 1 in no_stops:
-                        if len(current_chunk) % 3 == 0:
-                            lead, trail = 0, 0
-                            seq_chunks = ["", mod["mat_nt"][i].upper()]
-                    else:
-                        rf, aa = max(no_stops.items(), key=(lambda x: len(x[1])))
-                        lead = rf - 1
-                        trail = (len(current_chunk) - lead) % 3
-                        if trail > 0:
-                            seq_chunks = [f'{mod["mat_nt"][i][:lead].lower()}',
-                                          f'{mod["mat_nt"][i][lead:-trail].upper()}',
-                                          f'{mod["mat_nt"][i][-trail:].lower()}']
-                        else:
-                            seq_chunks = [f'{mod["mat_nt"][i][:lead].lower()}',
-                                          f'{mod["mat_nt"][i][lead:].upper()}']
+                rf1 = translate(current_chunk, gencode, frame=1, start_as_M=False)
+                if len(current_chunk) % 3 == 0 and not "*" in rf1:
+                    lead, trail = 0, 0
+                    seq_chunks = ["", mod["mat_nt"][i].upper()]
+
+                # # When predicting we think we should only add the intervening segment if it can
+                # # be completely translated (i.e. divisible by 3 and without stop codons), the
+                # # following code would add translation even if it includes frameshifts
+                # rfs = {i: translate(current_chunk, gencode, frame=i, start_as_M=False)
+                #        for i in [1,2,3]}
+                # no_stops = {i: rfs[i] for i in rfs if not "*" in rfs[i]}
+                # if no_stops:
+                #     if 1 in no_stops:
+                #         if len(current_chunk) % 3 == 0:
+                #             lead, trail = 0, 0
+                #             seq_chunks = ["", mod["mat_nt"][i].upper()]
+                #     else:
+                #         rf, aa = max(no_stops.items(), key=(lambda x: len(x[1])))
+                #         lead = rf - 1
+                #         trail = (len(current_chunk) - lead) % 3
+                #         if trail > 0:
+                #             seq_chunks = [f'{mod["mat_nt"][i][:lead].lower()}',
+                #                           f'{mod["mat_nt"][i][lead:-trail].upper()}',
+                #                           f'{mod["mat_nt"][i][-trail:].lower()}']
+                #         else:
+                #             seq_chunks = [f'{mod["mat_nt"][i][:lead].lower()}',
+                #                           f'{mod["mat_nt"][i][lead:].upper()}']
 
             if seq_chunks:
                 mod["seq_flanked"] += "".join(seq_chunks)
@@ -1857,15 +1865,15 @@ def scipio_yaml_to_dict(
         mod["hit_ids"]     = "\n".join(list(dict.fromkeys(list(filter(None, mod["hit_ids"])))))
         mod["hit_contigs"] = "\n".join(mod["hit_contigs"])
         mod["strand"]      = "\n".join(mod["strand"])
-        prot_len = (len(mod["seq_nt"].replace("n", "")) - prot_len_predicted) // 3
-        mismatch_rate = len(set(mod["mismatches"])) / prot_len
-        mismatches = mismatch_rate * prot_len
-        matches = prot_len - mismatches
-        mod["coverage"] = (matches + mismatches) / mod["ref_size"] * 100
-        mod["identity"] = matches / (matches + mismatches) * 100
-        mod["score"]    = (matches - mismatches) / mod["ref_size"]
-        mod["lwscore"]  = mod["score"] * (matches + mismatches) / mod["ref_size"]
-        mod["gapped"]   = bool("gap" in "".join(mod["mat_notes"]))
+        prot_len           = (len(mod["seq_nt"].replace("n", "")) - prot_len_predicted) // 3
+        mismatch_rate      = len(set(mod["mismatches"])) / prot_len
+        mismatches         = mismatch_rate * prot_len
+        matches            = prot_len - mismatches
+        mod["coverage"]    = (matches + mismatches) / mod["ref_size"] * 100
+        mod["identity"]    = matches / (matches + mismatches) * 100
+        mod["score"]       = (matches - mismatches) / mod["ref_size"]
+        mod["lwscore"]     = mod["score"] * (matches + mismatches) / mod["ref_size"]
+        mod["gapped"]      = bool("gap" in "".join(mod["mat_notes"]))
         return mod
 
     gencode = genetic_code(transtable)
