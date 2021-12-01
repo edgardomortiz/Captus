@@ -578,7 +578,8 @@ def extract(full_command, args):
                         clust_query,
                         clust_query_info,
                         "CLR",
-                        args.max_loci_files
+                        args.max_loci_files,
+                        args.max_paralogs
                     ))
                 log.log(f'{"Extractions to process":>{mar}}: {bold(len(blat_clusters_params))}')
                 log.log("")

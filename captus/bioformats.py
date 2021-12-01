@@ -1525,7 +1525,6 @@ def scipio_yaml_to_dict(
             lead = None
             trail = None
 
-
             if mod["mat_types"][i] == "gap":
                 # Attempt translation of current chunk and then alignment to unmatched segment of
                 # reference protein ('prot_gap'):
