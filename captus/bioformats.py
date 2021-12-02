@@ -459,11 +459,7 @@ def reverse_complement(seq):
     return "".join([REV_COMP_DICT[n] for n in seq[::-1]])
 
 
-# The default recursion limit in Python is 1000, but the complexity of the Needleman-Wunsch
-# alignment algorithm is len(seq1) * len(seq2), considering that we used NW just to align
-# segments of unmatched proteins, a protein fragment length of 2000 is much, much more than enough
-sys.setrecursionlimit(2000 * 2000)
-
+sys.setrecursionlimit(set_a.RECURSION_LIMIT)
 def align_prots(s1, s2, method, scoring_matrix=PAM250):
 
     def gapless(s1, s2, aln):
@@ -1616,38 +1612,46 @@ def scipio_yaml_to_dict(
                 ref_seq = mod["ref_seqs"][mod["hit_ids"][i]]
                 prot_gap = ref_seq[0][max(mod["ref_ends"][i-1] - ref_seq[1], 0) :
                                       min(mod["ref_starts"][i+1] - ref_seq[1], len(ref_seq[0]))]
-                rfs  = {i: translate(current_chunk, gencode, frame=i, start_as_M=False)
-                        for i in [1,2,3]}
-                coverage = (min(len(prot_gap), len(current_chunk)//3)
-                            / max(len(prot_gap), len(current_chunk)//3))
-                if coverage >= 0.8:
-                    alns = {i: align_prots(rfs[i], prot_gap, "nw") for i in rfs}
-                else:
-                    alns = {i: align_prots(rfs[i], prot_gap, "sw") for i in rfs}
-                # Prioritize filling gaps without skipping leading or trailing bases
-                if (len(current_chunk) % 3 == 0 and not "*" in rfs[1]
-                    and alns[1]["match_rate"] >= set_a.SCIPIO_MIN_GAP_MATCH_RATE):
-                    lead, trail = 0, 0
-                    seq_chunks = ["", mod["mat_nt"][i].upper()]
-                    mod["mismatches"] += [pos+mod["ref_ends"][i-1] for pos in alns[1]["mismatches"]]
-                # Rank reading frames by their match rate penalized by the number of stop codons
-                else:
-                    for rf in alns:
-                        alns[rf]["match_rate"] *= (set_a.SCIPIO_STOP_PENALTY
-                                                   ** alns[rf]["s1_aln"].count("*"))
-                    rf, aln = max(alns.items(), key=(lambda x: x[1]["match_rate"]))
-                    if (aln["match_rate"] >= set_a.SCIPIO_MIN_GAP_MATCH_RATE
-                        and not "*" in aln["s1_aln"]):
-                        lead  = rf - 1
-                        trail = (len(current_chunk) - lead) % 3
-                        if trail > 0:
-                            seq_chunks = [f'{mod["mat_nt"][i][:lead].lower()}',
-                                          f'{mod["mat_nt"][i][lead:-trail].upper()}',
-                                          f'{mod["mat_nt"][i][-trail:].lower()}']
-                        else:
-                            seq_chunks = [f'{mod["mat_nt"][i][:lead].lower()}',
-                                          f'{mod["mat_nt"][i][lead:].upper()}']
-                        mod["mismatches"] += [pos+mod["ref_ends"][i-1] for pos in aln["mismatches"]]
+                len_gap = len(prot_gap)
+                len_chunk = len(current_chunk) // 3
+                overlap = min(len_gap, len_chunk) / max(len_gap, len_chunk)
+                # Don't try aligning if the
+                if (len_chunk / len_gap <= set_a.SCIPIO_MAX_GAP_DELTA
+                    and len_gap * len_chunk <= set_a.RECURSION_LIMIT):
+                    rfs  = {i: translate(current_chunk, gencode, frame=i, start_as_M=False)
+                            for i in [1,2,3]}
+                    # Global alignment if they overlap at least 80%
+                    if overlap >= 0.8:
+                        alns = {i: align_prots(rfs[i], prot_gap, "nw") for i in rfs}
+                    # Local alignment if the overlap is smaller
+                    else:
+                        alns = {i: align_prots(rfs[i], prot_gap, "sw") for i in rfs}
+                    # Prioritize filling gaps without skipping leading or trailing bases
+                    if (len(current_chunk) % 3 == 0 and not "*" in rfs[1]
+                        and alns[1]["match_rate"] >= set_a.SCIPIO_MIN_GAP_MATCH_RATE):
+                        lead, trail = 0, 0
+                        seq_chunks = ["", mod["mat_nt"][i].upper()]
+                        mod["mismatches"] += [pos+mod["ref_ends"][i-1]
+                                            for pos in alns[1]["mismatches"]]
+                    # Rank reading frames by their match rate penalized by the number of stop codons
+                    else:
+                        for rf in alns:
+                            alns[rf]["match_rate"] *= (set_a.SCIPIO_STOP_PENALTY
+                                                    ** alns[rf]["s1_aln"].count("*"))
+                        rf, aln = max(alns.items(), key=(lambda x: x[1]["match_rate"]))
+                        if (aln["match_rate"] >= set_a.SCIPIO_MIN_GAP_MATCH_RATE
+                            and not "*" in aln["s1_aln"]):
+                            lead  = rf - 1
+                            trail = (len(current_chunk) - lead) % 3
+                            if trail > 0:
+                                seq_chunks = [f'{mod["mat_nt"][i][:lead].lower()}',
+                                            f'{mod["mat_nt"][i][lead:-trail].upper()}',
+                                            f'{mod["mat_nt"][i][-trail:].lower()}']
+                            else:
+                                seq_chunks = [f'{mod["mat_nt"][i][:lead].lower()}',
+                                            f'{mod["mat_nt"][i][lead:].upper()}']
+                            mod["mismatches"] += [pos+mod["ref_ends"][i-1]
+                                                for pos in aln["mismatches"]]
 
             if predict and mod["mat_types"][i] == "intron?":
                 rf1 = translate(current_chunk, gencode, frame=1, start_as_M=False)
@@ -1730,7 +1734,7 @@ def scipio_yaml_to_dict(
                     gap_len = mod["ref_starts"][i] - mod["ref_ends"][last_exon]
                     if (("gap before" in mod["mat_notes"][i]
                          and "gap after" in mod["mat_notes"][last_exon])
-                        or gap_len >= set_a.SCIPIO_MIN_GAP_TO_FILL):
+                        or gap_len >= set_a.SCIPIO_MIN_GAP_LEN_TO_X):
                         mod["seq_nt"] += "n" * 3 * gap_len
                 mod["seq_flanked"] += mod["mat_nt"][i].upper()
                 mod["seq_gene"] += mod["mat_nt"][i].upper()

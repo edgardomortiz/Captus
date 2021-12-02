@@ -17,6 +17,12 @@ not, see <http://www.gnu.org/licenses/>.
 import platform
 from pathlib import Path
 
+# The default recursion limit in Python is 1000, but the complexity of the Needleman-Wunsch
+# and Smith-Waterman alignment algorithms is len(seq1) * len(seq2), considering that we used these
+# ony to align segments of unmatched proteins, a protein fragment length of 2000 is much more than
+# enough
+RECURSION_LIMIT = 2000 * 2000
+
 # FASTA valid filename extensions:
 FASTA_VALID_EXTENSIONS = [".fa", ".fna", ".fasta", ".fa.gz", ".fna.gz", ".fasta.gz"]
 
@@ -166,11 +172,14 @@ MIN_KMER_SIZE_FOR_FASTG = 31
 BLAT_MIN_RAM_B = 2 * 1024 ** 3
 
 # Minimum stretch of missing aminoacids in recovered protein to be filled by "X"
-SCIPIO_MIN_GAP_TO_FILL = 5
+SCIPIO_MIN_GAP_LEN_TO_X = 5
 
 # Minimum match rate between segment flagged as 'gap' by Scipio but that can be cleanly translated
 # and incorporated into the recovered coding sequence
 SCIPIO_MIN_GAP_MATCH_RATE = 0.1
+
+# Maximum length of translated gap / length of unmatched aminoacids in rreference protein
+SCIPIO_MAX_GAP_DELTA = 10
 
 # When aligning the translations from the three reading frames to a protein segment, penalize the
 # match rate by this number as many times as stop codons are found in the translation corresponding
@@ -348,7 +357,7 @@ SCIPIO_GENOME_EXTRA_SETTINGS = {
     "NUC": [
         "--blat_params=-oneOff=1",
         "--blat_tilesize=6",
-        "--exhaust_align_size=5000",
+        "--exhaust_align_size=15000",
         "--exhaust_gap_size=500",
     ],
     # Change here the final settings for plastidial genes:
@@ -375,10 +384,10 @@ SCIPIO_GENOME_EXTRA_SETTINGS = {
 }
 
 # Maximum insertion allowed expressed as proportion of the reference sequence length
-DNA_MAX_INSERT_PROP = 0.5
+DNA_MAX_INSERT_PROP = 0.2
 
 # Absolute maximum insertion allowed in bp
-DNA_MAX_INSERT_SIZE = 1000
+DNA_MAX_INSERT_SIZE = 100
 
 # Tolerance proportion for determining if two hits are compatible in their percentage of 'identity'
 # to the reference, or determining if they have an acceptable margin of overlap. These two
