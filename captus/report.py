@@ -172,7 +172,18 @@ def build_qc_report(out_dir, qc_extras_dir):
 
     fig0.update_layout(
         font_family="Arial",
-        title="<b>Captus-assembly: Clean (Quality Control Report)<br>1. Summary Table</b>",
+        title_text=(
+            "<b>Captus-assembly: Clean (Quality Control Report)<br>"
+            "1. Summary Table</b><br>"
+            "<sup>(Data source: 03_qc_extras/"
+            + ", ".join([
+                settings_assembly.QC_FILES["REBA"],
+                settings_assembly.QC_FILES["PSQS"],
+                settings_assembly.QC_FILES["SLEN"],
+                settings_assembly.QC_FILES["PSGC"],
+            ])
+            + ")</sup>"
+        ),
         height=230 + 21 * len(sample_list) if len(sample_list) < 31 else None,
         updatemenus=updatemenus,
         annotations=annotations,
@@ -322,7 +333,12 @@ def build_qc_report(out_dir, qc_extras_dir):
 
     fig1.update_layout(
         font_family="Arial",
-        title="<b>2. Stats on Reads/Bases</b>",
+        title_text=(
+            "<b>2. Stats on Reads/Bases</b><br>"
+            "<sup>(Data source: 03_qc_extras/"
+            + settings_assembly.QC_FILES["REBA"]
+            + ")</sup>"
+        ),
         yaxis=dict(title="Sample"),
         barmode="overlay",
         bargap=0,
@@ -494,7 +510,12 @@ def build_qc_report(out_dir, qc_extras_dir):
 
     fig2.update_layout(
         font_family="Arial",
-        title_text="<b>3. Per Base Quality</b>",
+        title_text=(
+            "<b>3. Per Base Quality</b><br>"
+            "<sup>(Data source: 03_qc_extras/"
+            + settings_assembly.QC_FILES["PBSQ"]
+            + ")</sup>"
+        ),
         plot_bgcolor="rgb(8,8,8)",
         yaxis=dict(title="Sample - Stage"),
         coloraxis=dict(
@@ -632,7 +653,12 @@ def build_qc_report(out_dir, qc_extras_dir):
 
     fig3.update_layout(
         font_family="Arial",
-        title_text="<b>4. Per Read Quality</b>",
+        title_text=(
+            "<b>4. Per Read Quality</b><br>"
+            "<sup>(Data source: 03_qc_extras/"
+            + settings_assembly.QC_FILES["PSQS"]
+            + ")</sup>"
+        ),
         yaxis=dict(title="Sample - Stage"),
         coloraxis=dict(
             colorscale="Spectral_r",
@@ -778,7 +804,12 @@ def build_qc_report(out_dir, qc_extras_dir):
 
     fig4.update_layout(
         font_family="Arial",
-        title_text="<b>5. Read Length Distribution</b>",
+        title_text=(
+            "<b>5. Read Length Distribution</b><br>"
+            "<sup>(Data source: 03_qc_extras/"
+            + settings_assembly.QC_FILES["SLEN"]
+            + ")</sup>"
+        ),
         yaxis=dict(title="Sample - Stage"),
         coloraxis=dict(
             colorscale=colorscale,
@@ -901,7 +932,12 @@ def build_qc_report(out_dir, qc_extras_dir):
 
     fig5.update_layout(
         font_family="Arial",
-        title_text="<b>6. Per Base Nucleotide Content</b>",
+        title_text=(
+            "<b>6. Per Base Nucleotide Content</b><br>"
+            "<sup>(Data source: 03_qc_extras/"
+            + settings_assembly.QC_FILES["PBSC"]
+            + ")</sup>"
+        ),
         yaxis=dict(title="Sample - Stage - Nucleotide"),
         coloraxis=dict(
             colorscale="Spectral_r",
@@ -1009,7 +1045,12 @@ def build_qc_report(out_dir, qc_extras_dir):
 
     fig6.update_layout(
         font_family="Arial",
-        title_text="<b>7. Per Read GC Content</b>",
+        title_text=(
+            "<b>7. Per Read GC Content</b><br>"
+            "<sup>(Data source: 03_qc_extras/"
+            + settings_assembly.QC_FILES["PSGC"]
+            + ")</sup>"
+        ),
         yaxis=dict(title="Sample - Stage"),
         coloraxis=dict(
             colorscale="Spectral_r",
@@ -1153,7 +1194,12 @@ def build_qc_report(out_dir, qc_extras_dir):
 
     fig7.update_layout(
         font_family="Arial",
-        title_text="<b>8. Sequence Duplication Level</b>",
+        title_text=(
+            "<b>8. Sequence Duplication Level</b><br>"
+            "<sup>(Data source: 03_qc_extras/"
+            + settings_assembly.QC_FILES["SDUP"]
+            + ")</sup>"
+        ),
         yaxis=dict(title="Sample - Stage"),
         barmode="stack",
         bargap=0,
@@ -1259,7 +1305,12 @@ def build_qc_report(out_dir, qc_extras_dir):
 
     fig8.update_layout(
         font_family="Arial",
-        title_text="<b>9. Adapter Content</b>",
+        title_text=(
+            "<b>9. Adapter Content</b><br>"
+            "<sup>(Data source: 03_qc_extras/"
+            + settings_assembly.QC_FILES["ADCO"]
+            + ")</sup>"
+        ),
         yaxis=dict(title="Sample - Stage"),
         coloraxis=dict(
             colorscale="Spectral_r",
@@ -1451,7 +1502,13 @@ def build_assembly_report(out_dir, asm_stats_tsv):
 
     fig0.update_layout(
         font_family="Arial",
-        title="<b>Captus-assembly: Assemble (<i>De Novo</i> Assembly Report)<br>1. Summary Table</b>",
+        title_text=(
+            "<b>Captus-assembly: Assemble (<i>De Novo</i> Assembly Report)<br>"
+            "1. Summary Table</b><br>"
+            "<sup>(Data source: "
+            + str(asm_stats_tsv.name)
+            + ")</sup>"
+        ),
         height=230 + 21 * len(sample_list) if len(sample_list) < 31 else None,
         updatemenus=updatemenus,
         annotations=annotations,
@@ -1628,7 +1685,12 @@ def build_assembly_report(out_dir, asm_stats_tsv):
     fig1.update_layout(
         plot_bgcolor="rgb(8,8,8)",
         font_family="Arial",
-        title="<b>2. Visual Stats</b>",
+        title_text=(
+            "<b>2. Visual Stats</b><br>"
+            "<sup>(Data source: "
+            + str(asm_stats_tsv.name)
+            + ")</sup>"
+        ),
         xaxis=dict(
             title=xlab_list[0],
             showgrid=True,
@@ -1644,6 +1706,7 @@ def build_assembly_report(out_dir, asm_stats_tsv):
             ticks="outside",
         ),
         barmode="overlay",
+        # height=180 + 15 * len(sample_list),
         updatemenus=updatemenus,
         annotations=annotations,
     )
@@ -1916,11 +1979,31 @@ def build_extraction_report(out_dir, ext_stats_tsv):
         # Layout setting
         if i == 0:
             if len(marker_type) == 1:
-                title = "<b>Captus-assembly: Extract (Marker Recovery Report)<br>Marker Type: " + marker + "</b>"
+                title = (
+                        "<b>Captus-assembly: Extract (Marker Recovery Report)</b><br>"
+                        "<sup>(Data source: "
+                        + str(ext_stats_tsv.name)
+                        + ")</sup>"
+                )
             else:
-                title = "<b>Captus-assembly: Extract (Marker Recovery Report)<br>1. Marker Type: " + marker + "</b>"
+                title = (
+                        "<b>Captus-assembly: Extract (Marker Recovery Report)<br>"
+                        "1. Marker Type: "
+                        + marker
+                        + "</b><br><sup>(Data source: "
+                        + str(ext_stats_tsv.name)
+                        + ")</sup>"
+                )
         else:
-            title = "<b>" + str(i + 1) + ". Marker Type: " + marker + "</b>"
+            title = (
+                "<b>"
+                + str(i + 1)
+                + ". Marker Type: "
+                + marker
+                + "</b><br><sup>(Data source: "
+                + str(ext_stats_tsv.name)
+                + ")</sup>"
+            )
         fig.update_layout(
             font_family="Arial",
             plot_bgcolor="rgb(8,8,8)",
@@ -2397,12 +2480,33 @@ def build_alignment_report(out_dir, aln_stats_tsv):
         ]
 
         if j == 0:
-            if len(marker_type) > 1:
-                title = "<b>Captus-assembly: Align (Alignment/Trimming Report)<br>1. Marker Type: ALL</b>"
+            if len(marker_type) == 1:
+                title = (
+                        "<b>Captus-assembly: Align (Alignment/Trimming Report)</b><br>"
+                        "<sup>(Data source: "
+                        + str(aln_stats_tsv.name)
+                        + ")</sup>"
+                )
             else:
-                title = "<b>Captus-assembly: Align (Alignment/Trimming Report)<br>Marker Type: " + marker + "</b>"
+                title = (
+                        "<b>Captus-assembly: Align (Alignment/Trimming Report)<br>"
+                        "1. Marker Type: "
+                        + marker
+                        + "</b><br><sup>(Data source: "
+                        + str(aln_stats_tsv.name)
+                        + ")</sup>"
+                )
         else:
-            title = "<b>" + str(j + 1) + ". Marker Type: " + marker + "</b>"
+            title = (
+                "<b>"
+                + str(j + 1)
+                + ". Marker Type: "
+                + marker 
+                + "</b><br><sup>(Data source: "
+                + str(aln_stats_tsv.name)
+                + ")</sup>"
+            )
+
         fig.update_layout(
             font_family="Arial",
             title=title,
