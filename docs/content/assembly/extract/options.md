@@ -40,24 +40,16 @@ Inside this directory, the extracted markers for each sample will be stored in a
 
 This argument is optinal, the default is **./03_extractions/**
 ___
-#### **`--max_loci_files`**
-When the number of loci in the reference exceeds this value, `Captus` will not write a separate FASTA file per sample per marker, otherwise the hard drive fills up with tons of small files. The file that includes all the extracted markers grouped per sample is still written (this is the only file needed by the final step `align` to produce the marker alignments across all samples).
-
-This argument is optional, the default is **2000**.
-___
-#### **`--max_loci_scipio2x`**
-When the number of different loci in the reference exceeds this value, `Captus` will not run a second, more exhaustive round of Scipio. Usually the results from the first round are extremely similar and sufficient, the second round can become extremely slow as the number of reference proteins grows.
-
-This argument is optional, the default is **2000**.
-___
 #### **`--max_paralogs`**
 Maximum number of hits (paralogs) to a particular reference marker allowed in the output. Use 0 to disable the paralog filtering after extraction (recommended, since the maximum number of paralogs can also be filtered during the alignment step). This can be useful for exploratory runs, for example: if after an initial run
 allowing all paralogs we found out that the average number of paralogs across samples is 5, we could use this number to get rid of outliers. 
 
 This argument is optional, the default is **0** (include all paralogs in the output).
 ___
-#### **`--predict`**
-Scipio flags introns as doubtful when the splice signals are not found at the exon edges, this may indicate that there are additional aminoacids in the recovered protein that are not present in the reference protein. Enable this flag to attempt translation of these doubtful introns, if the translation does not introduce premature stop codons they will be added to the recovered protein.
+#### **`--max_loci_files`**
+When the number of loci in the reference exceeds this value, `Captus` will not write a separate FASTA file per sample per marker, otherwise the hard drive fills up with tons of small files. The file that includes all the extracted markers grouped per sample is still written (this is the only file needed by the final step `align` to produce the marker alignments across all samples).
+
+This argument is optional, the default is **0** (do not write separate loci files).
 ___
 #### **`--keep_all`**
 Many intermediate files are created during the marker extraction, some are large (like `BLAT`'s `.psl` files) while others small temporary logs of intermediate steps, `Captus` deletes all the unnecesary intermediate files unless you enable this flag.
@@ -65,7 +57,15 @@ ___
 #### **`--overwrite`**
 Use this flag with caution, this will replace any previous result within the output directory (for the sample names that match).
 ___
-### *Nuclear proteins (Scipio)*
+#### **`--max_loci_scipio2x`**
+When the number of different loci in the reference exceeds this value, `Captus` will not run a second, more exhaustive round of Scipio. Usually the results from the first round are extremely similar and sufficient, the second round can become extremely slow as the number of reference proteins grows.
+
+This argument is optional, the default is **2000**.
+___
+#### **`--predict`**
+Scipio flags introns as doubtful when the splice signals are not found at the exon edges, this may indicate that there are additional aminoacids in the recovered protein that are not present in the reference protein. Enable this flag to attempt translation of these doubtful introns, if the translation does not introduce premature stop codons they will be added to the recovered protein.
+___
+### *Proteins extraction global options (Scipio)*
 ___
 #### **`-n, --nuc_refs`**
 The reference set of nuclear proteins to search and extract from the assemblies. `Captus` includes two sets:
@@ -244,4 +244,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-08-06)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-11-29)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-12-2)

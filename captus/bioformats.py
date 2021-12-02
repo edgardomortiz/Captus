@@ -18,6 +18,7 @@ import gzip
 import math
 import re
 import statistics
+import sys
 import urllib
 from collections import OrderedDict
 
@@ -217,32 +218,32 @@ def score_matrix_to_dict(matrix):
 
 # PAM250 matrix for scoring protein alignments
 PAM250 = score_matrix_to_dict([
-[".","A","R","N","D","C","Q","E","G","H","I","L","K","M","F","P","S","T","W","Y","V","B","J","Z","X","*"],
-["A", 2 ,-2 , 0 , 0 ,-2 , 0 , 0 , 1 ,-1 ,-1 ,-2 ,-1 ,-1 ,-3 , 1 , 1 , 1 ,-6 ,-3 , 0 , 0 ,-1 , 0 ,-1 ,-8 ],
-["R",-2 , 6 , 0 ,-1 ,-4 , 1 ,-1 ,-3 , 2 ,-2 ,-3 , 3 , 0 ,-4 , 0 , 0 ,-1 , 2 ,-4 ,-2 ,-1 ,-3 , 0 ,-1 ,-8 ],
-["N", 0 , 0 , 2 , 2 ,-4 , 1 , 1 , 0 , 2 ,-2 ,-3 , 1 ,-2 ,-3 , 0 , 1 , 0 ,-4 ,-2 ,-2 , 2 ,-3 , 1 ,-1 ,-8 ],
-["D", 0 ,-1 , 2 , 4 ,-5 , 2 , 3 , 1 , 1 ,-2 ,-4 , 0 ,-3 ,-6 ,-1 , 0 , 0 ,-7 ,-4 ,-2 , 3 ,-3 , 3 ,-1 ,-8 ],
-["C",-2 ,-4 ,-4 ,-5 ,12 ,-5 ,-5 ,-3 ,-3 ,-2 ,-6 ,-5 ,-5 ,-4 ,-3 , 0 ,-2 ,-8 , 0 ,-2 ,-4 ,-5 ,-5 ,-1 ,-8 ],
-["Q", 0 , 1 , 1 , 2 ,-5 , 4 , 2 ,-1 , 3 ,-2 ,-2 , 1 ,-1 ,-5 , 0 ,-1 ,-1 ,-5 ,-4 ,-2 , 1 ,-2 , 3 ,-1 ,-8 ],
-["E", 0 ,-1 , 1 , 3 ,-5 , 2 , 4 , 0 , 1 ,-2 ,-3 , 0 ,-2 ,-5 ,-1 , 0 , 0 ,-7 ,-4 ,-2 , 3 ,-3 , 3 ,-1 ,-8 ],
-["G", 1 ,-3 , 0 , 1 ,-3 ,-1 , 0 , 5 ,-2 ,-3 ,-4 ,-2 ,-3 ,-5 , 0 , 1 , 0 ,-7 ,-5 ,-1 , 0 ,-4 , 0 ,-1 ,-8 ],
-["H",-1 , 2 , 2 , 1 ,-3 , 3 , 1 ,-2 , 6 ,-2 ,-2 , 0 ,-2 ,-2 , 0 ,-1 ,-1 ,-3 , 0 ,-2 , 1 ,-2 , 2 ,-1 ,-8 ],
-["I",-1 ,-2 ,-2 ,-2 ,-2 ,-2 ,-2 ,-3 ,-2 , 5 , 2 ,-2 , 2 , 1 ,-2 ,-1 , 0 ,-5 ,-1 , 4 ,-2 , 3 ,-2 ,-1 ,-8 ],
-["L",-2 ,-3 ,-3 ,-4 ,-6 ,-2 ,-3 ,-4 ,-2 , 2 , 6 ,-3 , 4 , 2 ,-3 ,-3 ,-2 ,-2 ,-1 , 2 ,-3 , 5 ,-3 ,-1 ,-8 ],
-["K",-1 , 3 , 1 , 0 ,-5 , 1 , 0 ,-2 , 0 ,-2 ,-3 , 5 , 0 ,-5 ,-1 , 0 , 0 ,-3 ,-4 ,-2 , 1 ,-3 , 0 ,-1 ,-8 ],
-["M",-1 , 0 ,-2 ,-3 ,-5 ,-1 ,-2 ,-3 ,-2 , 2 , 4 , 0 , 6 , 0 ,-2 ,-2 ,-1 ,-4 ,-2 , 2 ,-2 , 3 ,-2 ,-1 ,-8 ],
-["F",-3 ,-4 ,-3 ,-6 ,-4 ,-5 ,-5 ,-5 ,-2 , 1 , 2 ,-5 , 0 , 9 ,-5 ,-3 ,-3 , 0 , 7 ,-1 ,-4 , 2 ,-5 ,-1 ,-8 ],
-["P", 1 , 0 , 0 ,-1 ,-3 , 0 ,-1 , 0 , 0 ,-2 ,-3 ,-1 ,-2 ,-5 , 6 , 1 , 0 ,-6 ,-5 ,-1 ,-1 ,-2 , 0 ,-1 ,-8 ],
-["S", 1 , 0 , 1 , 0 , 0 ,-1 , 0 , 1 ,-1 ,-1 ,-3 , 0 ,-2 ,-3 , 1 , 2 , 1 ,-2 ,-3 ,-1 , 0 ,-2 , 0 ,-1 ,-8 ],
-["T", 1 ,-1 , 0 , 0 ,-2 ,-1 , 0 , 0 ,-1 , 0 ,-2 , 0 ,-1 ,-3 , 0 , 1 , 3 ,-5 ,-3 , 0 , 0 ,-1 ,-1 ,-1 ,-8 ],
-["W",-6 , 2 ,-4 ,-7 ,-8 ,-5 ,-7 ,-7 ,-3 ,-5 ,-2 ,-3 ,-4 , 0 ,-6 ,-2 ,-5 ,17 , 0 ,-6 ,-5 ,-3 ,-6 ,-1 ,-8 ],
-["Y",-3 ,-4 ,-2 ,-4 , 0 ,-4 ,-4 ,-5 , 0 ,-1 ,-1 ,-4 ,-2 , 7 ,-5 ,-3 ,-3 , 0 ,10 ,-2 ,-3 ,-1 ,-4 ,-1 ,-8 ],
-["V", 0 ,-2 ,-2 ,-2 ,-2 ,-2 ,-2 ,-1 ,-2 , 4 , 2 ,-2 , 2 ,-1 ,-1 ,-1 , 0 ,-6 ,-2 , 4 ,-2 , 2 ,-2 ,-1 ,-8 ],
-["B", 0 ,-1 , 2 , 3 ,-4 , 1 , 3 , 0 , 1 ,-2 ,-3 , 1 ,-2 ,-4 ,-1 , 0 , 0 ,-5 ,-3 ,-2 , 3 ,-3 , 2 ,-1 ,-8 ],
-["J",-1 ,-3 ,-3 ,-3 ,-5 ,-2 ,-3 ,-4 ,-2 , 3 , 5 ,-3 , 3 , 2 ,-2 ,-2 ,-1 ,-3 ,-1 , 2 ,-3 , 5 ,-2 ,-1 ,-8 ],
-["Z", 0 , 0 , 1 , 3 ,-5 , 3 , 3 , 0 , 2 ,-2 ,-3 , 0 ,-2 ,-5 , 0 , 0 ,-1 ,-6 ,-4 ,-2 , 2 ,-2 , 3 ,-1 ,-8 ],
-["X",-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-8 ],
-["*",-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 , 1 ],
+    [".","A","R","N","D","C","Q","E","G","H","I","L","K","M","F","P","S","T","W","Y","V","B","J","Z","X","*"],
+    ["A", 2 ,-2 , 0 , 0 ,-2 , 0 , 0 , 1 ,-1 ,-1 ,-2 ,-1 ,-1 ,-3 , 1 , 1 , 1 ,-6 ,-3 , 0 , 0 ,-1 , 0 ,-1 ,-8 ],
+    ["R",-2 , 6 , 0 ,-1 ,-4 , 1 ,-1 ,-3 , 2 ,-2 ,-3 , 3 , 0 ,-4 , 0 , 0 ,-1 , 2 ,-4 ,-2 ,-1 ,-3 , 0 ,-1 ,-8 ],
+    ["N", 0 , 0 , 2 , 2 ,-4 , 1 , 1 , 0 , 2 ,-2 ,-3 , 1 ,-2 ,-3 , 0 , 1 , 0 ,-4 ,-2 ,-2 , 2 ,-3 , 1 ,-1 ,-8 ],
+    ["D", 0 ,-1 , 2 , 4 ,-5 , 2 , 3 , 1 , 1 ,-2 ,-4 , 0 ,-3 ,-6 ,-1 , 0 , 0 ,-7 ,-4 ,-2 , 3 ,-3 , 3 ,-1 ,-8 ],
+    ["C",-2 ,-4 ,-4 ,-5 ,12 ,-5 ,-5 ,-3 ,-3 ,-2 ,-6 ,-5 ,-5 ,-4 ,-3 , 0 ,-2 ,-8 , 0 ,-2 ,-4 ,-5 ,-5 ,-1 ,-8 ],
+    ["Q", 0 , 1 , 1 , 2 ,-5 , 4 , 2 ,-1 , 3 ,-2 ,-2 , 1 ,-1 ,-5 , 0 ,-1 ,-1 ,-5 ,-4 ,-2 , 1 ,-2 , 3 ,-1 ,-8 ],
+    ["E", 0 ,-1 , 1 , 3 ,-5 , 2 , 4 , 0 , 1 ,-2 ,-3 , 0 ,-2 ,-5 ,-1 , 0 , 0 ,-7 ,-4 ,-2 , 3 ,-3 , 3 ,-1 ,-8 ],
+    ["G", 1 ,-3 , 0 , 1 ,-3 ,-1 , 0 , 5 ,-2 ,-3 ,-4 ,-2 ,-3 ,-5 , 0 , 1 , 0 ,-7 ,-5 ,-1 , 0 ,-4 , 0 ,-1 ,-8 ],
+    ["H",-1 , 2 , 2 , 1 ,-3 , 3 , 1 ,-2 , 6 ,-2 ,-2 , 0 ,-2 ,-2 , 0 ,-1 ,-1 ,-3 , 0 ,-2 , 1 ,-2 , 2 ,-1 ,-8 ],
+    ["I",-1 ,-2 ,-2 ,-2 ,-2 ,-2 ,-2 ,-3 ,-2 , 5 , 2 ,-2 , 2 , 1 ,-2 ,-1 , 0 ,-5 ,-1 , 4 ,-2 , 3 ,-2 ,-1 ,-8 ],
+    ["L",-2 ,-3 ,-3 ,-4 ,-6 ,-2 ,-3 ,-4 ,-2 , 2 , 6 ,-3 , 4 , 2 ,-3 ,-3 ,-2 ,-2 ,-1 , 2 ,-3 , 5 ,-3 ,-1 ,-8 ],
+    ["K",-1 , 3 , 1 , 0 ,-5 , 1 , 0 ,-2 , 0 ,-2 ,-3 , 5 , 0 ,-5 ,-1 , 0 , 0 ,-3 ,-4 ,-2 , 1 ,-3 , 0 ,-1 ,-8 ],
+    ["M",-1 , 0 ,-2 ,-3 ,-5 ,-1 ,-2 ,-3 ,-2 , 2 , 4 , 0 , 6 , 0 ,-2 ,-2 ,-1 ,-4 ,-2 , 2 ,-2 , 3 ,-2 ,-1 ,-8 ],
+    ["F",-3 ,-4 ,-3 ,-6 ,-4 ,-5 ,-5 ,-5 ,-2 , 1 , 2 ,-5 , 0 , 9 ,-5 ,-3 ,-3 , 0 , 7 ,-1 ,-4 , 2 ,-5 ,-1 ,-8 ],
+    ["P", 1 , 0 , 0 ,-1 ,-3 , 0 ,-1 , 0 , 0 ,-2 ,-3 ,-1 ,-2 ,-5 , 6 , 1 , 0 ,-6 ,-5 ,-1 ,-1 ,-2 , 0 ,-1 ,-8 ],
+    ["S", 1 , 0 , 1 , 0 , 0 ,-1 , 0 , 1 ,-1 ,-1 ,-3 , 0 ,-2 ,-3 , 1 , 2 , 1 ,-2 ,-3 ,-1 , 0 ,-2 , 0 ,-1 ,-8 ],
+    ["T", 1 ,-1 , 0 , 0 ,-2 ,-1 , 0 , 0 ,-1 , 0 ,-2 , 0 ,-1 ,-3 , 0 , 1 , 3 ,-5 ,-3 , 0 , 0 ,-1 ,-1 ,-1 ,-8 ],
+    ["W",-6 , 2 ,-4 ,-7 ,-8 ,-5 ,-7 ,-7 ,-3 ,-5 ,-2 ,-3 ,-4 , 0 ,-6 ,-2 ,-5 ,17 , 0 ,-6 ,-5 ,-3 ,-6 ,-1 ,-8 ],
+    ["Y",-3 ,-4 ,-2 ,-4 , 0 ,-4 ,-4 ,-5 , 0 ,-1 ,-1 ,-4 ,-2 , 7 ,-5 ,-3 ,-3 , 0 ,10 ,-2 ,-3 ,-1 ,-4 ,-1 ,-8 ],
+    ["V", 0 ,-2 ,-2 ,-2 ,-2 ,-2 ,-2 ,-1 ,-2 , 4 , 2 ,-2 , 2 ,-1 ,-1 ,-1 , 0 ,-6 ,-2 , 4 ,-2 , 2 ,-2 ,-1 ,-8 ],
+    ["B", 0 ,-1 , 2 , 3 ,-4 , 1 , 3 , 0 , 1 ,-2 ,-3 , 1 ,-2 ,-4 ,-1 , 0 , 0 ,-5 ,-3 ,-2 , 3 ,-3 , 2 ,-1 ,-8 ],
+    ["J",-1 ,-3 ,-3 ,-3 ,-5 ,-2 ,-3 ,-4 ,-2 , 3 , 5 ,-3 , 3 , 2 ,-2 ,-2 ,-1 ,-3 ,-1 , 2 ,-3 , 5 ,-2 ,-1 ,-8 ],
+    ["Z", 0 , 0 , 1 , 3 ,-5 , 3 , 3 , 0 , 2 ,-2 ,-3 , 0 ,-2 ,-5 , 0 , 0 ,-1 ,-6 ,-4 ,-2 , 2 ,-2 , 3 ,-1 ,-8 ],
+    ["X",-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-1 ,-8 ],
+    ["*",-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 ,-8 , 1 ],
 ])
 
 
@@ -458,6 +459,11 @@ def reverse_complement(seq):
     return "".join([REV_COMP_DICT[n] for n in seq[::-1]])
 
 
+# The default recursion limit in Python is 1000, but the complexity of the Needleman-Wunsch
+# alignment algorithm is len(seq1) * len(seq2), considering that we used NW just to align
+# segments of unmatched proteins, a protein fragment length of 2000 is much, much more than enough
+sys.setrecursionlimit(2000 * 2000)
+
 def align_prots(s1, s2, method, scoring_matrix=PAM250):
 
     def gapless(s1, s2, aln):
@@ -506,7 +512,7 @@ def align_prots(s1, s2, method, scoring_matrix=PAM250):
                 aln["s2_end"]     = s2_end
         return aln
 
-    def best_score(val_matrix, row, col, nt_left, nt_top, scoring_matrix):
+    def best_score(val_matrix, row, col, nt_left, nt_top, method, scoring_matrix):
         left_score = val_matrix[row  ][col-1] + scoring_matrix["gap"]
         diag_score = val_matrix[row-1][col-1] + scoring_matrix[f"{nt_left}{nt_top}"]
         up_score   = val_matrix[row-1][col  ] + scoring_matrix["gap"]
@@ -519,54 +525,109 @@ def align_prots(s1, s2, method, scoring_matrix=PAM250):
         else:
             score = up_score
             direction = 1
-        return score, direction
+        if method == "nw":
+            return score, direction
+        if method == "sw":
+            return max(score, 0), direction
 
-    def nw_matrix(s1, s2, scoring_matrix):
+    def direction_matrix(s1, s2, method, scoring_matrix):
         seq_left = f" {s1}"
         seq_top  = f" {s2}"
         val_matrix = [[0] * len(seq_top) for i in range(len(seq_left))]
         dir_matrix = [[0] * len(seq_top) for i in range(len(seq_left))]
         for i in range(len(val_matrix)):
-            val_matrix[i][0] = i * scoring_matrix["gap"]
             dir_matrix[i][0] = 1
         for i in range(len(val_matrix[0])):
-            val_matrix[0][i] = i * scoring_matrix["gap"]
             dir_matrix[0][i] = 2
         dir_matrix[0][0] = 0
-        for l in range(1, len(seq_left)):
-            for t in range(1, len(seq_top)):
-                val_matrix[l][t], dir_matrix[l][t] = best_score(
-                    val_matrix, l, t, seq_left[l], seq_top[t], scoring_matrix
-                )
-        return dir_matrix
+        if method == "nw":
+            for i in range(len(val_matrix)):
+                val_matrix[i][0] = i * scoring_matrix["gap"]
+            for i in range(len(val_matrix[0])):
+                val_matrix[0][i] = i * scoring_matrix["gap"]
+            for l in range(1, len(seq_left)):
+                for t in range(1, len(seq_top)):
+                    val_matrix[l][t], dir_matrix[l][t] = best_score(
+                        val_matrix, l, t, seq_left[l], seq_top[t], "nw", scoring_matrix
+                    )
+            return dir_matrix
+        if method == "sw":
+            top_score = 0
+            opt_l = 0
+            opt_t = 0
+            for l in range(1, len(seq_left)):
+                for t in range(1, len(seq_top)):
+                    val_matrix[l][t], dir_matrix[l][t] = best_score(
+                        val_matrix, l, t, seq_left[l], seq_top[t], "sw", scoring_matrix
+                    )
+                    if val_matrix[l][t] > top_score:
+                        top_score = val_matrix[l][t]
+                        opt_l = l
+                        opt_t = t
+            return dir_matrix, opt_l, opt_t
 
-    def traceback(dir_matrix, seq_left, seq_top):
+    def traceback_nw(dir_matrix, seq_left, seq_top):
         seq_left = f" {seq_left}"
         seq_top  = f" {seq_top}"
-        traceback.align_left = ""
-        traceback.align_top = ""
+        traceback_nw.align_left = ""
+        traceback_nw.align_top = ""
         def stepback(dir_matrix, seq_left, seq_top, l, t):
             if l < 0 or t < 0:
                 return
             if dir_matrix[l][t] == 3:
                 stepback(dir_matrix, seq_left, seq_top, l-1, t-1)
-                traceback.align_top  += seq_top[t]
-                traceback.align_left += seq_left[l]
+                traceback_nw.align_top  += seq_top[t]
+                traceback_nw.align_left += seq_left[l]
             elif dir_matrix[l][t] == 2:
                 stepback(dir_matrix, seq_left, seq_top, l, t-1)
-                traceback.align_top  += seq_top[t]
-                traceback.align_left += "-"
+                traceback_nw.align_top  += seq_top[t]
+                traceback_nw.align_left += "-"
             elif dir_matrix[l][t] == 1:
                 stepback(dir_matrix, seq_left, seq_top, l-1, t)
-                traceback.align_top  += "-"
-                traceback.align_left += seq_left[l]
+                traceback_nw.align_top  += "-"
+                traceback_nw.align_left += seq_left[l]
             else:
                 return
         stepback(dir_matrix, seq_left, seq_top, len(seq_left)-1, len(seq_top)-1)
-        return traceback.align_left, traceback.align_top
+        return traceback_nw.align_left, traceback_nw.align_top
+
+    def traceback_sw(dir_matrix, opt_l, opt_t, seq_left, seq_top):
+        seq_left = f" {seq_left}"
+        seq_top  = f" {seq_top}"
+        traceback_sw.align_left = ""
+        traceback_sw.align_top = ""
+        def stepback(dir_matrix, seq_left, seq_top, l, t):
+            if l < 0 or t < 0:
+                return
+            if dir_matrix[l][t] == 3:
+                stepback(dir_matrix, seq_left, seq_top, l-1, t-1)
+                traceback_sw.align_top  += seq_top[t]
+                traceback_sw.align_left += seq_left[l]
+            elif dir_matrix[l][t] == 2:
+                stepback(dir_matrix, seq_left, seq_top, l, t-1)
+                traceback_sw.align_top  += seq_top[t]
+                traceback_sw.align_left += "-"
+            elif dir_matrix[l][t] == 1:
+                stepback(dir_matrix, seq_left, seq_top, l-1, t)
+                traceback_sw.align_top  += "-"
+                traceback_sw.align_left += seq_left[l]
+            else:
+                return
+        stepback(dir_matrix, seq_left, seq_top, opt_l, opt_t)
+        add_top = ""
+        add_left = ""
+        if len(seq_left) > len(seq_top):
+            add_left = seq_left[opt_l+1:]
+            add_top = seq_top[opt_t+1:]
+            add_top += (len(add_left) - len(add_top)) * "-"
+        else:
+            add_top = seq_top[opt_t+1:]
+            add_left = seq_left[opt_l+1:]
+            add_left += (len(add_top) - len(add_left)) * "-"
+        return f"{traceback_sw.align_left}{add_left}", f"{traceback_sw.align_top}{add_top}"
 
     def needleman_wunsch(s1, s2, aln, scoring_matrix):
-        s1_aln, s2_aln = traceback(nw_matrix(s1, s2, scoring_matrix), s1, s2)
+        s1_aln, s2_aln = traceback_nw(direction_matrix(s1, s2, "nw", scoring_matrix), s1, s2)
         aln["s1_start"] = len(s1_aln) - len(s1_aln.lstrip("-"))
         aln["s1_end"]   = len(s1_aln.rstrip("-"))
         aln["s1_aln"]   = s1_aln
@@ -586,7 +647,30 @@ def align_prots(s1, s2, method, scoring_matrix=PAM250):
             aln["match_rate"] = 0.0
         return aln
 
-    valid_methods = ["gapless", "nw"]
+    def smith_waterman(s1, s2, aln, scoring_matrix):
+        dir_mat, opt_l, opt_t = direction_matrix(s1, s2, "sw", scoring_matrix)
+        s1_aln, s2_aln = traceback_sw(dir_mat, opt_l, opt_t, s1, s2)
+        aln["s1_start"] = len(s1_aln) - len(s1_aln.lstrip("-"))
+        aln["s1_end"]   = len(s1_aln.rstrip("-"))
+        aln["s1_aln"]   = s1_aln
+        aln["s2_start"] = len(s2_aln) - len(s2_aln.lstrip("-"))
+        aln["s2_end"]   = len(s2_aln.rstrip("-"))
+        aln["s2_aln"]   = s2_aln
+        aln_start = max(aln["s1_start"], aln["s2_start"])
+        aln_end = min(aln["s1_end"], aln["s2_end"])
+        for i in range(aln_start, aln_end):
+            if "-" not in [s1_aln[i], s2_aln[i]]:
+                pid = AA_PIDS["".join(sorted(f"{s1_aln[i]}{s2_aln[i]}"))]
+                aln["matches"] += pid
+                if pid < 0.5: aln["mismatches"].append(i)
+        try:
+            aln["match_rate"] = aln["matches"] / (aln_end - aln_start)
+        except ZeroDivisionError:
+            aln["match_rate"] = 0.0
+        return aln
+
+
+    valid_methods = ["gapless", "nw", "sw"]
     if method not in valid_methods: return False
 
     # Alignment data template:
@@ -610,6 +694,8 @@ def align_prots(s1, s2, method, scoring_matrix=PAM250):
         return gapless(s1, s2, aln)
     elif method == "nw":
         return needleman_wunsch(s1, s2, aln, scoring_matrix)
+    elif method == "sw":
+        return smith_waterman(s1, s2, aln, scoring_matrix)
     else:
         return False
 
@@ -1418,76 +1504,76 @@ def scipio_yaml_to_dict(
         """
         mod_len = len(mod["mat_types"])
 
-        # 1. Fix cases where Scipio's translation is longer than possible given the exon seq
+        # 1. Best case scenario: gene model translates exactly as Scipio and doesn't need fixing
+        cds_nt, cds_aa = concat_cds(mod)
+        if translate(cds_nt, gencode, frame=1, start_as_M=False) == cds_aa:
+            return mod
+
+        # 2. Fix cases where Scipio's translation is longer than possible given the exon seq
+        mat_alns = [None] * mod_len
         for i in range(mod_len):
             if mod["mat_types"][i] == "exon":
                 aln = align_exon_nt_to_scipio_aa(mod["mat_nt"][i], gencode, mod["mat_aa"][i])
-
                 if aln["s1_start"] > 0:
                     start_aa = aln["s1_start"] - 1 if aln["lead"] > 1 else aln["s1_start"]
                     mod["mat_aa"][i] = mod["mat_aa"][i][start_aa:]
-
                 if aln["s2_end"] - aln["s1_end"] > 0:
                     end_aa = aln["s1_end"] + 1 if aln["trail"] > 1 else aln["s1_end"]
                     mod["mat_aa"][i] = mod["mat_aa"][i][:end_aa]
+                mat_alns[i] = align_exon_nt_to_scipio_aa(mod["mat_nt"][i], gencode, mod["mat_aa"][i])
         cds_nt, cds_aa = concat_cds(mod)
         if translate(cds_nt, gencode, frame=1, start_as_M=False) == cds_aa:
             return mod
 
-        # 2. Fix dangling nucleotides in exons when gaps are found, fixes coordinates as well
+        # 3. Fix dangling nucleotides in exons when gaps are found, fixes coordinates as well
         for i in range(mod_len):
             if mod["mat_types"][i] == "exon":
                 if "gap before" in mod["mat_notes"][i]:
-                    aln = align_exon_nt_to_scipio_aa(mod["mat_nt"][i], gencode, mod["mat_aa"][i])
-                    mod = remove_leading(mod, i, aln["lead"], aln)
-
+                    mod = remove_leading(mod, i, mat_alns[i]["lead"], mat_alns[i])
+                    mat_alns[i] = align_exon_nt_to_scipio_aa(
+                        mod["mat_nt"][i], gencode, mod["mat_aa"][i]
+                    )
                 if "gap after" in mod["mat_notes"][i]:
-                    aln = align_exon_nt_to_scipio_aa(mod["mat_nt"][i], gencode, mod["mat_aa"][i])
-                    mod = remove_trailing(mod, i, aln["trail"], aln, mod_len)
+                    mod = remove_trailing(mod, i, mat_alns[i]["trail"], mat_alns[i], mod_len)
+                    mat_alns[i] = align_exon_nt_to_scipio_aa(
+                        mod["mat_nt"][i], gencode, mod["mat_aa"][i]
+                    )
         cds_nt, cds_aa = concat_cds(mod)
         if translate(cds_nt, gencode, frame=1, start_as_M=False) == cds_aa:
             return mod
 
-        # 3. Remove extra dangling bases that break reading frame
-        last_trail = None
-        last_exon = None
+        # 4. Remove extra dangling bases that break reading frame
+        last_i = None
         for i in range(mod_len):
             if mod["mat_types"][i] == "exon":
-                aln = align_exon_nt_to_scipio_aa(mod["mat_nt"][i], gencode, mod["mat_aa"][i])
                 # Remove extra leading nucleotides/aminoacids from first exon
-                if last_exon is None:
-                    if aln["lead"] > 0:
-                        mod = remove_leading(mod, i, aln["lead"], aln)
+                if last_i is None:
+                    if mat_alns[i]["lead"] > 0:
+                        mod = remove_leading(mod, i, mat_alns[i]["lead"], mat_alns[i])
                 # Continue with remaining exons
                 else:
-                    if last_trail + aln["lead"] in [0, 3]:
+                    if mat_alns[last_i]["trail"] + mat_alns[i]["lead"] in [0, 3]:
                         pass
-                    elif last_trail == 0 and aln["lead"] in [1, 2]:
-                        mod = remove_leading(mod, i, aln["lead"], aln)
-                    elif last_trail == 1 and aln["lead"] in [0, 1]:
-                        last_aln = align_exon_nt_to_scipio_aa(mod["mat_nt"][last_exon], gencode,
-                                                              mod["mat_aa"][last_exon])
-                        mod = remove_trailing(mod, last_exon, last_trail, last_aln, mod_len)
-                        mod = remove_leading(mod, i, aln["lead"], aln)
-                    elif last_trail == 2:
-                        if aln["lead"] == 0:
-                            last_aln = align_exon_nt_to_scipio_aa(mod["mat_nt"][last_exon], gencode,
-                                                                  mod["mat_aa"][last_exon])
-                            mod = remove_trailing(mod, last_exon, last_trail, last_aln, mod_len)
-                        elif aln["lead"] == 2:
-                            last_aln = align_exon_nt_to_scipio_aa(mod["mat_nt"][last_exon], gencode,
-                                                                  mod["mat_aa"][last_exon])
+                    elif mat_alns[last_i]["trail"] == 0 and mat_alns[i]["lead"] in [1, 2]:
+                        mod = remove_leading(mod, i, mat_alns[i]["lead"], mat_alns[i])
+                    elif mat_alns[last_i]["trail"] == 1 and mat_alns[i]["lead"] in [0, 1]:
+                        mod = remove_trailing(mod, last_i, 1, mat_alns[last_i], mod_len)
+                        mod = remove_leading(mod, i, mat_alns[i]["lead"], mat_alns[i])
+                    elif mat_alns[last_i]["trail"] == 2:
+                        if mat_alns[i]["lead"] == 0:
+                            mod = remove_trailing(mod, last_i, 2, mat_alns[last_i], mod_len)
+                        elif mat_alns[i]["lead"] == 2:
                             # If last exon has an extra terminal aminoacid
-                            if last_aln["s1_end"] < last_aln["s2_end"]:
+                            if (mat_alns[last_i]["s1_end"]
+                                < mat_alns[last_i]["s2_end"]):
                                 # Trim a single base from the start of current exon
-                                mod = remove_leading(mod, i, 1, aln)
+                                mod = remove_leading(mod, i, 1, mat_alns[i])
                             # If last exon has two extra bp but not extra amino
                             else:
                                 # Trim a single base from the end of last exon
-                                mod = remove_trailing(mod, last_exon, 1, last_aln, mod_len)
-                aln = align_exon_nt_to_scipio_aa(mod["mat_nt"][i], gencode, mod["mat_aa"][i])
-                last_trail = aln["trail"]
-                last_exon = i
+                                mod = remove_trailing(mod, last_i, 1, mat_alns[last_i], mod_len)
+                mat_alns[i] = align_exon_nt_to_scipio_aa(mod["mat_nt"][i], gencode, mod["mat_aa"][i])
+                last_i = i
 
         cds_nt, cds_aa = concat_cds(mod)
         cds_nt_translated = translate(cds_nt, gencode, frame=1, start_as_M=False)
@@ -1508,17 +1594,15 @@ def scipio_yaml_to_dict(
             and mod["hit_ids"][i-1] == mod["hit_ids"][i] == mod["hit_ids"][i+1]):
 
             # Align previous exon to its translation to find out its trailing bases
-            prev_exon_aln = align_exon_nt_to_scipio_aa(mod["mat_nt"][i-1], gencode,
-                                                       mod["mat_aa"][i-1])
+            prev_aln = align_exon_nt_to_scipio_aa(mod["mat_nt"][i-1], gencode, mod["mat_aa"][i-1])
             # Align next exon to to its translation to find out its leading bases
-            next_exon_aln = align_exon_nt_to_scipio_aa(mod["mat_nt"][i+1], gencode,
-                                                       mod["mat_aa"][i+1])
+            next_aln = align_exon_nt_to_scipio_aa(mod["mat_nt"][i+1], gencode, mod["mat_aa"][i+1])
             # Take trailing bases from previous and leading bases from next and add to current chunk
             current_chunk = ""
-            if prev_exon_aln["trail"] > 0:
-                current_chunk += mod["mat_nt"][i-1][-prev_exon_aln["trail"]:]
+            if prev_aln["trail"] > 0:
+                current_chunk += mod["mat_nt"][i-1][-prev_aln["trail"]:]
             current_chunk += mod["mat_nt"][i]
-            current_chunk += mod["mat_nt"][i+1][:next_exon_aln["lead"]]
+            current_chunk += mod["mat_nt"][i+1][:next_aln["lead"]]
 
             # 'seq_chunks', 'lead', and 'trail' only get modified when translation is acceptable
             seq_chunks = None
@@ -1534,9 +1618,14 @@ def scipio_yaml_to_dict(
                                       min(mod["ref_starts"][i+1] - ref_seq[1], len(ref_seq[0]))]
                 rfs  = {i: translate(current_chunk, gencode, frame=i, start_as_M=False)
                         for i in [1,2,3]}
-                alns = {i: align_prots(rfs[i], prot_gap, "nw") for i in rfs}
-                # Prioritize filling of gap without skipping leading or trailing bases
-                if (len(current_chunk) % 3 == 0 and not "*" in alns[1]["s1_aln"]
+                coverage = (min(len(prot_gap), len(current_chunk)//3)
+                            / max(len(prot_gap), len(current_chunk)//3))
+                if coverage >= 0.8:
+                    alns = {i: align_prots(rfs[i], prot_gap, "nw") for i in rfs}
+                else:
+                    alns = {i: align_prots(rfs[i], prot_gap, "sw") for i in rfs}
+                # Prioritize filling gaps without skipping leading or trailing bases
+                if (len(current_chunk) % 3 == 0 and not "*" in rfs[1]
                     and alns[1]["match_rate"] >= set_a.SCIPIO_MIN_GAP_MATCH_RATE):
                     lead, trail = 0, 0
                     seq_chunks = ["", mod["mat_nt"][i].upper()]
