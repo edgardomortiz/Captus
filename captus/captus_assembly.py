@@ -608,9 +608,9 @@ class CaptusAssembly(object):
             type=int,
             dest="max_paralogs",
             help="Maximum number of hits (paralogs) to a particular reference marker allowed in the"
-                 " output. Use 0 to disable the paralog filtering after extraction (recommended,"
-                 " since the maximum number of paralogs can also be filtered during the alignment"
-                 " step)"
+                 " output. Use 0 to disable the paralog filtering after extraction, we recommend"
+                 " this since the paralogs can be filtered during the alignment with a more careful"
+                 " method during the 'align' step"
         )
         output_group.add_argument(
             "--max_loci_files",

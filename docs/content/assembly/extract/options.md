@@ -41,8 +41,7 @@ Inside this directory, the extracted markers for each sample will be stored in a
 This argument is optinal, the default is **./03_extractions/**
 ___
 #### **`--max_paralogs`**
-Maximum number of hits (paralogs) to a particular reference marker allowed in the output. Use 0 to disable the paralog filtering after extraction (recommended, since the maximum number of paralogs can also be filtered during the alignment step). This can be useful for exploratory runs, for example: if after an initial run
-allowing all paralogs we found out that the average number of paralogs across samples is 5, we could use this number to get rid of outliers. 
+Maximum number of hits (paralogs) to a particular reference marker allowed in the output. Use 0 to disable the paralog filtering after extraction, we recommend this since the paralogs can be filtered during the alignment with a more careful method during the `align` step. This can be useful for exploratory runs, for example: if after an initial run allowing all paralogs we found out that the average number of paralogs across samples is 5, we could use this number to get rid of outliers. 
 
 This argument is optional, the default is **0** (include all paralogs in the output).
 ___
