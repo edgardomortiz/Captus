@@ -1025,8 +1025,6 @@ def scipio_coding(
 
     genes = {"NUC": "nuclear genes", "PTD": "plastidial genes", "MIT": "mitochondrial genes"}
 
-    initial_contigs = fasta_to_dict(target_path, ordered=True)
-
     # Set programs' paths in case of using the bundled versions
     if scipio_path == "bundled": scipio_path = settings.BUNDLED_SCIPIO
     if blat_path == "bundled": blat_path = settings.BUNDLED_BLAT
@@ -1069,9 +1067,10 @@ def scipio_coding(
             message = red(f"'{sample_name}': FAILED extraction of {genes[marker_type]}")
             return message
         else:
-            final_target, final_query = filter_query_and_target(query_dict, initial_contigs,
-                                                                yaml_initial_dir, initial_models,
-                                                                marker_type)
+            final_target, final_query = filter_query_and_target(
+                query_dict, fasta_to_dict(target_path, ordered=True),
+                yaml_initial_dir, initial_models, marker_type
+            )
 
         # Perform final Scipio's run (more exhaustive but with fewer contigs and reference proteins)
         yaml_final_file = run_scipio_command(scipio_params, final_target, final_query,
@@ -1100,9 +1099,10 @@ def scipio_coding(
         return message
     else:
         write_gff3(final_models, marker_type, Path(yaml_final_dir, f"{marker_type}_contigs.gff"))
-        recovery_stats = write_fastas_and_report(final_models, sample_name, initial_contigs,
-                                                 yaml_final_dir, marker_type, overwrite,
-                                                 max_loci_files)
+        recovery_stats = write_fastas_and_report(
+            final_models, sample_name, fasta_to_dict(target_path, ordered=True),
+            yaml_final_dir, marker_type, overwrite, max_loci_files
+        )
         message = (
             f"'{sample_name}': recovered {recovery_stats['num_loci']} {genes[marker_type]}"
             f' ({recovery_stats["num_loci"] / query_info["num_loci"]:.1%} of {query_info["num_loci"]}),'

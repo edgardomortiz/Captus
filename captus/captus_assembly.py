@@ -602,28 +602,6 @@ class CaptusAssembly(object):
             help="Output directory name"
         )
         output_group.add_argument(
-            "--max_loci_files",
-            action="store",
-            default=2000,
-            type=int,
-            dest="max_loci_files",
-            help="When the number of markers in a reference file exceeds this number, Captus will"
-                 " not write a separate FASTA file per marker to not overload I/O. The single FASTA"
-                 " file containing all recovered markers needed by the 'align' step is still"
-                 " produced as are the rest of output files"
-        )
-        output_group.add_argument(
-            "--max_loci_scipio2x",
-            action="store",
-            default=2000,
-            type=int,
-            dest="max_loci_scipio2x",
-            help="When the number of markers in a protein reference file exceeds this number, Captus"
-                 " will not run a second, more exhaustive round of Scipio. Usually the results from"
-                 " the first round are extremely similar and sufficient, the second round can become"
-                 " extremely slow as the number of reference proteins grows"
-        )
-        output_group.add_argument(
             "--max_paralogs",
             action="store",
             default=0,
@@ -635,14 +613,15 @@ class CaptusAssembly(object):
                  " step)"
         )
         output_group.add_argument(
-            "--predict",
-            action="store_true",
-            dest="predict",
-            help="Scipio flags introns as doubtful when the splice signals are not found at the exon"
-                 " edges, this may indicate that there are additional aminoacids in the recovered"
-                 " protein that are not present in the reference protein. Enable this flag to"
-                 " attempt translation of these doubtful introns, if the translation does not"
-                 " introduce premature stop codons they will be added to the recovered protein"
+            "--max_loci_files",
+            action="store",
+            default=0,
+            type=int,
+            dest="max_loci_files",
+            help="When the number of markers in a reference file exceeds this number, Captus will"
+                 " not write a separate FASTA file per sample per marker to not overload I/O. The"
+                 " single FASTA file containing all recovered markers per sample needed by the"
+                 " 'align' step is still produced as are the rest of output files"
         )
         output_group.add_argument(
             "--keep_all",
@@ -655,6 +634,29 @@ class CaptusAssembly(object):
             action="store_true",
             dest="overwrite",
             help="Overwrite previous results"
+        )
+
+        protein_group = parser.add_argument_group("Proteins extraction global options (Scipio)")
+        protein_group.add_argument(
+            "--max_loci_scipio2x",
+            action="store",
+            default=2000,
+            type=int,
+            dest="max_loci_scipio2x",
+            help="When the number of markers in a protein reference file exceeds this number, Captus"
+                 " will not run a second, more exhaustive round of Scipio. Usually the results from"
+                 " the first round are extremely similar and sufficient, the second round can become"
+                 " extremely slow as the number of reference proteins grows"
+        )
+        protein_group.add_argument(
+            "--predict",
+            action="store_true",
+            dest="predict",
+            help="Scipio flags introns as doubtful when the splice signals are not found at the exon"
+                 " edges, this may indicate that there are additional aminoacids in the recovered"
+                 " protein that are not present in the reference protein. Enable this flag to"
+                 " attempt translation of these doubtful introns, if the translation does not"
+                 " introduce premature stop codons they will be added to the recovered protein"
         )
 
         scipio_nuc_group = parser.add_argument_group("Nuclear proteins extraction (Scipio)")
