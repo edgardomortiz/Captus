@@ -1615,7 +1615,7 @@ def scipio_yaml_to_dict(
                 len_gap = len(prot_gap)
                 len_chunk = len(current_chunk) // 3
                 overlap = min(len_gap, len_chunk) / max(len_gap, len_chunk)
-                # Don't try aligning if the
+                # Don't align if 'current_chunk' is too long compared to the unmatched protein
                 if (len_chunk / len_gap <= set_a.SCIPIO_MAX_GAP_DELTA
                     and len_gap * len_chunk <= set_a.RECURSION_LIMIT):
                     rfs  = {i: translate(current_chunk, gencode, frame=i, start_as_M=False)
@@ -1632,12 +1632,12 @@ def scipio_yaml_to_dict(
                         lead, trail = 0, 0
                         seq_chunks = ["", mod["mat_nt"][i].upper()]
                         mod["mismatches"] += [pos+mod["ref_ends"][i-1]
-                                            for pos in alns[1]["mismatches"]]
+                                              for pos in alns[1]["mismatches"]]
                     # Rank reading frames by their match rate penalized by the number of stop codons
                     else:
                         for rf in alns:
                             alns[rf]["match_rate"] *= (set_a.SCIPIO_STOP_PENALTY
-                                                    ** alns[rf]["s1_aln"].count("*"))
+                                                       ** alns[rf]["s1_aln"].count("*"))
                         rf, aln = max(alns.items(), key=(lambda x: x[1]["match_rate"]))
                         if (aln["match_rate"] >= set_a.SCIPIO_MIN_GAP_MATCH_RATE
                             and not "*" in aln["s1_aln"]):
@@ -1645,13 +1645,13 @@ def scipio_yaml_to_dict(
                             trail = (len(current_chunk) - lead) % 3
                             if trail > 0:
                                 seq_chunks = [f'{mod["mat_nt"][i][:lead].lower()}',
-                                            f'{mod["mat_nt"][i][lead:-trail].upper()}',
-                                            f'{mod["mat_nt"][i][-trail:].lower()}']
+                                              f'{mod["mat_nt"][i][lead:-trail].upper()}',
+                                              f'{mod["mat_nt"][i][-trail:].lower()}']
                             else:
                                 seq_chunks = [f'{mod["mat_nt"][i][:lead].lower()}',
-                                            f'{mod["mat_nt"][i][lead:].upper()}']
+                                              f'{mod["mat_nt"][i][lead:].upper()}']
                             mod["mismatches"] += [pos+mod["ref_ends"][i-1]
-                                                for pos in aln["mismatches"]]
+                                                  for pos in aln["mismatches"]]
 
             if predict and mod["mat_types"][i] == "intron?":
                 rf1 = translate(current_chunk, gencode, frame=1, start_as_M=False)
