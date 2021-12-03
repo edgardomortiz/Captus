@@ -2100,22 +2100,34 @@ def blat_misc_dna_psl_to_dict(
             return "wedged"
 
     def extract_psl_sequence(
-            fasta_dict, seq_name, strand, t_starts, t_ends, match_part, up_down_stream_bp
+            fasta_dict, seq_name, strand, t_starts, t_ends, match_part, up_down_stream_bp,
+            add_unmatched=False
     ):
         """
         Extract sequence from a 'fasta_dict' object using BLAT's PSL coordinate style
         """
         starts = list(t_starts)
         ends = list(t_ends)
-        if up_down_stream_bp > 0:
-            seq_len = len(fasta_dict[seq_name]["sequence"])
-            if match_part == "full" or match_part == "proximal":
-                starts[0] = max((starts[0] - up_down_stream_bp), 0)
-            if match_part == "full" or match_part == "distal":
-                ends[-1] = min((ends[-1] + up_down_stream_bp), seq_len)
         sequence = ""
-        for s, e in zip(starts, ends):
-            sequence += fasta_dict[seq_name]["sequence"][s:e]
+        if add_unmatched:
+            seq_len = len(fasta_dict[seq_name]["sequence"])
+            start_flanked = starts[0]
+            end_flanked = ends[-1]
+            if match_part in ["full", "proximal"]:
+                start_flanked = max((start_flanked - up_down_stream_bp), 0)
+            if match_part in ["full", "distal"]:
+                end_flanked = min((end_flanked + up_down_stream_bp), seq_len)
+            sequence += fasta_dict[seq_name]["sequence"][start_flanked:starts[0]].lower()
+            for i in range(len(starts)):
+                sequence += fasta_dict[seq_name]["sequence"][starts[i]:ends[i]].upper()
+                try:
+                    sequence += fasta_dict[seq_name]["sequence"][ends[i]:starts[i+1]].lower()
+                except IndexError:
+                    continue
+            sequence += fasta_dict[seq_name]["sequence"][ends[-1]:end_flanked].lower()
+        else:
+            for s, e in zip(starts, ends):
+                sequence += fasta_dict[seq_name]["sequence"][s:e].upper()
         if strand == "+":
             return sequence
         elif strand == "-":
@@ -2163,7 +2175,8 @@ def blat_misc_dna_psl_to_dict(
                                                     path[0]["t_start"],
                                                     path[0]["t_end"],
                                                     path[0]["region"],
-                                                    set_a.DNA_UP_DOWN_STREAM_BP),
+                                                    set_a.DNA_UP_DOWN_STREAM_BP,
+                                                    add_unmatched=True),
                 # assembled sequence match
                 "seq_gene": extract_psl_sequence(target_dict,
                                                  path[0]["hit_contig"],
@@ -2205,7 +2218,8 @@ def blat_misc_dna_psl_to_dict(
                                                             path[h + 1]["t_start"],
                                                             path[h + 1]["t_end"],
                                                             path[h + 1]["region"],
-                                                            set_a.DNA_UP_DOWN_STREAM_BP)
+                                                            set_a.DNA_UP_DOWN_STREAM_BP,
+                                                            add_unmatched=True)
                     match_props.append(path[h + 1]["matches"] / len(next_seq_gene))
                     mismatch_props.append(path[h + 1]["mismatches"] / len(next_seq_gene))
 
