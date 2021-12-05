@@ -2036,7 +2036,7 @@ def blat_misc_dna_psl_to_dict(
 
     def split_blat_hit(q_size, block_sizes, q_starts, t_starts, q_end_pos, t_end_pos):
         """
-        Split aligned block so no block contins an insertion as long as the query size
+        Split aligned block so no block contains an insertion as long as the query size
         """
         t_inserts = 0
         q_start, t_start = [q_starts[0]], [t_starts[0]]
@@ -2080,7 +2080,7 @@ def blat_misc_dna_psl_to_dict(
             millibad = (1000 * (mismatches + insert_factor + round_away_from_zero)) / total
         return 100.0 - millibad * 0.1
 
-    def determine_matching_region(q_size, q_start, q_end, t_size, t_start, t_end):
+    def determine_matching_region(q_size, q_start, q_end):
         """
         Determine if a contig matches entirely the query, or if it is a partial hit. In cases of
         partial hits determine if it is a split hit (proximal, middle, or distal) or if the hit
@@ -2088,50 +2088,87 @@ def blat_misc_dna_psl_to_dict(
         """
         if q_end - q_start >= q_size * (1 - set_a.DNA_TOLERANCE_PROP):
             return "full"
-        elif t_end - t_start >= t_size * (1 - (set_a.DNA_TOLERANCE_PROP * 2)):
-            return "middle"
         elif (q_start <= q_size * set_a.DNA_TOLERANCE_PROP
-              and t_end >= t_size * (1 - set_a.DNA_TOLERANCE_PROP)):
+            and (q_size - q_end) <= q_size * set_a.DNA_TOLERANCE_PROP):
+            return "full"
+        elif (q_start >= q_size * set_a.DNA_TOLERANCE_PROP
+              and (q_size - q_end) >= q_size * set_a.DNA_TOLERANCE_PROP):
+            return "middle"
+        elif q_start <= q_size * set_a.DNA_TOLERANCE_PROP:
             return "proximal"
-        elif (q_end >= q_size * (1 - set_a.DNA_TOLERANCE_PROP)
-              and t_start <= t_size * set_a.DNA_TOLERANCE_PROP):
+        elif (q_size - q_end) <= q_size * set_a.DNA_TOLERANCE_PROP:
             return "distal"
         else:  # hit is only partial and surrounded by a large proportion of unmatched sequence
             return "wedged"
 
-    def extract_psl_sequence(
-            fasta_dict, seq_name, strand, t_starts, t_ends, match_part, up_down_stream_bp,
-            add_unmatched=False
-    ):
+    def extract_psl_sequence(fasta_dict, hit_dict, up_down_stream_bp, flanked=False):
         """
         Extract sequence from a 'fasta_dict' object using BLAT's PSL coordinate style
         """
-        starts = list(t_starts)
-        ends = list(t_ends)
+        contig = hit_dict["hit_contig"]
+        strand = hit_dict["strand"]
+        starts = list(hit_dict["t_start"])
+        ends   = list(hit_dict["t_end"])
+        region = hit_dict["region"]
         sequence = ""
-        if add_unmatched:
-            seq_len = len(fasta_dict[seq_name]["sequence"])
+        if flanked:
+            seq_len = len(fasta_dict[contig]["sequence"])
             start_flanked = starts[0]
             end_flanked = ends[-1]
-            if match_part in ["full", "proximal"]:
+            if region in ["full", "proximal"]:
                 start_flanked = max((start_flanked - up_down_stream_bp), 0)
-            if match_part in ["full", "distal"]:
+            if region in ["full", "distal"]:
                 end_flanked = min((end_flanked + up_down_stream_bp), seq_len)
-            sequence += fasta_dict[seq_name]["sequence"][start_flanked:starts[0]].lower()
+            sequence += fasta_dict[contig]["sequence"][start_flanked:starts[0]].lower()
             for i in range(len(starts)):
-                sequence += fasta_dict[seq_name]["sequence"][starts[i]:ends[i]].upper()
+                sequence += fasta_dict[contig]["sequence"][starts[i]:ends[i]].upper()
                 try:
-                    sequence += fasta_dict[seq_name]["sequence"][ends[i]:starts[i+1]].lower()
+                    sequence += fasta_dict[contig]["sequence"][ends[i]:starts[i+1]].lower()
                 except IndexError:
                     continue
-            sequence += fasta_dict[seq_name]["sequence"][ends[-1]:end_flanked].lower()
+            sequence += fasta_dict[contig]["sequence"][ends[-1]:end_flanked].lower()
         else:
             for s, e in zip(starts, ends):
-                sequence += fasta_dict[seq_name]["sequence"][s:e].upper()
+                sequence += fasta_dict[contig]["sequence"][s:e].upper()
         if strand == "+":
             return sequence
         elif strand == "-":
             return reverse_complement(sequence)
+
+    def overlap_matches(seq1, seq2):
+        matches = 0
+        seq_len = len(seq1)
+        for n1, n2 in zip(seq1, seq2):
+            matches += NT_PIDS["".join(sorted([n1, n2]))]
+        if matches == seq_len:
+            return True
+        if matches / seq_len >= 95.0:
+            return True
+        if seq_len - matches <= 1.0 and seq_len <= 10:
+            return True
+        return False
+
+    def scaffold_segments(fasta_dict, max_overlap_bp, current_hit, next_hit, match_gap):
+        current_contig = current_hit["hit_contig"]
+        current_end = current_hit["t_end"][-1]
+        current_strand = current_hit["strand"]
+        next_contig = next_hit["hit_contig"]
+        next_start = next_hit["t_start"][0]
+        next_strand = next_hit["strand"]
+        current_trail = fasta_dict[current_contig]["sequence"][current_end:].upper()
+        if current_strand == "-": current_trail = reverse_complement(current_trail)
+        next_lead = fasta_dict[next_contig]["sequence"][0:next_start].upper()
+        if next_strand == "-": next_lead = reverse_complement(next_lead)
+        check_len = min(len(current_trail), len(next_lead), max_overlap_bp)
+        connector = ""
+        while check_len != 0:
+            if overlap_matches(current_trail[-check_len:], next_lead[0:check_len]):
+                connector = f'{current_trail}{next_lead[check_len:]}'
+                break
+            check_len -= 1
+        if connector == "":
+            connector = f'{current_trail}{"n" * abs(match_gap)}{next_lead}'
+        return connector.lower()
 
     def join_coords(starts, ends):
         """
@@ -2141,7 +2178,7 @@ def blat_misc_dna_psl_to_dict(
         """
         return ",".join([f"{s}-{e}" for s, e in zip(starts, ends)])
 
-    def extract_and_stitch_edges(assembly_paths, max_paralogs: int):
+    def extract_and_stitch_edges(assembly_paths, max_overlap_bp: int, max_paralogs: int):
         """
         Returns a list of stitched sequences with metadata, sorted by relevance: 'full' hits first
         sorted by 'lwscore', followed by assembled hits sorted by 'lwscore', and finally
@@ -2152,6 +2189,12 @@ def blat_misc_dna_psl_to_dict(
         """
         raw_assembly = []
         for path in assembly_paths:
+            len_path = len(path)
+            if len_path > 1:
+                for i in range(1, len_path):
+                    if path[i]["region"] == "proximal": path[i]["region"] = "middle"
+                for i in range(len_path-1):
+                    if path[i]["region"] == "distal": path[i]["region"] = "middle"
             asm_hit = {
                 "ref_name": path[0]["ref_name"],        # full name of non-coding reference sequence
                 "ref_size": path[0]["ref_size"],           # length of non-coding reference sequence
@@ -2169,22 +2212,11 @@ def blat_misc_dna_psl_to_dict(
                 "gapped": path[0]["gapped"],          # set to True when is assembly of partial hits
                 "region": path[0]["region"],    # full, proximal, middle, distal with respect to ref
                 # assembled sequence match plus upstream and downstream buffer
-                "seq_flanked": extract_psl_sequence(target_dict,
-                                                    path[0]["hit_contig"],
-                                                    path[0]["strand"],
-                                                    path[0]["t_start"],
-                                                    path[0]["t_end"],
-                                                    path[0]["region"],
+                "seq_flanked": extract_psl_sequence(target_dict, path[0],
                                                     set_a.DNA_UP_DOWN_STREAM_BP,
-                                                    add_unmatched=True),
+                                                    flanked=True),
                 # assembled sequence match
-                "seq_gene": extract_psl_sequence(target_dict,
-                                                 path[0]["hit_contig"],
-                                                 path[0]["strand"],
-                                                 path[0]["t_start"],
-                                                 path[0]["t_end"],
-                                                 path[0]["region"],
-                                                 0),
+                "seq_gene": extract_psl_sequence(target_dict, path[0], 0),
                 "seq_nt": "",  # not used
                 "seq_aa": "",  # not used
             }
@@ -2197,57 +2229,47 @@ def blat_misc_dna_psl_to_dict(
                 mismatch_props = [path[0]["mismatches"] / len(asm_hit["seq_gene"])]
                 score_corr = 1
                 for h in range(len(path) - 1):
-                    asm_hit["hit_ids"] += f'\n{path[h + 1]["hit_id"]}'
-                    asm_hit["hit_contigs"] += f'\n{path[h + 1]["hit_contig"]}'
+                    asm_hit["hit_ids"] += f'\n{path[h+1]["hit_id"]}'
+                    asm_hit["hit_contigs"] += f'\n{path[h+1]["hit_contig"]}'
                     asm_hit["hit_coords"] += (
-                        f'\n{join_coords(path[h + 1]["t_start"], path[h + 1]["t_end"])}'
+                        f'\n{join_coords(path[h+1]["t_start"], path[h+1]["t_end"])}'
                     )
-                    asm_hit["strand"] += f'\n{path[h + 1]["strand"]}'
-                    hit_ids.append(path[h + 1]["identity"])
-                    asm_hit["region"] += f',{path[h + 1]["region"]}'
-                    next_seq_gene = extract_psl_sequence(target_dict,
-                                                         path[h + 1]["hit_contig"],
-                                                         path[h + 1]["strand"],
-                                                         path[h + 1]["t_start"],
-                                                         path[h + 1]["t_end"],
-                                                         path[h + 1]["region"],
-                                                         0)
-                    next_seq_flanked = extract_psl_sequence(target_dict,
-                                                            path[h + 1]["hit_contig"],
-                                                            path[h + 1]["strand"],
-                                                            path[h + 1]["t_start"],
-                                                            path[h + 1]["t_end"],
-                                                            path[h + 1]["region"],
+                    asm_hit["strand"] += f'\n{path[h+1]["strand"]}'
+                    hit_ids.append(path[h+1]["identity"])
+                    asm_hit["region"] += f',{path[h+1]["region"]}'
+                    next_seq_flanked = extract_psl_sequence(target_dict, path[h+1],
                                                             set_a.DNA_UP_DOWN_STREAM_BP,
-                                                            add_unmatched=True)
-                    match_props.append(path[h + 1]["matches"] / len(next_seq_gene))
-                    mismatch_props.append(path[h + 1]["mismatches"] / len(next_seq_gene))
+                                                            flanked=True)
+                    next_seq_gene = extract_psl_sequence(target_dict, path[h+1], 0)
+                    match_props.append(path[h+1]["matches"] / len(next_seq_gene))
+                    mismatch_props.append(path[h+1]["mismatches"] / len(next_seq_gene))
 
-                    overlap = path[h]["q_end"][-1] - path[h + 1]["q_start"][0]
+                    overlap = path[h]["q_end"][-1] - path[h+1]["q_start"][0]
                     # Negative 'overlap' is a gap that has to be filled with 'n's
-
                     if overlap < 1:
-                        asm_hit["seq_flanked"] += f'{"n" * abs(overlap)}{next_seq_flanked}'
+                        connector = scaffold_segments(target_dict, max_overlap_bp,
+                                                      path[h], path[h+1], overlap)
+                        asm_hit["seq_flanked"] += f'{connector}{next_seq_flanked}'
                         asm_hit["seq_gene"] += f'{"n" * abs(overlap)}{next_seq_gene}'
-                        ref_starts.append(list(path[h + 1]["q_start"]))
-                        ref_ends.append(list(path[h + 1]["q_end"]))
+                        ref_starts.append(list(path[h+1]["q_start"]))
+                        ref_ends.append(list(path[h+1]["q_end"]))
                     else:
                         score_corr -= set_a.DNA_TOLERANCE_PROP
                         # Ignore overlapped portion from the hit with smaller 'identity' to the ref
-                        if path[h]["identity"] >= path[h + 1]["identity"]:
+                        if path[h]["identity"] >= path[h+1]["identity"]:
                             asm_hit["seq_flanked"] += next_seq_flanked[overlap:]
                             asm_hit["seq_gene"] += next_seq_gene[overlap:]
-                            ref_starts.append(list(path[h + 1]["q_start"]))
+                            ref_starts.append(list(path[h+1]["q_start"]))
                             ref_starts[-1][0] += overlap
-                            ref_ends.append(list(path[h + 1]["q_end"]))
+                            ref_ends.append(list(path[h+1]["q_end"]))
                         else:
                             asm_hit["seq_flanked"] = (
                                 f'{asm_hit["seq_flanked"][:-overlap]}{next_seq_flanked}'
                             )
                             asm_hit["seq_gene"] = f'{asm_hit["seq_gene"][:-overlap]}{next_seq_gene}'
                             ref_ends[-1][-1] -= overlap
-                            ref_starts.append(list(path[h + 1]["q_start"]))
-                            ref_ends.append(list(path[h + 1]["q_end"]))
+                            ref_starts.append(list(path[h+1]["q_start"]))
+                            ref_ends.append(list(path[h+1]["q_end"]))
 
                 # Reformat the matched query coordinates for decorating the FASTA description line
                 asm_hit["ref_coords"] = "\n".join([join_coords(s, e) for s, e
@@ -2347,7 +2369,7 @@ def blat_misc_dna_psl_to_dict(
         assembly_paths = ([[full_hits[f]] for f in range(len(full_hits))] + sorted_paths)
 
         # Search FASTA assembly input ('target_dict') and extract/stitch needed sequence fragments
-        assembly = extract_and_stitch_edges(assembly_paths, max_paralogs)
+        assembly = extract_and_stitch_edges(assembly_paths, max_overlap_bp, max_paralogs)
         assembly_paths = None
         return assembly
 
@@ -2366,21 +2388,19 @@ def blat_misc_dna_psl_to_dict(
         for line in psl_in:
             cols = line.split()
             matches, mismatches, rep_matches = int(cols[0]), int(cols[1]), int(cols[2])
-            q_inserts, t_strand = int(cols[4]), cols[8]
-            q_base_inserts, t_base_inserts = int(cols[5]), int(cols[7])
-            q_name, q_size = cols[9], int(cols[10])
-            t_name, t_size = cols[13], int(cols[14])
+            q_inserts, t_strand, q_name, q_size = int(cols[4]), cols[8], cols[9], int(cols[10])
+            t_base_inserts, t_name = int(cols[7]), cols[13]
             # When an insertion as long as the query size is detected we must attempt splitting hit
             if t_base_inserts >= min(q_size * set_a.DNA_MAX_INSERT_PROP, set_a.DNA_MAX_INSERT_SIZE):
                 block_sizes = [int(s) for s in cols[18].strip(",").split(",")]
                 q_starts = [int(p) for p in cols[19].strip(",").split(",")]
                 t_starts = [int(p) for p in cols[20].strip(",").split(",")]
-                q_start, q_end, t_start, t_end, t_inserts = split_blat_hit(
+                q_start, q_end, t_start, t_end, _ = split_blat_hit(
                     q_size, block_sizes, q_starts, t_starts, int(cols[12]), int(cols[16])
                 )
             else:
                 q_start, q_end = [int(cols[11])], [int(cols[12])]
-                t_start, t_end, t_inserts = [int(cols[15])], [int(cols[16])], 0
+                t_start, t_end = [int(cols[15])], [int(cols[16])]
 
             coverage = (matches + rep_matches + mismatches) / q_size * 100
             identity = calculate_psl_identity(
@@ -2389,9 +2409,7 @@ def blat_misc_dna_psl_to_dict(
             )
             score = (matches + rep_matches - mismatches) / q_size
             lwscore = score * ((matches + rep_matches + mismatches) / q_size)
-            region = determine_matching_region(
-                q_size, q_start[0], q_end[-1], t_size, t_start[0], t_end[-1]
-            )
+            region = determine_matching_region(q_size, q_start[0], q_end[-1])
             gapped = not bool(region == "full")
 
             # Ignore hits with not enough coverage of the reference, or partial hits immersed in
@@ -2400,24 +2418,24 @@ def blat_misc_dna_psl_to_dict(
 
                 # Compose hit record with columns from the .psl line
                 hit = {
-                    "ref_name": q_name,
-                    "ref_size": q_size,
-                    "q_start": q_start,                  # list of starts
-                    "q_end": q_end,                      # list of ends
-                    "match_len": matches + rep_matches + mismatches,
-                    "hit_id": f"{marker_type}{hit_num}",
+                    "ref_name":   q_name,
+                    "ref_size":   q_size,
+                    "q_start":    q_start,                      # list of starts
+                    "q_end":      q_end,                          # list of ends
+                    "match_len":  matches + rep_matches + mismatches,
+                    "hit_id":     f"{marker_type}{hit_num}",
                     "hit_contig": t_name,
-                    "t_start": t_start,                  # list of starts
-                    "t_end": t_end,                      # list of ends
-                    "strand": t_strand,
-                    "matches": matches + rep_matches,
+                    "t_start":    t_start,                      # list of starts
+                    "t_end":      t_end,                          # list of ends
+                    "strand":     t_strand,
+                    "matches":    matches + rep_matches,
                     "mismatches": mismatches,
-                    "coverage": coverage,
-                    "identity": identity,
-                    "score": score,
-                    "lwscore": lwscore,
-                    "region": region,
-                    "gapped": gapped,
+                    "coverage":   coverage,
+                    "identity":   identity,
+                    "score":      score,
+                    "lwscore":    lwscore,
+                    "region":     region,
+                    "gapped":     gapped,
                 }
                 hit_num += 1
                 if q_name not in raw_dna_hits:
