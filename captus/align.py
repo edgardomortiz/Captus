@@ -126,14 +126,14 @@ def align(full_command, args):
         " FASTA files are not aligned yet. If provided, Captus will include the reference aminoacid/"
         "nucleotide sequences in the alignments. "
     )
+    markers, markers_ignored = check_value_list(args.markers, settings.MARKER_DIRS)
+    show_less = not args.show_more
     if skip_collection:
         log.log(red(
             f"Skipping the marker collection step because you used '--redo_from {args.redo_from}'"
         ))
         log.log("")
     else:
-        markers, markers_ignored = check_value_list(args.markers, settings.MARKER_DIRS)
-        show_less = not args.show_more
         log.log(f'{"Markers to collect":>{mar}}: {bold(markers)} {dim(markers_ignored)}')
         formats, formats_ignored = check_value_list(args.formats, settings.FORMAT_DIRS)
         log.log(f'{"Alignment formats":>{mar}}: {bold(formats)} {dim(formats_ignored)}')
@@ -226,13 +226,13 @@ def align(full_command, args):
         "Now Captus will remove paralogs using the method(s) selected with '--filter_method'."
         " Afterwards, copies of the alignments without the reference sequences will also be created."
     )
+    concurrent = threads_max
     if skip_filtering:
         log.log(red(
             f"Skipping the paralog filtering step because you used '--redo_from {args.redo_from}'"
         ))
         log.log("")
     else:
-        concurrent = threads_max
         filtering_refs = select_filtering_refs(refs_paths, markers, formats, args.filter_method)
         filter_method = args.filter_method.lower()
         if not filtering_refs:
@@ -320,7 +320,6 @@ def align(full_command, args):
             remove_references = False
 
         if remove_references:
-            concurrent = threads_max
             if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"]).exists():
                 fastas_to_rem_refs = fastas_origs_dests(
                     out_dir,
@@ -393,7 +392,6 @@ def align(full_command, args):
             " installed or provide the full path to the program with '--clipkit_path'"
         ))
     else:
-        concurrent = threads_max
         log.log(f'{"Concurrent processes":>{mar}}: {bold(concurrent)}')
         log.log("")
         log.log(f'{"Algorithm":>{mar}}: {bold(args.clipkit_algorithm)}')
