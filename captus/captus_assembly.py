@@ -1171,7 +1171,7 @@ class CaptusAssembly(object):
         clipkit_group.add_argument(
             "--clipkit_gaps",
             action="store",
-            default=0.9,
+            default=0.95,
             type=float,
             dest="clipkit_gaps",
             help="Gappyness threshold per position. Accepted values between 0 and 1. This argument"
