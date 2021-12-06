@@ -77,22 +77,38 @@ def align(full_command, args):
     log.log(f'{"":>{mar}}  {dim(out_dir_msg)}')
     log.log("")
 
+    skip_collection = False
+    skip_alignment  = False
+    skip_filtering  = False
+    skip_removal    = False
     if args.redo_from:
         log.log(f'{"Redo from":>{mar}}: {bold(args.redo_from)}')
+        if args.redo_from.lower()   == "alignment":
+            skip_collection = True
+        elif args.redo_from.lower() == "filtering":
+            skip_collection = True
+            skip_alignment  = True
+        elif args.redo_from.lower() == "removal":
+            skip_collection = True
+            skip_alignment  = True
+            skip_filtering  = True
+        elif args.redo_from.lower() == "trimming":
+            skip_collection = True
+            skip_alignment  = True
+            skip_filtering  = True
+            skip_removal    = True
         prepare_redo(out_dir, args.redo_from)
         log.log("")
 
-    skip_alignment = False
+
+
     if mafft_status == "not found":
-        skip_alignment = True
         log.log(
             f"{bold('WARNING:')} MAFFT could not be found, the markers will be collected from"
             f" '{args.captus_extractions_dir}' but they will not be aligned. Please verify you have"
             " it installed or provide the full path to the program with '--mafft_path'"
         )
-    skip_trimming = False
     if clipkit_status == "not found":
-        skip_trimming = True
         log.log(
             f"{bold('WARNING:')} ClipKIT could not be found, the alignments will not be trimmed."
             "Please verify you have it installed or provide the full path to the program with"
@@ -110,24 +126,31 @@ def align(full_command, args):
         " FASTA files are not aligned yet. If provided, Captus will include the reference aminoacid/"
         "nucleotide sequences in the alignments. "
     )
-    markers, markers_ignored = check_value_list(args.markers, settings.MARKER_DIRS)
-    show_less = not args.show_more
-    log.log(f'{"Markers to collect":>{mar}}: {bold(markers)} {dim(markers_ignored)}')
-    formats, formats_ignored = check_value_list(args.formats, settings.FORMAT_DIRS)
-    log.log(f'{"Alignment formats":>{mar}}: {bold(formats)} {dim(formats_ignored)}')
-    log.log(f'{"Max. paralogs":>{mar}}: {bold(args.max_paralogs)}')
-    log.log("")
-    refs_paths = prepare_refs(args.captus_extractions_dir, mar)
-    log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
-    log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
-    extracted_sample_dirs = find_extracted_sample_dirs(args.captus_extractions_dir)
-    log.log(f'{"Samples to process":>{mar}}: {bold(len(extracted_sample_dirs))}')
-    log.log("")
-    log.log(make_output_dirtree(markers, formats, out_dir, settings.ALN_DIRS["UNAL"], mar))
-    log.log("")
-    collect_extracted_markers(markers, formats, args.max_paralogs, extracted_sample_dirs, out_dir,
-                              settings.ALN_DIRS["UNAL"], refs_paths, args.overwrite, show_less)
-    log.log("")
+    if skip_collection:
+        log.log(red(
+            f"Skipping the marker collection step because you used '--redo_from {args.redo_from}'"
+        ))
+        log.log("")
+    else:
+        markers, markers_ignored = check_value_list(args.markers, settings.MARKER_DIRS)
+        show_less = not args.show_more
+        log.log(f'{"Markers to collect":>{mar}}: {bold(markers)} {dim(markers_ignored)}')
+        formats, formats_ignored = check_value_list(args.formats, settings.FORMAT_DIRS)
+        log.log(f'{"Alignment formats":>{mar}}: {bold(formats)} {dim(formats_ignored)}')
+        log.log(f'{"Max. paralogs":>{mar}}: {bold(args.max_paralogs)}')
+        log.log("")
+        refs_paths = prepare_refs(args.captus_extractions_dir, mar)
+        log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
+        log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
+        extracted_sample_dirs = find_extracted_sample_dirs(args.captus_extractions_dir)
+        log.log(f'{"Samples to process":>{mar}}: {bold(len(extracted_sample_dirs))}')
+        log.log("")
+        log.log(make_output_dirtree(markers, formats, out_dir, settings.ALN_DIRS["UNAL"], mar))
+        log.log("")
+        collect_extracted_markers(markers, formats, args.max_paralogs, extracted_sample_dirs,
+                                  out_dir, settings.ALN_DIRS["UNAL"], refs_paths, args.overwrite,
+                                  show_less)
+        log.log("")
 
 
     ################################################################################################
@@ -139,6 +162,11 @@ def align(full_command, args):
         " references and a separate one with the references removed. "
     )
     if skip_alignment:
+        log.log(red(
+            f"Skipping the marker alignment step because you used '--redo_from {args.redo_from}'"
+        ))
+        log.log("")
+    elif mafft_status == "not found":
         quit_with_error(
             "MAFFT could not be found, markers were collected across samples but they will not be"
             " aligned. Verify you have MAFFT installed or provide the full path to the program with"
@@ -198,72 +226,78 @@ def align(full_command, args):
         "Now Captus will remove paralogs using the method(s) selected with '--filter_method'."
         " Afterwards, copies of the alignments without the reference sequences will also be created."
     )
-    concurrent = threads_max
-    filtering_refs = select_filtering_refs(refs_paths, markers, formats, args.filter_method)
-    filter_method = args.filter_method.lower()
-    if not filtering_refs:
-        if args.filter_method == "careful":
-            filter_method = None
-        elif args.filter_method == "both":
-            filter_method = "fast"
-    if filter_method == "none": filter_method = None
+    if skip_filtering:
+        log.log(red(
+            f"Skipping the paralog filtering step because you used '--redo_from {args.redo_from}'"
+        ))
+        log.log("")
+    else:
+        concurrent = threads_max
+        filtering_refs = select_filtering_refs(refs_paths, markers, formats, args.filter_method)
+        filter_method = args.filter_method.lower()
+        if not filtering_refs:
+            if args.filter_method == "careful":
+                filter_method = None
+            elif args.filter_method == "both":
+                filter_method = "fast"
+        if filter_method == "none": filter_method = None
 
-    log.log(f'{"Concurrent processes":>{mar}}: {bold(concurrent)}')
-    log.log(f'{"Filtering method":>{mar}}: {bold(filter_method)}')
-    log.log("")
-    if filtering_refs:
-        log.log(bold(f'{"References for filtering":>{mar}}:'))
-        for marker in filtering_refs:
-            log.log(f'{"  Marker":>{mar}}: {bold(marker)}')
-            log.log(f'{"  Format":>{mar}}: {bold(filtering_refs[marker]["format_dir"][-2:])}')
-            log.log(f'{"  Path":>{mar}}: {bold(filtering_refs[marker]["path"])}')
+        log.log(f'{"Concurrent processes":>{mar}}: {bold(concurrent)}')
+        log.log(f'{"Filtering method":>{mar}}: {bold(filter_method)}')
+        log.log("")
+        if filtering_refs:
+            log.log(bold(f'{"References for filtering":>{mar}}:'))
+            for marker in filtering_refs:
+                log.log(f'{"  Marker":>{mar}}: {bold(marker)}')
+                log.log(f'{"  Format":>{mar}}: {bold(filtering_refs[marker]["format_dir"][-2:])}')
+                log.log(f'{"  Path":>{mar}}: {bold(filtering_refs[marker]["path"])}')
+                log.log("")
+        log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
+        log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
+        log.log("")
+
+        if filter_method in ["fast", "both"]:
+            fastas_to_filter = fastas_origs_dests(
+                out_dir,
+                Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"]),
+                Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["FAST"])
+            )
             log.log("")
-    log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
-    log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
-    log.log("")
+            log.log(bold(f'{"FAST paralog filtering":>{mar}}:'))
+            log.log(f'{"FASTA files to process":>{mar}}: {bold(len(fastas_to_filter))}')
+            log.log(make_output_dirtree(markers,
+                                        formats,
+                                        out_dir,
+                                        Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["FAST"]),
+                                        mar))
+            log.log("")
+            paralog_fast_filter(fastas_to_filter, args.overwrite, concurrent,
+                                show_less, args.debug)
+            log.log("")
 
-    if filter_method in ["fast", "both"]:
-        fastas_to_filter = fastas_origs_dests(
-            out_dir,
-            Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"]),
-            Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["FAST"])
-        )
-        log.log("")
-        log.log(bold(f'{"FAST paralog filtering":>{mar}}:'))
-        log.log(f'{"FASTA files to process":>{mar}}: {bold(len(fastas_to_filter))}')
-        log.log(make_output_dirtree(markers,
-                                    formats,
-                                    out_dir,
-                                    Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["FAST"]),
-                                    mar))
-        log.log("")
-        paralog_fast_filter(fastas_to_filter, args.overwrite, concurrent,
-                            show_less, args.debug)
-        log.log("")
-
-    if filter_method in ["careful", "both"]:
-        fastas_to_filter = fastas_origs_dests(
-            out_dir,
-            Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"]),
-            Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["CARE"])
-        )
-        log.log("")
-        log.log(bold(f'{"CAREFUL paralog filtering":>{mar}}:'))
-        log.log(f'{"FASTA files to process":>{mar}}: {bold(len(fastas_to_filter))}')
-        log.log(make_output_dirtree(markers,
-                                    formats,
-                                    out_dir,
-                                    Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["CARE"]),
-                                    mar))
-        log.log("")
-        manager = Manager()
-        shared_paralog_stats = manager.list()
-        paralog_careful_filter(shared_paralog_stats, fastas_to_filter, filtering_refs,
-                               concurrent, args.overwrite, show_less, args.debug)
-        paralog_stats_tsv = write_paralog_stats(out_dir, shared_paralog_stats)
-        log.log("")
-        log.log(f'{"Paralog statistics":>{mar}}: {bold(paralog_stats_tsv)}')
-        log.log("")
+        if filter_method in ["careful", "both"]:
+            fastas_to_filter = fastas_origs_dests(
+                out_dir,
+                Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"]),
+                Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["CARE"])
+            )
+            log.log("")
+            log.log(bold(f'{"CAREFUL paralog filtering":>{mar}}:'))
+            log.log(f'{"FASTA files to process":>{mar}}: {bold(len(fastas_to_filter))}')
+            log.log(make_output_dirtree(markers,
+                                        formats,
+                                        out_dir,
+                                        Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["CARE"]),
+                                        mar))
+            log.log("")
+            manager = Manager()
+            shared_paralog_stats = manager.list()
+            paralog_careful_filter(shared_paralog_stats, fastas_to_filter, filtering_refs,
+                                concurrent, args.overwrite, show_less, args.debug)
+            paralog_stats_tsv = write_paralog_stats(out_dir, shared_paralog_stats)
+            log.log("")
+            log.log(f'{"Paralog statistics":>{mar}}: {bold(paralog_stats_tsv)}')
+            log.log("")
 
 
     ################################################################################################
@@ -273,66 +307,75 @@ def align(full_command, args):
         "Now Captus will create copies of the alignnments that will not include the reference"
         " sequences used as alignment guide and for paralog filtering"
     )
-    try:
-        remove_references = bool(any([path for marker in refs_paths
-                                           for path in refs_paths[marker].values()]))
-    except TypeError:
-        remove_references = False
+    if skip_removal:
+        log.log(red(
+            f"Skipping the reference removal step because you used '--redo_from {args.redo_from}'"
+        ))
+        log.log("")
+    else:
+        try:
+            remove_references = bool(any([path for marker in refs_paths
+                                          for path in refs_paths[marker].values()]))
+        except TypeError:
+            remove_references = False
 
-    if remove_references:
-        if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"]).exists():
-            fastas_to_rem_refs = fastas_origs_dests(
-                out_dir,
-                Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"]),
-                Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NREF"])
-            )
-            log.log("")
-            log.log(f'{"FASTA files to process":>{mar}}: {bold(len(fastas_to_rem_refs))}')
-            log.log(make_output_dirtree(markers,
-                                        formats,
-                                        out_dir,
-                                        Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NREF"]),
-                                        mar))
-            log.log("")
-            rem_refs(refs_paths, fastas_to_rem_refs, args.overwrite,
-                     concurrent, show_less, args.debug)
-            log.log("")
+        if remove_references:
+            if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"]).exists():
+                fastas_to_rem_refs = fastas_origs_dests(
+                    out_dir,
+                    Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"]),
+                    Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NREF"])
+                )
+                log.log("")
+                log.log(f'{"FASTA files to process":>{mar}}: {bold(len(fastas_to_rem_refs))}')
+                log.log(make_output_dirtree(markers,
+                                            formats,
+                                            out_dir,
+                                            Path(settings.ALN_DIRS["ALND"],
+                                                 settings.ALN_DIRS["NREF"]),
+                                            mar))
+                log.log("")
+                rem_refs(refs_paths, fastas_to_rem_refs, args.overwrite,
+                         concurrent, show_less, args.debug)
+                log.log("")
 
-        if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["FAST"]).exists():
-            fastas_to_rem_refs = fastas_origs_dests(
-                out_dir,
-                Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["FAST"]),
-                Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NRFA"])
-            )
-            log.log("")
-            log.log(f'{"FASTA files to process":>{mar}}: {bold(len(fastas_to_rem_refs))}')
-            log.log(make_output_dirtree(markers,
-                                        formats,
-                                        out_dir,
-                                        Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NRFA"]),
-                                        mar))
-            log.log("")
-            rem_refs(refs_paths, fastas_to_rem_refs, args.overwrite,
-                     concurrent, show_less, args.debug)
-            log.log("")
+            if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["FAST"]).exists():
+                fastas_to_rem_refs = fastas_origs_dests(
+                    out_dir,
+                    Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["FAST"]),
+                    Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NRFA"])
+                )
+                log.log("")
+                log.log(f'{"FASTA files to process":>{mar}}: {bold(len(fastas_to_rem_refs))}')
+                log.log(make_output_dirtree(markers,
+                                            formats,
+                                            out_dir,
+                                            Path(settings.ALN_DIRS["ALND"],
+                                                 settings.ALN_DIRS["NRFA"]),
+                                            mar))
+                log.log("")
+                rem_refs(refs_paths, fastas_to_rem_refs, args.overwrite,
+                         concurrent, show_less, args.debug)
+                log.log("")
 
-        if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["CARE"]).exists():
-            fastas_to_rem_refs = fastas_origs_dests(
-                out_dir,
-                Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["CARE"]),
-                Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NRCA"])
-            )
-            log.log("")
-            log.log(f'{"FASTA files to process":>{mar}}: {bold(len(fastas_to_rem_refs))}')
-            log.log(make_output_dirtree(markers,
-                                        formats,
-                                        out_dir,
-                                        Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NRCA"]),
-                                        mar))
-            log.log("")
-            rem_refs(refs_paths, fastas_to_rem_refs, args.overwrite,
-                     concurrent, show_less, args.debug)
-            log.log("")
+            if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["CARE"]).exists():
+                fastas_to_rem_refs = fastas_origs_dests(
+                    out_dir,
+                    Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["CARE"]),
+                    Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NRCA"])
+                )
+                log.log("")
+                log.log(f'{"FASTA files to process":>{mar}}: {bold(len(fastas_to_rem_refs))}')
+                log.log(make_output_dirtree(markers,
+                                            formats,
+                                            out_dir,
+                                            Path(settings.ALN_DIRS["ALND"],
+                                                 settings.ALN_DIRS["NRCA"]),
+                                            mar))
+                log.log("")
+                rem_refs(refs_paths, fastas_to_rem_refs, args.overwrite,
+                         concurrent, show_less, args.debug)
+                log.log("")
 
 
     ################################################################################################
@@ -343,7 +386,7 @@ def align(full_command, args):
         " specified with the flag --clipkit_algorithm. Trimmed alignments are saved separately in a"
         " new directory called '03_aligned_trimmed'"
     )
-    if skip_trimming:
+    if clipkit_status == "not found":
         log.log(red(
             "ClipKIT could not be found, alignments cannot be trimmed. Verify you have ClipKIT"
             " installed or provide the full path to the program with '--clipkit_path'"
@@ -495,9 +538,9 @@ def align(full_command, args):
             log.log(f'{"":>{mar}}  {dim(aln_html_msg)}')
         else:
             log.log(
-                f"{bold('WARNING:')} Captus uses 'numpy', 'pandas', and 'plotly' to generate  an HTML"
-                " report based on the marker recovery statistics. At least one of these libraries could"
-                " not be found, please verify these libraries are installed and available."
+                f"{bold('WARNING:')} Captus uses 'numpy', 'pandas', and 'plotly' to generate an HTML"
+                " report based on the marker recovery statistics. At least one of these libraries"
+                " could not be found, please verify these libraries are installed and available."
             )
     else:
         log.log(red("Skipping summarization step... (no alignment statistics files were produced)"))
@@ -550,13 +593,13 @@ def prepare_redo(out_dir, redo_from):
                Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NRCA"])]
     trimming = [Path(out_dir, settings.ALN_DIRS["TRIM"])]
     dirs_to_delete = []
-    if redo_from == "alignment":
+    if redo_from.lower() == "alignment":
         dirs_to_delete = alignment + trimming
-    elif redo_from == "filtering":
+    elif redo_from.lower() == "filtering":
         dirs_to_delete = filtering + removal + trimming
-    elif redo_from == "removal":
+    elif redo_from.lower() == "removal":
         dirs_to_delete = removal + trimming
-    elif redo_from == "trimming":
+    elif redo_from.lower() == "trimming":
         dirs_to_delete = trimming
 
     start = time.time()
