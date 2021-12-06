@@ -127,7 +127,9 @@ def align(full_command, args):
         "nucleotide sequences in the alignments. "
     )
     markers, markers_ignored = check_value_list(args.markers, settings.MARKER_DIRS)
+    formats, formats_ignored = check_value_list(args.formats, settings.FORMAT_DIRS)
     show_less = not args.show_more
+    refs_paths = prepare_refs(args.captus_extractions_dir, mar)
     if skip_collection:
         log.log(red(
             f"Skipping the marker collection step because you used '--redo_from {args.redo_from}'"
@@ -135,11 +137,9 @@ def align(full_command, args):
         log.log("")
     else:
         log.log(f'{"Markers to collect":>{mar}}: {bold(markers)} {dim(markers_ignored)}')
-        formats, formats_ignored = check_value_list(args.formats, settings.FORMAT_DIRS)
         log.log(f'{"Alignment formats":>{mar}}: {bold(formats)} {dim(formats_ignored)}')
         log.log(f'{"Max. paralogs":>{mar}}: {bold(args.max_paralogs)}')
         log.log("")
-        refs_paths = prepare_refs(args.captus_extractions_dir, mar)
         log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
         log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
         extracted_sample_dirs = find_extracted_sample_dirs(args.captus_extractions_dir)
