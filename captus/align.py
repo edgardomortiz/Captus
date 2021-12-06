@@ -320,6 +320,7 @@ def align(full_command, args):
             remove_references = False
 
         if remove_references:
+            concurrent = threads_max
             if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"]).exists():
                 fastas_to_rem_refs = fastas_origs_dests(
                     out_dir,
@@ -392,6 +393,7 @@ def align(full_command, args):
             " installed or provide the full path to the program with '--clipkit_path'"
         ))
     else:
+        concurrent = threads_max
         log.log(f'{"Concurrent processes":>{mar}}: {bold(concurrent)}')
         log.log("")
         log.log(f'{"Algorithm":>{mar}}: {bold(args.clipkit_algorithm)}')
