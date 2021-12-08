@@ -1730,13 +1730,14 @@ def scipio_yaml_to_dict(
             if mod["mat_types"][i] == "upstream":
                 mod["seq_flanked"] += mod["mat_nt"][i].lower()
             if mod["mat_types"][i] == "exon":
-                if last_exon is not None: # if this is not the first exon
-                    gap_len = mod["ref_starts"][i] - mod["ref_ends"][last_exon]
-                    if (("gap before" in mod["mat_notes"][i]
-                         and "gap after" in mod["mat_notes"][last_exon])
-                        or gap_len >= set_a.SCIPIO_MIN_GAP_LEN_TO_X):
-                        if "/exon" not in mod["mat_types"][i-1]:
-                            mod["seq_nt"] += "n" * 3 * gap_len
+                if set_a.FILL_GAP_WITH_X:
+                    if last_exon is not None: # if this is not the first exon
+                        gap_len = mod["ref_starts"][i] - mod["ref_ends"][last_exon]
+                        if (("gap before" in mod["mat_notes"][i]
+                            and "gap after" in mod["mat_notes"][last_exon])
+                            or gap_len >= set_a.SCIPIO_MIN_GAP_LEN_TO_X):
+                            if "/exon" not in mod["mat_types"][i-1]:
+                                mod["seq_nt"] += "n" * 3 * gap_len
                 mod["seq_flanked"] += mod["mat_nt"][i].upper()
                 mod["seq_gene"] += mod["mat_nt"][i].upper()
                 mod["seq_nt"] += mod["mat_nt"][i].upper()
