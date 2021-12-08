@@ -171,6 +171,9 @@ MIN_KMER_SIZE_FOR_FASTG = 31
 # Minimum RAM reserved a BLAT instance in bytes (2GB)
 BLAT_MIN_RAM_B = 2 * 1024 ** 3
 
+# Hidden option: Switch to True to fill protein gaps with X
+FILL_GAP_WITH_X = False
+
 # Minimum stretch of missing aminoacids in recovered protein to be filled by "X"
 SCIPIO_MIN_GAP_LEN_TO_X = 5
 
