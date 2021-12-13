@@ -209,9 +209,13 @@ def build_qc_report(out_dir, qc_extras_dir):
 
     fig1 = make_subplots(
         cols=2,
-        shared_yaxes=True,
+        # shared_yaxes=True,
         horizontal_spacing=0.02,
         subplot_titles=["Reads", "Bases"],
+    )
+    df.sort_values(
+        by="bases_passed_cleaning",
+        inplace=True,
     )
     for var, name, color in zip(var_suffix_list, legend_list, colors):
         # For reads
@@ -265,6 +269,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                         df["bases_passed_round2"],
                         df["reads_passed_cleaning"],
                         df["bases_passed_cleaning"]],
+                     y=[df['sample']],
                      hovertemplate=["<b>%{y}</b><br>Count: %{x:,.0f} reads",
                                     "<b>%{y}</b><br>Count: %{x:,.0f} bases"] * 4,
                  ),
@@ -283,7 +288,13 @@ def build_qc_report(out_dir, qc_extras_dir):
                      ),
                  )
              ]
-        ),
+        )
+    ]
+    df.sort_values(
+        by="base_passed_cleaning_%",
+        inplace=True,
+    )
+    buttons.append(
         dict(label="Percentage",
              method="update",
              args=[
@@ -296,6 +307,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                         df["bases_passed_round2_%"],
                         df["reads_passed_cleaning_%"],
                         df["bases_passed_cleaning_%"]],
+                     y=[df["sample"]],
                      hovertemplate=["<b>%{y}</b><br>Proportion: %{x:.2f}%"] * 8,
                  ),
                  dict(
@@ -316,7 +328,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                  )
              ]
         )
-    ]
+    )
     updatemenus = [
         dict(
             buttons=buttons,
@@ -340,6 +352,7 @@ def build_qc_report(out_dir, qc_extras_dir):
             + ")</sup>"
         ),
         yaxis=dict(title="Sample"),
+        yaxis2=dict(showticklabels=False),
         barmode="overlay",
         bargap=0,
         bargroupgap=0.1,
@@ -356,7 +369,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     )
     fig1.update_yaxes(
         type="category",
-        categoryorder="category descending",
+        # categoryorder="category descending",
         ticks="outside",
         dtick=1,
         tickson="labels",
@@ -1585,18 +1598,19 @@ def build_assembly_report(out_dir, asm_stats_tsv):
 
     # Create figure
     fig1 = go.Figure()
+    df.sort_values(
+        by=var_list[0],
+        ascending=False,
+        inplace=True,
+    )
 
     for i in range(4):
-        if i == 0:
-            visible = True
-        else:
-            visible = False
         fig1.add_trace(
             go.Bar(
                 x=df[var_list[0]],
                 y=df["sample"],
                 orientation="h",
-                visible=visible,
+                visible=True if i == 0 else False,
                 marker_color=colors[i],
                 marker_line_color="rgb(8,8,8)",
                 hovertemplate="Sample: %{y}<br>" +
@@ -1608,12 +1622,24 @@ def build_assembly_report(out_dir, asm_stats_tsv):
     buttons = []
     for j in range(len(var_list)):
         if type(var_list[j]) == list:
+            df["total"] = sum([
+                    df[var_list[j][0]],
+                    df[var_list[j][1]],
+                    df[var_list[j][2]],
+                    df[var_list[j][3]],
+            ])
+            df.sort_values(
+                by="total",
+                ascending=False,
+                inplace=True,
+            )
             x = [
                 df[var_list[j][0]],
                 df[var_list[j][1]],
                 df[var_list[j][2]],
                 df[var_list[j][3]],
             ]
+            y = [df["sample"]] * 4
             name = [re.sub(".*_>=_", "≥ ", name) for name in var_list[j]]
             visible = [True] * 4
             hovertemplate = [
@@ -1621,7 +1647,13 @@ def build_assembly_report(out_dir, asm_stats_tsv):
                 xlab_list[j] + ": %{x}"
             ]
         else:
+            df.sort_values(
+                by=var_list[j],
+                ascending=False,
+                inplace=True,
+            )
             x = [df[var_list[j]], None, None, None]
+            y = [df["sample"], None, None, None]
             name = []
             visible = [True, False, False, False]
             hovertemplate = [
@@ -1635,6 +1667,7 @@ def build_assembly_report(out_dir, asm_stats_tsv):
             args=[
                 dict(
                     x=x,
+                    y=y,
                     name=name,
                     visible=visible,
                     hovertemplate=hovertemplate
