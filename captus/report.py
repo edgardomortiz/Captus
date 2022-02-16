@@ -291,7 +291,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         )
     ]
     df.sort_values(
-        by="base_passed_cleaning_%",
+        by="bases_passed_cleaning_%",
         inplace=True,
     )
     buttons.append(
@@ -2534,7 +2534,7 @@ def build_alignment_report(out_dir, aln_stats_tsv):
                 "<b>"
                 + str(j + 1)
                 + ". Marker Type: "
-                + marker 
+                + marker
                 + "</b><br><sup>(Data source: "
                 + str(aln_stats_tsv.name)
                 + ")</sup>"

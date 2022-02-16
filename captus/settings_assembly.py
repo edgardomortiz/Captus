@@ -146,18 +146,21 @@ MEGAHIT_PRESETS = {
         "min_count": 2,
         "prune_level": 2,
         "min_ram_B": 4 * 1024 ** 3, # 4GB
+        "extra_options": None,
     },
     "RNA": {
         "k_list": "27,47,67,87,107,127,147,167",
         "min_count": 2,
         "prune_level": 2,
         "min_ram_B": 8 * 1024 ** 3, # 8GB
+        "extra_options": None,
     },
     "WGS": {
         "k_list": "31,39,49,69,89,109,129,149,169",
         "min_count": 3,
         "prune_level": 2,
         "min_ram_B": 8 * 1024 ** 3, # 8GB
+        "extra_options": "--no-mercy",
     },
 }
 
@@ -181,7 +184,7 @@ SCIPIO_MIN_GAP_LEN_TO_X = 5
 # and incorporated into the recovered coding sequence
 SCIPIO_MIN_GAP_MATCH_RATE = 0.1
 
-# Maximum length of translated gap / length of unmatched aminoacids in rreference protein
+# Maximum length of translated gap / length of unmatched aminoacids in reference protein
 SCIPIO_MAX_GAP_DELTA = 10
 
 # When aligning the translations from the three reading frames to a protein segment, penalize the

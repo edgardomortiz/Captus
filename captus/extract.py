@@ -635,8 +635,8 @@ def extract(full_command, args):
         # Nothing to cluster, just skip already processed
         else:
             log.log(red(
-                "Skipping clustering step... Captus found output files in: '{}', to replace them"
-                " enable --overwrite".format(clustering_dir)
+                f"Skipping clustering step... Captus found output files in: '{clustering_dir}',"
+                " to replace them enable --overwrite"
             ))
             log.log("")
 
@@ -1651,9 +1651,9 @@ def cleanup_post_extraction(
                 leftover_contigs[contig_name] = dict(all_contigs[contig_name])
         dict_to_fasta(hit_contigs, hit_contigs_file, wrap=80)
         if cluster:
-            dict_to_fasta(leftover_contigs, leftovers_clust_file, wrap=80)
+            dict_to_fasta(leftover_contigs, leftovers_clust_file, wrap=80, write_if_empty=True)
         else:
-            dict_to_fasta(leftover_contigs, leftovers_file, wrap=80)
+            dict_to_fasta(leftover_contigs, leftovers_file, wrap=80, write_if_empty=True)
 
         # Erase unnecessary files if '--keep_all' is disabled
         if not keep_all:
@@ -1776,6 +1776,7 @@ def mmseqs2_cluster(
         f"{result_prefix}",
         f"{clust_tmp_dir}",
         "--min-seq-id", f"{clust_min_identity}",
+        "--seq-id-mode", f"{1}", # This may help, or might increase the clusters incorrectly identified as having paralogs
         "-c", f"{clust_min_coverage}",
         "--cov-mode", f"{settings.MMSEQS2_COV_MODE}",
         "--cluster-mode", "0",
