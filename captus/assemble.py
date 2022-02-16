@@ -220,6 +220,8 @@ def assemble(full_command, args):
     log.log(f'{"prune_level":>{mar}}: {bold(args.prune_level)}')
     log.log(f'{"merge_level":>{mar}}: {bold(args.merge_level)}')
     log.log(f'{"min_contig_len":>{mar}}: {bold(args.min_contig_len)}')
+    extra_options = settings.MEGAHIT_PRESETS[args.preset]["extra_options"]
+    log.log(f'{"extra_options":>{mar}}: {bold(extra_options)}')
     tmp_dir = make_tmp_dir_within(args.tmp_dir, "captus_megahit_tmp")
     log.log(f'{"tmp_dir":>{mar}}: {bold(tmp_dir)}')
     log.log("")
@@ -249,6 +251,7 @@ def assemble(full_command, args):
             threads_per_assembly,
             out_dir,
             args.min_contig_len,
+            extra_options,
             tmp_dir,
             args.keep_all,
             args.overwrite
@@ -395,8 +398,8 @@ def adjust_megahit_concurrency(concurrent, threads_max, ram_B, num_samples, pres
 
 def megahit(
         megahit_path, megahit_toolkit_path, fastq_dir, fastq_r1, fastq_r2, k_list, min_count,
-        prune_level, merge_level, ram_B, threads, out_dir, min_contig_len, tmp_dir, keep_all,
-        overwrite
+        prune_level, merge_level, ram_B, threads, out_dir, min_contig_len, extra_options, tmp_dir,
+        keep_all, overwrite
 ):
     """
     De novo assembly with MEGAHIT >= v1.2.9
@@ -436,6 +439,7 @@ def megahit(
             "--min-contig-len", f"{adjusted_min_contig_len}",
             "--tmp-dir", f"{tmp_dir}",
         ]
+        if extra_options: megahit_command += [extra_options]
         megahit_log_file = Path(sample_out_dir, "megahit.brief.log")
         with open(megahit_log_file, "w") as megahit_log:
             megahit_log.write(f"Captus' MEGAHIT Command:\n  {' '.join(megahit_command)}\n\n\n")
@@ -611,8 +615,8 @@ def get_asm_stats(sample_megahit_out_dir):
         tsv_out.write("\t".join(f"{stats_tsv[i+1]}" for i in range(0, len(stats_tsv), 2)) + "\n")
 
     asm_msg = (
-        f"{s_least_0bp} bp in {n_least_0bp} contigs, from {shortest} to {longest} bp,"
-        f" avg {avg_length} bp, median {median_length} bp, N50 {n50} bp"
+        f"{s_least_0bp:,} bp in {n_least_0bp:,} contigs, from {shortest:,} to {longest:,} bp,"
+        f" avg {avg_length:,} bp, median {median_length:,} bp, N50 {n50:,} bp"
     )
     return asm_msg
 

@@ -44,9 +44,9 @@ For each marker type, `Captus` creates several different formats. You can provid
 This argument is optional, the default is **AA,NT,GE,MA**
 ___
 #### **`-p, --max_paralogs`**
-Maximum number of marker copies (paralogs) allowed per sample in an alignment. Large numbers of marker copies per sample can increase alignment times. Copies are ranked from best to worst during the extraction step, this number selects the top _n_ copies to align.
+Maximum number of secondary hits (copies) allowed per sample in the initial unfiltered alignments. Large numbers of marker copies per sample can increase alignment times. Hits (copies) are ranked from best to worst during the 'extract' step. -1 disables the initial removal of paralogs and aligns which might be useful if you expect very high ploidy levels for example.
 
-This argument is optional, the default is **5**
+This argument is optional, the default is **4**
 ___
 ### *Output*
 ___
@@ -135,4 +135,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-08-06)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-11-20)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2022-02-17)

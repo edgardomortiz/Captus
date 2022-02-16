@@ -604,13 +604,13 @@ class CaptusAssembly(object):
         output_group.add_argument(
             "--max_paralogs",
             action="store",
-            default=0,
+            default=-1,
             type=int,
             dest="max_paralogs",
-            help="Maximum number of hits (paralogs) to a particular reference marker allowed in the"
-                 " output. Use 0 to disable the paralog filtering after extraction, we recommend"
-                 " this since the paralogs can be filtered during the alignment with a more careful"
-                 " method during the 'align' step"
+            help="Maximum number of secondary hits (copies) of any particular reference marker"
+                 " allowed in the output. We recommend disabling the removal of paralogs (secondary"
+                 " hits/copies) during the 'extract' step because the 'align' step uses a more"
+                 " careful filter for paralogs. -1 disables the removal of paralogs"
         )
         output_group.add_argument(
             "--max_loci_files",
@@ -1068,14 +1068,14 @@ class CaptusAssembly(object):
         input_group.add_argument(
             "-p", "--max_paralogs",
              action="store",
-             default=5,
+             default=4,
              type=int,
              dest="max_paralogs",
-             help="Maximum number of marker copies allowed per sample in an alignment. Large numbers"
-                  " of marker copies per sample can increase alignment times. Copies are ranked"
-                  " from best to worst during the extraction step, this number selects the top n"
-                  " copies to align"
-
+             help="Maximum number of secondary hits (copies) allowed per sample in the initial"
+                  " unfiltered alignments. Large numbers of marker copies per sample can increase"
+                  " alignment times. Hits (copies) are ranked from best to worst during the"
+                  " 'extract' step. -1 disables the initial removal of paralogs and aligns which"
+                  " might be useful if you expect very high ploidy levels for example"
         )
 
         output_group = parser.add_argument_group("Output")
@@ -1139,9 +1139,7 @@ class CaptusAssembly(object):
                  "fast = Only the best hit for each sample (marked as hit=00) is retained\n"
                  "careful = Only keep the copy (regardless of hit ranking) that is most similar to"
                  " the reference sequence that was chosen most frequently among all other samples"
-                 " in the alignment. To use this method, the names of the references used for marker"
-                 " extraction must be provided with '--nuc_refs', and/or '--ptd_refs', and/or"
-                 " '--mit_refs\n"
+                 " in the alignment"
                  "both = Two separate folders will be created, each containing the results from each"
                  " filtering method"
                  "none = Skip paralog removal, just remove reference sequences from the"

@@ -22,7 +22,6 @@ To run this tutorial, you need to install the following programs on your system:
 #### Getting data
 
 Download the file below and place it in a directory where you want to run this tutorial.
-{{%attachments title="Example data" /%}}
 
 After moving to the directory using `cd` command, run the following command to decompress the archive and then delete it.
 

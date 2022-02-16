@@ -248,8 +248,9 @@ def align(full_command, args):
         if filtering_refs:
             log.log(bold(f'{"References for filtering":>{mar}}:'))
             for marker in filtering_refs:
+                filtering_format = "AA" if filtering_refs[marker]["format_dir"] == "01_AA" else "NT"
                 log.log(f'{"  Marker":>{mar}}: {bold(marker)}')
-                log.log(f'{"  Format":>{mar}}: {bold(filtering_refs[marker]["format_dir"][-2:])}')
+                log.log(f'{"  Format":>{mar}}: {bold(filtering_format)}')
                 log.log(f'{"  Path":>{mar}}: {bold(filtering_refs[marker]["path"])}')
                 log.log("")
         log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
@@ -293,7 +294,7 @@ def align(full_command, args):
             manager = Manager()
             shared_paralog_stats = manager.list()
             paralog_careful_filter(shared_paralog_stats, fastas_to_filter, filtering_refs,
-                                concurrent, args.overwrite, show_less, args.debug)
+                                   concurrent, args.overwrite, show_less, args.debug)
             paralog_stats_tsv = write_paralog_stats(out_dir, shared_paralog_stats)
             log.log("")
             log.log(f'{"Paralog statistics":>{mar}}: {bold(paralog_stats_tsv)}')
@@ -474,7 +475,7 @@ def align(full_command, args):
     ################################################################################ CLEANUP SECTION
     log.log_section_header("Statistics Summarization and File Cleanup")
     log.log_explanation(
-        "Captus will calculate and then summarize alignment statistics into an HTNL report."
+        "Captus will calculate and then summarize alignment statistics into an HTML report."
         " Additionally, the sequence-to-sample equivalence file needed for ASTRAL-Pro will be"
         " generated. Finally, empty directories will be removed as well as MAFFT and ClipKIT logs"
         " unless the flag '--keep_all' is enabled."
@@ -654,15 +655,22 @@ def find_extracted_sample_dirs(captus_extractions_dir):
 
 def prepare_refs(captus_ext_dir, margin):
     json_path = Path(captus_ext_dir, settings.JSON_REFS)
-
+    not_found = []
+    found = []
     try:
         with open(json_path, "rt") as jin:
             refs_paths = json.load(jin)
-            for marker in refs_paths:
+            for marker in sorted(refs_paths):
                 for info in refs_paths[marker]:
                     if refs_paths[marker][info]:
                         if info.endswith("_path"):
                             refs_paths[marker][info] = Path(refs_paths[marker][info])
+                            msg = f'{marker:>{margin}}: {refs_paths[marker][info]} ({info})'
+                            if not refs_paths[marker][info].exists():
+                                not_found.append(msg)
+                                refs_paths[marker][info] = None
+                            else:
+                                found.append(msg)
     except FileNotFoundError:
         refs_paths = {
             "NUC" : {"AA_path": None, "AA_msg": "not used", "NT_path": None, "NT_msg": "not used"},
@@ -670,9 +678,22 @@ def prepare_refs(captus_ext_dir, margin):
             "MIT" : {"AA_path": None, "AA_msg": "not used", "NT_path": None, "NT_msg": "not used"},
             "DNA" : {"AA_path": None, "AA_msg": None,       "NT_path": None, "NT_msg": "not used"},
         }
-
-    log.log(bold(f'{"Reference datasets":>{margin}}:'))
-
+    if not found and not not_found:
+        log.log(f'{"WARNING":>{margin}}: No reference files found!')
+    else:
+        if found:
+            log.log(bold(f'{"Reference datasets":>{margin}}:'))
+            for ref_path in found:
+                log.log(ref_path)
+            log.log("")
+        if not_found:
+            log.log(red((f"WARNING: The following reference files were not found. If you moved the"
+                          " reference files used for extraction from their original location you can"
+                         f" change the path in the file '{json_path}':\n")))
+            for ref_path in not_found:
+                log.log(red(ref_path))
+                log.log("")
+            log.log("")
     return refs_paths
 
 
@@ -680,28 +701,28 @@ def select_filtering_refs(refs_paths, markers, formats, method):
     filtering_refs = {}
     markers = markers.upper().split(",")
     formats = formats.upper().split(",")
-
     if method.lower() in ["careful", "both"]:
         if "NT" in formats:
-            for marker in refs_paths:
-                if marker == "DNA":
-                    if refs_paths[marker]["NT_path"]:
-                        filtering_refs[marker] = {"path": refs_paths[marker]["NT_path"],
-                                                  "marker_dir": settings.MARKER_DIRS[marker],
-                                                  "format_dir": settings.FORMAT_DIRS["MA"]}
-                elif marker != "CLR":
-                    if refs_paths[marker]["NT_path"]:
-                        filtering_refs[marker] = {"path": refs_paths[marker]["NT_path"],
-                                                  "marker_dir": settings.MARKER_DIRS[marker],
-                                                  "format_dir": settings.FORMAT_DIRS["NT"]}
-        elif "AA" in formats:
-            for marker in refs_paths:
-                if marker not in ["DNA", "CLR"]:
-                    if refs_paths[marker]["AA_path"]:
-                        filtering_refs[marker] = {"path": refs_paths[marker]["AA_path"],
-                                                  "marker_dir": settings.MARKER_DIRS[marker],
-                                                  "format_dir": settings.FORMAT_DIRS["AA"]}
-
+            for marker in markers:
+                if (marker in ["NUC", "PTD", "MIT"]
+                    and refs_paths[marker]["NT_path"]):
+                    filtering_refs[marker] = {"path": refs_paths[marker]["NT_path"],
+                                              "marker_dir": settings.MARKER_DIRS[marker],
+                                              "format_dir": settings.FORMAT_DIRS["NT"]}
+        # Prefer coding reference in nucleotides to aminoacids for paralog filtering
+        if "AA" in formats:
+            for marker in markers:
+                if (marker in ["NUC", "PTD", "MIT"]
+                    and not marker in filtering_refs
+                    and refs_paths[marker]["AA_path"]):
+                    filtering_refs[marker] = {"path": refs_paths[marker]["AA_path"],
+                                              "marker_dir": settings.MARKER_DIRS[marker],
+                                              "format_dir": settings.FORMAT_DIRS["AA"]}
+        if "MA" in formats:
+            if refs_paths["DNA"]["NT_path"]:
+                filtering_refs["DNA"] = {"path": refs_paths["DNA"]["NT_path"],
+                                         "marker_dir": settings.MARKER_DIRS["DNA"],
+                                         "format_dir": settings.FORMAT_DIRS["MA"]}
     return filtering_refs
 
 
@@ -857,7 +878,7 @@ def collect_sample_markers(write_fastas, max_paralogs, sample_dir, source_files,
                     paralog_rank = int(seq_name_parts[2])
                 else:
                     paralog_rank = 0
-                if paralog_rank < max_paralogs:
+                if paralog_rank <= max_paralogs or max_paralogs == 0:
                     fasta_out = Path(destination, f"{marker_name}{source.suffix}")
                     if fasta_out in write_fastas:
                         markers_collected.append(marker_name)
@@ -1089,7 +1110,12 @@ def filter_paralogs_careful(shared_paralog_stats, fasta_model, fastas_paths, ove
 
     aln = fasta_to_dict(fasta_model, ordered=True)
     fasta_model_marker = fasta_model.parts[-3][-3:]
-    fasta_model_format = fasta_model.parts[-2][-2:].replace("es", "NT")
+    if fasta_model.parts[-2] == "01_AA":
+        fasta_model_format = "AA"
+    elif fasta_model.parts[-2] == "02_NT":
+        fasta_model_format = "NT"
+    elif fasta_model.parts[-2] == "01_matches":
+        fasta_model_format = "NT"
 
     refs = {}
     for seq in aln:
@@ -1337,14 +1363,17 @@ def compute_aln_stats(shared_aln_stats, fasta_path):
         aln_format,                                         # [5] alignment format
         fasta_path.stem,                                    # [6] locus name
         f'{aln_stats["sequences"]}',                        # [7] num sequences
-        f'{aln_stats["sites"]}',                            # [8] num sites
-        f'{aln_stats["informative"]}',                      # [9] num informative sites
-        f'{aln_stats["uninformative"]}',                    # [10] num constant + singleton sites
-        f'{aln_stats["constant"]}',                         # [11] num constant sites
-        f'{aln_stats["singleton"]}',                        # [12] num singleton sites
-        f'{aln_stats["patterns"]}',                         # [13] num unique columns
-        f'{aln_stats["avg_pid"]}',                          # [14] average pairwise identity
-        f'{aln_stats["missingness"]}',                      # [15] pct of gaps and Ns or Xs
+        f'{aln_stats["samples"]}',                          # [8] num samples
+        f'{aln_stats["avg_copies"]}',                       # [9] avg num copies
+        f'{aln_stats["sites"]}',                            # [10] num sites
+        f'{aln_stats["informative"]}',                      # [11] num informative sites
+        f'{aln_stats["informativeness"]}',                  # [12] pct of informative sites
+        f'{aln_stats["uninformative"]}',                    # [13] num constant + singleton sites
+        f'{aln_stats["constant"]}',                         # [14] num constant sites
+        f'{aln_stats["singleton"]}',                        # [15] num singleton sites
+        f'{aln_stats["patterns"]}',                         # [16] num unique columns
+        f'{aln_stats["avg_pid"]}',                          # [17] average pairwise identity
+        f'{aln_stats["missingness"]}',                      # [18] pct of gaps and Ns or Xs
     ]]
     shared_aln_stats += aln_tsv
 
@@ -1368,8 +1397,11 @@ def write_aln_stats(out_dir, shared_aln_stats):
                                      "format",
                                      "locus",
                                      "seqs",
+                                     "samples",
+                                     "avg_copies",
                                      "sites",
                                      "informative",
+                                     "informativeness",
                                      "uninformative",
                                      "constant",
                                      "singleton",

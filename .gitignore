@@ -3,6 +3,7 @@
 ._*
 .Rhistory
 .vscode/
+TODO.md
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -14,6 +15,7 @@ build/
 dist/
 
 # Docs for now
+docs/.hugo_build.lock
 docs/public
 docs/themes
 docs/server

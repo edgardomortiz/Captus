@@ -18,7 +18,6 @@ Install `Captus` and dependencies on your system by following the [instruction](
 #### Getting data
 
 Download the example data below, and place it in a directory where you want to run this tutorial.
-{{%attachments title="Example data" style="green" pattern="00_raw_reads.tar.gz" /%}}
 
 Run the following command to decompress the archive and then delete it.
 
@@ -72,7 +71,6 @@ For descriptions of the other output files, see [here]({{< ref "assembly/clean/o
 
 ---
 you can easily integrate samples assembled with another tool.
-{{%attachments title="Example data" style="green" pattern="01_clean_reads_GSK.tar.gz" /%}}
 
 ```shell
 captus_assembly assemble -r 01_clean_reads_CAP -o 02_assemblies_CAP
@@ -86,7 +84,6 @@ For descriptions of the other output files, see [here]({{< ref "assembly/assembl
 
 ---
 Download the example data below, and place it in a directory where you want to run this tutorial.
-{{%attachments title="Example data" style="green" pattern="02_assemblies_WGS.tar.gz" /%}}
 
 Run the following command to extract targets from the contigs.
 built-in reference dataset
