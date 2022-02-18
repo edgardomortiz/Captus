@@ -878,7 +878,7 @@ def collect_sample_markers(write_fastas, max_paralogs, sample_dir, source_files,
                     paralog_rank = int(seq_name_parts[2])
                 else:
                     paralog_rank = 0
-                if paralog_rank <= max_paralogs or max_paralogs == 0:
+                if paralog_rank <= max_paralogs or max_paralogs == -1:
                     fasta_out = Path(destination, f"{marker_name}{source.suffix}")
                     if fasta_out in write_fastas:
                         markers_collected.append(marker_name)
@@ -892,8 +892,8 @@ def collect_sample_markers(write_fastas, max_paralogs, sample_dir, source_files,
                         ))
     messages = sorted(list(set(messages)))
     messages.append(
-        f"'{sample_name}': {len(set(fastas_created))} FASTA files created for"
-        f" {len(set(markers_collected))} collected markers [{elapsed_time(time.time() - start)}]"
+        f"'{sample_name}': {len(set(fastas_created)):,} FASTA files created for"
+        f" {len(set(markers_collected)):,} collected markers [{elapsed_time(time.time() - start)}]"
     )
     return "\n".join(messages)
 
