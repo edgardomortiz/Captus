@@ -1104,10 +1104,10 @@ def scipio_coding(
             yaml_final_dir, marker_type, overwrite, max_loci_files
         )
         message = (
-            f"'{sample_name}': recovered {recovery_stats['num_loci']} {genes[marker_type]}"
-            f' ({recovery_stats["num_loci"] / query_info["num_loci"]:.1%} of {query_info["num_loci"]}),'
-            f' {recovery_stats["total_length_best_hits"] / query_info["total_length_loci"]:.1%} of total'
-            f' reference length, {recovery_stats["num_paralogs"]} paralogs'
+            f"'{sample_name}': recovered {recovery_stats['num_loci']:,} {genes[marker_type]}"
+            f' ({recovery_stats["num_loci"] / query_info["num_loci"]:.1%} of {query_info["num_loci"]:,}),'
+            f' {recovery_stats["total_length_best_hits"] / query_info["total_length_loci"]:.1%} of'
+            f' total reference length, {recovery_stats["num_paralogs"]:,} paralogs'
             f" found [{elapsed_time(time.time() - start)}]"
         )
         return message
@@ -1138,7 +1138,7 @@ def reference_info(query_dict):
 
     num_loci = len(loci_lengths)
     total_length_loci = round(sum(list(loci_lengths.values())))
-    info_msg = bold(f'{num_loci} loci, {num_seqs} sequences ')
+    info_msg = bold(f'{num_loci:,} loci, {num_seqs:,} sequences ')
     if separators_found == num_seqs:
         if num_loci == num_seqs:
             info_msg += dim(f'(loci names found, detected a single sequence per locus)')
@@ -1539,11 +1539,11 @@ def blat_misc_dna(
                                                      blat_dna_out_dir, marker_type, overwrite,
                                                      max_loci_files)
             message = (
-                f"'{sample_name}': recovered {recovery_stats['num_loci']} DNA markers"
+                f"'{sample_name}': recovered {recovery_stats['num_loci']:,} DNA markers"
                 f' ({recovery_stats["num_loci"] / query_info["num_loci"]:.1%} of'
-                f' {query_info["num_loci"]}),'
+                f' {query_info["num_loci"]:,}),'
                 f' {recovery_stats["total_length_best_hits"] / query_info["total_length_loci"]:.1%}'
-                f' of total reference length, {recovery_stats["num_paralogs"]} paralogs found'
+                f' of total reference length, {recovery_stats["num_paralogs"]:,} paralogs found'
                 f" [{elapsed_time(time.time() - start)}]"
             )
             return message
