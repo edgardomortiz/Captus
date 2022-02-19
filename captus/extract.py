@@ -1776,7 +1776,6 @@ def mmseqs2_cluster(
         f"{result_prefix}",
         f"{clust_tmp_dir}",
         "--min-seq-id", f"{clust_min_identity}",
-        "--seq-id-mode", f"{1}", # This may help, or might increase the clusters incorrectly identified as having paralogs
         "-c", f"{clust_min_coverage}",
         "--cov-mode", f"{settings.MMSEQS2_COV_MODE}",
         "--cluster-mode", "0",
