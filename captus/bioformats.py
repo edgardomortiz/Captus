@@ -829,7 +829,9 @@ def fasta_to_dict(fasta_path, ordered=False):
     return fasta_out
 
 
-def dict_to_fasta(in_fasta_dict, out_fasta_path, wrap=0, append=False, write_if_empty=False):
+def dict_to_fasta(
+    in_fasta_dict, out_fasta_path, wrap=0, sort=False, append=False, write_if_empty=False
+):
     """
     Saves a `in_fasta_dict` from function `fasta_to_dict()` as a FASTA file to `out_fasta_path`
     """
@@ -842,6 +844,8 @@ def dict_to_fasta(in_fasta_dict, out_fasta_path, wrap=0, append=False, write_if_
     else:
         action = "wt"
     if bool(in_fasta_dict):
+        if sort:
+            in_fasta_dict = OrderedDict(sorted(in_fasta_dict.items(), key=lambda x: x[0]))
         with opener(out_fasta_path, action) as fasta_out:
             if wrap == 0:
                 for name in in_fasta_dict:
