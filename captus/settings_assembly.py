@@ -99,9 +99,10 @@ BBDUK_QUALITY_MAXNS = 5
 # Compression level for final FASTQ files, lower is faster
 BBDUK_QUALITY_ZIPLEVEL = 5
 
-# Maximum number of concurrent FastQC or Falco instances, there may not be increase on speed after
-# 4 simultaneous runs of FastQC or Falco because of hard drive limitations (may improve with SSDs)
-QC_STATS_MAX_INSTANCES = 4
+# Maximum number of concurrent reading processes from the HDD. For example, if too many FastQC or
+# Falco instances are launched performance suffers due to hard drive limitations (might improve
+# in the future with SSDs)
+MAX_PARALLEL_HDD_READ = 4
 
 # Compression level for subsampled FASTQ files
 REFORMAT_ZIPLEVEL = 5

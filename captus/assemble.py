@@ -270,25 +270,29 @@ def assemble(full_command, args):
     log.log("")
 
     asm_stats_tsv = collect_asm_stats(out_dir)
-    log.log(f'{"Assembly statistics":>{mar}}: {bold(asm_stats_tsv)}')
-    log.log("")
-    if all([numpy_found, pandas_found, plotly_found]):
-
-        from .report import build_assembly_report
-
-        log.log_explanation(
-            "Generating Assembly report..."
-        )
-        asm_html_report, asm_html_msg = build_assembly_report(out_dir, asm_stats_tsv)
-        log.log(f'{"Assembly report":>{mar}}: {bold(asm_html_report)}')
-        log.log(f'{"":>{mar}}  {dim(asm_html_msg)}')
+    if asm_stats_tsv:
+        log.log(f'{"Assembly statistics":>{mar}}: {bold(asm_stats_tsv)}')
         log.log("")
+        if all([numpy_found, pandas_found, plotly_found]):
+
+            from .report import build_assembly_report
+
+            log.log_explanation(
+                "Generating Assembly report..."
+            )
+            asm_html_report, asm_html_msg = build_assembly_report(out_dir, asm_stats_tsv)
+            log.log(f'{"Assembly report":>{mar}}: {bold(asm_html_report)}')
+            log.log(f'{"":>{mar}}  {dim(asm_html_msg)}')
+            log.log("")
+        else:
+            log.log(
+                f"{bold('WARNING:')} Captus uses 'numpy', 'pandas', and 'plotly' to generate  an HTML"
+                " report based on the assembly statistics. At least one of these libraries could not be"
+                " found, please verify these libraries are installed and available."
+            )
+            log.log("")
     else:
-        log.log(
-            f"{bold('WARNING:')} Captus uses 'numpy', 'pandas', and 'plotly' to generate  an HTML"
-            " report based on the assembly statistics. At least one of these libraries could not be"
-            " found, please verify these libraries are installed and available."
-        )
+        log.log(red("Skipping summarization step... (no assembly statistics files were produced)"))
         log.log("")
 
     shutil.rmtree(tmp_dir, ignore_errors=True)
@@ -624,7 +628,7 @@ def get_asm_stats(sample_megahit_out_dir):
 def collect_asm_stats(out_dir):
     tsv_files = sorted(list(Path(out_dir).resolve().rglob("*assembly.stats.t.tsv")))
     if not tsv_files:
-        return red("No assembly statistics files found within sample directories")
+        return None
     else:
         tsv = ["\t".join([
             "sample",

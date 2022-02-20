@@ -126,6 +126,7 @@ def align(full_command, args):
         " FASTA files are not aligned yet. If provided, Captus will include the reference aminoacid/"
         "nucleotide sequences in the alignments. "
     )
+    concurrent = max(1, min(settings.MAX_PARALLEL_HDD_READ, threads_max))
     markers, markers_ignored = check_value_list(args.markers, settings.MARKER_DIRS)
     formats, formats_ignored = check_value_list(args.formats, settings.FORMAT_DIRS)
     show_less = not args.show_more
@@ -766,7 +767,6 @@ def collect_extracted_markers(
     markers, formats, max_paralogs, extracted_sample_dirs, out_dir, base_dir, refs_paths,
     overwrite, show_less
 ):
-    # Collect markers from extraction folder
     source_files = [Path(settings.MARKER_DIRS[m], f"{m}{settings.FORMAT_SUFFIXES[f]}")
                    for m in markers.split(",") for f in formats.split(",")
                    if (m, f) in settings.VALID_MARKER_FORMAT_COMBO]
@@ -779,61 +779,67 @@ def collect_extracted_markers(
             for fasta_file in od.glob("*"):
                 fasta_file.unlink()
 
-    write_fastas = []
+    # List per-sample input FASTA files available for marker collection
+    fastas_per_sample = {}
     for sample_dir in extracted_sample_dirs:
         for source, destination in zip(source_files, out_dirs):
             source_file = Path(sample_dir, source)
             if source_file.exists():
-                fasta_in = fasta_to_dict(source_file, ordered=True)
-                for seq_name_full in fasta_in:
-                    seq_name_parts = seq_name_full.split(settings.SEQ_NAME_SEP)
-                    marker_name = seq_name_parts[1]
-                    seq_name = seq_name_parts[0]
-                    if len(seq_name_parts) == 3:
-                        seq_name += f"{settings.SEQ_NAME_SEP}{seq_name_parts[2]}"
-                    fasta_out = Path(destination, f"{marker_name}{source.suffix}")
-                    if overwrite is True or not fasta_out.exists():
-                        write_fastas.append(fasta_out)
-    write_fastas = list(set(write_fastas))
-
-    if not write_fastas:
+                fastas_per_sample[source_file] = {
+                    "sample_name": sample_dir.parts[-1].replace("__captus-ext", ""),
+                    "destination": destination,
+                    "suffix": source.suffix,
+                }
+    if not fastas_per_sample:
         quit_with_error(
             f"No FASTA files found for marker type(s) '{markers}', verify your '--markers' and"
             " '--formats' parameters, perhaps these markers were not extracted in the previous step"
         )
 
-    collect_sample_markers_params = []
-    for sample_dir in extracted_sample_dirs:
-        collect_sample_markers_params.append([
-            write_fastas,
+    # Collect markers per sample's source FASTAs into a dictionary that can be updated in parallel
+    fastas_per_marker = {}
+    collect_marker_names_params = []
+    for source_fasta_path in fastas_per_sample:
+        collect_marker_names_params.append([
+            fastas_per_marker,
+            source_fasta_path,
+            fastas_per_sample[source_fasta_path]["sample_name"],
+            fastas_per_sample[source_fasta_path]["destination"],
+            fastas_per_sample[source_fasta_path]["suffix"],
             max_paralogs,
-            sample_dir,
-            source_files,
-            out_dirs,
-            overwrite,
         ])
-    tqdm_serial_run(collect_sample_markers, collect_sample_markers_params,
-                    "Collecting extracted markers", "Collection of extracted markers finished",
-                    "sample", show_less)
+    tqdm_serial_run(collect_sample_markers, collect_marker_names_params,
+                    "Collecting extracted markers",
+                    "Collection of extracted markers finished",
+                    "source", show_less)
 
-    # Erase the collected FASTAs with fewer than 'settings.MIN_SAMPLES_ALN' samples
+    # Write FASTAs compiled per marker when they have at least four samples
     log.log("")
     start = time.time()
-    collected_fastas = list(Path(out_dir, base_dir).rglob("*.f[an]a"))
-    deleted_fastas = 0
-    log.log(bold("Verifying collected FASTA files:"))
+    accepted = 0 # FASTA output was saved and has at least four samples
+    rejected = 0 # FASTA output was not saved because has fewer than four samples
+    skipped  = 0 # FASTA output skipped because already exists
+    log.log(bold("Verifying and writing collected FASTA files:"))
     tqdm_cols = min(shutil.get_terminal_size().columns, 120)
-    with tqdm(total=len(collected_fastas), ncols=tqdm_cols, unit="file") as pbar:
-        for coll_fasta in collected_fastas:
-            coll_fasta_len = num_samples(fasta_to_dict(coll_fasta))
-            if coll_fasta_len < settings.MIN_SAMPLES_ALN:
-                coll_fasta.unlink()
-                deleted_fastas += 1
+    with tqdm(total=len(fastas_per_marker), ncols=tqdm_cols, unit="file") as pbar:
+        for fasta in fastas_per_marker:
+            if overwrite is True or not fasta.exists():
+                if num_samples(fastas_per_marker[fasta]) >= settings.MIN_SAMPLES_ALN:
+                    dict_to_fasta(fastas_per_marker[fasta], fasta, sort=True)
+                    accepted += 1
+                else:
+                    rejected += 1
+            else:
+                skipped += 1
             pbar.update()
     log.log(bold(
-        f" \u2514\u2500\u2192 Collected FASTAs verified, {deleted_fastas} file(s) deleted for having"
-        f" fewer than {settings.MIN_SAMPLES_ALN} samples [{elapsed_time(time.time() - start)}]"
+        f" \u2514\u2500\u2192 {len(fastas_per_marker)} collected FASTAs processed"
+        f" [{elapsed_time(time.time() - start)}]"
     ))
+    log.log(
+        f"     {accepted} saved, {rejected} not saved for having <4 samples,"
+        f" {skipped} already existed and skipped"
+    )
 
     # Add references to all the possible collected FASTAs
     if refs_paths is not None:
@@ -858,44 +864,33 @@ def collect_extracted_markers(
                             "reference", show_less)
 
 
-def collect_sample_markers(write_fastas, max_paralogs, sample_dir, source_files, out_dirs, overwrite):
+def collect_sample_markers(
+    shared_fastas_per_marker, source_fasta_path, sample_name,destination, suffix, max_paralogs
+):
     start = time.time()
-    sample_name = sample_dir.parts[-1].replace("__captus-ext", "")
     markers_collected = []
-    fastas_created = []
-    messages = []
 
-    for source, destination in zip(source_files, out_dirs):
-        source_file = Path(sample_dir, source)
-        if source_file.exists():
-            fasta_in = fasta_to_dict(source_file, ordered=True)
-            for seq_name_full in fasta_in:
-                seq_name_parts = seq_name_full.split(settings.SEQ_NAME_SEP)
-                marker_name = seq_name_parts[1]
-                seq_name = seq_name_parts[0]
-                if len(seq_name_parts) == 3:
-                    seq_name += f"{settings.SEQ_NAME_SEP}{seq_name_parts[2]}"
-                    paralog_rank = int(seq_name_parts[2])
-                else:
-                    paralog_rank = 0
-                if paralog_rank <= max_paralogs or max_paralogs == -1:
-                    fasta_out = Path(destination, f"{marker_name}{source.suffix}")
-                    if fasta_out in write_fastas:
-                        markers_collected.append(marker_name)
-                        fastas_created.append(str(fasta_out))
-                        dict_to_fasta({seq_name: dict(fasta_in[seq_name_full])},
-                                      fasta_out,
-                                      append=True)
-                    else:
-                        messages.append(dim(
-                            f"'{Path(*fasta_out.parts[-4:])}': skipped (output FASTA already exists)"
-                        ))
-    messages = sorted(list(set(messages)))
-    messages.append(
-        f"'{sample_name}': {len(set(fastas_created)):,} FASTA files created for"
-        f" {len(set(markers_collected)):,} collected markers [{elapsed_time(time.time() - start)}]"
+    fasta_in = fasta_to_dict(source_fasta_path, ordered=True)
+    for seq_name_full in fasta_in:
+        seq_name_parts = seq_name_full.split(settings.SEQ_NAME_SEP)
+        marker_name = seq_name_parts[1]
+        fasta_out = Path(destination, f"{marker_name}{suffix}")
+        seq_name = seq_name_parts[0]
+        if fasta_out not in shared_fastas_per_marker:
+            shared_fastas_per_marker[fasta_out] = {}
+        if len(seq_name_parts) == 3:
+            seq_name += f"{settings.SEQ_NAME_SEP}{seq_name_parts[2]}"
+            paralog_rank = int(seq_name_parts[2])
+        else:
+            paralog_rank = 0
+        if paralog_rank <= max_paralogs or max_paralogs == -1:
+            markers_collected.append(marker_name)
+            shared_fastas_per_marker[fasta_out][seq_name] = dict(fasta_in[seq_name_full])
+    message = (
+        f"'{sample_name}': {len(set(markers_collected)):,} markers collected from"
+        f" source '{source_fasta_path.name}' [{elapsed_time(time.time() - start)}]"
     )
-    return "\n".join(messages)
+    return message
 
 
 def add_refs(ref_path, dest_dir):
@@ -1385,7 +1380,7 @@ def compute_aln_stats(shared_aln_stats, fasta_path):
 
 def write_aln_stats(out_dir, shared_aln_stats):
     if not shared_aln_stats:
-        return red("No alignment filtering statistics found...")
+        return None
     else:
         stats_tsv_file = Path(out_dir, "captus-assembly_align.stats.tsv")
         with open(stats_tsv_file, "wt") as tsv_out:
