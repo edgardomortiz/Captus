@@ -1298,7 +1298,7 @@ def scipio_yaml_to_dict(
                             try:
                                 v = float(v)
                             except ValueError:
-                                if v == "'-'": v = "-"
+                                if v.startswith("'"): v = v.strip("'").strip()
                                 if v.startswith("["): v = [int(n) for n in v[1:-1].split(", ")]
                         if k == "  - ID":
                             if protein not in yaml:
@@ -1633,45 +1633,46 @@ def scipio_yaml_to_dict(
                 prot_gap = ref_seq[0][max(mod["ref_ends"][i-1] - ref_seq[1], 0) :
                                       min(mod["ref_starts"][i+1] - ref_seq[1], len(ref_seq[0]))]
                 len_gap = len(prot_gap)
-                len_chunk = len(current_chunk) // 3
-                overlap = min(len_gap, len_chunk) / max(len_gap, len_chunk)
-                # Don't align if 'current_chunk' is too long compared to the unmatched protein
-                if (len_chunk / len_gap <= set_a.SCIPIO_MAX_GAP_DELTA
-                    and len_gap * len_chunk <= set_a.RECURSION_LIMIT):
-                    rfs  = {i: translate(current_chunk, gencode, frame=i, start_as_M=False)
-                            for i in [1,2,3]}
-                    # Global alignment if they overlap at least 80%
-                    if overlap >= 0.8:
-                        alns = {i: align_prots(rfs[i], prot_gap, "nw") for i in rfs}
-                    # Local alignment if the overlap is smaller
-                    else:
-                        alns = {i: align_prots(rfs[i], prot_gap, "sw") for i in rfs}
-                    # Prioritize filling gaps without skipping leading or trailing bases
-                    if (len(current_chunk) % 3 == 0 and not "*" in rfs[1]
-                        and alns[1]["match_rate"] >= set_a.SCIPIO_MIN_GAP_MATCH_RATE):
-                        lead, trail = 0, 0
-                        seq_chunks = ["", mod["mat_nt"][i].upper()]
-                        mod["mismatches"] += [pos+mod["ref_ends"][i-1]
-                                              for pos in alns[1]["mismatches"]]
-                    # Rank reading frames by their match rate penalized by the number of stop codons
-                    else:
-                        for rf in alns:
-                            alns[rf]["match_rate"] *= (set_a.SCIPIO_STOP_PENALTY
-                                                       ** alns[rf]["s1_aln"].count("*"))
-                        rf, aln = max(alns.items(), key=(lambda x: x[1]["match_rate"]))
-                        if (aln["match_rate"] >= set_a.SCIPIO_MIN_GAP_MATCH_RATE
-                            and not "*" in aln["s1_aln"]):
-                            lead  = rf - 1
-                            trail = (len(current_chunk) - lead) % 3
-                            if trail > 0:
-                                seq_chunks = [f'{mod["mat_nt"][i][:lead].lower()}',
-                                              f'{mod["mat_nt"][i][lead:-trail].upper()}',
-                                              f'{mod["mat_nt"][i][-trail:].lower()}']
-                            else:
-                                seq_chunks = [f'{mod["mat_nt"][i][:lead].lower()}',
-                                              f'{mod["mat_nt"][i][lead:].upper()}']
+                if len_gap > 0:
+                    len_chunk = len(current_chunk) // 3
+                    overlap = min(len_gap, len_chunk) / max(len_gap, len_chunk)
+                    # Don't align if 'current_chunk' is too long compared to the unmatched protein
+                    if (len_chunk / len_gap <= set_a.SCIPIO_MAX_GAP_DELTA
+                        and len_gap * len_chunk <= set_a.RECURSION_LIMIT):
+                        rfs  = {i: translate(current_chunk, gencode, frame=i, start_as_M=False)
+                                for i in [1,2,3]}
+                        # Global alignment if they overlap at least 80%
+                        if overlap >= 0.8:
+                            alns = {i: align_prots(rfs[i], prot_gap, "nw") for i in rfs}
+                        # Local alignment if the overlap is smaller
+                        else:
+                            alns = {i: align_prots(rfs[i], prot_gap, "sw") for i in rfs}
+                        # Prioritize filling gaps without skipping leading or trailing bases
+                        if (len(current_chunk) % 3 == 0 and not "*" in rfs[1]
+                            and alns[1]["match_rate"] >= set_a.SCIPIO_MIN_GAP_MATCH_RATE):
+                            lead, trail = 0, 0
+                            seq_chunks = ["", mod["mat_nt"][i].upper()]
                             mod["mismatches"] += [pos+mod["ref_ends"][i-1]
-                                                  for pos in aln["mismatches"]]
+                                                  for pos in alns[1]["mismatches"]]
+                        # Rank reading frames by their match rate penalized by the number of stops
+                        else:
+                            for rf in alns:
+                                alns[rf]["match_rate"] *= (set_a.SCIPIO_STOP_PENALTY
+                                                           ** alns[rf]["s1_aln"].count("*"))
+                            rf, aln = max(alns.items(), key=(lambda x: x[1]["match_rate"]))
+                            if (aln["match_rate"] >= set_a.SCIPIO_MIN_GAP_MATCH_RATE
+                                and not "*" in aln["s1_aln"]):
+                                lead  = rf - 1
+                                trail = (len(current_chunk) - lead) % 3
+                                if trail > 0:
+                                    seq_chunks = [f'{mod["mat_nt"][i][:lead].lower()}',
+                                                  f'{mod["mat_nt"][i][lead:-trail].upper()}',
+                                                  f'{mod["mat_nt"][i][-trail:].lower()}']
+                                else:
+                                    seq_chunks = [f'{mod["mat_nt"][i][:lead].lower()}',
+                                                  f'{mod["mat_nt"][i][lead:].upper()}']
+                                mod["mismatches"] += [pos+mod["ref_ends"][i-1]
+                                                      for pos in aln["mismatches"]]
 
             if predict and mod["mat_types"][i] == "intron?":
                 rf1 = translate(current_chunk, gencode, frame=1, start_as_M=False)
