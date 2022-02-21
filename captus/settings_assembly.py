@@ -321,7 +321,7 @@ SCIPIO_2X_BLAT_MIN_SCORE = 15
 SCIPIO_1X_BLAT_MIN_SCORE = 30
 
 # BLAT identity as proportion of Scipio's 'min_identity' parameter
-SCIPIO_BLAT_IDENTITY_FACTOR = 0.9
+SCIPIO_BLAT_IDENT_FACTOR = 0.9
 
 # Default Genetic Codes to set Scipio's --transtable
 DEFAULT_GENETIC_CODES = {
@@ -335,7 +335,7 @@ DEFAULT_GENETIC_CODES = {
 DIVERGENT_GENETIC_CODES = [2, 3, 5, 9, 12, 13, 14, 21, 24, 26, 33]
 
 # Scipio's maximum identity when using a divergent genetic code
-SCIPIO_MAX_IDENTITY_DIV_CODE = 66
+SCIPIO_MAX_IDENT_DIV_CODE = 66
 
 # Basic Scipio setting that are genome-specific, more importantly make BLAT parameters more
 # restrictive in total assembly size and maximum intron sizes

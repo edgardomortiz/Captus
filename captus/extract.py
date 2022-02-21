@@ -995,7 +995,7 @@ def adjust_min_identity(min_identity, transtable):
     if 1 >= min_identity > 0:
         min_identity = round(min_identity * 100, 2)
     if transtable in settings.DIVERGENT_GENETIC_CODES:
-        return min(settings.SCIPIO_MAX_IDENTITY_DIV_CODE, min_identity)
+        return min(settings.SCIPIO_MAX_IDENT_DIV_CODE, min_identity)
     else:
         return min_identity
 
@@ -1030,17 +1030,17 @@ def scipio_coding(
     if blat_path == "bundled": blat_path = settings.BUNDLED_BLAT
 
     # Group Scipio's basic parameters, the 'sample_dir', and the 'marker_type' into a list
-    scipio_params = [
-        scipio_path,    # 0
-        min_score,      # 1
-        min_identity,   # 2
-        min_coverage,   # 3
-        blat_path,      # 4
-        transtable,     # 5
-        sample_dir,     # 6
-        marker_type,    # 7
-        keep_all,       # 8
-    ]
+    scipio_params = {
+        "scipio_path":  scipio_path,
+        "min_score":    min_score,
+        "min_identity": min_identity,
+        "min_coverage": min_coverage,
+        "blat_path":    blat_path,
+        "transtable":   transtable,
+        "sample_dir":   sample_dir,
+        "marker_type":  marker_type,
+        "keep_all":     keep_all,
+    }
 
     # Run Scipio twice if 'query_info["num_loci"]' does not exceed 'max_loci_scipio2x'
     if query_info["num_loci"] <= max_loci_scipio2x:
@@ -1160,23 +1160,24 @@ def reference_info(query_dict):
     return ref_info
 
 
-def run_scipio_command(scipio_params, target, query, overwrite, stage):
+def run_scipio_command(scipio_params: dict, target, query, overwrite, stage):
     # Set output directory and files according to 'sample_dir', 'genome', and 'stage'
-    marker_type = scipio_params[7]
-    scipio_out_dir = Path(scipio_params[6], settings.MARKER_DIRS[marker_type])
+    marker_type = scipio_params["marker_type"]
+    scipio_out_dir = Path(scipio_params["sample_dir"], settings.MARKER_DIRS[marker_type])
     if stage == "initial":
-        scipio_out_dir   = Path(scipio_out_dir, f"00_initial_scipio_{marker_type}")
-        blat_out_file    = Path(scipio_out_dir, f"{marker_type}_scipio_initial.psl")
-        scipio_out_file  = Path(scipio_out_dir, f"{marker_type}_scipio_initial.yaml")
-        scipio_log_file  = Path(scipio_out_dir, f"{marker_type}_scipio_initial.log")
+        scipio_out_dir   = Path(scipio_out_dir, f'00_initial_scipio_{marker_type}')
+        blat_out_file    = Path(scipio_out_dir, f'{marker_type}_scipio_initial.psl')
+        scipio_out_file  = Path(scipio_out_dir, f'{marker_type}_scipio_initial.yaml')
+        scipio_log_file  = Path(scipio_out_dir, f'{marker_type}_scipio_initial.log')
 
         # Adjust Scipio's 'min_score' for initial round allowing more lenient matching
-        scipio_min_score = round(scipio_params[1] * settings.SCIPIO_SCORE_INITIAL_FACTOR, 5)
+        scipio_min_score = round(scipio_params["min_score"]
+                                 * settings.SCIPIO_SCORE_INITIAL_FACTOR, 5)
     else:
-        blat_out_file   = Path(scipio_out_dir, f"{marker_type}_scipio_final.psl")
-        scipio_out_file = Path(scipio_out_dir, f"{marker_type}_scipio_final.yaml")
-        scipio_log_file = Path(scipio_out_dir, f"{marker_type}_scipio_final.log")
-        scipio_min_score = scipio_params[1]
+        blat_out_file   = Path(scipio_out_dir, f'{marker_type}_scipio_final.psl')
+        scipio_out_file = Path(scipio_out_dir, f'{marker_type}_scipio_final.yaml')
+        scipio_log_file = Path(scipio_out_dir, f'{marker_type}_scipio_final.log')
+        scipio_min_score = scipio_params["min_score"]
 
     scipio_out_dir, _ = make_output_dir(scipio_out_dir)
     if is_dir_empty(scipio_out_dir) is True or overwrite is True:
@@ -1190,22 +1191,22 @@ def run_scipio_command(scipio_params, target, query, overwrite, stage):
 
         # Build the basic part of the command
         basic = [
-            "perl", f"{scipio_params[0]}",
-            f"--blat_output={blat_out_file}",
+            "perl", f'{scipio_params["scipio_path"]}',
+            f'--blat_output={blat_out_file}',
             "--overwrite",
             "--verbose",
             "--keep_blat_output",
             "--show_blatline",
-            f"--min_score={scipio_min_score}",
-            f"--min_identity={scipio_params[2]}",
-            f"--min_coverage={scipio_params[3]}",
+            f'--min_score={scipio_min_score}',
+            f'--min_identity={scipio_params["min_identity"]}',
+            f'--min_coverage={scipio_params["min_coverage"]}',
             "--max_mismatch=0",  # 0 means infinite
             "--multiple_results",
-            f"--blat_bin={scipio_params[4]}",
-            f"--blat_score={blat_score}",
-            f"--blat_identity={scipio_params[2] * settings.SCIPIO_BLAT_IDENTITY_FACTOR:.0f}",
-            f"--transtable={scipio_params[5]}",
-            f"--accepted_intron_penalty={settings.SCIPIO_ACCEPTED_INTRON_PENALTY}"
+            f'--blat_bin={scipio_params["blat_path"]}',
+            f'--blat_score={blat_score}',
+            f'--blat_identity={scipio_params["min_identity"] * settings.SCIPIO_BLAT_IDENT_FACTOR:.0f}',
+            f'--transtable={scipio_params["transtable"]}',
+            f'--accepted_intron_penalty={settings.SCIPIO_ACCEPTED_INTRON_PENALTY}',
         ]
 
         # Initial settings, genome-specific
@@ -1223,10 +1224,13 @@ def run_scipio_command(scipio_params, target, query, overwrite, stage):
         # Execute Scipio's command
         with open(scipio_out_file, "w") as yaml_out:
             with open(scipio_log_file, "w") as yaml_log:
-                subprocess.run(scipio_cmd, stdout=yaml_out, stderr=yaml_log)
+                try:
+                    subprocess.run(scipio_cmd, stdout=yaml_out, stderr=yaml_log)
+                except Exception:
+                    return None
 
         # Erase BLAT .psl files if 'keep_all' is disabled
-        if not scipio_params[8]: blat_out_file.unlink()
+        if not scipio_params["keep_all"]: blat_out_file.unlink()
 
         return scipio_out_file
 
