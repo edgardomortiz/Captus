@@ -221,7 +221,7 @@ def align(full_command, args):
 
 
     ################################################################################################
-    ################################################################################ CLEANUP SECTION
+    ###################################################################### PARALOG FILTERING SECTION
     log.log_section_header("Paralog Filtering")
     log.log_explanation(
         "Now Captus will remove paralogs using the method(s) selected with '--filter_method'."
