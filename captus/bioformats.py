@@ -1991,7 +1991,8 @@ def scipio_yaml_to_dict(
         mod["identity"]    = matches / (matches + mismatches) * 100
         mod["score"]       = (matches - mismatches) / mod["ref_size"]
         # mod["lwscore"]     = mod["score"] * (matches + mismatches) / mod["ref_size"]
-        mod["lwscore"]     = prot_len # actual lwscore is computed in the filtered_models loop
+        # actual lwscore is computed in the filtered_models loop, for now just store length
+        mod["lwscore"]     = min(prot_len, mod["ref_size"])
         mod["gapped"]      = bool("gap" in "".join(mod["mat_notes"]))
         return mod
 
@@ -2344,7 +2345,8 @@ def blat_misc_dna_psl_to_dict(
                                      / asm_hit["ref_size"]))
                 # asm_hit["lwscore"] = (asm_hit["score"] * score_corr
                 #                       * (matched_len / asm_hit["ref_size"]))
-                asm_hit["lwscore"] = len(asm_hit["seq_gene"]) # Actual score is calculated later
+                # Actual score is calculated later, for now just store length
+                asm_hit["lwscore"] = min(len(asm_hit["seq_gene"]), asm_hit["ref_size"])
                 asm_hit["gapped"] = bool("n" in asm_hit["seq_gene"])
 
             # Append hits to the global assembly 'raw_assembly'
