@@ -34,6 +34,26 @@ def normalize(l):
     else:
         return 0.5
 
+config = dict(
+    scrollZoom=True,
+    toImageButtonOptions=dict(
+        format="svg",
+    ),
+    modeBarButtonsToAdd=[
+        "v1hovermode",
+        "hoverclosest",
+        "hovercompare",
+        "togglehover",
+        "togglespikelines",
+        "drawline",
+        "drawopenpath",
+        "drawclosedpath",
+        "drawcircle",
+        "drawrect",
+        "eraseshape",
+    ]
+)
+
 def build_qc_report(out_dir, qc_extras_dir):
     start = time.time()
 
@@ -49,10 +69,10 @@ def build_qc_report(out_dir, qc_extras_dir):
     # Mean read length%
     df3["length * count"] = df3["length"] * df3["count"]
     avg_read_len = (
-        df3.groupby(['sample_name', 'stage'])["length * count"].sum()
+        df3.groupby(["sample_name", "stage"])["length * count"].sum()
         / df3.groupby(["sample_name", "stage"])["count"].sum()
     )
-    read_len_pct = avg_read_len.loc[:, 'after'] / avg_read_len.loc[:, 'before'] * 100
+    read_len_pct = avg_read_len.loc[:, "after"] / avg_read_len.loc[:, "before"] * 100
     # Q20, Q30 reads%
     q20 = (df2[df2["quality"] >= 20].groupby(["sample_name", "stage"])["count"].sum()
         / df2.groupby(["sample_name", "stage"])["count"].sum() * 100
@@ -80,16 +100,16 @@ def build_qc_report(out_dir, qc_extras_dir):
         "GC%": gc.xs("after", level="stage").reset_index()[0],
     })
 
-    sample_list = df['Sample'].unique()
+    sample_list = df["Sample"].unique()
 
     colorscale = [
         [0, "#F0D9E6"],
         [0.5, "#F5F5F5"],
         [1, "#BDE3D8"]
     ]
-
-    fig0 = go.Figure()
-    fig0.add_trace(go.Table(
+    figs = []
+    fig = go.Figure()
+    fig.add_trace(go.Table(
         header=dict(values=["<b>" + col + "</b>" for col in df.columns]),
         cells=dict(
             values=[df[col] for col in df.columns],
@@ -170,12 +190,12 @@ def build_qc_report(out_dir, qc_extras_dir):
         showarrow=False
     )]
 
-    fig0.update_layout(
+    fig.update_layout(
         font_family="Arial",
         title_text=(
             "<b>Captus-assembly: Clean (Quality Control Report)<br>"
             "1. Summary Table</b><br>"
-            "<sup>(Data source: 03_qc_extras/"
+            "<sup>(Source: 03_qc_extras/"
             + ", ".join([
                 settings_assembly.QC_FILES["REBA"],
                 settings_assembly.QC_FILES["PSQS"],
@@ -188,7 +208,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         updatemenus=updatemenus,
         annotations=annotations,
     )
-
+    figs.append(fig)
 
     ### Stats on reads/bases ###
     df = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["REBA"]),
@@ -207,7 +227,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     legend_list = ["Input", "Round1", "Round2", "Cleaned"]
     colors = ["#CC79A7", "#E69F00", "#009E73", "#56B4E9"]
 
-    fig1 = make_subplots(
+    fig = make_subplots(
         cols=2,
         # shared_yaxes=True,
         horizontal_spacing=0.02,
@@ -219,7 +239,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     )
     for var, name, color in zip(var_suffix_list, legend_list, colors):
         # For reads
-        fig1.append_trace(
+        fig.append_trace(
             go.Bar(
                 x=df["reads" + var],
                 y=df["sample"],
@@ -237,7 +257,7 @@ def build_qc_report(out_dir, qc_extras_dir):
             col=1
         )
         # For bases
-        fig1.append_trace(
+        fig.append_trace(
             go.Bar(
                 x=df["bases" + var],
                 y=df["sample"],
@@ -269,7 +289,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                         df["bases_passed_round2"],
                         df["reads_passed_cleaning"],
                         df["bases_passed_cleaning"]],
-                     y=[df['sample']],
+                     y=[df["sample"]],
                      hovertemplate=["<b>%{y}</b><br>Count: %{x:,.0f} reads",
                                     "<b>%{y}</b><br>Count: %{x:,.0f} bases"] * 4,
                  ),
@@ -343,11 +363,11 @@ def build_qc_report(out_dir, qc_extras_dir):
         )
     ]
 
-    fig1.update_layout(
+    fig.update_layout(
         font_family="Arial",
         title_text=(
             "<b>2. Stats on Reads/Bases</b><br>"
-            "<sup>(Data source: 03_qc_extras/"
+            "<sup>(Source: 03_qc_extras/"
             + settings_assembly.QC_FILES["REBA"]
             + ")</sup>"
         ),
@@ -361,13 +381,13 @@ def build_qc_report(out_dir, qc_extras_dir):
         plot_bgcolor="rgb(8,8,8)",
         updatemenus=updatemenus,
     )
-    fig1.update_xaxes(
+    fig.update_xaxes(
         title="Count",
         ticks="outside",
         gridcolor="rgb(64,64,64)",
         zeroline=False,
     )
-    fig1.update_yaxes(
+    fig.update_yaxes(
         type="category",
         # categoryorder="category descending",
         ticks="outside",
@@ -375,16 +395,16 @@ def build_qc_report(out_dir, qc_extras_dir):
         tickson="labels",
         gridcolor="rgb(8,8,8)",
     )
-
+    figs.append(fig)
 
     ### Per Base Quality ###
     df = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["PBSQ"]))
     df["stage"] = df["stage"].str.capitalize()
 
     # Covert Phred64 to Phred33
-    if df['percentile_90'].max() > 42:
-        phred64_sample_list = df.query('percentile_90 > 42')['sample_name'].unique()
-        phred64_index = df[(df['sample_name'].isin(phred64_sample_list)) & (df['stage'] == "Before")].index
+    if df["percentile_90"].max() > 42:
+        phred64_sample_list = df.query("percentile_90 > 42")["sample_name"].unique()
+        phred64_index = df[(df["sample_name"].isin(phred64_sample_list)) & (df["stage"] == "Before")].index
         df.iloc[phred64_index,4:] = df.iloc[phred64_index,4:] - 31
 
     var_list = [
@@ -408,7 +428,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     if "R2" in df["read"].to_list():
         df_R1 = df[df["read"] == "R1"]
         df_R2 = df[df["read"] == "R2"]
-        fig2 = make_subplots(
+        fig = make_subplots(
             cols=2,
             shared_xaxes=True,
             shared_yaxes=True,
@@ -416,7 +436,7 @@ def build_qc_report(out_dir, qc_extras_dir):
             subplot_titles=["Read 1", "Read 2"],
         )
         # Read 1
-        fig2.append_trace(
+        fig.append_trace(
             go.Heatmap(
                 x=df_R1["base"],
                 y=[df_R1["sample_name"], df_R1["stage"]],
@@ -440,7 +460,7 @@ def build_qc_report(out_dir, qc_extras_dir):
             col=1,
         )
         # Read 2
-        fig2.append_trace(
+        fig.append_trace(
             go.Heatmap(
                 x=df_R2["base"],
                 y=[df_R2["sample_name"], df_R2["stage"]],
@@ -466,8 +486,8 @@ def build_qc_report(out_dir, qc_extras_dir):
 
     # For single-end
     else:
-        fig2 = go.Figure()
-        fig2.add_trace(
+        fig = go.Figure()
+        fig.add_trace(
             go.Heatmap(
                 x=df["base"],
                 y=[df["sample_name"], df["stage"]],
@@ -492,7 +512,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     # Draw boundaries between samples
     y = 1.5
     while y < (len(sample_list) - 1) * 2:
-        fig2.add_hline(y=y, line_width=2, line_color="rgb(8,8,8)")
+        fig.add_hline(y=y, line_width=2, line_color="rgb(8,8,8)")
         y = y + 2
 
     buttons = []
@@ -521,11 +541,11 @@ def build_qc_report(out_dir, qc_extras_dir):
         )
     ]
 
-    fig2.update_layout(
+    fig.update_layout(
         font_family="Arial",
         title_text=(
             "<b>3. Per Base Quality</b><br>"
-            "<sup>(Data source: 03_qc_extras/"
+            "<sup>(Source: 03_qc_extras/"
             + settings_assembly.QC_FILES["PBSQ"]
             + ")</sup>"
         ),
@@ -549,14 +569,14 @@ def build_qc_report(out_dir, qc_extras_dir):
         height=180 + 30 * len(sample_list),
         updatemenus=updatemenus,
     )
-    fig2.update_xaxes(
+    fig.update_xaxes(
         title="Position (bp)",
         ticks="outside",
         tickson="labels",
         gridcolor="rgb(64,64,64)",
         zeroline=False,
     )
-    fig2.update_yaxes(
+    fig.update_yaxes(
         showdividers=False,
         ticks="outside",
         dtick=1,
@@ -564,16 +584,16 @@ def build_qc_report(out_dir, qc_extras_dir):
         gridcolor="rgb(64,64,64)",
         autorange="reversed",
     )
-
+    figs.append(fig)
 
     ### Per Read Quality ###
     df = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["PSQS"]))
     df["stage"] = df["stage"].str.capitalize()
 
     # Convert Phred64 to Phred33
-    if df['quality'].max() > 42:
-        phred64_sample_list = df.query('quality > 42')['sample_name'].unique()
-        phred64_index = df[(df['sample_name'].isin(phred64_sample_list)) & (df['stage'] == "Before")].index
+    if df["quality"].max() > 42:
+        phred64_sample_list = df.query("quality > 42")["sample_name"].unique()
+        phred64_index = df[(df["sample_name"].isin(phred64_sample_list)) & (df["stage"] == "Before")].index
         df.iloc[phred64_index,3] = df.iloc[phred64_index,3] - 31
 
     df_pivot = df.pivot(
@@ -596,7 +616,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     if "R2" in df["read"].to_list():
         df_R1 = df[df["read"] == "R1"]
         df_R2 = df[df["read"] == "R2"]
-        fig3 = make_subplots(
+        fig = make_subplots(
             cols=2,
             shared_xaxes=True,
             shared_yaxes=True,
@@ -604,7 +624,7 @@ def build_qc_report(out_dir, qc_extras_dir):
             subplot_titles=["Read 1", "Read 2"],
         )
         # Read 1
-        fig3.add_trace(
+        fig.add_trace(
             go.Heatmap(
                 x=df_R1["quality"],
                 y=[df_R1["sample_name"], df_R1["stage"]],
@@ -622,7 +642,7 @@ def build_qc_report(out_dir, qc_extras_dir):
             col=1,
         )
         # Read 2
-        fig3.add_trace(
+        fig.add_trace(
             go.Heatmap(
                 x=df_R2["quality"],
                 y=[df_R2["sample_name"], df_R2["stage"]],
@@ -642,8 +662,8 @@ def build_qc_report(out_dir, qc_extras_dir):
 
     # For single-end
     else:
-        fig3 = go.Figure()
-        fig3.add_trace(
+        fig = go.Figure()
+        fig.add_trace(
             go.Heatmap(
                 x=df["quality"],
                 y=[df["sample_name"], df["stage"]],
@@ -661,14 +681,14 @@ def build_qc_report(out_dir, qc_extras_dir):
     # Draw boundaries between samples
     y = 1.5
     while y < (len(sample_list) - 1) * 2:
-        fig3.add_hline(y=y, line_width=2, line_color="rgb(8,8,8)")
+        fig.add_hline(y=y, line_width=2, line_color="rgb(8,8,8)")
         y = y + 2
 
-    fig3.update_layout(
+    fig.update_layout(
         font_family="Arial",
         title_text=(
             "<b>4. Per Read Quality</b><br>"
-            "<sup>(Data source: 03_qc_extras/"
+            "<sup>(Source: 03_qc_extras/"
             + settings_assembly.QC_FILES["PSQS"]
             + ")</sup>"
         ),
@@ -690,7 +710,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         height=180 + 30 * len(sample_list),
         plot_bgcolor="rgb(8,8,8)",
     )
-    fig3.update_xaxes(
+    fig.update_xaxes(
         title="Phred Score",
         ticks="outside",
         matches="x",
@@ -698,7 +718,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         zeroline=False,
         range=[df["quality"].min() - 0.5, df["quality"].max() + 0.5],
     )
-    fig3.update_yaxes(
+    fig.update_yaxes(
         autorange="reversed",
         showdividers=False,
         ticks="outside",
@@ -706,7 +726,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         tickson="labels",
         gridcolor="rgb(64,64,64)",
     )
-
+    figs.append(fig)
 
     ### Read Length Distribution ###
     df = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["SLEN"]))
@@ -747,7 +767,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     if "R2" in df["read"].to_list():
         df_R1 = df[df["read"] == "R1"]
         df_R2 = df[df["read"] == "R2"]
-        fig4 = make_subplots(
+        fig = make_subplots(
             cols=2,
             shared_xaxes=True,
             shared_yaxes=True,
@@ -755,7 +775,7 @@ def build_qc_report(out_dir, qc_extras_dir):
             subplot_titles=["Read 1", "Read 2"],
         )
         # Read 1
-        fig4.add_trace(
+        fig.add_trace(
             go.Heatmap(
                 x=df_R1["length"],
                 y=[df_R1["sample_name"], df_R1["stage"]],
@@ -773,7 +793,7 @@ def build_qc_report(out_dir, qc_extras_dir):
             col=1,
         )
         # Read 2
-        fig4.add_trace(
+        fig.add_trace(
             go.Heatmap(
                 x=df_R2["length"],
                 y=[df_R2["sample_name"], df_R2["stage"]],
@@ -793,8 +813,8 @@ def build_qc_report(out_dir, qc_extras_dir):
 
     # For single-end
     else:
-        fig4 = go.Figure()
-        fig4.add_trace(
+        fig = go.Figure()
+        fig.add_trace(
             go.Heatmap(
                 x=df["length"],
                 y=[df["sample_name"], df["stage"]],
@@ -812,14 +832,14 @@ def build_qc_report(out_dir, qc_extras_dir):
     # Draw boundaries between samples
     y = 1.5
     while y < (len(sample_list) - 1) * 2:
-        fig4.add_hline(y=y, line_width=2, line_color="rgb(8,8,8)")
+        fig.add_hline(y=y, line_width=2, line_color="rgb(8,8,8)")
         y = y + 2
 
-    fig4.update_layout(
+    fig.update_layout(
         font_family="Arial",
         title_text=(
             "<b>5. Read Length Distribution</b><br>"
-            "<sup>(Data source: 03_qc_extras/"
+            "<sup>(Source: 03_qc_extras/"
             + settings_assembly.QC_FILES["SLEN"]
             + ")</sup>"
         ),
@@ -841,7 +861,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         height=180 + 30 * len(sample_list),
         plot_bgcolor="rgb(8,8,8)",
     )
-    fig4.update_xaxes(
+    fig.update_xaxes(
         title="Read Length (bp)",
         matches="x",
         ticks="outside",
@@ -849,7 +869,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         gridcolor="rgb(64,64,64)",
         zeroline=False,
     )
-    fig4.update_yaxes(
+    fig.update_yaxes(
         autorange="reversed",
         showdividers=False,
         ticks="outside",
@@ -857,6 +877,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         tickson="labels",
         gridcolor="rgb(64,64,64)",
     )
+    figs.append(fig)
 
     ### Per Base Nucleotide Content ###
     df = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["PBSC"]))
@@ -874,7 +895,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     if "R2" in df["read"].to_list():
         df_R1 = df[df["read"] == "R1"]
         df_R2 = df[df["read"] == "R2"]
-        fig5 = make_subplots(
+        fig = make_subplots(
             cols=2,
             shared_xaxes=True,
             shared_yaxes=True,
@@ -882,7 +903,7 @@ def build_qc_report(out_dir, qc_extras_dir):
             subplot_titles=["Read 1", "Read 2"],
         )
         # Read 1
-        fig5.add_trace(
+        fig.add_trace(
             go.Heatmap(
                 x=df_R1["base"],
                 y=[df_R1["sample_name"], df_R1["stage-nuc"]],
@@ -899,7 +920,7 @@ def build_qc_report(out_dir, qc_extras_dir):
             col=1,
         )
         # Read 2
-        fig5.add_trace(
+        fig.add_trace(
             go.Heatmap(
                 x=df_R2["base"],
                 y=[df_R2["sample_name"], df_R2["stage-nuc"]],
@@ -918,8 +939,8 @@ def build_qc_report(out_dir, qc_extras_dir):
 
     # For single-end
     else:
-        fig5 = go.Figure()
-        fig5.add_trace(
+        fig = go.Figure()
+        fig.add_trace(
             go.Heatmap(
                 x=df["gc_content"],
                 y=[df["sample_name"], df["stage"]],
@@ -934,20 +955,20 @@ def build_qc_report(out_dir, qc_extras_dir):
     # Draw boundaries between stages
     y = 3.5
     while y < (len(sample_list)) * 8:
-        fig5.add_hline(y=y, line_width=0.75, line_color="rgb(8,8,8)")
+        fig.add_hline(y=y, line_width=0.75, line_color="rgb(8,8,8)")
         y = y + 8
 
     # Draw boundaries between samples
     y = 7.5
     while y < (len(sample_list) - 1) * 8:
-        fig5.add_hline(y=y, line_width=2, line_color="rgb(8,8,8)")
+        fig.add_hline(y=y, line_width=2, line_color="rgb(8,8,8)")
         y = y + 8
 
-    fig5.update_layout(
+    fig.update_layout(
         font_family="Arial",
         title_text=(
             "<b>6. Per Base Nucleotide Content</b><br>"
-            "<sup>(Data source: 03_qc_extras/"
+            "<sup>(Source: 03_qc_extras/"
             + settings_assembly.QC_FILES["PBSC"]
             + ")</sup>"
         ),
@@ -969,7 +990,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         height=270 + 120 * len(sample_list),
         plot_bgcolor="rgb(8,8,8)",
     )
-    fig5.update_xaxes(
+    fig.update_xaxes(
         title="Position (bp)",
         linecolor="black",
         ticks="outside",
@@ -977,7 +998,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         gridcolor="rgb(64,64,64)",
         zeroline=False,
     )
-    fig5.update_yaxes(
+    fig.update_yaxes(
         autorange="reversed",
         ticks="outside",
         dtick=1,
@@ -985,6 +1006,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         showdividers=False,
         gridcolor="rgb(64,64,64)",
     )
+    figs.append(fig)
 
     ### Per Read GC Content ###
     df = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["PSGC"]))
@@ -998,14 +1020,14 @@ def build_qc_report(out_dir, qc_extras_dir):
     if "R2" in df["read"].to_list():
         df_R1 = df[df["read"] == "R1"]
         df_R2 = df[df["read"] == "R2"]
-        fig6 = make_subplots(
+        fig = make_subplots(
             cols=2,
             shared_yaxes=True,
             horizontal_spacing=0.02,
             subplot_titles=["Read 1", "Read 2"],
         )
         # Read 1
-        fig6.add_trace(
+        fig.add_trace(
             go.Heatmap(
                 x=df_R1["gc_content"],
                 y=[df_R1["sample_name"], df_R1["stage"]],
@@ -1020,7 +1042,7 @@ def build_qc_report(out_dir, qc_extras_dir):
             col=1,
         )
         # Read 2
-        fig6.add_trace(
+        fig.add_trace(
             go.Heatmap(
                 x=df_R2["gc_content"],
                 y=[df_R2["sample_name"], df_R2["stage"]],
@@ -1037,8 +1059,8 @@ def build_qc_report(out_dir, qc_extras_dir):
 
     # For single-end
     else:
-        fig6 = go.Figure()
-        fig6.add_trace(
+        fig = go.Figure()
+        fig.add_trace(
             go.Heatmap(
                 x=df["gc_content"],
                 y=[df["sample_name"], df["stage"]],
@@ -1053,14 +1075,14 @@ def build_qc_report(out_dir, qc_extras_dir):
     # Draw boundaries between samples
     y = 1.5
     while y < (len(sample_list) - 1) * 2:
-        fig6.add_hline(y=y, line_width=2, line_color="rgb(8,8,8)")
+        fig.add_hline(y=y, line_width=2, line_color="rgb(8,8,8)")
         y = y + 2
 
-    fig6.update_layout(
+    fig.update_layout(
         font_family="Arial",
         title_text=(
             "<b>7. Per Read GC Content</b><br>"
-            "<sup>(Data source: 03_qc_extras/"
+            "<sup>(Source: 03_qc_extras/"
             + settings_assembly.QC_FILES["PSGC"]
             + ")</sup>"
         ),
@@ -1082,7 +1104,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         height=180 + 30 * len(sample_list),
         plot_bgcolor="rgb(8,8,8)",
     )
-    fig6.update_xaxes(
+    fig.update_xaxes(
         title="GC Content (%)",
         linecolor="black",
         ticks="outside",
@@ -1090,7 +1112,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         gridcolor="rgb(64,64,64)",
         zeroline=False,
     )
-    fig6.update_yaxes(
+    fig.update_yaxes(
         autorange="reversed",
         linecolor="black",
         ticks="outside",
@@ -1099,6 +1121,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         showdividers=False,
         gridcolor="rgb(64,64,64)",
     )
+    figs.append(fig)
 
     ### Sequence Duplication Level ###
     df = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["SDUP"]),
@@ -1126,7 +1149,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     }
     # For paired-end
     if "R2" in df["read"].to_list():
-        fig7 = make_subplots(
+        fig = make_subplots(
             cols=2,
             shared_xaxes=True,
             shared_yaxes=True,
@@ -1138,7 +1161,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         for dup_lev in dup_lev_list:
             # Read 1
             data = df_R1[df_R1["duplication_level"] == dup_lev]
-            fig7.add_trace(
+            fig.add_trace(
                 go.Bar(
                     x=data["percentage_of_total"],
                     y=[data["sample_name"], data["stage"]],
@@ -1158,7 +1181,7 @@ def build_qc_report(out_dir, qc_extras_dir):
             )
             # Read 2
             data = df_R2[df_R2["duplication_level"] == dup_lev]
-            fig7.add_trace(
+            fig.add_trace(
                 go.Bar(
                     x=data["percentage_of_total"],
                     y=[data["sample_name"], data["stage"]],
@@ -1180,9 +1203,9 @@ def build_qc_report(out_dir, qc_extras_dir):
 
     # For single-end
     else:
-        fig7 = go.Figure()
+        fig = go.Figure()
         for dup_lev in dup_lev_list:
-            fig7.add_trace(
+            fig.add_trace(
                 go.Bar(
                     x=df["percentage_of_total"],
                     y=[df["sample_name"], df["stage"]],
@@ -1202,14 +1225,14 @@ def build_qc_report(out_dir, qc_extras_dir):
     # Draw boundaries between samples
     y = 1.5
     while y < (len(sample_list) - 1) * 2:
-        fig7.add_hline(y=y, line_width=2, line_color="rgb(8,8,8)")
+        fig.add_hline(y=y, line_width=2, line_color="rgb(8,8,8)")
         y = y + 2
 
-    fig7.update_layout(
+    fig.update_layout(
         font_family="Arial",
         title_text=(
             "<b>8. Sequence Duplication Level</b><br>"
-            "<sup>(Data source: 03_qc_extras/"
+            "<sup>(Source: 03_qc_extras/"
             + settings_assembly.QC_FILES["SDUP"]
             + ")</sup>"
         ),
@@ -1221,7 +1244,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         legend=dict(title="Duplication<br>Level", tracegroupgap=0),
         plot_bgcolor="rgb(8,8,8)",
     )
-    fig7.update_xaxes(
+    fig.update_xaxes(
         title="Proportion (%)",
         ticks="outside",
         matches="x",
@@ -1229,7 +1252,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         zeroline=False,
         gridcolor="rgb(64,64,64)",
     )
-    fig7.update_yaxes(
+    fig.update_yaxes(
         autorange="reversed",
         showdividers=False,
         ticks="outside",
@@ -1237,6 +1260,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         tickson="labels",
         gridcolor="rgb(64,64,64)",
     )
+    figs.append(fig)
 
     ### Adapter Content ###
     df = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["ADCO"]))
@@ -1255,7 +1279,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     if "R2" in df["read"].to_list():
         df_R1 = df[df["read"] == "R1"]
         df_R2 = df[df["read"] == "R2"]
-        fig8 = make_subplots(
+        fig = make_subplots(
             cols=2,
             shared_xaxes=True,
             shared_yaxes=True,
@@ -1263,7 +1287,7 @@ def build_qc_report(out_dir, qc_extras_dir):
             subplot_titles=["Read 1", "Read 2"],
         )
         # Read 1
-        fig8.add_trace(
+        fig.add_trace(
             go.Heatmap(
                 x=df_R1["position"],
                 y=[df_R1["sample_name"], df_R1["stage"]],
@@ -1279,7 +1303,7 @@ def build_qc_report(out_dir, qc_extras_dir):
             col=1,
         )
         # Read 2
-        fig8.add_trace(
+        fig.add_trace(
             go.Heatmap(
                 x=df_R2["position"],
                 y=[df_R2["sample_name"], df_R2["stage"]],
@@ -1297,8 +1321,8 @@ def build_qc_report(out_dir, qc_extras_dir):
 
     # For single-end
     else:
-        fig8 = go.Figure()
-        fig8.add_trace(
+        fig = go.Figure()
+        fig.add_trace(
             go.Heatmap(
                 x=df["position"],
                 y=[df["sample_name"], df["stage"]],
@@ -1313,14 +1337,14 @@ def build_qc_report(out_dir, qc_extras_dir):
     # Draw boundaries between samples
     y = 1.5
     while y < (len(sample_list) - 1) * 2:
-        fig8.add_hline(y=y, line_width=2, line_color="rgb(8,8,8)")
+        fig.add_hline(y=y, line_width=2, line_color="rgb(8,8,8)")
         y = y + 2
 
-    fig8.update_layout(
+    fig.update_layout(
         font_family="Arial",
         title_text=(
             "<b>9. Adapter Content</b><br>"
-            "<sup>(Data source: 03_qc_extras/"
+            "<sup>(Source: 03_qc_extras/"
             + settings_assembly.QC_FILES["ADCO"]
             + ")</sup>"
         ),
@@ -1344,14 +1368,14 @@ def build_qc_report(out_dir, qc_extras_dir):
         height=180 + 30 * len(sample_list),
         plot_bgcolor="rgb(8,8,8)",
     )
-    fig8.update_xaxes(
+    fig.update_xaxes(
         title="Position (bp)",
         ticks="outside",
         matches="x",
         zeroline=False,
         gridcolor="rgb(64,64,64)",
     )
-    fig8.update_yaxes(
+    fig.update_yaxes(
         autorange="reversed",
         ticks="outside",
         dtick=1,
@@ -1359,21 +1383,19 @@ def build_qc_report(out_dir, qc_extras_dir):
         showdividers=False,
         gridcolor="rgb(64,64,64)",
     )
+    figs.append(fig)
 
-    # Export all plots into one html file
-
-    # Save plot in HTML
+    # Save plots in HTML
     qc_html_report = Path(out_dir, "captus-assembly_clean.report.html")
     with open(qc_html_report, "w") as f:
-        f.write(fig0.to_html(full_html=False, include_plotlyjs="cdn"))
-        f.write(fig1.to_html(full_html=False, include_plotlyjs="cdn"))
-        f.write(fig2.to_html(full_html=False, include_plotlyjs="cdn"))
-        f.write(fig3.to_html(full_html=False, include_plotlyjs="cdn"))
-        f.write(fig4.to_html(full_html=False, include_plotlyjs="cdn"))
-        f.write(fig5.to_html(full_html=False, include_plotlyjs="cdn"))
-        f.write(fig6.to_html(full_html=False, include_plotlyjs="cdn"))
-        f.write(fig7.to_html(full_html=False, include_plotlyjs="cdn"))
-        f.write(fig8.to_html(full_html=False, include_plotlyjs="cdn"))
+        for fig in figs:
+            f.write(
+                fig.to_html(
+                    full_html=False,
+                    include_plotlyjs="cdn",
+                    config=config
+                )
+            )
     if qc_html_report.exists() and qc_html_report.is_file():
         qc_html_msg = dim(f"Report generated in {elapsed_time(time.time() - start)}")
     else:
@@ -1420,7 +1442,7 @@ def build_assembly_report(out_dir, asm_stats_tsv):
         inplace=True,
     )
 
-    sample_list = df['Sample'].unique()
+    sample_list = df["Sample"].unique()
 
     colorscale = [
         [0, "#F0D9E6"],
@@ -1428,8 +1450,9 @@ def build_assembly_report(out_dir, asm_stats_tsv):
         [1, "#BDE3D8"]
     ]
 
-    fig0 = go.Figure()
-    fig0.add_trace(
+    figs = []
+    fig = go.Figure()
+    fig.add_trace(
         go.Table(
             header=dict(values=["<b>" + col + "</b>" for col in df.columns]),
             cells=dict(
@@ -1513,12 +1536,12 @@ def build_assembly_report(out_dir, asm_stats_tsv):
         showarrow=False
     )]
 
-    fig0.update_layout(
+    fig.update_layout(
         font_family="Arial",
         title_text=(
             "<b>Captus-assembly: Assemble (<i>De Novo</i> Assembly Report)<br>"
             "1. Summary Table</b><br>"
-            "<sup>(Data source: "
+            "<sup>(Source: "
             + str(asm_stats_tsv.name)
             + ")</sup>"
         ),
@@ -1526,6 +1549,7 @@ def build_assembly_report(out_dir, asm_stats_tsv):
         updatemenus=updatemenus,
         annotations=annotations,
     )
+    figs.append(fig)
 
     ### Bar plot ###
     # Load datatable
@@ -1597,7 +1621,7 @@ def build_assembly_report(out_dir, asm_stats_tsv):
     colors = ["#56B4E9", "#009E73", "#E69F00", "#CC79A7"]
 
     # Create figure
-    fig1 = go.Figure()
+    fig = go.Figure()
     df.sort_values(
         by=var_list[0],
         ascending=False,
@@ -1605,7 +1629,7 @@ def build_assembly_report(out_dir, asm_stats_tsv):
     )
 
     for i in range(4):
-        fig1.add_trace(
+        fig.add_trace(
             go.Bar(
                 x=df[var_list[0]],
                 y=df["sample"],
@@ -1689,7 +1713,7 @@ def build_assembly_report(out_dir, asm_stats_tsv):
     updatemenus = [
         dict(
             buttons=buttons,
-            type = "dropdown",
+            type="dropdown",
             direction="down",
             pad={"t": 10, "b": 10},
             showactive=True,
@@ -1715,12 +1739,12 @@ def build_assembly_report(out_dir, asm_stats_tsv):
     )]
 
     # Layout setting
-    fig1.update_layout(
+    fig.update_layout(
         plot_bgcolor="rgb(8,8,8)",
         font_family="Arial",
         title_text=(
             "<b>2. Visual Stats</b><br>"
-            "<sup>(Data source: "
+            "<sup>(Source: "
             + str(asm_stats_tsv.name)
             + ")</sup>"
         ),
@@ -1743,12 +1767,19 @@ def build_assembly_report(out_dir, asm_stats_tsv):
         updatemenus=updatemenus,
         annotations=annotations,
     )
+    figs.append(fig)
 
     # Save plot in HTML
     asm_html_report = Path(out_dir, "captus-assembly_assemble.report.html")
     with open(asm_html_report, "w") as f:
-        f.write(fig0.to_html(full_html=False, include_plotlyjs="cdn"))
-        f.write(fig1.to_html(full_html=False, include_plotlyjs="cdn"))
+        for fig in figs:
+            f.write(
+                fig.to_html(
+                    full_html=False,
+                    include_plotlyjs="cdn",
+                    config=config
+                )
+            )
     if asm_html_report.exists() and asm_html_report.is_file():
         asm_html_msg = dim(f"Report generated in {elapsed_time(time.time() - start)}")
     else:
@@ -1781,7 +1812,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
     var_lab_list = [
         "Recovered Length (%)",
         "Identity (%)",
-        "Hit Count (Paralogs)",
+        "Total Hits (Copies)",
         "Score",
         "Length-weighted Score"
     ]
@@ -1793,7 +1824,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
         "Ref coords: <b>%{customdata[4]}</b>",
         "Ref type: <b>%{customdata[5]}</b>",
         "Ref len matched: <b>%{customdata[6]:,.0f} %{customdata[20]}</b>",
-        "Hit count (paralogs): <b>%{customdata[7]}</b>",
+        "Total hits (copies): <b>%{customdata[7]}</b>",
         "Recovered length: <b>%{customdata[8]:.2f}%</b>",
         "Identity: <b>%{customdata[9]:.2f}%</b>",
         "Score: <b>%{customdata[10]:.3f}</b>",
@@ -2014,7 +2045,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
             if len(marker_type) == 1:
                 title = (
                         "<b>Captus-assembly: Extract (Marker Recovery Report)</b><br>"
-                        "<sup>(Data source: "
+                        "<sup>(Source: "
                         + str(ext_stats_tsv.name)
                         + ")</sup>"
                 )
@@ -2023,7 +2054,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
                         "<b>Captus-assembly: Extract (Marker Recovery Report)<br>"
                         "1. Marker Type: "
                         + marker
-                        + "</b><br><sup>(Data source: "
+                        + "</b><br><sup>(Source: "
                         + str(ext_stats_tsv.name)
                         + ")</sup>"
                 )
@@ -2033,7 +2064,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
                 + str(i + 1)
                 + ". Marker Type: "
                 + marker
-                + "</b><br><sup>(Data source: "
+                + "</b><br><sup>(Source: "
                 + str(ext_stats_tsv.name)
                 + ")</sup>"
             )
@@ -2058,14 +2089,19 @@ def build_extraction_report(out_dir, ext_stats_tsv):
             annotations=annotations,
             updatemenus=updatemenus
         )
-
         figs.append(fig)
 
     # Save plot in HTML
     ext_html_report = Path(out_dir, "captus-assembly_extract.report.html")
     with open(ext_html_report, "w") as f:
         for fig in figs:
-            f.write(fig.to_html(full_html=False, include_plotlyjs="cdn"))
+            f.write(
+                fig.to_html(
+                    full_html=False,
+                    include_plotlyjs="cdn",
+                    config=config
+                )
+            )
     if ext_html_report.exists() and ext_html_report.is_file():
         ext_html_msg = dim(f"Report generated in {elapsed_time(time.time() - start)}")
     else:
@@ -2078,15 +2114,43 @@ def build_alignment_report(out_dir, aln_stats_tsv):
     start = time.time()
 
     df = pd.read_table(aln_stats_tsv)
+    df["stage"] = df["trimmed"].astype(str).str.cat([df["paralog_filter"], df["no_refs"].astype(str)], sep="-")
+    df.loc[df["format"] == "AA", "aln_len_unit"] = "aa"
+    df.loc[df["format"] != "AA", "aln_len_unit"] = "bp"
+    marker_type_list = df["marker_type"].unique()
 
-    marker_type = df["marker_type"].sort_values().unique()
-    if len(marker_type) > 1:
-        marker_type = np.insert(marker_type, 0, "ALL")
+    color_dict = {
+        "AA": "#CC79A7",
+        "NT": "#56B4E9",
+        "GE": "#E69F00",
+        "GF": "#009E73",
+        "MA": "#CC79A7",
+        "MF": "#009E73",
+    }
+
+    stage_dict = {
+        "False-unfiltered-False": "02_aligned_untrimmed / 01_unfiltered",
+        "False-fast-False": "02_aligned_untrimmed / 02_fast",
+        "False-careful-False": "02_aligned_untrimmed / 03_careful",
+        "False-unfiltered-True": "02_aligned_untrimmed / 04_unfiltered_no_refs",
+        "False-fast-True": "02_aligned_untrimmed / 05_fast_no_refs",
+        "False-careful-True": "02_aligned_untrimmed / 06_careful_no_refs",
+        "True-unfiltered-False": "03_aligned_trimmed / 01_unfiltered",
+        "True-fast-False": "03_aligned_trimmed / 02_fast",
+        "True-careful-False": "03_aligned_trimmed / 03_careful",
+        "True-unfiltered-True": "03_aligned_trimmed / 04_unfiltered_no_refs",
+        "True-fast-True": "03_aligned_trimmed / 05_fast_no_refs",
+        "True-careful-True": "03_aligned_trimmed / 06_careful_no_refs",
+    }
 
     var_dict = {
-        "Number of Sequences": "seqs",
-        "Alignment Length": "sites",
+        "Sequences": "seqs",
+        "Samples": "samples",
+        "Sequences/Sample": "avg_copies",
+        "Alignment Length (bp)": "sites",
         "Informative Sites": "informative",
+        "Informativeness (%)": "informativeness",
+        "Uninformative Sites": "uninformative",
         "Constant Sites": "constant",
         "Singleton Sites": "singleton",
         "Patterns": "patterns",
@@ -2094,415 +2158,369 @@ def build_alignment_report(out_dir, aln_stats_tsv):
         "Missingness (%)": "missingness",
     }
 
-    colorscale = [
-        [0, "#F0D9E6"],
-        [0.5, "#F5F5F5"],
-        [1, "#BDE3D8"],
+    figs = []
+    fig = go.Figure()
+    for j, marker_type in enumerate(marker_type_list):
+        data = df[df["marker_type"] == marker_type]
+        fmt_list = list(reversed(data["format"].unique()))
+        for i, fmt in enumerate(fmt_list):
+            fig.add_trace(
+                go.Violin(
+                    x=data[data["format"] == fmt][list(var_dict.values())[3]],
+                    y=data[data["format"] == fmt]["stage"].map(stage_dict),
+                    name=fmt,
+                    line=dict(
+                        color=color_dict[fmt],
+                    ),
+                    spanmode="hard",
+                    meanline_visible=True,
+                    hoverinfo="x",
+                    visible=True if j == 0 else False,
+                    orientation="h",
+                    side="negative",
+                    width=1.9,
+                    points=False,
+                )
+            )
+        if j == 0:
+            false_list = [[False] * len(fmt_list)]
+        else:
+            false_list += [[False] * len(fmt_list)]
+
+    buttons = []
+    for j, marker_type in enumerate(marker_type_list):
+        data = df[df["marker_type"] == marker_type]
+        fmt_list = data["format"].unique()
+        visible = list(false_list)
+        visible[j] = [True] * len(fmt_list)
+        visible = sum(visible, [])
+        button = dict(
+            label=marker_type,
+            method="restyle",
+            args=[
+                dict(
+                    visible=visible,
+                )
+            ]
+        )
+        buttons.append(button)
+
+    buttonsX = []
+    for lab, var in var_dict.items():
+        x_list = []
+        for j, marker_type in enumerate(marker_type_list):
+            data = df[df["marker_type"] == marker_type]
+            fmt_list = list(reversed(data["format"].unique()))
+            for i, fmt in enumerate(fmt_list):
+                x = data[data["format"] == fmt][var]
+                x_list.append(x)
+        buttonX = dict(
+            label=lab,
+            method="restyle",
+            args=[
+                dict(
+                    x=x_list,
+                ),
+            ]
+        )
+        buttonsX.append(buttonX)
+
+    updatemenus = [
+        dict(
+            buttons=buttons,
+            type="dropdown",
+            direction="down",
+            pad={"t": 10, "b": 10},
+            showactive=True,
+            x=1,
+            xanchor="right",
+            y=1,
+            yanchor="bottom"
+        ),
+        dict(
+            buttons=buttonsX,
+            type="dropdown",
+            direction="up",
+            pad={"t": 30, "b": 10},
+            active=3,
+            showactive=True,
+            x=0.5,
+            xanchor="center",
+            y=0,
+            yanchor="top"
+        ),
     ]
 
-    if True in df['trimmed'].to_list():
-        headers_dict = {
-            "fast": {
-                "ALL": [
-                    "<b>Marker type</b>",
-                    "<b>Format</b>",
-                    "<b>Locus</b>",
-                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
-                    "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
-                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
-                    "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
-                    "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
-                    "<b>03_aligned_trimmed<br>└ 02_fast</b>",
-                    "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
-                    "<b>03_aligned_trimmed<br>└ 05_fast_no_refs</b>",
-                ],
-                "CLR": [
-                    "<b>Format</b>",
-                    "<b>Locus</b>",
-                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
-                    "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
-                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
-                    "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
-                    "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
-                    "<b>03_aligned_trimmed<br>└ 02_fast</b>",
-                    "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
-                    "<b>03_aligned_trimmed<br>└ 05_fast_no_refs</b>",
-                ],
-                "others": [
-                    "<b>Format</b>",
-                    "<b>Locus</b>",
-                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
-                    "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
-                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
-                    "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
-                    "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
-                    "<b>03_aligned_trimmed<br>└ 02_fast</b>",
-                    "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
-                    "<b>03_aligned_trimmed<br>└ 05_fast_no_refs</b>",
-                ],
-            },
-            "careful": {
-                "ALL": [
-                    "<b>Marker type</b>",
-                    "<b>Format</b>",
-                    "<b>Locus</b>",
-                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
-                    "<b>02_aligned_untrimmed<br>└ 03_careful</b>",
-                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
-                    "<b>02_aligned_untrimmed<br>└ 06_careful_no_refs</b>",
-                    "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
-                    "<b>03_aligned_trimmed<br>└ 03_careful</b>",
-                    "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
-                    "<b>03_aligned_trimmed<br>└ 06_careful_no_refs</b>",
-                ],
-                "CLR": [
-                    "<b>Format</b>",
-                    "<b>Locus</b>",
-                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
-                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
-                    "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
-                    "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
-                ],
-                "others": [
-                    "<b>Format</b>",
-                    "<b>Locus</b>",
-                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
-                    "<b>02_aligned_untrimmed<br>└ 03_careful</b>",
-                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
-                    "<b>02_aligned_untrimmed<br>└ 06_careful_no_refs</b>",
-                    "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
-                    "<b>03_aligned_trimmed<br>└ 03_careful</b>",
-                    "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
-                    "<b>03_aligned_trimmed<br>└ 06_careful_no_refs</b>",
-                ],
-            },
-            "both": {
-                "ALL": [
-                    "<b>Marker type</b>",
-                    "<b>Format</b>",
-                    "<b>Locus</b>",
-                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
-                    "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
-                    "<b>02_aligned_untrimmed<br>└ 03_careful</b>",
-                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
-                    "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
-                    "<b>02_aligned_untrimmed<br>└ 06_careful_no_refs</b>",
-                    "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
-                    "<b>03_aligned_trimmed<br>└ 02_fast</b>",
-                    "<b>03_aligned_trimmed<br>└ 03_careful</b>",
-                    "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
-                    "<b>03_aligned_trimmed<br>└ 05_fast_no_refs</b>",
-                    "<b>03_aligned_trimmed<br>└ 06_careful_no_refs</b>",
-                ],
-                "CLR": [
-                    "<b>Format</b>",
-                    "<b>Locus</b>",
-                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
-                    "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
-                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
-                    "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
-                    "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
-                    "<b>03_aligned_trimmed<br>└ 02_fast</b>",
-                    "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
-                    "<b>03_aligned_trimmed<br>└ 05_fast_no_refs</b>",
-                ],
-                "others": [
-                    "<b>Format</b>",
-                    "<b>Locus</b>",
-                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
-                    "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
-                    "<b>02_aligned_untrimmed<br>└ 03_careful</b>",
-                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
-                    "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
-                    "<b>02_aligned_untrimmed<br>└ 06_careful_no_refs</b>",
-                    "<b>03_aligned_trimmed<br>└ 01_unfiltered</b>",
-                    "<b>03_aligned_trimmed<br>└ 02_fast</b>",
-                    "<b>03_aligned_trimmed<br>└ 03_careful</b>",
-                    "<b>03_aligned_trimmed<br>└ 04_unfiltered_no_refs</b>",
-                    "<b>03_aligned_trimmed<br>└ 05_fast_no_refs</b>",
-                    "<b>03_aligned_trimmed<br>└ 06_careful_no_refs</b>",
-                ],
-            },
-        }
-    else:
-        headers_dict = {
-            "fast": {
-                "ALL": [
-                    "<b>Marker type</b>",
-                    "<b>Format</b>",
-                    "<b>Locus</b>",
-                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
-                    "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
-                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
-                    "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
-                ],
-                "CLR": [
-                    "<b>Format</b>",
-                    "<b>Locus</b>",
-                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
-                    "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
-                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
-                    "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
-                ],
-                "others": [
-                    "<b>Format</b>",
-                    "<b>Locus</b>",
-                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
-                    "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
-                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
-                    "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
-                ],
-            },
-            "careful": {
-                "ALL": [
-                    "<b>Marker type</b>",
-                    "<b>Format</b>",
-                    "<b>Locus</b>",
-                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
-                    "<b>02_aligned_untrimmed<br>└ 03_careful</b>",
-                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
-                    "<b>02_aligned_untrimmed<br>└ 06_careful_no_refs</b>",
-                ],
-                "CLR": [
-                    "<b>Format</b>",
-                    "<b>Locus</b>",
-                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
-                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
-                ],
-                "others": [
-                    "<b>Format</b>",
-                    "<b>Locus</b>",
-                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
-                    "<b>02_aligned_untrimmed<br>└ 03_careful</b>",
-                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
-                    "<b>02_aligned_untrimmed<br>└ 06_careful_no_refs</b>",
-                ],
-            },
-            "both": {
-                "ALL": [
-                    "<b>Marker type</b>",
-                    "<b>Format</b>",
-                    "<b>Locus</b>",
-                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
-                    "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
-                    "<b>02_aligned_untrimmed<br>└ 03_careful</b>",
-                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
-                    "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
-                    "<b>02_aligned_untrimmed<br>└ 06_careful_no_refs</b>",
-                ],
-                "CLR": [
-                    "<b>Format</b>",
-                    "<b>Locus</b>",
-                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
-                    "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
-                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
-                    "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
-                ],
-                "others": [
-                    "<b>Format</b>",
-                    "<b>Locus</b>",
-                    "<b>02_aligned_untrimmed<br>└ 01_unfiltered</b>",
-                    "<b>02_aligned_untrimmed<br>└ 02_fast</b>",
-                    "<b>02_aligned_untrimmed<br>└ 03_careful</b>",
-                    "<b>02_aligned_untrimmed<br>└ 04_unfiltered_no_refs</b>",
-                    "<b>02_aligned_untrimmed<br>└ 05_fast_no_refs</b>",
-                    "<b>02_aligned_untrimmed<br>└ 06_careful_no_refs</b>",
-                ],
-            },
-        }
+    annotations = [
+        dict(
+            text="<b>Marker Type:</b>",
+            x=1,
+            xref="paper",
+            xanchor="right",
+            xshift=-70,
+            y=1,
+            yref="paper",
+            yanchor="top",
+            yshift=36,
+            align="right",
+            showarrow=False,
+        ),
+    ]
 
-    filter_type = df['paralog_filter'].unique()
-    if "careful" not in filter_type:
-        headers = headers_dict["fast"]
-    elif "fast" not in filter_type:
-        headers = headers_dict["careful"]
-    else:
-        headers = headers_dict["both"]
+    fig.update_layout(
+        font_family="Arial",
+        plot_bgcolor="rgb(8,8,8)",
+        title=(
+            "<b>Captus-assembly: Align (Alignment/Trimming Report)<br>"
+            + "1. Stats Comparison at Each Processing Step"
+            + "</b><br><sup>(Source: "
+            + str(aln_stats_tsv.name)
+            + ")</sup>"
+        ),
+        xaxis=dict(
+            showgrid=True,
+            gridcolor="rgb(64,64,64)",
+            ticks="outside",
+            rangemode="nonnegative",
+            zeroline=False,
+        ),
+        yaxis=dict(
+            title="Processing Step",
+            showgrid=False,
+            ticks="outside",
+            zeroline=False,
+            autorange="reversed",
+        ),
+        hoverlabel=dict(
+                font_color="rgb(64,64,64)",
+            ),
+        legend=dict(
+            title=dict(
+                text="<b>Format</b>",
+                side="top",
+            ),
+            traceorder="reversed+grouped",
+        ),
+        annotations=annotations,
+        updatemenus=updatemenus,
+    )
+    figs.append(fig)
 
-    figs = []
-    for j, marker in enumerate(marker_type):
-        if marker == "ALL":
-            data = df
-            index = ["marker_type", "format", "locus"]
-        else:
-            data = df[df["marker_type"] == marker]
-            index = ["format", "locus"]
-        format_list = data["format"].sort_values().unique()
-        if len(format_list) > 1:
-            format_list = np.insert(format_list, 0, "ALL")
+    stage_dict = {
+        "False-unfiltered-False": "02_aligned_untrimmed<br>└ 01_unfiltered",
+        "False-fast-False": "02_aligned_untrimmed<br>└ 02_fast",
+        "False-careful-False": "02_aligned_untrimmed<br>└ 03_careful",
+        "False-unfiltered-True": "02_aligned_untrimmed<br>└ 04_unfiltered_no_refs",
+        "False-fast-True": "02_aligned_untrimmed<br>└ 05_fast_no_refs",
+        "False-careful-True": "02_aligned_untrimmed<br>└ 06_careful_no_refs",
+        "True-unfiltered-False": "03_aligned_trimmed<br>└ 01_unfiltered",
+        "True-fast-False": "03_aligned_trimmed<br>└ 02_fast",
+        "True-careful-False": "03_aligned_trimmed<br>└ 03_careful",
+        "True-unfiltered-True": "03_aligned_trimmed<br>└ 04_unfiltered_no_refs",
+        "True-fast-True": "03_aligned_trimmed<br>└ 05_fast_no_refs",
+        "True-careful-True": "03_aligned_trimmed<br>└ 06_careful_no_refs",
+    }
 
+    hovertemplate = "<br>".join([
+            "Locus: <b>%{customdata[6]}</b>",
+            "Marker type: <b>%{customdata[4]}</b>",
+            "Sequences: <b>%{customdata[7]:,.0f}</b>",
+            "Samples: <b>%{customdata[8]:,.0f}</b>",
+            "Sequences/sambple: <b>%{customdata[9]:.2f}</b>",
+            "Alignment length: <b>%{customdata[10]:,.0f} %{customdata[20]}</b>",
+            "Informative sites: <b>%{customdata[11]:,.0f}</b>",
+            "Informativeness: <b>%{customdata[12]:.2f}%</b>",
+            "Uninformative sites: <b>%{customdata[13]:,.0f}</b>",
+            "Constant sites: <b>%{customdata[14]:,.0f}</b>",
+            "Singleton sites: <b>%{customdata[15]:,.0f}</b>",
+            "Patterns: <b>%{customdata[16]:,.0f}</b>",
+            "Mean pairwise identity: <b>%{customdata[17]:.2f}%</b>",
+            "Missingness: <b>%{customdata[18]:.2f}%</b>",
+    ])
+
+    for j, marker_type in enumerate(marker_type_list):
+        data = df[df["marker_type"] == marker_type]
+        stage_list = data["stage"].unique()
+        fmt_list = data["format"].unique()
         fig = go.Figure()
-        buttons1 = []
-        for i, format in enumerate(format_list):
-            if format == "ALL":
-                data_pivot = (
-                    data.pivot(
-                        index=index,
-                        columns=["paralog_filter", "no_refs", "trimmed"],
-                        values=list(var_dict.values())[0],
+        buttons_stage = []
+        for i, stage in enumerate(stage_list):
+            for fmt in fmt_list:
+                d = data[(data["stage"] == stage) & (data["format"] == fmt)]
+                fig.add_trace(
+                    go.Histogram2dContour(
+                        x=d[list(var_dict.values())[3]],
+                        y=d[list(var_dict.values())[4]],
+                        contours_coloring="lines",
+                        colorscale=[
+                            [0, "#080808"],
+                            [1, color_dict[fmt]],
+                        ],
+                        showscale=False,
+                        line_width=1,
+                        visible=True if i == 0 else False,
+                        hoverinfo="skip",
+                        legendgroup=fmt,
                     )
                 )
-            else:
-                data_pivot = (
-                    data[data["format"] == format]
-                    .pivot(
-                        index=index,
-                        columns=["paralog_filter", "no_refs", "trimmed"],
-                        values=list(var_dict.values())[0],
+                fig.add_trace(
+                    go.Scatter(
+                        x=d[list(var_dict.values())[3]],
+                        y=d[list(var_dict.values())[4]],
+                        name=fmt,
+                        mode="markers",
+                        visible=True if i == 0 else False,
+                        legendgroup=fmt,
+                        customdata=d,
+                        hovertemplate=hovertemplate,
+                        marker=dict(
+                            size=8,
+                            color=color_dict[fmt],
+                            line=dict(
+                                # color="white",
+                                width=1,
+                            )
+                        ),
                     )
                 )
-            data_pivot["mean"] = data_pivot.mean(numeric_only=True, axis=1)
-            data_pivot = (
-                data_pivot.sort_values("mean", ascending=False)
-                .drop(data_pivot.columns[len(data_pivot.columns)-1], axis=1)
-            )
-            data_norm = (
-                data_pivot.apply(lambda x: (x - min(x)) / (max(x) - min(x)), axis=1)
-                .reset_index()
-                .fillna(0.5)
-            )
-            data_norm["locus"] = data_norm["locus"].astype("object")
-            data_pivot = data_pivot.reset_index().fillna("NaN")
-            colors = []
-            for col in data_norm.columns:
-                if data_norm[col].dtypes == "object":
-                    colors.append("#F5F5F5")
-                else:
-                    colors.append(sample_colorscale(colorscale, data_norm[col]))
-            if i == 0:
-                num_rows = len(data_pivot)
-
-            trace = go.Table(
-                header=dict(
-                    values=headers["ALL"] if marker == "ALL" else headers["CLR"] if marker == "CLR" else headers["others"],
-                    align=["center", "center", "center", "left"] if marker == "ALL" else ["center", "center", "left"],
-                ),
-                cells=dict(
-                    values=[data_pivot[col] for col in data_pivot.columns],
-                    height=21,
-                    format=[None, None, None, ","] if marker == "ALL" else [None, None, ","],
-                    align=["center", "center", "left", "right"] if marker == "ALL" else ["center", "left", "right"],
-                    fill=dict(
-                        color=colors
+                fig.add_trace(
+                    go.Histogram(
+                        x=d[list(var_dict.values())[3]],
+                        yaxis="y2",
+                        name=fmt,
+                        bingroup=stage + "_x",
+                        marker=dict(
+                            color=color_dict[fmt],
+                            opacity=0.5,
+                            line=dict(
+                                color="rgb(8,8,8)",
+                                width=1,
+                            ),
+                        ),
+                        visible=True if i == 0 else False,
+                        legendgroup=fmt,
+                        showlegend=False,
                     )
-                ),
-                visible=True if i == 0 else False,
-            )
-            fig.add_trace(trace)
-
-            visible = [False] * len(format_list)
-            visible[i] = True
-            button = dict(
-                label=format,
+                )
+                fig.add_trace(
+                    go.Histogram(
+                        y=d[list(var_dict.values())[4]],
+                        xaxis="x2",
+                        name=fmt,
+                        bingroup=stage + "_y",
+                        marker=dict(
+                            color=color_dict[fmt],
+                            opacity=0.5,
+                            line=dict(
+                                color="rgb(8,8,8)",
+                                width=1,
+                            ),
+                        ),
+                        visible=True if i == 0 else False,
+                        legendgroup=fmt,
+                        showlegend=False,
+                    )
+                )
+            visible = [[False] * len(fmt_list) * 4] * len(stage_list)
+            visible[i] = [True] * len(fmt_list) * 4
+            visible = sum(visible, [])
+            button_stage = dict(
+                label=stage_dict[stage],
                 method="restyle",
-                args=[{
-                    "visible": visible,
-                }]
+                args=[
+                    dict(
+                        visible=visible
+                    )
+                ]
             )
-            buttons1.append(button)
+            buttons_stage.append(button_stage)
 
-        buttons2 = []
+        buttonsX, buttonsY = [], []
         for lab, var in var_dict.items():
-            values, colors_list = [], []
-            for format in format_list:
-                if format == "ALL":
-                    data_pivot = (
-                        data.pivot(
-                            index=index,
-                            columns=["paralog_filter", "no_refs", "trimmed"],
-                            values=var,
-                        )
-                    )
-                else:
-                    data_pivot = (
-                        data[data["format"] == format]
-                        .pivot(
-                            index=index,
-                            columns=["paralog_filter", "no_refs", "trimmed"],
-                            values=var,
-                        )
-                    )
-                data_pivot["mean"] = data_pivot.mean(numeric_only=True, axis=1)
-                data_pivot = (
-                    data_pivot.sort_values("mean", ascending=False)
-                    .drop(data_pivot.columns[len(data_pivot.columns)-1], axis=1)
-                )
-                data_norm = (
-                    data_pivot.apply(lambda x: (x - min(x)) / (max(x) - min(x)), axis=1)
-                    .reset_index()
-                    .fillna(0.5)
-                )
-                data_norm["locus"] = data_norm["locus"].astype("object")
-                data_pivot = data_pivot.reset_index().fillna("NaN")
-                value = [data_pivot[col] for col in data_pivot.columns]
-                values.append(value)
-                colors = []
-                for col in data_norm.columns:
-                    if data_norm[col].dtypes == "object":
-                        colors.append("#F5F5F5")
-                    else:
-                        colors.append(sample_colorscale(colorscale, data_norm[col]))
-                colors_list.append(colors)
-                if var == "avg_pid" or var == "missingness":
-                    cell_form = [[None, None, None, ".2f"]] * len(format_list) if marker == "ALL" else [[None, None, ".2f"]] * len(format_list)
-                else:
-                    cell_form = [[None, None, None, ","]] * len(format_list) if marker == "ALL" else [[None, None, ","]] * len(format_list)
-            button = dict(
+            x_list, y_list = [], []
+            for stage in stage_list:
+                for fmt in fmt_list:
+                    d = data[(data["stage"] == stage) & (data["format"] == fmt)]
+                    x = [
+                        d[var],
+                        d[var],
+                        d[var],
+                        None,
+                    ]
+                    y = [
+                        d[var],
+                        d[var],
+                        None,
+                        d[var],
+                    ]
+                    x_list += x
+                    y_list += y
+            buttonX = dict(
                 label=lab,
-                method="restyle",
-                args=[{
-                    "cells.values": values,
-                    "cells.fill.color": colors_list,
-                    "cells.format": cell_form,
-                }],
+                method="update",
+                args=[
+                    dict(
+                        x=x_list,
+                    ),
+                ]
             )
-            buttons2.append(button)
+            buttonY = dict(
+                label=lab,
+                method="update",
+                args=[
+                    dict(
+                        y=y_list,
+                    ),
+                ]
+            )
+            buttonsX.append(buttonX)
+            buttonsY.append(buttonY)
 
         updatemenus = [
             dict(
-                buttons=buttons1,
-                type = "dropdown",
-                direction="down",
-                pad={"t": 10, "b": 10},
-                showactive=True,
-                x=0.5,
-                xanchor="right",
-                y=1,
-                yanchor="bottom"
-            ),
-            dict(
-                buttons=buttons2,
+                buttons=buttons_stage,
                 type="dropdown",
                 direction="down",
                 pad={"t": 10, "b": 10},
                 showactive=True,
-                x=1,
+                x=0.9,
                 xanchor="right",
                 y=1,
                 yanchor="bottom"
             ),
-        ]
-
-        annotations=[
             dict(
-                text="<b>Format:</b>",
-                x=0.5,
-                xref="paper",
-                xanchor="right",
-                xshift=-65,
-                y=1,
-                yref="paper",
-                yanchor="top",
-                yshift=36,
-                align="right",
-                showarrow=False,
+                buttons=buttonsX,
+                type="dropdown",
+                direction="up",
+                pad={"t": 30, "b": 10},
+                active=3,
+                showactive=True,
+                x=0.45,
+                xanchor="center",
+                y=0,
+                yanchor="top"
             ),
             dict(
-                text="<b>Variable:</b>",
-                x=1,
+                buttons=buttonsY,
+                type="dropdown",
+                direction="down",
+                pad={"t": 10, "b": 10, "r": 40},
+                active=4,
+                showactive=True,
+                x=0,
+                xanchor="right",
+                y=0.425,
+                yanchor="middle"
+            ),
+        ]
+
+        annotations = [
+            dict(
+                text="<b>Processing Step:</b>",
+                x=0.9,
                 xref="paper",
                 xanchor="right",
-                xshift=-185,
+                xshift=-175,
                 y=1,
                 yref="paper",
                 yanchor="top",
@@ -2513,48 +2531,79 @@ def build_alignment_report(out_dir, aln_stats_tsv):
         ]
 
         if j == 0:
-            if len(marker_type) == 1:
-                title = (
-                        "<b>Captus-assembly: Align (Alignment/Trimming Report)</b><br>"
-                        "<sup>(Data source: "
-                        + str(aln_stats_tsv.name)
-                        + ")</sup>"
-                )
-            else:
-                title = (
-                        "<b>Captus-assembly: Align (Alignment/Trimming Report)<br>"
-                        "1. Marker Type: "
-                        + marker
-                        + "</b><br><sup>(Data source: "
-                        + str(aln_stats_tsv.name)
-                        + ")</sup>"
-                )
-        else:
             title = (
-                "<b>"
-                + str(j + 1)
-                + ". Marker Type: "
-                + marker
-                + "</b><br><sup>(Data source: "
+                "<b>2. Bivariate Relationships and Distributions<br>"
+                + "Marker Type: "
+                + marker_type
+                + "</b><br><sup>(Source: "
                 + str(aln_stats_tsv.name)
                 + ")</sup>"
             )
-
+        else:
+            title = (
+                "<b>Marker Type: "
+                + marker_type
+                + "</b><br><sup>(Source: "
+                + str(aln_stats_tsv.name)
+                + ")</sup>"
+            )
         fig.update_layout(
             font_family="Arial",
+            plot_bgcolor="rgb(8,8,8)",
             title=title,
-            height=230 + 21 * num_rows if num_rows < 31 else None,
-            updatemenus=updatemenus,
+            xaxis=dict(
+                showgrid=True,
+                gridcolor="rgb(64,64,64)",
+                ticks="outside",
+                domain=[0,0.9],
+            ),
+            yaxis=dict(
+                showgrid=True,
+                gridcolor="rgb(64,64,64)",
+                ticks="outside",
+                domain=[0,0.9],
+            ),
+            xaxis2=dict(
+                title="Count",
+                gridcolor="rgb(64,64,64)",
+                ticks="outside",
+                zeroline=True,
+                domain=[0.9,1],
+            ),
+            yaxis2=dict(
+                title="Count",
+                gridcolor="rgb(64,64,64)",
+                ticks="outside",
+                zeroline=True,
+                domain=[0.9,1],
+            ),
+            hoverlabel=dict(
+                font_color="rgb(64,64,64)",
+            ),
+            legend=dict(
+                title=dict(
+                    text="<b>Format</b>",
+                    side="top",
+                ),
+                tracegroupgap=0,
+            ),
+            barmode="overlay",
             annotations=annotations,
+            updatemenus=updatemenus,
         )
-
         figs.append(fig)
-
+    
     # Save plot in html
     aln_html_report = Path(out_dir, "captus-assembly_align.report.html")
     with open(aln_html_report, "w") as f:
         for fig in figs:
-            f.write(fig.to_html(full_html=False, include_plotlyjs="cdn"))
+            f.write(
+                fig.to_html(
+                    full_html=False,
+                    include_plotlyjs="cdn",
+                    config=config
+                )
+            )
     if aln_html_report.exists() and aln_html_report.is_file():
         aln_html_msg = dim(f"Report generated in {elapsed_time(time.time() - start)}")
     else:
