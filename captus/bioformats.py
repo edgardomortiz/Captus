@@ -1298,7 +1298,7 @@ def scipio_yaml_to_dict(
                             try:
                                 v = float(v)
                             except ValueError:
-                                if v.startswith("'"): v = v.strip("'").strip()
+                                if v.startswith("'"): v = v.strip("'").replace(" ", "")
                                 if v.startswith("["): v = [int(n) for n in v[1:-1].split(", ")]
                         if k == "  - ID":
                             if protein not in yaml:
