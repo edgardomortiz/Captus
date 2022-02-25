@@ -318,7 +318,7 @@ SCIPIO_ACCEPTED_INTRON_PENALTY = 1.1
 SCIPIO_2X_BLAT_MIN_SCORE = 15
 
 # Minimum BLAT score for Scipio's only run when number of reference proteins is > 'max_loci_scipio2x'
-SCIPIO_1X_BLAT_MIN_SCORE = 30
+SCIPIO_1X_BLAT_MIN_SCORE = 20
 
 # BLAT identity as proportion of Scipio's 'min_identity' parameter
 SCIPIO_BLAT_IDENT_FACTOR = 0.9
@@ -363,7 +363,7 @@ SCIPIO_GENOME_EXTRA_SETTINGS = {
     # Change here the final settings for nuclear genes:
     "NUC": [
         "--blat_params=-oneOff=1",
-        "--blat_tilesize=6",
+        "--blat_tilesize=7",
         "--exhaust_align_size=15000",
         "--exhaust_gap_size=500",
     ],
@@ -371,7 +371,7 @@ SCIPIO_GENOME_EXTRA_SETTINGS = {
     "PTD": [
         "--region_size=0",
         "--blat_params=-oneOff=1 -maxIntron=2000",
-        "--blat_tilesize=6",
+        "--blat_tilesize=7",
         "--exhaust_align_size=2000",
         "--exhaust_gap_size=900",
         "--max_assemble_size=9000",
@@ -382,7 +382,7 @@ SCIPIO_GENOME_EXTRA_SETTINGS = {
     "MIT": [
         "--region_size=0",
         "--blat_params=-oneOff=1 -maxIntron=9000",
-        "--blat_tilesize=6",
+        "--blat_tilesize=7",
         "--exhaust_align_size=9000",
         "--exhaust_gap_size=900",
         "--max_assemble_size=50000",
