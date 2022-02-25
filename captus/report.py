@@ -674,6 +674,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                               "Mean Phred Score: %{x}<br>" +
                               "Proportion: %{z:.2f}%<br>" +
                               "Count: %{customdata[4]:,.0f} reads<extra></extra>",
+                hoverongaps=False,
                 ygap=0.75,
             )
         )
@@ -825,6 +826,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                               "Length: %{x} bp<br>" +
                               "Proportion: %{z:.2f}%<br>" +
                               "Count: %{customdata[4]:,.0f} reads<extra></extra>",
+                hoverongaps=False,
                 ygap=2,
             )
         )
@@ -942,12 +944,14 @@ def build_qc_report(out_dir, qc_extras_dir):
         fig = go.Figure()
         fig.add_trace(
             go.Heatmap(
-                x=df["gc_content"],
-                y=[df["sample_name"], df["stage"]],
-                z=df["freq"],
+                x=df["base"],
+                y=[df["sample_name"], df["stage-nuc"]],
+                z=df["pct"],
+                coloraxis="coloraxis",
                 hovertemplate="<b>%{y}</b><br>" +
                               "Position: %{x} bp<br>" +
                               "Proportion: %{z:.2f}%<extra></extra>",
+                hoverongaps=False,
                 ygap=0.25,
             )
         )
@@ -1065,6 +1069,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                 x=df["gc_content"],
                 y=[df["sample_name"], df["stage"]],
                 z=df["freq"],
+                coloraxis="coloraxis",
                 hovertemplate="<b>%{y}</b><br>" +
                               "GC Content: %{x}%<br>" +
                               "Proportion: %{z:.2f}%<extra></extra>",
@@ -1205,10 +1210,11 @@ def build_qc_report(out_dir, qc_extras_dir):
     else:
         fig = go.Figure()
         for dup_lev in dup_lev_list:
+            data = df[df["duplication_level"] == dup_lev]
             fig.add_trace(
                 go.Bar(
-                    x=df["percentage_of_total"],
-                    y=[df["sample_name"], df["stage"]],
+                    x=data["percentage_of_total"],
+                    y=[data["sample_name"], data["stage"]],
                     name=dup_lev,
                     meta=[dup_lev],
                     legendgroup=dup_lev,
@@ -1327,7 +1333,8 @@ def build_qc_report(out_dir, qc_extras_dir):
                 x=df["position"],
                 y=[df["sample_name"], df["stage"]],
                 z=df["Total adapter content"],
-                customdata=df_R2,
+                coloraxis="coloraxis",
+                customdata=df,
                 hovertemplate=hovertemplate,
                 hoverongaps=False,
                 ygap=0.75,
