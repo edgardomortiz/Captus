@@ -24,9 +24,10 @@ from tqdm import tqdm
 from . import log
 from . import settings_assembly as settings
 from .bioformats import alignment_stats, dict_to_fasta, fasta_to_dict, pairwise_identity
-from .misc import (bold, clipkit_path_version, dim, elapsed_time, format_dep_msg, is_dir_empty,
-                   mafft_path_version, make_output_dir, python_library_check, quit_with_error, red,
-                   set_ram, set_threads, successful_exit, tqdm_parallel_async_run, tqdm_serial_run)
+from .misc import (bold, clipkit_path_version, dim, dir_is_empty, elapsed_time, file_is_empty,
+                   format_dep_msg, mafft_path_version, make_output_dir, python_library_check,
+                   quit_with_error, red, set_ram, set_threads, successful_exit,
+                   tqdm_parallel_async_run, tqdm_serial_run)
 from .version import __version__
 
 
@@ -631,6 +632,7 @@ def check_value_list(input_values: str, valid_values: dict):
         checked = ",".join([v for v in input_values.upper().split(",") if v in valid_values])
         ignored = ",".join([v for v in input_values.split(",") if v.upper() not in valid_values])
     if ignored: ignored = f'(ignored values: {ignored})'
+
     return checked, ignored
 
 
@@ -651,6 +653,7 @@ def find_extracted_sample_dirs(captus_extractions_dir):
             f"Captus did not find valid sample directories within '{captus_extractions_dir}' please"
             " provide a valid directory with '--captus_extractions_dir"
         )
+
     return extracted_sample_dirs
 
 
@@ -695,6 +698,7 @@ def prepare_refs(captus_ext_dir, margin):
                 log.log(red(ref_path))
                 log.log("")
             log.log("")
+
     return refs_paths
 
 
@@ -724,6 +728,7 @@ def select_filtering_refs(refs_paths, markers, formats, method):
                 filtering_refs["DNA"] = {"path": refs_paths["DNA"]["NT_path"],
                                          "marker_dir": settings.MARKER_DIRS["DNA"],
                                          "format_dir": settings.FORMAT_DIRS["MA"]}
+
     return filtering_refs
 
 
@@ -760,6 +765,7 @@ def make_output_dirtree(markers, formats, out_dir, base_dir, margin):
             symbols[-1] = f'{space}{parent}{branch}'
         symbols.append(f'{space}{parent}{corner}')
         margins.append(f'{"":>{margin}}  ')
+
     return "\n".join([f"{m}{bold(s)}{bold(d)}" for m, s, d in zip(margins, symbols, dirs)])
 
 
@@ -775,7 +781,7 @@ def collect_extracted_markers(
                 for m in markers.split(",") for f in formats.split(",")
                 if (m, f) in settings.VALID_MARKER_FORMAT_COMBO]
     for od in out_dirs:
-        if is_dir_empty(od) is True or overwrite is True:
+        if dir_is_empty(od) is True or overwrite is True:
             for fasta_file in od.glob("*"):
                 fasta_file.unlink()
 
@@ -890,6 +896,7 @@ def collect_sample_markers(
         f"'{sample_name}': {len(set(markers_collected)):,} markers collected from"
         f" source '{source_fasta_path.name}' [{elapsed_time(time.time() - start)}]"
     )
+
     return message
 
 
@@ -931,6 +938,7 @@ def add_refs(ref_path, dest_dir):
             f"'{ref_path.name}': did not find collected FASTA files to which append references"
             f" [{elapsed_time(time.time() - start)}]"
         )
+
     return message
 
 
@@ -942,6 +950,7 @@ def num_samples(fasta_dict):
     samples = [seq_name.split(settings.SEQ_NAME_SEP)[0] for seq_name in fasta_dict
                if not seq_name.endswith(f"{settings.SEQ_NAME_SEP}ref")
                and len(fasta_dict[seq_name]["sequence"].replace("-","")) > 0]
+
     return len(set(samples))
 
 
@@ -955,6 +964,7 @@ def adjust_mafft_concurrency(concurrent, threads_max):
             quit_with_error("Invalid value for '--concurrent', set it to 'auto' or use a number")
     if concurrent > threads_max: concurrent = min(threads_max, concurrent)
     threads_per_alignment = threads_max // concurrent
+
     return concurrent, threads_per_alignment
 
 
@@ -970,6 +980,7 @@ def fastas_origs_dests(dir_path: Path, orig_base_dir: str, dest_base_dir: str):
         # destination = Path(*[p if p != orig_base_dir else dest_base_dir for p in origin.parts])
         destination = Path(str(origin).replace(str(orig_base_dir), str(dest_base_dir)))
         fastas_to_process[origin] = destination
+
     return fastas_to_process
 
 
@@ -988,14 +999,26 @@ def mafft(
         if len(fasta_to_dict(fasta_out)) == 0:
             fasta_out.unlink()
     if overwrite is True or not fasta_out.exists():
-        mafft_cmd = [
-            mafft_path,
-            settings.MAFFT_ALGORITHMS[mafft_algorithm]["arg"],
-            "--maxiterate", "1000",
-            "--reorder",
-            "--thread", f"{threads}",
-            f"{fasta_in}",
-        ]
+        if f"{fasta_in}".lower().endswith(".faa"):
+            mafft_cmd = [
+                mafft_path,
+                settings.MAFFT_ALGORITHMS[mafft_algorithm]["arg"],
+                "--amino",
+                "--maxiterate", "1000",
+                "--reorder",
+                "--thread", f"{threads}",
+                f"{fasta_in}",
+            ]
+        else:
+            mafft_cmd = [
+                mafft_path,
+                settings.MAFFT_ALGORITHMS[mafft_algorithm]["arg"],
+                "--nuc",
+                "--maxiterate", "1000",
+                "--reorder",
+                "--thread", f"{threads}",
+                f"{fasta_in}",
+            ]
         mafft_log_file = Path(fasta_out.parent, f"{fasta_out.stem}.mafft.log")
         with open(fasta_out, "w") as mafft_out:
             with open(mafft_log_file, "w") as mafft_log:
@@ -1004,7 +1027,11 @@ def mafft(
                 try:
                     subprocess.run(mafft_cmd, stdout=mafft_out, stderr=mafft_log,
                                    timeout=mafft_timeout)
-                    message = f"'{fasta_out_short}': aligned [{elapsed_time(time.time() - start)}]"
+                    if file_is_empty(fasta_out):
+                        message = red(f"'{fasta_out_short}': FAILED alignment, empty output file")
+                        fasta_out.unlink()
+                    else:
+                        message = f"'{fasta_out_short}': aligned [{elapsed_time(time.time() - start)}]"
                 except subprocess.TimeoutExpired:
                     message = (
                         f"'{red(fasta_out_short)}': '--max_time' exceeded"
@@ -1018,6 +1045,7 @@ def mafft(
                     )
     else:
         message = dim(f"'{fasta_out_short}': skipped (output FASTA already exists)")
+
     return message
 
 
@@ -1041,26 +1069,31 @@ def paralog_fast_filter(fastas_paths, overwrite, concurrent, show_less, debug):
                                 "alignment", concurrent, show_less)
 
 
-def filter_paralogs_fast(fasta_source, fasta_dest, overwrite):
+def filter_paralogs_fast(fasta_in: Path, fasta_out: Path, overwrite):
     start = time.time()
-    fasta_dest_short = Path(*fasta_dest.parts[-3:])
-    fasta_with_paralogs, fasta_without_paralogs = fasta_to_dict(fasta_source), {}
-    if overwrite is True or not fasta_dest.exists():
+
+    fasta_out_short = Path(*fasta_out.parts[-3:])
+    if file_is_empty(fasta_in):
+        return red(f"'{fasta_out_short}': FAILED paralog removal, input file was empty")
+
+    fasta_with_paralogs, fasta_without_paralogs = fasta_to_dict(fasta_in), {}
+    if overwrite is True or not fasta_out.exists():
         for seq_name in fasta_with_paralogs:
             if ("hit=00" in fasta_with_paralogs[seq_name]["description"] or
                 f"{settings.SEQ_NAME_SEP}ref" in seq_name):
                 seq_name_out = seq_name.replace(f"{settings.SEQ_NAME_SEP}00", "")
                 fasta_without_paralogs[seq_name_out] = dict(fasta_with_paralogs[seq_name])
         if num_samples(fasta_without_paralogs) >= settings.MIN_SAMPLES_ALN:
-            dict_to_fasta(fasta_without_paralogs, fasta_dest)
-            message = f"'{fasta_dest_short}': paralogs removed [{elapsed_time(time.time() - start)}]"
+            dict_to_fasta(fasta_without_paralogs, fasta_out)
+            message = f"'{fasta_out_short}': paralogs removed [{elapsed_time(time.time() - start)}]"
         else:
             message = red(
-                f"'{fasta_dest_short}': not saved (filtered FASTA had fewer than"
+                f"'{fasta_out_short}': not saved (filtered FASTA had fewer than"
                 f" {settings.MIN_SAMPLES_ALN} samples) [{elapsed_time(time.time() - start)}]"
             )
     else:
-        message = dim(f"'{fasta_dest_short}': skipped (output FASTA already exists)")
+        message = dim(f"'{fasta_out_short}': skipped (output FASTA already exists)")
+
     return message
 
 
@@ -1102,6 +1135,10 @@ def paralog_careful_filter(
 def filter_paralogs_careful(shared_paralog_stats, fasta_model, fastas_paths, overwrite):
 
     start = time.time()
+
+    fasta_model_short = Path(*fastas_paths[fasta].parts[-3:])
+    if file_is_empty(fasta_model):
+        return red(f"'{fasta_model_short}': FAILED paralog removal, input file was empty")
 
     aln = fasta_to_dict(fasta_model, ordered=True)
     fasta_model_marker = fasta_model.parts[-3][-3:]
@@ -1185,7 +1222,7 @@ def filter_paralogs_careful(shared_paralog_stats, fasta_model, fastas_paths, ove
                 fastas_saved -= 1
         else:
             messages.append(dim(
-                f"'{Path(*fastas_paths[fasta].parts[-3:])}': skipped (output FASTA already exists)"
+                f"'{fasta_model_short}': skipped (output FASTA already exists)"
             ))
     if fastas_saved > 0:
         messages.append((
@@ -1257,26 +1294,31 @@ def rem_refs(refs_paths, fastas_paths, overwrite, concurrent, show_less, debug):
                                 "alignment", concurrent, show_less)
 
 
-def rem_refs_from_fasta(fasta_source: Path, fasta_dest: Path, ref_names: list, overwrite):
+def rem_refs_from_fasta(fasta_in: Path, fasta_out: Path, ref_names: list, overwrite):
     start = time.time()
-    fasta_dest_short = Path(*fasta_dest.parts[-4:])
-    fasta_with_refs, fasta_without_refs = fasta_to_dict(fasta_source), {}
-    if overwrite is True or not fasta_dest.exists():
+
+    fasta_out_short = Path(*fasta_out.parts[-4:])
+    if file_is_empty(fasta_in):
+        return red(f"'{fasta_out_short}': FAILED removal of references, input file was empty")
+
+    fasta_with_refs, fasta_without_refs = fasta_to_dict(fasta_in), {}
+    if overwrite is True or not fasta_out.exists():
         for seq_name in fasta_with_refs:
             if seq_name not in ref_names:
                 fasta_without_refs[seq_name] = dict(fasta_with_refs[seq_name])
         if num_samples(fasta_without_refs) >= settings.MIN_SAMPLES_ALN:
-            dict_to_fasta(fasta_without_refs, fasta_dest)
+            dict_to_fasta(fasta_without_refs, fasta_out)
             message = (
-                f"'{fasta_dest_short}': references removed [{elapsed_time(time.time() - start)}]"
+                f"'{fasta_out_short}': references removed [{elapsed_time(time.time() - start)}]"
             )
         else:
             message = red(
-                f"'{fasta_dest_short}': not saved (filtered FASTA had fewer than"
+                f"'{fasta_out_short}': not saved (filtered FASTA had fewer than"
                 f" {settings.MIN_SAMPLES_ALN} samples) [{elapsed_time(time.time() - start)}]"
             )
     else:
-        message = dim(f"'{fasta_dest_short}': skipped (output FASTA already exists)")
+        message = dim(f"'{fasta_out_short}': skipped (output FASTA already exists)")
+
     return message
 
 
@@ -1284,7 +1326,11 @@ def clipkit(
     clipkit_path, clipkit_algorithm, clipkit_gaps, fasta_in: Path, fasta_out: Path, overwrite
 ):
     start = time.time()
+
     fasta_out_short = Path(*fasta_out.parts[-4:])
+    if file_is_empty(fasta_in):
+        return red(f"'{fasta_out_short}': FAILED alignment trimming, input file was empty")
+
     if overwrite is True or not fasta_out.exists():
         clipkit_cmd = [
             clipkit_path,
@@ -1318,6 +1364,7 @@ def clipkit(
             )
     else:
         message = dim(f"'{fasta_out_short}': skipped (output FASTA already exists)")
+
     return message
 
 
@@ -1325,11 +1372,13 @@ def extract_seq_names(shared_seq_names, fasta_path):
 
     start = time.time()
 
+    short_path = Path(*fasta_path.parts[-5:])
+    if file_is_empty(fasta_path):
+        return red(f"'{short_path}': FAILED name extraction, file was empty")
+
     for seq_name in fasta_to_dict(fasta_path):
         equivalence = f"{seq_name}\t{seq_name.split(settings.SEQ_NAME_SEP)[0]}"
         if equivalence not in shared_seq_names: shared_seq_names.append(equivalence)
-
-    short_path = Path(*fasta_path.parts[-5:])
     message = f"'{short_path}': names extracted [{elapsed_time(time.time() - start)}]"
 
     return message
@@ -1338,6 +1387,10 @@ def extract_seq_names(shared_seq_names, fasta_path):
 def compute_aln_stats(shared_aln_stats, fasta_path):
 
     start = time.time()
+
+    short_path = Path(*fasta_path.parts[-5:])
+    if file_is_empty(fasta_path):
+        return red(f"'{short_path}': FAILED statistics calculation, input file was empty")
 
     fasta_path_parts = fasta_path.parts
 
@@ -1372,7 +1425,6 @@ def compute_aln_stats(shared_aln_stats, fasta_path):
     ]]
     shared_aln_stats += aln_tsv
 
-    short_path = Path(*fasta_path.parts[-5:])
     message = f"'{short_path}': stats computed [{elapsed_time(time.time() - start)}]"
 
     return message

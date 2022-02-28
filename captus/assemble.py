@@ -336,6 +336,7 @@ def subsample_reads(
         message = f"'{sample_name}': reads subsampled [{elapsed_time(time.time() - start)}]"
     else:
         message = dim(f"'{sample_name}': skipped (output files already exist)")
+
     return message
 
 
@@ -355,6 +356,7 @@ def find_and_match_subsampled_fastqs(fastqs_to_subsample, out_dir):
             }
         if Path(sample_subsampled_out_dir, fastq_r2).exists():
             fastqs_to_assemble[fastq_r1]["fastq_r2"] = fastq_r2
+
     return fastqs_to_assemble
 
 
@@ -455,6 +457,7 @@ def megahit(
         message = f"'{sample_name}': {asm_stats} [{elapsed_time(time.time() - start)}]"
     else:
         message = dim(f"'{sample_name}': skipped (output files already exist)")
+
     return message
 
 
@@ -475,6 +478,7 @@ def get_mean_read_length(fastq_path, num_reads):
                 read_lengths.append(len(line.strip("\n")))
             if line_count == num_reads * 4:
                 break
+
     return math.ceil(statistics.mean(read_lengths))
 
 
@@ -622,6 +626,7 @@ def get_asm_stats(sample_megahit_out_dir):
         f"{s_least_0bp:,} bp in {n_least_0bp:,} contigs, from {shortest:,} to {longest:,} bp,"
         f" avg {avg_length:,} bp, median {median_length:,} bp, N50 {n50:,} bp"
     )
+
     return asm_msg
 
 
