@@ -214,6 +214,7 @@ def score_matrix_to_dict(matrix):
             key = f"{row_label}{col_labels[j]}"
             matrix_as_dict[key] = matrix[i][j]
     matrix_as_dict["gap"] = min(matrix_as_dict.values())
+
     return matrix_as_dict
 
 # PAM250 matrix for scoring protein alignments
@@ -276,6 +277,7 @@ def genetic_code(genetic_code_id):
             starts[codon] = s
         if s == "*":
             stops[codon] = s
+
     return {"aminos": aminos, "starts": starts, "stops": stops}
 
 
@@ -420,6 +422,7 @@ def translate_fasta_dict(in_fasta_dict: dict, genetic_code_id: int, frame="guess
             translated_fasta[seq_name] = {
                 "description": in_fasta_dict[seq_name]["description"],
                 "sequence": translate(in_fasta_dict[seq_name]["sequence"], gc, frame, start_as_M)}
+
     return translated_fasta
 
 
@@ -506,6 +509,7 @@ def align_prots(s1, s2, method, scoring_matrix=PAM250):
                 aln["s2_aln"]     = "".join(s2_aln)
                 aln["s2_start"]   = s2_start
                 aln["s2_end"]     = s2_end
+
         return aln
 
     def best_score(val_matrix, row, col, nt_left, nt_top, method, scoring_matrix):
@@ -641,6 +645,7 @@ def align_prots(s1, s2, method, scoring_matrix=PAM250):
             aln["match_rate"] = aln["matches"] / (aln_end - aln_start)
         except ZeroDivisionError:
             aln["match_rate"] = 0.0
+
         return aln
 
     def smith_waterman(s1, s2, aln, scoring_matrix):
@@ -663,6 +668,7 @@ def align_prots(s1, s2, method, scoring_matrix=PAM250):
             aln["match_rate"] = aln["matches"] / (aln_end - aln_start)
         except ZeroDivisionError:
             aln["match_rate"] = 0.0
+
         return aln
 
 
@@ -826,6 +832,7 @@ def fasta_to_dict(fasta_path, ordered=False):
                 fasta_out[name] = {"description": desc, "sequence": ""}
             else:
                 fasta_out[name]["sequence"] += line
+
     return fasta_out
 
 
@@ -867,6 +874,7 @@ def dict_to_fasta(
         if write_if_empty:
             with opener(out_fasta_path, action) as fasta_out:
                 fasta_out.write("")
+
     return out_fasta_path
 
 
@@ -932,6 +940,7 @@ def alignment_stats(fasta_path):
         sample_names = []
         for seq in fasta_dict:
             sample_names.append(seq.split(set_a.SEQ_NAME_SEP)[0])
+
         return len(set(sample_names))
 
     def mark_terminal_gaps(fasta_dict):
@@ -941,6 +950,7 @@ def alignment_stats(fasta_path):
             left_gaps = "#" * (len(seq) - len(seq.lstrip("-")))
             right_gaps = "#" * (len(seq) - len(seq.rstrip("-")))
             fasta_list.append(f'{left_gaps}{seq.strip("-")}{right_gaps}')
+
         return fasta_list
 
     def transpose_aln(fasta_list:list, num_sites):
@@ -948,6 +958,7 @@ def alignment_stats(fasta_path):
         for seq in fasta_list:
             for pos in range(num_sites):
                 sites[pos] += seq[pos]
+
         return sites
 
     def clean_patterns(sites: list, seq_type):
@@ -983,6 +994,7 @@ def alignment_stats(fasta_path):
                 else:
                     site_out += r
             clean.append(site_out)
+
         return clean
 
     def pattern_type(pattern, seq_type):
@@ -1348,6 +1360,7 @@ def scipio_yaml_to_dict(
                         yaml[protein][hit_num][-1][
                             "matchings"][-1][
                             "mismatchlist"].append(mm)
+
         return yaml
 
     def insert_shifts(mat: dict):
@@ -1385,6 +1398,7 @@ def scipio_yaml_to_dict(
         else:
             seq_out = mat["seq"]
         if seq_out == "": translation_out = ""
+
         return seq_out, translation_out
 
     def concat_cds(mod: dict):
@@ -1407,6 +1421,7 @@ def scipio_yaml_to_dict(
             if mod["mat_types"][i] == "exon":
                 cds_nt += mod["mat_nt"][i]
                 cds_aa += mod["mat_aa"][i]
+
         return cds_nt, cds_aa
 
     def align_exon_nt_to_scipio_aa(seq_nt: str, gencode: dict, seq_aa: str):
@@ -1437,6 +1452,7 @@ def scipio_yaml_to_dict(
         aln["rf"]    = rf
         aln["lead"]  = rf - 1
         aln["trail"] = (len(seq_nt) - aln["lead"]) % 3
+
         return aln
 
     def remove_leading(mod: dict, i: int, lead: int, aln: dict):
@@ -1473,6 +1489,7 @@ def scipio_yaml_to_dict(
         if aln["s1_start"] > 0:
             mod["ref_starts"][i] += aln["s1_start"]
             mod["mat_aa"][i] = mod["mat_aa"][i][aln["s1_start"]:]
+
         return mod
 
     def remove_trailing(mod: dict, i: int, trail: int, aln: dict, mod_len: int):
@@ -1511,6 +1528,7 @@ def scipio_yaml_to_dict(
         if aln["s1_end"] < aln["s2_end"]:
             mod["ref_ends"][i] -= aln["s2_end"] - aln["s1_end"]
             mod["mat_aa"][i] = mod["mat_aa"][i][:aln["s1_end"]]
+
         return mod
 
     def fix_model(mod: dict, gencode: dict):
@@ -1756,6 +1774,7 @@ def scipio_yaml_to_dict(
                         mod["hit_ends"][i]   = None
                     else:
                         last_exon = i
+
         return mod
 
     def check_gaps_and_concat_seqs(mod: dict, gencode: dict, predict: bool):
@@ -1791,6 +1810,7 @@ def scipio_yaml_to_dict(
                 else:
                     mod["seq_flanked"] += mod["mat_nt"][i].lower()
         mod["seq_aa"] = translate(mod["seq_nt"], gencode, frame=1, start_as_M=False)
+
         return mod
 
     def concat_coords(ids: list, starts: list, ends: list):
@@ -1807,6 +1827,7 @@ def scipio_yaml_to_dict(
                     else:
                         coords += f'\n{coord}'
                 last_exon = i
+
         return coords
 
     def parse_model(
@@ -2007,7 +2028,9 @@ def scipio_yaml_to_dict(
         # actual lwscore is computed in the filtered_models loop, for now just store length
         mod["lwscore"]     = min(prot_len, mod["ref_size"])
         mod["gapped"]      = bool("gap" in "".join(mod["mat_notes"]))
+
         return mod
+
 
     gencode = genetic_code(transtable)
     yaml = load_scipio_yaml(yaml_path)
@@ -2116,6 +2139,7 @@ def blat_misc_dna_psl_to_dict(
                 t_end.append(t_starts[i] + block_sizes[i])
         q_end.append(q_end_pos)
         t_end.append(t_end_pos)
+
         return q_start, q_end, t_start, t_end, t_inserts
 
     def calculate_psl_identity(
@@ -2143,6 +2167,7 @@ def blat_misc_dna_psl_to_dict(
             else:
                 round_away_from_zero = int(round_away_from_zero + 0.5)
             millibad = (1000 * (mismatches + insert_factor + round_away_from_zero)) / total
+
         return 100.0 - millibad * 0.1
 
     def determine_matching_region(q_size, q_start, q_end, t_size, t_start, t_end, t_strand):

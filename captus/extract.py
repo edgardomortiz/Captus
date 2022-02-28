@@ -30,7 +30,7 @@ from .bioformats import (blat_misc_dna_psl_to_dict, dict_to_fasta, fasta_headers
                          split_mmseqs_clusters_file, translate_fasta_dict, write_gff3)
 from .misc import (ElapsedTimeThread, bioperl_get_version, blat_path_version, bold, bold_green,
                    bold_yellow, compress_list_files, dim, elapsed_time, format_dep_msg,
-                   has_valid_ext, is_dir_empty, make_output_dir, make_tmp_dir_within,
+                   has_valid_ext, dir_is_empty, make_output_dir, make_tmp_dir_within,
                    mmseqs_path_version, python_library_check, quit_with_error, red,
                    remove_formatting, scipio_path_version, set_ram, set_threads, successful_exit,
                    tqdm_parallel_async_run, tqdm_serial_run, yaml_perl_get_version)
@@ -521,7 +521,7 @@ def extract(full_command, args):
         log.log(f'{"":>{mar}}  {dim(clustering_dir_msg)}')
         log.log("")
 
-        if is_dir_empty(clustering_dir) or clustering_input_file.is_file() or args.overwrite:
+        if dir_is_empty(clustering_dir) or clustering_input_file.is_file() or args.overwrite:
             if clustering_input_file.is_file() and args.overwrite is False:
                 log.log(
                     f"{bold('WARNING:')} The input FASTA file for clustering was found in"
@@ -1180,7 +1180,7 @@ def run_scipio_command(scipio_params: dict, target, query, overwrite, stage):
         scipio_min_score = scipio_params["min_score"]
 
     scipio_out_dir, _ = make_output_dir(scipio_out_dir)
-    if is_dir_empty(scipio_out_dir) is True or overwrite is True:
+    if dir_is_empty(scipio_out_dir) is True or overwrite is True:
 
         # Set minimum BLAT score according to number of references (too many hits created when using
         # a large number of reference proteins), higher score, fewer hits
@@ -1442,20 +1442,20 @@ def write_fastas_and_report(
             cds_nt_seqs_dir, _ = make_output_dir(Path(out_dir, settings.FORMAT_DIRS["NT"]))
             gene_seqs_dir, _ = make_output_dir(Path(out_dir, settings.FORMAT_DIRS["GE"]))
             flanked_seqs_dir, _ = make_output_dir(Path(out_dir, settings.FORMAT_DIRS["GF"]))
-            if is_dir_empty(cds_aa_seqs_dir) is True or overwrite is True:
+            if dir_is_empty(cds_aa_seqs_dir) is True or overwrite is True:
                 for faa_file in cds_aa_seqs_dir.glob("*.faa"):
                     faa_file.unlink()
-            if is_dir_empty(cds_nt_seqs_dir) is True or overwrite is True:
+            if dir_is_empty(cds_nt_seqs_dir) is True or overwrite is True:
                 for fna_file in cds_nt_seqs_dir.glob("*.fna"):
                     fna_file.unlink()
         elif marker_type in ["DNA", "CLR"]:
             gene_seqs_dir, _ = make_output_dir(Path(out_dir, settings.FORMAT_DIRS["MA"]))
             flanked_seqs_dir, _ = make_output_dir(Path(out_dir, settings.FORMAT_DIRS["MF"]))
 
-        if is_dir_empty(gene_seqs_dir) is True or overwrite is True:
+        if dir_is_empty(gene_seqs_dir) is True or overwrite is True:
             for fna_file in gene_seqs_dir.glob("*.fna"):
                 fna_file.unlink()
-        if is_dir_empty(flanked_seqs_dir) is True or overwrite is True:
+        if dir_is_empty(flanked_seqs_dir) is True or overwrite is True:
             for fna_file in flanked_seqs_dir.glob("*.fna"):
                 fna_file.unlink()
 
@@ -1514,7 +1514,7 @@ def blat_misc_dna(
     dna_gff_file = Path(blat_dna_out_dir, f"{marker_type}_contigs.gff")
     blat_dna_out_dir, _ = make_output_dir(blat_dna_out_dir)
 
-    if is_dir_empty(blat_dna_out_dir) is True or overwrite is True:
+    if dir_is_empty(blat_dna_out_dir) is True or overwrite is True:
         blat_cmd = [
             f"{blat_path}",
             "-t=dna",
@@ -1581,7 +1581,7 @@ def cleanup_post_extraction(
     leftovers_file = Path(annotated_assembly_dir, "leftover_contigs.fasta.gz")
     out_files = [gff_file, stats_file, hit_contigs_file, leftovers_clust_file, leftovers_file]
 
-    if is_dir_empty(annotated_assembly_dir) is True or overwrite is True:
+    if dir_is_empty(annotated_assembly_dir) is True or overwrite is True:
         # Concatenate all GFF from different genomes
         sample_gffs = list(sample_dir.resolve().rglob("[A-Z]*_contigs.gff"))
         sample_gffs = [gff for gff in sample_gffs

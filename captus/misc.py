@@ -226,7 +226,18 @@ def make_tmp_dir_within(tmp_dir_in, program_tmp_subdir):
     return tmp_dir_out.resolve()
 
 
-def is_dir_empty(dir_path, ignore_subdirectories=True):
+def file_is_empty(file_path):
+    """
+    Check if file has no contents
+    """
+    file_path = Path(file_path)
+    if file_path.stat().st_size == 0:
+        return True
+    else:
+        return False
+
+
+def dir_is_empty(dir_path, ignore_subdirectories=True):
     """
     Checks if a directory contains files and/or subdirectories, 'dir_path' can be a string or a Path
     """
