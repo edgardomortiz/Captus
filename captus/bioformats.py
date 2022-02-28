@@ -56,7 +56,7 @@ for a in sorted(NT_IUPAC):
         matches = 0
         for nuc in set(expand):
             matches += (expand.count(nuc) * (expand.count(nuc) - 1)) / 2
-        NT_PIDS[a+b] = matches / combos
+        NT_PIDS[f'{a}{b}'] = matches / combos
     i += 1
 NT_PIDS["--"] = 0.0
 
@@ -2350,12 +2350,13 @@ def blat_misc_dna_psl_to_dict(
 
                     overlap = path[h]["q_end"][-1] - path[h+1]["q_start"][0]
                     # Negative 'overlap' is a gap that has to be filled with 'n's
-                    if overlap < 1:
+                    gap_len = abs(overlap) if overlap <= 0 else 0
+                    if gap_len >= 0:
                         asm_hit["seq_flanked"] = stitch_contigs(asm_hit["seq_flanked"],
                                                                 next_seq_flanked,
                                                                 max_overlap_bp,
-                                                                overlap)
-                        asm_hit["seq_gene"] += f'{"n" * abs(overlap)}{next_seq_gene}'
+                                                                gap_len)
+                        asm_hit["seq_gene"] += f'{"n" * gap_len}{next_seq_gene}'
                         ref_starts.append(list(path[h+1]["q_start"]))
                         ref_ends.append(list(path[h+1]["q_end"]))
                     else:
@@ -2445,14 +2446,15 @@ def blat_misc_dna_psl_to_dict(
             end_flank = min((ends[-1] + up_down_stream_bp), seq_len)
             left_flank = fasta_dict[contig]["sequence"][start_flank:starts[0]].lower()
             right_flank = fasta_dict[contig]["sequence"][ends[-1]:end_flank].lower()
-            if region == "full":
-                sequence = f"{left_flank}{sequence}{right_flank}"
-            elif ((region  == "proximal" and strand == "+")
-                  or (region == "distal" and strand == "-")):
-                sequence = f"{left_flank}{sequence}"
-            elif ((region  == "proximal" and strand == "-")
-                  or (region == "distal" and strand == "+")):
-                sequence = f"{sequence}{right_flank}"
+            sequence = f"{left_flank}{sequence}{right_flank}"
+            # if region == "full":
+            #     sequence = f"{left_flank}{sequence}{right_flank}"
+            # elif ((region  == "proximal" and strand == "+")
+            #       or (region == "distal" and strand == "-")):
+            #     sequence = f"{left_flank}{sequence}"
+            # elif ((region  == "proximal" and strand == "-")
+            #       or (region == "distal" and strand == "+")):
+            #     sequence = f"{sequence}{right_flank}"
         else:
             for s, e in zip(starts, ends):
                 sequence += fasta_dict[contig]["sequence"][s:e].upper()
@@ -2461,7 +2463,7 @@ def blat_misc_dna_psl_to_dict(
         elif strand == "-":
             return reverse_complement(sequence)
 
-    def stitch_contigs(current_contig, next_contig, max_overlap_bp, match_overlap):
+    def stitch_contigs(current_contig, next_contig, max_overlap_bp, gap_len):
         current_trail = ""
         for i in reversed(range(len(current_contig))):
             if current_contig[i].isupper():
@@ -2473,14 +2475,18 @@ def blat_misc_dna_psl_to_dict(
                 next_lead = next_contig[:i]
         check_len = min(len(current_trail), len(next_lead), max_overlap_bp)
         scaffold_overlap = 0
-        while check_len != 0:
-            if overlap_matches(current_trail[-check_len:], next_lead[0:check_len]):
-                scaffold_overlap = abs(check_len)
-                break
-            check_len -= 1
+        # Only check for potential overlaps of > DNA_MIN_OVERLAP_BP (21 bp)
+        if check_len > set_a.DNA_MIN_OVERLAP_BP:
+            while check_len >= set_a.DNA_MIN_OVERLAP_BP:
+                if overlap_matches(current_trail[-check_len:], next_lead[0:check_len]):
+                    scaffold_overlap = check_len
+                    break
+                check_len -= 1
         scaffold = ""
+        sep_len = gap_len - (len(current_trail) + len(next_lead))
+        separator = "n" * sep_len if sep_len > 0 else set_a.DNA_CONTIG_SEPARATOR
         if scaffold_overlap == 0:
-            scaffold = f'{current_contig}{"n" * abs(match_overlap)}{next_contig}'
+            scaffold = f'{current_contig}{separator}{next_contig}'
         else:
             scaffold = f'{current_contig}{next_contig[scaffold_overlap:]}'
         return scaffold
@@ -2488,11 +2494,11 @@ def blat_misc_dna_psl_to_dict(
     def overlap_matches(seq1, seq2):
         matches = 0
         seq_len = len(seq1)
-        for n1, n2 in zip(seq1, seq2):
+        for n1, n2 in zip(seq1.upper(), seq2.upper()):
             matches += NT_PIDS["".join(sorted([n1, n2]))]
         if matches == seq_len:
             return True
-        if matches / seq_len >= 95.0:
+        if matches / seq_len >= (1 - set_a.DNA_TOLERANCE_PROP):
             return True
         if seq_len - matches <= 1.0 and seq_len <= 10:
             return True

@@ -410,6 +410,12 @@ DNA_MIN_COVERAGE_BEFORE_ASSEMBLY = 10
 # then the maximum overlap is fixed to this value
 DNA_MAX_OVERLAP_BP = 99
 
+# Smallest reliable overlap for two contigs to be concatenated during assembly of flanked hits
+DNA_MIN_OVERLAP_BP = 21
+
+# Separator for gaps of undetermined lengths during assemble of flanked hits
+DNA_CONTIG_SEPARATOR = "n" * 10
+
 # During non-coding sequence extraction, a version of the sequence matched with extra upstream and
 # downstream nucleotides is extracted in case they help in alignment or provide useful extra data
 # This value determines how many extra nucleotides to extract up- and/or downstream
