@@ -406,7 +406,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         phred64_sample_list = df.query("percentile_90 > 42")["sample_name"].unique()
         phred64_index = df[(df["sample_name"].isin(phred64_sample_list)) & (df["stage"] == "Before")].index
         df.iloc[phred64_index,4:] = df.iloc[phred64_index,4:] - 31
-
+    
     var_list = [
         "mean",
         "percentile_90",
@@ -424,6 +424,21 @@ def build_qc_report(out_dir, qc_extras_dir):
         "10th Percentile",
     ]
 
+    df_pivot = df.pivot_table(
+        index=["sample_name", "stage"],
+        columns=["read", "base"],
+        values=var_list
+    )
+    df = df_pivot.stack(
+        level=["read", "base"],
+        dropna=False,
+    ).reset_index()
+    df.sort_values(
+            by=["sample_name", "stage"],
+            ascending=[True, False],
+            inplace=True,
+    )
+    
     # For paired-end
     if "R2" in df["read"].to_list():
         df_R1 = df[df["read"] == "R1"]
@@ -513,7 +528,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     y = 1.5
     while y < (len(sample_list) - 1) * 2:
         fig.add_hline(y=y, line_width=2, line_color="rgb(8,8,8)")
-        y = y + 2
+        y += 2
 
     buttons = []
     for var, lab in zip(var_list, var_lab_list):
@@ -602,15 +617,28 @@ def build_qc_report(out_dir, qc_extras_dir):
     col = 0
     while df_pivot.iloc[:,col].isnull().any() == True:
         df_pivot.iloc[:,col].fillna(0, inplace=True)
-        col = col + 1
+        col += 1
     df = df_pivot.reset_index().melt(
-        id_vars=["sample_name", "read", "stage"], value_name="count").sort_values(
-            by=["sample_name", "stage"], ascending=[True, False]
+        id_vars=["sample_name", "read", "stage"],
+        value_name="count",
     )
     df_grouped = df.groupby(["sample_name", "read", "stage"], as_index=False)["count"].sum()
     df_merged = pd.merge(df, df_grouped, on=["sample_name", "read", "stage"], how="outer")
     df_merged["freq"] = df_merged["count_x"] / df_merged["count_y"] * 100
-    df = df_merged
+    df_pivot = df_merged.pivot_table(
+        index=["sample_name", "stage"],
+        columns=["read", "quality"],
+        values="freq"
+    ).reset_index()
+    df = df_pivot.melt(
+        id_vars=["sample_name", "stage"],
+        value_name="freq",
+    )
+    df.sort_values(
+            by=["sample_name", "stage"],
+            ascending=[True, False],
+            inplace=True,
+    )
 
     # For paired-end
     if "R2" in df["read"].to_list():
@@ -683,7 +711,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     y = 1.5
     while y < (len(sample_list) - 1) * 2:
         fig.add_hline(y=y, line_width=2, line_color="rgb(8,8,8)")
-        y = y + 2
+        y += 2
 
     fig.update_layout(
         font_family="Arial",
@@ -738,16 +766,29 @@ def build_qc_report(out_dir, qc_extras_dir):
     # col = 0
     # while df_pivot.iloc[:,col].isnull().any() == True:
     #     df_pivot.iloc[:,col].fillna(0, inplace=True)
-    #     col = col + 1
+    #     col += 1
 
     df = df_pivot.reset_index().melt(
-        id_vars=["sample_name", "read", "stage"], value_name="count").sort_values(
-            by=["sample_name", "stage"], ascending=[True, False]
+        id_vars=["sample_name", "read", "stage"],
+        value_name="count"
     )
     df_grouped = df.groupby(["sample_name", "stage", "read"], as_index=False)["count"].sum()
     df_merged = pd.merge(df, df_grouped, on=["sample_name", "stage", "read"], how="outer")
     df_merged["freq"] = df_merged["count_x"] / df_merged["count_y"] * 100
-    df = df_merged
+    df_pivot = df_merged.pivot_table(
+        index=["sample_name", "stage"],
+        columns=["read", "length"],
+        values="freq"
+    ).reset_index()
+    df = df_pivot.melt(
+        id_vars=["sample_name", "stage"],
+        value_name="freq",
+    )
+    df.sort_values(
+            by=["sample_name", "stage"],
+            ascending=[True, False],
+            inplace=True,
+    )
 
     colorscale = [
         [0,     "#5E4FA2"],
@@ -835,7 +876,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     y = 1.5
     while y < (len(sample_list) - 1) * 2:
         fig.add_hline(y=y, line_width=2, line_color="rgb(8,8,8)")
-        y = y + 2
+        y += 2
 
     fig.update_layout(
         font_family="Arial",
@@ -884,14 +925,28 @@ def build_qc_report(out_dir, qc_extras_dir):
     ### Per Base Nucleotide Content ###
     df = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["PBSC"]))
     df["stage"] = df["stage"].str.capitalize()
-    df_melt = df.melt(
-        id_vars=["sample_name", "read", "stage", "base"],
-        value_vars=["A", "T", "G", "C"],
-        var_name="nuc",
+    df_pivot = df.pivot(
+        index=["sample_name", "stage"],
+        columns=["read", "base"]
+    ).reset_index()
+    df = df_pivot.melt(
+        id_vars=["sample_name", "stage"],
+        var_name=["nuc", "read", "base"],
         value_name="pct",
     )
-    df_melt["stage-nuc"] = df_melt["stage"] + " - " + df_melt["nuc"]
-    df = df_melt.sort_values(by=["sample_name", "stage", "base"], ascending=[True, False, True])
+    order = {
+        "A": 0,
+        "T": 1,
+        "G": 2,
+        "C": 3,
+    }
+    df["nuc_order"] = df["nuc"].map(order)
+    df.sort_values(
+        by=["sample_name", "stage", "base", "nuc_order"],
+        ascending=[True, False, True, True],
+        inplace=True,
+    )
+    df["stage-nuc"] = df["stage"] + " - " + df["nuc"]
 
     # For paired-end
     if "R2" in df["read"].to_list():
@@ -960,13 +1015,13 @@ def build_qc_report(out_dir, qc_extras_dir):
     y = 3.5
     while y < (len(sample_list)) * 8:
         fig.add_hline(y=y, line_width=0.75, line_color="rgb(8,8,8)")
-        y = y + 8
+        y += 8
 
     # Draw boundaries between samples
     y = 7.5
     while y < (len(sample_list) - 1) * 8:
         fig.add_hline(y=y, line_width=2, line_color="rgb(8,8,8)")
-        y = y + 8
+        y += 8
 
     fig.update_layout(
         font_family="Arial",
@@ -1019,7 +1074,20 @@ def build_qc_report(out_dir, qc_extras_dir):
     df_merged = pd.merge(df, df_grouped, on=["sample_name", "read", "stage"], how="outer")
     df_merged["freq"] = df_merged["count_x"] / df_merged["count_y"] * 100
     df = df_merged.drop(columns=["count_x", "count_y"])
-
+    df_pivot = df.pivot(
+        index=["sample_name", "stage"],
+        columns=["read", "gc_content"],
+        values="freq",
+    ).reset_index()
+    df = df_pivot.melt(
+        id_vars=["sample_name", "stage"],
+        value_name="freq",
+    )
+    df.sort_values(
+        by=["sample_name", "stage"],
+        ascending=[True, False],
+        inplace=True,
+    )
     # For paired-end
     if "R2" in df["read"].to_list():
         df_R1 = df[df["read"] == "R1"]
@@ -1040,6 +1108,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                 hovertemplate="<b>%{y}</b><br>" +
                               "GC Content: %{x}%<br>" +
                               "Proportion: %{z:.2f}%<extra></extra>",
+                hoverongaps=False,
                 ygap=0.75,
             ),
             row=1,
@@ -1055,6 +1124,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                 hovertemplate="<b>%{y}</b><br>" +
                               "GC Content: %{x}%<br>" +
                               "Proportion: %{z:.2f}%<extra></extra>",
+                hoverongaps=False,
                 ygap=0.75,
             ),
             row=1,
@@ -1073,6 +1143,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                 hovertemplate="<b>%{y}</b><br>" +
                               "GC Content: %{x}%<br>" +
                               "Proportion: %{z:.2f}%<extra></extra>",
+                hoverongaps=False,
                 ygap=0.75,
             )
         )
@@ -1081,7 +1152,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     y = 1.5
     while y < (len(sample_list) - 1) * 2:
         fig.add_hline(y=y, line_width=2, line_color="rgb(8,8,8)")
-        y = y + 2
+        y += 2
 
     fig.update_layout(
         font_family="Arial",
@@ -1232,7 +1303,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     y = 1.5
     while y < (len(sample_list) - 1) * 2:
         fig.add_hline(y=y, line_width=2, line_color="rgb(8,8,8)")
-        y = y + 2
+        y += 2
 
     fig.update_layout(
         font_family="Arial",
@@ -1272,7 +1343,19 @@ def build_qc_report(out_dir, qc_extras_dir):
     df = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["ADCO"]))
     df["stage"] = df["stage"].str.capitalize()
     df["Total adapter content"] = df.iloc[:,4:].sum(axis=1)
-
+    df_pivot = df.pivot(
+        index=["sample_name", "stage"],
+        columns=["read", "position"],
+    )
+    df = df_pivot.stack(
+        level=["read", "position"],
+        dropna=False,
+    ).reset_index()
+    df.sort_values(
+        by=["sample_name", "stage"],
+        ascending=[True, False],
+        inplace=True,
+    )
     hover_info_list = []
     col_num = 4
     for col in df.columns[4:]:
@@ -1345,7 +1428,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     y = 1.5
     while y < (len(sample_list) - 1) * 2:
         fig.add_hline(y=y, line_width=2, line_color="rgb(8,8,8)")
-        y = y + 2
+        y += 2
 
     fig.update_layout(
         font_family="Arial",
@@ -2538,14 +2621,22 @@ def build_alignment_report(out_dir, aln_stats_tsv):
         ]
 
         if j == 0:
-            title = (
-                "<b>2. Bivariate Relationships and Distributions<br>"
-                + "Marker Type: "
-                + marker_type
-                + "</b><br><sup>(Source: "
-                + str(aln_stats_tsv.name)
-                + ")</sup>"
-            )
+            if len(marker_type_list) == 1:
+                title = (
+                    "<b>2. Bivariate Relationships and Distributions</b><br>"
+                    + "<sup>(Source: "
+                    + str(aln_stats_tsv.name)
+                    + ")</sup>"
+                )
+            else:
+                title = (
+                    "<b>2. Bivariate Relationships and Distributions<br>"
+                    + "Marker Type: "
+                    + marker_type
+                    + "</b><br><sup>(Source: "
+                    + str(aln_stats_tsv.name)
+                    + ")</sup>"
+                )
         else:
             title = (
                 "<b>Marker Type: "
