@@ -363,7 +363,7 @@ SCIPIO_GENOME_EXTRA_SETTINGS = {
     # Change here the final settings for nuclear genes:
     "NUC": [
         "--blat_params=-oneOff=1",
-        "--blat_tilesize=7",
+        "--blat_tilesize=6",
         "--exhaust_align_size=15000",
         "--exhaust_gap_size=500",
     ],
@@ -371,7 +371,7 @@ SCIPIO_GENOME_EXTRA_SETTINGS = {
     "PTD": [
         "--region_size=0",
         "--blat_params=-oneOff=1 -maxIntron=2000",
-        "--blat_tilesize=7",
+        "--blat_tilesize=6",
         "--exhaust_align_size=2000",
         "--exhaust_gap_size=900",
         "--max_assemble_size=9000",
@@ -382,7 +382,7 @@ SCIPIO_GENOME_EXTRA_SETTINGS = {
     "MIT": [
         "--region_size=0",
         "--blat_params=-oneOff=1 -maxIntron=9000",
-        "--blat_tilesize=7",
+        "--blat_tilesize=6",
         "--exhaust_align_size=9000",
         "--exhaust_gap_size=900",
         "--max_assemble_size=50000",
