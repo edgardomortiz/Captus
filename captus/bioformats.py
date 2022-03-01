@@ -2221,7 +2221,6 @@ def blat_misc_dna_psl_to_dict(
         limits)
         """
         full_hits, part_hits = [], []
-        paths, sorted_paths = [], []
 
         for hit in hits_list:
             if hit["region"] == "full":
@@ -2229,6 +2228,7 @@ def blat_misc_dna_psl_to_dict(
             else:
                 part_hits.append(hit)
 
+        paths = []
         if part_hits:
             # Sort partial hits by their 'lwscore'
             part_hits = sorted(part_hits, key=lambda i: i["lwscore"], reverse=True)
@@ -2246,7 +2246,7 @@ def blat_misc_dna_psl_to_dict(
                     compatible = True
                     if path:
                         for h1 in path:
-                            if not is_pair_compatible(h1, h2, max_overlap_bp):
+                            if not pair_is_compatible(h1, h2, max_overlap_bp):
                                 compatible = False
                                 break
                     if compatible:
@@ -2254,6 +2254,7 @@ def blat_misc_dna_psl_to_dict(
                         break
 
         # Sort each path by starting query coordinate
+        sorted_paths = []
         for path in paths:
             if path:
                 if len(path) > 1:
@@ -2269,7 +2270,7 @@ def blat_misc_dna_psl_to_dict(
         assembly_paths = None
         return assembly
 
-    def is_pair_compatible(h1, h2, max_overlap_bp):
+    def pair_is_compatible(h1, h2, max_overlap_bp):
         if (max(h1["identity"], h2["identity"]) * (1 - set_a.DNA_TOLERANCE_PROP)
             > min(h1["identity"], h2["identity"])):
             return False
@@ -2296,7 +2297,7 @@ def blat_misc_dna_psl_to_dict(
             if len_path > 1:
                 for i in range(1, len_path):
                     if path[i]["region"] == "proximal": path[i]["region"] = "middle"
-                for i in range(len_path-1):
+                for i in range(len_path - 1):
                     if path[i]["region"] == "distal": path[i]["region"] = "middle"
             asm_hit = {
                 "ref_name": path[0]["ref_name"],        # full name of non-coding reference sequence
@@ -2331,7 +2332,7 @@ def blat_misc_dna_psl_to_dict(
                 hit_ids = [path[0]["identity"]]
                 match_props = [path[0]["matches"] / len(asm_hit["seq_gene"])]
                 mismatch_props = [path[0]["mismatches"] / len(asm_hit["seq_gene"])]
-                score_corr = 1
+                overlap_sum = 0
                 for h in range(len(path) - 1):
                     asm_hit["hit_ids"] += f'\n{path[h+1]["hit_id"]}'
                     asm_hit["hit_contigs"] += f'\n{path[h+1]["hit_contig"]}'
@@ -2350,8 +2351,8 @@ def blat_misc_dna_psl_to_dict(
 
                     overlap = path[h]["q_end"][-1] - path[h+1]["q_start"][0]
                     # Negative 'overlap' is a gap that has to be filled with 'n's
-                    gap_len = abs(overlap) if overlap <= 0 else 0
-                    if gap_len >= 0:
+                    gap_len = abs(overlap) if overlap < 0 else 0
+                    if gap_len > 0:
                         asm_hit["seq_flanked"] = stitch_contigs(asm_hit["seq_flanked"],
                                                                 next_seq_flanked,
                                                                 max_overlap_bp,
@@ -2360,7 +2361,7 @@ def blat_misc_dna_psl_to_dict(
                         ref_starts.append(list(path[h+1]["q_start"]))
                         ref_ends.append(list(path[h+1]["q_end"]))
                     else:
-                        score_corr -= set_a.DNA_TOLERANCE_PROP
+                        overlap_sum += overlap
                         # Ignore overlapped portion from the hit with smaller 'identity' to the ref
                         if path[h]["identity"] >= path[h+1]["identity"]:
                             asm_hit["seq_flanked"] += next_seq_flanked[overlap:]
@@ -2388,11 +2389,12 @@ def blat_misc_dna_psl_to_dict(
                 asm_hit["identity"] = statistics.mean(hit_ids)
                 # Recalculate the 'score' and 'lwscore' using sum of matches/mismatches from all
                 # partial hits used in the assemble path
-                asm_hit["score"] = (((statistics.mean(match_props) * match_len
-                                      - statistics.mean(mismatch_props) * match_len)
-                                     / asm_hit["ref_size"]))
-                asm_hit["lwscore"] = (asm_hit["score"] * score_corr
-                                      * (match_len / asm_hit["ref_size"]))
+                ave_match_prop = statistics.mean(match_props)
+                ave_mismatch_prop = 1 - ave_match_prop
+                asm_hit["score"] = (((ave_match_prop * (match_len + overlap_sum))
+                                     - (ave_mismatch_prop * (match_len + overlap_sum)))
+                                    / (asm_hit["ref_size"] + overlap_sum))
+                asm_hit["lwscore"] = asm_hit["score"] * (match_len / asm_hit["ref_size"])
                 asm_hit["gapped"] = bool("n" in asm_hit["seq_gene"])
                 asm_hit["match_len"] = match_len
 
@@ -2475,7 +2477,7 @@ def blat_misc_dna_psl_to_dict(
                 next_lead = next_contig[:i]
         check_len = min(len(current_trail), len(next_lead), max_overlap_bp)
         scaffold_overlap = 0
-        # Only check for potential overlaps of > DNA_MIN_OVERLAP_BP (21 bp)
+        # Only check for potential overlaps > DNA_MIN_OVERLAP_BP (21 bp)
         if check_len > set_a.DNA_MIN_OVERLAP_BP:
             while check_len >= set_a.DNA_MIN_OVERLAP_BP:
                 if overlap_matches(current_trail[-check_len:], next_lead[0:check_len]):
