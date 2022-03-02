@@ -638,11 +638,11 @@ class CaptusAssembly(object):
 
         protein_group = parser.add_argument_group("Proteins extraction global options (Scipio)")
         protein_group.add_argument(
-            "--max_loci_scipio2x",
+            "--max_loci_scipio_x2",
             action="store",
             default=2000,
             type=int,
-            dest="max_loci_scipio2x",
+            dest="max_loci_scipio_x2",
             help="When the number of markers in a protein reference file exceeds this number, Captus"
                  " will not run a second, more exhaustive round of Scipio. Usually the results from"
                  " the first round are extremely similar and sufficient, the second round can become"
@@ -652,10 +652,10 @@ class CaptusAssembly(object):
             "--predict",
             action="store_true",
             dest="predict",
-            help="Scipio flags introns as doubtful when the splice signals are not found at the exon"
-                 " edges, this may indicate that there are additional aminoacids in the recovered"
-                 " protein that are not present in the reference protein. Enable this flag to"
-                 " attempt translation of these doubtful introns, if the translation does not"
+            help="Scipio flags introns as dubious when the splice signals are not found at the"
+                 " exon edges, this may indicate that there are additional aminoacids in the"
+                 " recovered protein that are not present in the reference protein. Enable this flag"
+                 " to attempt translation of these dubious introns, if the translation does not"
                  " introduce premature stop codons they will be added to the recovered protein"
         )
 

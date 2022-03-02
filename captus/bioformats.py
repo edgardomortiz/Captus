@@ -1165,7 +1165,7 @@ def scipio_yaml_to_dict(
     transtable : int
         Translation table number
     predict : bool
-        Attempt translation of introns flagged as doubtful by Scipio. If translation does not
+        Attempt translation of introns flagged as dubious by Scipio. If translation does not
         introduce preamture stop codons a new coding segment is added to the recovered protein
 
     Returns

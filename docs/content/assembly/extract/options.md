@@ -56,13 +56,13 @@ ___
 #### **`--overwrite`**
 Use this flag with caution, this will replace any previous result within the output directory (for the sample names that match).
 ___
-#### **`--max_loci_scipio2x`**
+#### **`--max_loci_scipio_x2`**
 When the number of different loci in the reference exceeds this value, `Captus` will not run a second, more exhaustive round of Scipio. Usually the results from the first round are extremely similar and sufficient, the second round can become extremely slow as the number of reference proteins grows.
 
 This argument is optional, the default is **2000**.
 ___
 #### **`--predict`**
-Scipio flags introns as doubtful when the splice signals are not found at the exon edges, this may indicate that there are additional aminoacids in the recovered protein that are not present in the reference protein. Enable this flag to attempt translation of these doubtful introns, if the translation does not introduce premature stop codons they will be added to the recovered protein.
+Scipio flags introns as dubious when the splice signals are not found at the exon edges, this may indicate that there are additional aminoacids in the recovered protein that are not present in the reference protein. Enable this flag to attempt translation of these dubious introns, if the translation does not introduce premature stop codons they will be added to the recovered protein.
 ___
 ### *Proteins extraction global options (Scipio)*
 ___
@@ -243,4 +243,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-08-06)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2022-02-17)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2022-03-02)

@@ -211,6 +211,7 @@ def extract(full_command, args):
         log.log(f'{"Threads per extraction":>{mar}}: {bold("1")}'
                 f' {dim("(Scipio and BLAT are single-threaded)")}')
         log.log("")
+
         protein_refs = prepare_protein_refs(args.nuc_refs,
                                             args.ptd_refs,
                                             args.mit_refs,
@@ -218,6 +219,13 @@ def extract(full_command, args):
                                             args.ptd_transtable,
                                             args.mit_transtable)
         log.log("")
+        if any([protein_refs["NUC"]["AA_path"],
+                protein_refs["PTD"]["AA_path"],
+                protein_refs["MIT"]["AA_path"]]):
+            log.log(bold(f'{"Protein-specific options":>{mar}}:'))
+            log.log(f'{"Max. loci for Scipio x2":>{mar}}: {bold(args.max_loci_scipio_x2)}')
+            log.log(f'{"Predict dubious introns":>{mar}}: {bold(args.predict)}')
+            log.log("")
         log.log(bold(f'{"Nuclear proteins":>{mar}}:'))
         log.log(f'{"reference":>{mar}}: {protein_refs["NUC"]["AA_msg"]}')
         if protein_refs["NUC"]["AA_path"]:
@@ -231,7 +239,6 @@ def extract(full_command, args):
             log.log(f'{"min_coverage":>{mar}}: {bold(nuc_min_coverage)}')
             log.log(f'{"translation table":>{mar}}: {bold(args.nuc_transtable)}')
         log.log("")
-
         log.log(bold(f'{"Plastidial proteins":>{mar}}:'))
         log.log(f'{"reference":>{mar}}: {protein_refs["PTD"]["AA_msg"]}')
         if protein_refs["PTD"]["AA_path"]:
@@ -245,7 +252,6 @@ def extract(full_command, args):
             log.log(f'{"min_coverage":>{mar}}: {bold(ptd_min_coverage)}')
             log.log(f'{"translation table":>{mar}}: {bold(args.ptd_transtable)}')
         log.log("")
-
         log.log(bold(f'{"Mitochondrial proteins":>{mar}}:'))
         log.log(f'{"reference":>{mar}}: {protein_refs["MIT"]["AA_msg"]}')
         if protein_refs["MIT"]["AA_path"]:
@@ -261,7 +267,7 @@ def extract(full_command, args):
         log.log("")
 
         dna_ref = prepare_dna_refs(args.dna_refs)
-        log.log(bold(f'{"Miscellaneous DNA":>{mar}}:'))
+        log.log(bold(f'{"Miscellaneous DNA options":>{mar}}:'))
         log.log(f'{"reference":>{mar}}: {dna_ref["DNA"]["NT_msg"]}')
         if dna_ref["DNA"]["NT_path"]:
             dna_query = fasta_to_dict(dna_ref["DNA"]["NT_path"], ordered=True)
@@ -270,13 +276,13 @@ def extract(full_command, args):
             log.log(f'{"min_identity":>{mar}}: {bold(args.dna_min_identity)}')
             log.log(f'{"min_coverage":>{mar}}: {bold(args.dna_min_coverage)}')
         log.log("")
-        log.log(f'{"Max. separate loci files":>{mar}}: {bold(args.max_loci_files)}')
-        log.log(f'{"Max. loci for 2X Scipio":>{mar}}: {bold(args.max_loci_scipio2x)}')
+
+        log.log(bold(f'{"Output options":>{mar}}:'))
         log.log(f'{"Max. paralogs":>{mar}}: {bold(args.max_paralogs)}')
-        log.log(f'{"Predict doubtful introns":>{mar}}: {bold(args.predict)}')
-        log.log("")
+        log.log(f'{"Max. separate loci files":>{mar}}: {bold(args.max_loci_files)}')
         log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
         log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
+        log.log("")
         log.log(f'{"Samples to process":>{mar}}: {bold(len(fastas_to_extract))}')
 
         extract_coding = bool(any([protein_refs["NUC"]["AA_path"],
@@ -306,7 +312,7 @@ def extract(full_command, args):
                         "NUC",
                         args.nuc_transtable,
                         args.max_loci_files,
-                        args.max_loci_scipio2x,
+                        args.max_loci_scipio_x2,
                         args.max_paralogs,
                         args.predict
                     ))
@@ -328,7 +334,7 @@ def extract(full_command, args):
                         "PTD",
                         args.ptd_transtable,
                         args.max_loci_files,
-                        args.max_loci_scipio2x,
+                        args.max_loci_scipio_x2,
                         args.max_paralogs,
                         args.predict
                     ))
@@ -350,7 +356,7 @@ def extract(full_command, args):
                         "MIT",
                         args.mit_transtable,
                         args.max_loci_files,
-                        args.max_loci_scipio2x,
+                        args.max_loci_scipio_x2,
                         args.max_paralogs,
                         args.predict
                     ))
@@ -1010,7 +1016,7 @@ def adjust_min_coverage(min_coverage):
 def scipio_coding(
         scipio_path, min_score, min_identity, min_coverage, blat_path, overwrite, keep_all,
         target_path, sample_dir, sample_name, query_path, query_dict, query_info, marker_type,
-        transtable, max_loci_files, max_loci_scipio2x, max_paralogs, predict
+        transtable, max_loci_files, max_loci_scipio_x2, max_paralogs, predict
 ):
     """
     Perform two consecutive rounds of Scipio, the first run with mostly default settings and with a
@@ -1042,8 +1048,8 @@ def scipio_coding(
         "keep_all":     keep_all,
     }
 
-    # Run Scipio twice if 'query_info["num_loci"]' does not exceed 'max_loci_scipio2x'
-    if query_info["num_loci"] <= max_loci_scipio2x:
+    # Run Scipio twice if 'query_info["num_loci"]' does not exceed 'max_loci_scipio_x2'
+    if query_info["num_loci"] <= max_loci_scipio_x2:
 
         # Use the function run_scipio_command() that to run Scipio and also get the name of the YAML
         # output 'yaml_out_file'
@@ -1076,7 +1082,7 @@ def scipio_coding(
         yaml_final_file = run_scipio_command(scipio_params, final_target, final_query,
                                              overwrite, stage="final")
 
-    # Run a single Scipio run when 'num_refs' exceeds 'max_loci_scipio2x'
+    # Run a single Scipio run when 'num_refs' exceeds 'max_loci_scipio_x2'
     else:
         yaml_final_file = run_scipio_command(scipio_params, target_path, query_path,
                                              overwrite, stage="single")
@@ -1185,9 +1191,9 @@ def run_scipio_command(scipio_params: dict, target, query, overwrite, stage):
         # Set minimum BLAT score according to number of references (too many hits created when using
         # a large number of reference proteins), higher score, fewer hits
         if stage == "single":
-            blat_score = f"{settings.SCIPIO_1X_BLAT_MIN_SCORE}"
+            blat_score = f"{settings.SCIPIO_x1_BLAT_MIN_SCORE}"
         else:
-            blat_score = f"{settings.SCIPIO_2X_BLAT_MIN_SCORE}"
+            blat_score = f"{settings.SCIPIO_x2_BLAT_MIN_SCORE}"
 
         # Build the basic part of the command
         basic = [
