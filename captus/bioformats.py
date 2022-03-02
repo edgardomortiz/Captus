@@ -1780,13 +1780,11 @@ def scipio_yaml_to_dict(
     def check_gaps_and_concat_seqs(mod: dict, gencode: dict, predict: bool):
         # If the model doesn't end with 'downstream' or 'exon' trim it until last piece is an 'exon'
         if mod["mat_types"][-1] not in ["exon", "downstream"]:
-            print(mod)
             for i in reversed(range(len(mod["mat_types"]))):
                 if mod["mat_types"][i] == "exon":
                     for data in ["ref_starts", "ref_ends", "hit_ids", "hit_starts", "hit_ends",
                                  "mat_types", "mat_notes", "mat_nt", "mat_aa"]:
                         mod[data] = mod[data][:i+1]
-                    print(mod)
                     break
 
         # Proceed with the checkup and concatenation
