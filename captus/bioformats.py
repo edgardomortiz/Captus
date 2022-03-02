@@ -2353,10 +2353,10 @@ def blat_misc_dna_psl_to_dict(
                     # Negative 'overlap' is a gap that has to be filled with 'n's
                     gap_len = abs(overlap) if overlap < 0 else 0
                     if gap_len > 0:
-                        asm_hit["seq_flanked"] = stitch_contigs(asm_hit["seq_flanked"],
-                                                                next_seq_flanked,
-                                                                max_overlap_bp,
-                                                                gap_len)
+                        asm_hit["seq_flanked"] = stitch_contigs(
+                            asm_hit["seq_flanked"], asm_hit["hit_contigs"].split("\n")[-1],
+                            next_seq_flanked, path[h+1]["hit_contig"], gap_len
+                        )
                         asm_hit["seq_gene"] += f'{"n" * gap_len}{next_seq_gene}'
                         ref_starts.append(list(path[h+1]["q_start"]))
                         ref_ends.append(list(path[h+1]["q_end"]))
@@ -2465,17 +2465,25 @@ def blat_misc_dna_psl_to_dict(
         elif strand == "-":
             return reverse_complement(sequence)
 
-    def stitch_contigs(current_contig, next_contig, max_overlap_bp, gap_len):
+    def stitch_contigs(current_ctg_seq, current_ctg_name, next_ctg_seq, next_ctg_name, gap_len):
+        current_ctg_cov = 0
+        if "_cov_" in current_ctg_name:
+            current_ctg_cov = float(current_ctg_name.split("_cov_")[-1].split("_")[0])
         current_trail = ""
-        for i in reversed(range(len(current_contig))):
-            if current_contig[i].isupper():
-                current_trail = current_contig[i+1:]
+        for i in reversed(range(len(current_ctg_seq))):
+            if current_ctg_seq[i].isupper():
+                current_trail = current_ctg_seq[i+1:]
                 break
+
+        next_ctg_cov = 0
+        if "_cov_" in next_ctg_name:
+            next_ctg_cov = float(next_ctg_name.split("_cov_")[-1].split("_")[0])
         next_lead = ""
-        for i in range(len(next_contig)):
-            if next_contig[i].isupper():
-                next_lead = next_contig[:i]
-        check_len = min(len(current_trail), len(next_lead), max_overlap_bp)
+        for i in range(len(next_ctg_seq)):
+            if next_ctg_seq[i].isupper():
+                next_lead = next_ctg_seq[:i]
+
+        check_len = min(len(current_trail), len(next_lead))
         scaffold_overlap = 0
         # Only check for potential overlaps > DNA_MIN_OVERLAP_BP (21 bp)
         if check_len > set_a.DNA_MIN_OVERLAP_BP:
@@ -2487,10 +2495,15 @@ def blat_misc_dna_psl_to_dict(
         scaffold = ""
         sep_len = gap_len - (len(current_trail) + len(next_lead))
         separator = "n" * sep_len if sep_len > 0 else set_a.DNA_CONTIG_SEPARATOR
+
         if scaffold_overlap == 0:
-            scaffold = f'{current_contig}{separator}{next_contig}'
+            scaffold = f'{current_ctg_seq}{separator}{next_ctg_seq}'
         else:
-            scaffold = f'{current_contig}{next_contig[scaffold_overlap:]}'
+            if current_ctg_cov >= next_ctg_cov:
+                scaffold = f'{current_ctg_seq}{next_ctg_seq[scaffold_overlap:]}'
+            else:
+                scaffold = f'{current_ctg_seq[:-scaffold_overlap]}{next_ctg_seq}'
+
         return scaffold
 
     def overlap_matches(seq1, seq2):
