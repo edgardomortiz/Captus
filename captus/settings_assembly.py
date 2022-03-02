@@ -258,9 +258,9 @@ BUNDLED_SCIPIO = Path(DEPS_DIR, "scipio-1.4", "scipio.1.4.1.pl")
 # Bundled BLAT >= v36x7 path
 os_type = platform.system()
 if os_type == "Darwin":
-    BUNDLED_BLAT = Path(DEPS_DIR, "blat", "blat_36x9_mac")
+    BUNDLED_BLAT = Path(DEPS_DIR, "blat", "blat_37x1_mac")
 elif os_type == "Linux":
-    BUNDLED_BLAT = Path(DEPS_DIR, "blat", "blat_36x9_linux")
+    BUNDLED_BLAT = Path(DEPS_DIR, "blat", "blat_37x1_linux")
 else:
     BUNDLED_BLAT = "unknown system"
 
