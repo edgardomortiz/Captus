@@ -314,11 +314,11 @@ SCIPIO_SCORE_INITIAL_FACTOR = 1.0
 # 1.2 = GT--AG, GC--AG, AT--AC, GG--AG, GA--AG
 SCIPIO_ACCEPTED_INTRON_PENALTY = 1.1
 
-# Minimum BLAT score for Scipio's runs when number of reference proteins is <= 'max_loci_scipio2x'
-SCIPIO_2X_BLAT_MIN_SCORE = 15
-
 # Minimum BLAT score for Scipio's only run when number of reference proteins is > 'max_loci_scipio2x'
 SCIPIO_1X_BLAT_MIN_SCORE = 20
+
+# Minimum BLAT score for Scipio's runs when number of reference proteins is <= 'max_loci_scipio2x'
+SCIPIO_2X_BLAT_MIN_SCORE = 15
 
 # BLAT identity as proportion of Scipio's 'min_identity' parameter
 SCIPIO_BLAT_IDENT_FACTOR = 0.9
@@ -365,7 +365,6 @@ SCIPIO_GENOME_EXTRA_SETTINGS = {
         "--blat_params=-oneOff=1",
         "--blat_tilesize=6",
         "--exhaust_align_size=15000",
-        "--exhaust_gap_size=500",
     ],
     # Change here the final settings for plastidial genes:
     "PTD": [
@@ -373,10 +372,9 @@ SCIPIO_GENOME_EXTRA_SETTINGS = {
         "--blat_params=-oneOff=1 -maxIntron=2000",
         "--blat_tilesize=6",
         "--exhaust_align_size=2000",
-        "--exhaust_gap_size=900",
         "--max_assemble_size=9000",
         "--min_intron_len=500",
-        "--gap_to_close=120",
+        "--gap_to_close=120", # test this as 21 or removing
     ],
     # Change here the final settings for mitochondrial genes:
     "MIT": [
@@ -384,9 +382,8 @@ SCIPIO_GENOME_EXTRA_SETTINGS = {
         "--blat_params=-oneOff=1 -maxIntron=9000",
         "--blat_tilesize=6",
         "--exhaust_align_size=9000",
-        "--exhaust_gap_size=900",
         "--max_assemble_size=50000",
-        "--gap_to_close=120",
+        "--gap_to_close=120", # test this as 21 or removing
     ],
 }
 
