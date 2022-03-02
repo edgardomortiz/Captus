@@ -1206,6 +1206,7 @@ def run_scipio_command(scipio_params: dict, target, query, overwrite, stage):
             f'--blat_score={blat_score}',
             f'--blat_identity={scipio_params["min_identity"] * settings.SCIPIO_BLAT_IDENT_FACTOR:.0f}',
             f'--transtable={scipio_params["transtable"]}',
+            '--max_move_exon=6', # manual says default 2, paper 6
             f'--accepted_intron_penalty={settings.SCIPIO_ACCEPTED_INTRON_PENALTY}',
         ]
 
