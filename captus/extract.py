@@ -222,7 +222,7 @@ def extract(full_command, args):
         if any([protein_refs["NUC"]["AA_path"],
                 protein_refs["PTD"]["AA_path"],
                 protein_refs["MIT"]["AA_path"]]):
-            log.log(bold(f'{"Protein-specific options":>{mar}}:'))
+            log.log(bold(f'{"Protein options":>{mar}}:'))
             log.log(f'{"Max. loci for Scipio x2":>{mar}}: {bold(args.max_loci_scipio_x2)}')
             log.log(f'{"Predict dubious introns":>{mar}}: {bold(args.predict)}')
             log.log("")
@@ -1212,7 +1212,6 @@ def run_scipio_command(scipio_params: dict, target, query, overwrite, stage):
             f'--blat_score={blat_score}',
             f'--blat_identity={scipio_params["min_identity"] * settings.SCIPIO_BLAT_IDENT_FACTOR:.0f}',
             f'--transtable={scipio_params["transtable"]}',
-            '--max_move_exon=6', # manual says default 2, paper 6
             f'--accepted_intron_penalty={settings.SCIPIO_ACCEPTED_INTRON_PENALTY}',
         ]
 
