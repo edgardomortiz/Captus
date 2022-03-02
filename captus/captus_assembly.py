@@ -931,8 +931,8 @@ class CaptusAssembly(object):
             default="bundled",
             type=str,
             dest="blat_path",
-            help="Path to BLAT >= 36x7, this version is the first one that guarantees the same"
-                 " result both in Mac and Linux"
+            help="Path to BLAT >= 36x7 (this version is the first one that guarantees the same"
+                 " result both in Mac and Linux)"
         )
         other_group.add_argument(
             "--mmseqs2_path",
