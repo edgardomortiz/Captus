@@ -34,26 +34,6 @@ def normalize(l):
     else:
         return 0.5
 
-config = dict(
-    scrollZoom=True,
-    toImageButtonOptions=dict(
-        format="svg",
-    ),
-    modeBarButtonsToAdd=[
-        "v1hovermode",
-        "hoverclosest",
-        "hovercompare",
-        "togglehover",
-        "togglespikelines",
-        "drawline",
-        "drawopenpath",
-        "drawclosedpath",
-        "drawcircle",
-        "drawrect",
-        "eraseshape",
-    ]
-)
-
 def build_qc_report(out_dir, qc_extras_dir):
     start = time.time()
 
@@ -251,7 +231,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                 name=name,
                 customdata=df,
                 hovertemplate="<b>%{y}</b><br>" +
-                              "Count: %{x:,.0f} reads",
+                              "Count: <b>%{x:,} reads</b>",
             ),
             row=1,
             col=1
@@ -269,7 +249,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                 name=name,
                 customdata=df,
                 hovertemplate="<b>%{y}</b><br>" +
-                              "Count: %{x:,.0f} bases",
+                              "Count: <b>%{x:,} bases</b>",
                 showlegend=False,
             ),
             row=1,
@@ -290,8 +270,8 @@ def build_qc_report(out_dir, qc_extras_dir):
                         df["reads_passed_cleaning"],
                         df["bases_passed_cleaning"]],
                      y=[df["sample"]],
-                     hovertemplate=["<b>%{y}</b><br>Count: %{x:,.0f} reads",
-                                    "<b>%{y}</b><br>Count: %{x:,.0f} bases"] * 4,
+                     hovertemplate=["<b>%{y}</b><br>Count: <b>%{x:,} reads</b>",
+                                    "<b>%{y}</b><br>Count: <b>%{x:,} bases</b>"] * 4,
                  ),
                  dict(
                      xaxis=dict(
@@ -328,7 +308,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                         df["reads_passed_cleaning_%"],
                         df["bases_passed_cleaning_%"]],
                      y=[df["sample"]],
-                     hovertemplate=["<b>%{y}</b><br>Proportion: %{x:.2f}%"] * 8,
+                     hovertemplate=["<b>%{y}</b><br>Proportion: <b>%{x:.2f}%</b>"] * 8,
                  ),
                  dict(
                      xaxis=dict(
@@ -373,6 +353,9 @@ def build_qc_report(out_dir, qc_extras_dir):
         ),
         yaxis=dict(title="Sample"),
         yaxis2=dict(showticklabels=False),
+        hoverlabel=dict(
+            font_color="rgb(64,64,64)",
+        ),
         barmode="overlay",
         bargap=0,
         bargroupgap=0.1,
@@ -459,13 +442,13 @@ def build_qc_report(out_dir, qc_extras_dir):
                 customdata=df_R1,
                 hovertemplate="<br>".join([
                     "<b>%{y}</b>",
-                    "Position: %{x} bp",
-                    "Mean: %{customdata[4]:.0f}",
-                    "90<sub>th</sub> percentile: %{customdata[9]}",
-                    "75<sub>th</sub> percentile: %{customdata[7]}",
-                    "50<sub>th</sub> percentile: %{customdata[5]}",
-                    "25<sub>th</sub> percentile: %{customdata[6]}",
-                    "10<sub>th</sub> percentile: %{customdata[8]}<extra></extra>",
+                    "Position: <b>%{x} bp</b>",
+                    "Mean: <b>%{customdata[4]:.0f}</b>",
+                    "90<sub>th</sub> percentile: <b>%{customdata[9]}</b>",
+                    "75<sub>th</sub> percentile: <b>%{customdata[7]}</b>",
+                    "50<sub>th</sub> percentile: <b>%{customdata[5]:.0f}</b>",
+                    "25<sub>th</sub> percentile: <b>%{customdata[6]}</b>",
+                    "10<sub>th</sub> percentile: <b>%{customdata[8]}</b><extra></extra>",
                 ]),
                 coloraxis="coloraxis",
                 hoverongaps=False,
@@ -483,13 +466,13 @@ def build_qc_report(out_dir, qc_extras_dir):
                 customdata=df_R2,
                 hovertemplate="<br>".join([
                     "<b>%{y}</b>",
-                    "Position: %{x} bp",
-                    "Mean: %{customdata[4]:.0f}",
-                    "90<sub>th</sub> percentile: %{customdata[9]}",
-                    "75<sub>th</sub> percentile: %{customdata[7]}",
-                    "50<sub>th</sub> percentile: %{customdata[5]}",
-                    "25<sub>th</sub> percentile: %{customdata[6]}",
-                    "10<sub>th</sub> percentile: %{customdata[8]}<extra></extra>",
+                    "Position: <b>%{x} bp</b>",
+                    "Mean: <b>%{customdata[4]:.0f}</b>",
+                    "90<sub>th</sub> percentile: <b>%{customdata[9]}</b>",
+                    "75<sub>th</sub> percentile: <b>%{customdata[7]}</b>",
+                    "50<sub>th</sub> percentile: <b>%{customdata[5]:.0f}</b>",
+                    "25<sub>th</sub> percentile: <b>%{customdata[6]}</b>",
+                    "10<sub>th</sub> percentile: <b>%{customdata[8]}</b><extra></extra>",
                 ]),
                 coloraxis="coloraxis",
                 hoverongaps=False,
@@ -510,13 +493,13 @@ def build_qc_report(out_dir, qc_extras_dir):
                 customdata=df,
                 hovertemplate="<br>".join([
                     "<b>%{y}</b>",
-                    "Position: %{x} bp",
-                    "Mean: %{customdata[4]:.0f}",
-                    "90<sub>th</sub> percentile: %{customdata[9]}",
-                    "75<sub>th</sub> percentile: %{customdata[7]}",
-                    "50<sub>th</sub> percentile: %{customdata[5]}",
-                    "25<sub>th</sub> percentile: %{customdata[6]}",
-                    "10<sub>th</sub> percentile: %{customdata[8]}<extra></extra>",
+                    "Position: <b>%{x} bp</b>",
+                    "Mean: <b>%{customdata[4]:.0f}</b>",
+                    "90<sub>th</sub> percentile: <b>%{customdata[9]}</b>",
+                    "75<sub>th</sub> percentile: <b>%{customdata[7]}</b>",
+                    "50<sub>th</sub> percentile: <b>%{customdata[5]:.0f}</b>",
+                    "25<sub>th</sub> percentile: <b>%{customdata[6]}</b>",
+                    "10<sub>th</sub> percentile: <b>%{customdata[8]}</b><extra></extra>",
                 ]),
                 coloraxis="coloraxis",
                 hoverongaps=False,
@@ -628,12 +611,11 @@ def build_qc_report(out_dir, qc_extras_dir):
     df_pivot = df_merged.pivot_table(
         index=["sample_name", "stage"],
         columns=["read", "quality"],
-        values="freq"
-    ).reset_index()
-    df = df_pivot.melt(
-        id_vars=["sample_name", "stage"],
-        value_name="freq",
     )
+    df = df_pivot.stack(
+        level=["read", "quality"],
+        dropna=False,
+    ).reset_index()
     df.sort_values(
             by=["sample_name", "stage"],
             ascending=[True, False],
@@ -660,9 +642,9 @@ def build_qc_report(out_dir, qc_extras_dir):
                 coloraxis="coloraxis",
                 customdata=df_R1,
                 hovertemplate="<b>%{y}</b><br>" +
-                              "Mean Phred Score: %{x}<br>" +
-                              "Proportion: %{z:.2f}%<br>" +
-                              "Count: %{customdata[4]:,.0f} reads<extra></extra>",
+                              "Mean Phred Score: <b>%{x}</b><br>" +
+                              "Proportion: <b>%{z:.2f}%</b><br>" +
+                              "Count: <b>%{customdata[4]:,.0f} reads</b><extra></extra>",
                 hoverongaps=False,
                 ygap=0.75,
             ),
@@ -678,9 +660,9 @@ def build_qc_report(out_dir, qc_extras_dir):
                 coloraxis="coloraxis",
                 customdata=df_R2,
                 hovertemplate="<b>%{y}</b><br>" +
-                              "Mean Phred Score: %{x}<br>" +
-                              "Proportion: %{z:.2f}%<br>" +
-                              "Count: %{customdata[4]:,.0f} reads<extra></extra>",
+                              "Mean Phred Score: <b>%{x}</b><br>" +
+                              "Proportion: <b>%{z:.2f}%</b><br>" +
+                              "Count: <b>%{customdata[4]:,.0f} reads</b><extra></extra>",
                 hoverongaps=False,
                 ygap=0.75,
             ),
@@ -699,9 +681,9 @@ def build_qc_report(out_dir, qc_extras_dir):
                 coloraxis="coloraxis",
                 customdata=df,
                 hovertemplate="<b>%{y}</b><br>" +
-                              "Mean Phred Score: %{x}<br>" +
-                              "Proportion: %{z:.2f}%<br>" +
-                              "Count: %{customdata[4]:,.0f} reads<extra></extra>",
+                              "Mean Phred Score: <b>%{x}</b><br>" +
+                              "Proportion: <b>%{z:.2f}%</b><br>" +
+                              "Count: <b>%{customdata[4]:,.0f} reads</b><extra></extra>",
                 hoverongaps=False,
                 ygap=0.75,
             )
@@ -778,12 +760,11 @@ def build_qc_report(out_dir, qc_extras_dir):
     df_pivot = df_merged.pivot_table(
         index=["sample_name", "stage"],
         columns=["read", "length"],
-        values="freq"
-    ).reset_index()
-    df = df_pivot.melt(
-        id_vars=["sample_name", "stage"],
-        value_name="freq",
     )
+    df = df_pivot.stack(
+        level=["read", "length"],
+        dropna=False,
+    ).reset_index()
     df.sort_values(
             by=["sample_name", "stage"],
             ascending=[True, False],
@@ -825,9 +806,9 @@ def build_qc_report(out_dir, qc_extras_dir):
                 coloraxis="coloraxis",
                 customdata=df_R1,
                 hovertemplate="<b>%{y}</b><br>" +
-                              "Length: %{x} bp<br>" +
-                              "Proportion: %{z:.2f}%<br>" +
-                              "Count: %{customdata[4]:,.0f} reads<extra></extra>",
+                              "Length: <b>%{x} bp</b><br>" +
+                              "Proportion: <b>%{z:.2f}%</b><br>" +
+                              "Count: <b>%{customdata[4]:,.0f} reads</b><extra></extra>",
                 hoverongaps=False,
                 ygap=2,
             ),
@@ -843,9 +824,9 @@ def build_qc_report(out_dir, qc_extras_dir):
                 coloraxis="coloraxis",
                 customdata=df_R2,
                 hovertemplate="<b>%{y}</b><br>" +
-                              "Length: %{x} bp<br>" +
-                              "Proportion: %{z:.2f}%<br>" +
-                              "Count: %{customdata[4]:,.0f} reads<extra></extra>",
+                              "Length: <b>%{x} bp</b><br>" +
+                              "Proportion: <b>%{z:.2f}%</b><br>" +
+                              "Count: <b>%{customdata[4]:,.0f} reads</b><extra></extra>",
                 hoverongaps=False,
                 ygap=2,
             ),
@@ -864,9 +845,9 @@ def build_qc_report(out_dir, qc_extras_dir):
                 coloraxis="coloraxis",
                 customdata=df,
                 hovertemplate="<b>%{y}</b><br>" +
-                              "Length: %{x} bp<br>" +
-                              "Proportion: %{z:.2f}%<br>" +
-                              "Count: %{customdata[4]:,.0f} reads<extra></extra>",
+                              "Length: <b>%{x} bp</b><br>" +
+                              "Proportion: <b>%{z:.2f}%</b><br>" +
+                              "Count: <b>%{customdata[4]:,.0f} reads</b><extra></extra>",
                 hoverongaps=False,
                 ygap=2,
             )
@@ -968,8 +949,8 @@ def build_qc_report(out_dir, qc_extras_dir):
                 name="Read 1",
                 coloraxis="coloraxis",
                 hovertemplate="<b>%{y}</b><br>" +
-                              "Position: %{x} bp<br>" +
-                              "Proportion: %{z:.2f}%<extra></extra>",
+                              "Position: <b>%{x} bp</b><br>" +
+                              "Proportion: <b>%{z:.2f}%</b><extra></extra>",
                 hoverongaps=False,
                 ygap=0.25,
             ),
@@ -985,8 +966,8 @@ def build_qc_report(out_dir, qc_extras_dir):
                 name="Read 2",
                 coloraxis="coloraxis",
                 hovertemplate="<b>%{y}</b><br>" +
-                              "Position: %{x} bp<br>" +
-                              "Proportion: %{z:.2f}%<extra></extra>",
+                              "Position: <b>%{x} bp</b><br>" +
+                              "Proportion: <b>%{z:.2f}%</b><extra></extra>",
                 hoverongaps=False,
                 ygap=0.25,
             ),
@@ -1004,8 +985,8 @@ def build_qc_report(out_dir, qc_extras_dir):
                 z=df["pct"],
                 coloraxis="coloraxis",
                 hovertemplate="<b>%{y}</b><br>" +
-                              "Position: %{x} bp<br>" +
-                              "Proportion: %{z:.2f}%<extra></extra>",
+                              "Position: <b>%{x} bp</b><br>" +
+                              "Proportion: <b>%{z:.2f}%</b><extra></extra>",
                 hoverongaps=False,
                 ygap=0.25,
             )
@@ -1106,8 +1087,8 @@ def build_qc_report(out_dir, qc_extras_dir):
                 z=df_R1["freq"],
                 coloraxis="coloraxis",
                 hovertemplate="<b>%{y}</b><br>" +
-                              "GC Content: %{x}%<br>" +
-                              "Proportion: %{z:.2f}%<extra></extra>",
+                              "GC Content: <b>%{x}%</b><br>" +
+                              "Proportion: <b>%{z:.2f}%</b><extra></extra>",
                 hoverongaps=False,
                 ygap=0.75,
             ),
@@ -1122,8 +1103,8 @@ def build_qc_report(out_dir, qc_extras_dir):
                 z=df_R2["freq"],
                 coloraxis="coloraxis",
                 hovertemplate="<b>%{y}</b><br>" +
-                              "GC Content: %{x}%<br>" +
-                              "Proportion: %{z:.2f}%<extra></extra>",
+                              "GC Content: <b>%{x}%</b><br>" +
+                              "Proportion: <b>%{z:.2f}%</b><extra></extra>",
                 hoverongaps=False,
                 ygap=0.75,
             ),
@@ -1141,8 +1122,8 @@ def build_qc_report(out_dir, qc_extras_dir):
                 z=df["freq"],
                 coloraxis="coloraxis",
                 hovertemplate="<b>%{y}</b><br>" +
-                              "GC Content: %{x}%<br>" +
-                              "Proportion: %{z:.2f}%<extra></extra>",
+                              "GC Content: <b>%{x}%</b><br>" +
+                              "Proportion: <b>%{z:.2f}%</b><extra></extra>",
                 hoverongaps=False,
                 ygap=0.75,
             )
@@ -1249,8 +1230,8 @@ def build_qc_report(out_dir, qc_extras_dir):
                     marker_line_width=0.25,
                     orientation="h",
                     hovertemplate="<b>%{y}</b><br>" +
-                                  "Duplication Level: %{meta[0]}<br>" +
-                                  "Percentage: %{x:.2f}%<extra></extra>",
+                                  "Duplication Level: <b>%{meta[0]}</b><br>" +
+                                  "Percentage: <b>%{x:.2f}%</b><extra></extra>",
                 ),
                 row=1,
                 col=1,
@@ -1270,8 +1251,8 @@ def build_qc_report(out_dir, qc_extras_dir):
                     showlegend=False,
                     orientation="h",
                     hovertemplate="<b>%{y}</b><br>" +
-                                  "Duplication Level: %{meta[0]}<br>" +
-                                  "Percentage: %{x:.2f}%<extra></extra>",
+                                  "Duplication Level: <b>%{meta[0]}</b><br>" +
+                                  "Percentage: <b>%{x:.2f}%</b><extra></extra>",
                 ),
                 row=1,
                 col=2,
@@ -1294,8 +1275,8 @@ def build_qc_report(out_dir, qc_extras_dir):
                     marker_line_width=0.25,
                     orientation="h",
                     hovertemplate="<b>%{y}</b><br>" +
-                                  "Duplication Level: %{meta[0]}<br>" +
-                                  "Percentage: %{x:.2f}%<extra></extra>",
+                                  "Duplication Level: <b>%{meta[0]}</b><br>" +
+                                  "Percentage: <b>%{x:.2f}%</b><extra></extra>",
                 )
             )
 
@@ -1359,9 +1340,9 @@ def build_qc_report(out_dir, qc_extras_dir):
     hover_info_list = []
     col_num = 4
     for col in df.columns[4:]:
-        hover_info_list.append(col + ": %{customdata[" + str(col_num) + "]:.2f}%")
+        hover_info_list.append(col + ": <b>%{customdata[" + str(col_num) + "]:.2f}%</b>")
         col_num += 1
-    hover_info_list.insert(0, "<b>%{y}</b><br>Position: %{x} bp")
+    hover_info_list.insert(0, "<b>%{y}</b><br>Position: <b>%{x} bp</b>")
     hovertemplate = "<br>".join(hover_info_list) + "<extra></extra>"
 
     # For paired-end
@@ -1476,6 +1457,24 @@ def build_qc_report(out_dir, qc_extras_dir):
     figs.append(fig)
 
     # Save plots in HTML
+    config = dict(
+        toImageButtonOptions=dict(
+            format="svg",
+        ),
+        modeBarButtonsToAdd=[
+            "v1hovermode",
+            "hoverclosest",
+            "hovercompare",
+            "togglehover",
+            "togglespikelines",
+            "drawline",
+            "drawopenpath",
+            "drawclosedpath",
+            "drawcircle",
+            "drawrect",
+            "eraseshape",
+        ]
+    )
     qc_html_report = Path(out_dir, "captus-assembly_clean.report.html")
     with open(qc_html_report, "w") as f:
         for fig in figs:
@@ -1694,18 +1693,18 @@ def build_assembly_report(out_dir, asm_stats_tsv):
 
     # X axis labels
     xlab_list = [
-        "Total Length (bp)",
+        "Total Length",
         "Number of Contigs",
-        "Mean Length (bp)",
-        "Median Length (bp)",
-        "Contig N50 (bp)",
-        "Longest Contig Length (bp)",
-        "Shortest Contig Length (bp)",
-        "Proportion of Contigs (%)",
-        "Proportion of Total Length (%)",
-        "GC Content (%)",
-        "Mean Depth (x)",
-        "Proportion of Contigs (%)",
+        "Mean Length",
+        "Median Length",
+        "Contig N50",
+        "Longest Contig Length",
+        "Shortest Contig Length",
+        "Proportion of Contigs",
+        "Proportion of Total Length",
+        "GC Content",
+        "Mean Depth",
+        "Proportion of Contigs",
     ]
 
     colors = ["#56B4E9", "#009E73", "#E69F00", "#CC79A7"]
@@ -1727,20 +1726,20 @@ def build_assembly_report(out_dir, asm_stats_tsv):
                 visible=True if i == 0 else False,
                 marker_color=colors[i],
                 marker_line_color="rgb(8,8,8)",
-                hovertemplate="Sample: %{y}<br>" +
-                              xlab_list[0] + ": %{x}<extra></extra>"
+                hovertemplate="<b>%{y}</b><br>" +
+                              xlab_list[0] + ": <b>%{x:,} bp</b><extra></extra>"
             )
         )
 
     # Dropdown setting
     buttons = []
-    for j in range(len(var_list)):
+    for j, var in enumerate(var_list):
         if type(var_list[j]) == list:
             df["total"] = sum([
-                    df[var_list[j][0]],
-                    df[var_list[j][1]],
-                    df[var_list[j][2]],
-                    df[var_list[j][3]],
+                df[var[0]],
+                df[var[1]],
+                df[var[2]],
+                df[var[3]],
             ])
             df.sort_values(
                 by="total",
@@ -1748,36 +1747,52 @@ def build_assembly_report(out_dir, asm_stats_tsv):
                 inplace=True,
             )
             x = [
-                df[var_list[j][0]],
-                df[var_list[j][1]],
-                df[var_list[j][2]],
-                df[var_list[j][3]],
+                df[var[0]],
+                df[var[1]],
+                df[var[2]],
+                df[var[3]],
             ]
             y = [df["sample"]] * 4
             name = [re.sub(".*_>=_", "≥ ", name) for name in var_list[j]]
             visible = [True] * 4
             hovertemplate = [
-                "Sample: %{y}<br>" +
-                xlab_list[j] + ": %{x}"
+                "<b>%{y}</b><br>" +
+                xlab_list[j] + ": <b>%{x:.2f}%</b>"
             ]
         else:
             df.sort_values(
-                by=var_list[j],
+                by=var,
                 ascending=False,
                 inplace=True,
             )
-            x = [df[var_list[j]], None, None, None]
+            x = [df[var], None, None, None]
             y = [df["sample"], None, None, None]
             name = []
             visible = [True, False, False, False]
-            hovertemplate = [
-                "Sample: %{y}<br>" +
-                xlab_list[j] + ": %{x}<extra></extra>"
-            ]
+            if var == "n_contigs":
+                hovertemplate = [
+                    "<b>%{y}</b><br>" +
+                    xlab_list[j] + ": <b>%{x:,}</b><extra></extra>"
+                ]
+            elif var == "GC_content":
+                hovertemplate = [
+                    "<b>%{y}</b><br>" +
+                    xlab_list[j] + ": <b>%{x:.2f}%</b><extra></extra>"
+                ]
+            elif var == "avg_depth":
+                hovertemplate = [
+                    "<b>%{y}</b><br>" +
+                    xlab_list[j] + ": <b>%{x:.2f}x</b><extra></extra>"
+                ]
+            else:
+                hovertemplate = [
+                    "<b>%{y}</b><br>" +
+                    xlab_list[j] + ": <b>%{x:,} bp</b><extra></extra>"
+                ]
 
         button = dict(
             label=button_lab_list[j],
-            method="update",
+            method="restyle",
             args=[
                 dict(
                     x=x,
@@ -1786,15 +1801,6 @@ def build_assembly_report(out_dir, asm_stats_tsv):
                     visible=visible,
                     hovertemplate=hovertemplate
                 ),
-                dict(
-                    xaxis=dict(
-                        title=xlab_list[j],
-                        showgrid=True,
-                        gridcolor="rgb(64,64,64)",
-                        ticks="outside",
-                        zeroline=False,
-                    )
-                )
             ]
         )
 
@@ -1804,30 +1810,15 @@ def build_assembly_report(out_dir, asm_stats_tsv):
         dict(
             buttons=buttons,
             type="dropdown",
-            direction="down",
-            pad={"t": 10, "b": 10},
+            direction="up",
+            pad={"t": 30, "b": 10},
             showactive=True,
-            x=1,
-            xanchor="right",
-            y=1,
-            yanchor="bottom"
+            x=0.5,
+            xanchor="center",
+            y=0,
+            yanchor="top"
         )
     ]
-
-    annotations=[dict(
-        text="<b>Variable:</b>",
-        x=1,
-        xref="paper",
-        xanchor="right",
-        xshift=-260,
-        y=1,
-        yref="paper",
-        yanchor="top",
-        yshift=36,
-        align="right",
-        showarrow=False
-    )]
-
     # Layout setting
     fig.update_layout(
         plot_bgcolor="rgb(8,8,8)",
@@ -1839,8 +1830,6 @@ def build_assembly_report(out_dir, asm_stats_tsv):
             + ")</sup>"
         ),
         xaxis=dict(
-            title=xlab_list[0],
-            showgrid=True,
             gridcolor="rgb(64,64,64)",
             ticks="outside",
             zeroline=False,
@@ -1849,17 +1838,37 @@ def build_assembly_report(out_dir, asm_stats_tsv):
             title="Sample",
             type="category",
             autorange="reversed",
-            gridcolor="rgb(64,64,64)",
+            showgrid=False,
             ticks="outside",
+        ),
+        hoverlabel=dict(
+            font_color="rgb(64,64,64)",
         ),
         barmode="overlay",
         # height=180 + 15 * len(sample_list),
         updatemenus=updatemenus,
-        annotations=annotations,
     )
     figs.append(fig)
 
     # Save plot in HTML
+    config = dict(
+        toImageButtonOptions=dict(
+            format="svg",
+        ),
+        modeBarButtonsToAdd=[
+            "v1hovermode",
+            "hoverclosest",
+            "hovercompare",
+            "togglehover",
+            "togglespikelines",
+            "drawline",
+            "drawopenpath",
+            "drawclosedpath",
+            "drawcircle",
+            "drawrect",
+            "eraseshape",
+        ]
+    )
     asm_html_report = Path(out_dir, "captus-assembly_assemble.report.html")
     with open(asm_html_report, "w") as f:
         for fig in figs:
@@ -2182,6 +2191,25 @@ def build_extraction_report(out_dir, ext_stats_tsv):
         figs.append(fig)
 
     # Save plot in HTML
+    config = dict(
+        scrollZoom=True,
+        toImageButtonOptions=dict(
+            format="svg",
+        ),
+        modeBarButtonsToAdd=[
+            "v1hovermode",
+            "hoverclosest",
+            "hovercompare",
+            "togglehover",
+            "togglespikelines",
+            "drawline",
+            "drawopenpath",
+            "drawclosedpath",
+            "drawcircle",
+            "drawrect",
+            "eraseshape",
+        ]
+    )
     ext_html_report = Path(out_dir, "captus-assembly_extract.report.html")
     with open(ext_html_report, "w") as f:
         for fig in figs:
@@ -2694,12 +2722,30 @@ def build_alignment_report(out_dir, aln_stats_tsv):
     # Save plot in html
     aln_html_report = Path(out_dir, "captus-assembly_align.report.html")
     with open(aln_html_report, "w") as f:
-        for fig in figs:
+        for i, fig in enumerate(figs):
             f.write(
                 fig.to_html(
                     full_html=False,
                     include_plotlyjs="cdn",
-                    config=config
+                    config=dict(
+                        scrollZoom=False if i == 0 else True,
+                        toImageButtonOptions=dict(
+                            format="svg",
+                        ),
+                        modeBarButtonsToAdd=[
+                            "v1hovermode",
+                            "hoverclosest",
+                            "hovercompare",
+                            "togglehover",
+                            "togglespikelines",
+                            "drawline",
+                            "drawopenpath",
+                            "drawclosedpath",
+                            "drawcircle",
+                            "drawrect",
+                            "eraseshape",
+                        ]
+                    ),
                 )
             )
     if aln_html_report.exists() and aln_html_report.is_file():
