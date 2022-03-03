@@ -484,6 +484,8 @@ def align(full_command, args):
     )
     fastas_to_stats = list(Path(out_dir, settings.ALN_DIRS["ALND"]).rglob("*.f[an]a"))
     fastas_to_stats += list(Path(out_dir, settings.ALN_DIRS["TRIM"]).rglob("*.f[an]a"))
+    fastas_to_stats = [file for file in fastas_to_stats
+                       if not f"{file.name}".startswith(".")]
     manager = Manager()
     shared_seq_names = manager.list()
     shared_aln_stats = manager.list()
@@ -976,10 +978,11 @@ def fastas_origs_dests(dir_path: Path, orig_base_dir: str, dest_base_dir: str):
     """
     fastas_to_process = {}
     for path in list(Path(dir_path, orig_base_dir).rglob("*.f[an]a")):
-        origin = path.resolve()
-        # destination = Path(*[p if p != orig_base_dir else dest_base_dir for p in origin.parts])
-        destination = Path(str(origin).replace(str(orig_base_dir), str(dest_base_dir)))
-        fastas_to_process[origin] = destination
+        if not f"{path.name}".startswith("."):
+            origin = path.resolve()
+            # destination = Path(*[p if p != orig_base_dir else dest_base_dir for p in origin.parts])
+            destination = Path(str(origin).replace(str(orig_base_dir), str(dest_base_dir)))
+            fastas_to_process[origin] = destination
 
     return fastas_to_process
 
@@ -1136,7 +1139,7 @@ def filter_paralogs_careful(shared_paralog_stats, fasta_model, fastas_paths, ove
 
     start = time.time()
 
-    fasta_model_short = Path(*fastas_paths[fasta].parts[-3:])
+    fasta_model_short = Path(*fastas_paths[fasta_model].parts[-3:])
     if file_is_empty(fasta_model):
         return red(f"'{fasta_model_short}': FAILED paralog removal, input file was empty")
 
