@@ -18,7 +18,6 @@ import shutil
 import statistics
 import subprocess
 import time
-from collections import OrderedDict
 from pathlib import Path
 
 from tqdm import tqdm
@@ -229,7 +228,7 @@ def extract(full_command, args):
         log.log(bold(f'{"Nuclear proteins":>{mar}}:'))
         log.log(f'{"reference":>{mar}}: {protein_refs["NUC"]["AA_msg"]}')
         if protein_refs["NUC"]["AA_path"]:
-            nuc_query = fasta_to_dict(protein_refs["NUC"]["AA_path"], ordered=True)
+            nuc_query = fasta_to_dict(protein_refs["NUC"]["AA_path"])
             nuc_query_info = reference_info(nuc_query)
             log.log(f'{"reference info":>{mar}}: {nuc_query_info["info_msg"]}')
             log.log(f'{"min_score":>{mar}}: {bold(args.nuc_min_score)}')
@@ -242,7 +241,7 @@ def extract(full_command, args):
         log.log(bold(f'{"Plastidial proteins":>{mar}}:'))
         log.log(f'{"reference":>{mar}}: {protein_refs["PTD"]["AA_msg"]}')
         if protein_refs["PTD"]["AA_path"]:
-            ptd_query = fasta_to_dict(protein_refs["PTD"]["AA_path"], ordered=True)
+            ptd_query = fasta_to_dict(protein_refs["PTD"]["AA_path"])
             ptd_query_info = reference_info(ptd_query)
             log.log(f'{"reference info":>{mar}}: {ptd_query_info["info_msg"]}')
             log.log(f'{"min_score":>{mar}}: {bold(args.ptd_min_score)}')
@@ -255,7 +254,7 @@ def extract(full_command, args):
         log.log(bold(f'{"Mitochondrial proteins":>{mar}}:'))
         log.log(f'{"reference":>{mar}}: {protein_refs["MIT"]["AA_msg"]}')
         if protein_refs["MIT"]["AA_path"]:
-            mit_query = fasta_to_dict(protein_refs["MIT"]["AA_path"], ordered=True)
+            mit_query = fasta_to_dict(protein_refs["MIT"]["AA_path"])
             mit_query_info = reference_info(mit_query)
             log.log(f'{"reference info":>{mar}}: {mit_query_info["info_msg"]}')
             log.log(f'{"min_score":>{mar}}: {bold(args.mit_min_score)}')
@@ -270,7 +269,7 @@ def extract(full_command, args):
         log.log(bold(f'{"Miscellaneous DNA options":>{mar}}:'))
         log.log(f'{"reference":>{mar}}: {dna_ref["DNA"]["NT_msg"]}')
         if dna_ref["DNA"]["NT_path"]:
-            dna_query = fasta_to_dict(dna_ref["DNA"]["NT_path"], ordered=True)
+            dna_query = fasta_to_dict(dna_ref["DNA"]["NT_path"])
             dna_query_info = reference_info(dna_query)
             log.log(f'{"reference info":>{mar}}: {dna_query_info["info_msg"]}')
             log.log(f'{"min_identity":>{mar}}: {bold(args.dna_min_identity)}')
@@ -563,7 +562,7 @@ def extract(full_command, args):
             clust_ref = prepare_dna_refs(captus_clusters_ref, cluster=True)
             log.log(f'{"reference":>{mar}}: {clust_ref["CLR"]["NT_msg"]}')
             if clust_ref["CLR"]["NT_path"]:
-                clust_query = fasta_to_dict(clust_ref["CLR"]["NT_path"], ordered=True)
+                clust_query = fasta_to_dict(clust_ref["CLR"]["NT_path"])
                 clust_query_info = reference_info(clust_query)
                 log.log(f'{"reference info":>{mar}}: {clust_query_info["info_msg"]}')
                 log.log(f'{"dna_min_identity":>{mar}}: {bold(args.dna_min_identity)}')
@@ -823,8 +822,7 @@ def check_and_copy_found_fasta(fasta_path, valid_exts, captus_assemblies_dir, ov
             shutil.rmtree(sample_assembly_dir, ignore_errors=True)
         sample_assembly_dir.mkdir(parents=True)
         if fasta_type(fasta_path) == "NT":
-            fasta_out, _ = fasta_headers_to_spades(fasta_to_dict(fasta_path, ordered=True),
-                                                   ordered=True)
+            fasta_out, _ = fasta_headers_to_spades(fasta_to_dict(fasta_path))
             dict_to_fasta(fasta_out, Path(sample_assembly_dir, "assembly.fasta"), wrap=80)
 
             # Write a log indicating original file location of the 'assembly.fasta'
@@ -887,7 +885,7 @@ def prepare_protein_refs(
             else:
                 aa_path = Path(Path(refset).resolve().parent, f"{Path(refset).stem}{suffix}")
             nt_path = Path(refset).resolve()
-            amino_refset = translate_fasta_dict(fasta_to_dict(refset, ordered=True), transtable)
+            amino_refset = translate_fasta_dict(fasta_to_dict(refset), transtable)
             amino_refset_fixed = fix_premature_stops(amino_refset)
             if amino_refset_fixed is None:
                 dict_to_fasta(amino_refset, aa_path, wrap=80)
@@ -1078,7 +1076,7 @@ def scipio_coding(
             return message
         else:
             final_target, final_query = filter_query_and_target(
-                query_dict, fasta_to_dict(target_path, ordered=True),
+                query_dict, fasta_to_dict(target_path),
                 yaml_initial_dir, initial_models, marker_type
             )
 
@@ -1110,7 +1108,7 @@ def scipio_coding(
     else:
         write_gff3(final_models, marker_type, Path(yaml_final_dir, f"{marker_type}_contigs.gff"))
         recovery_stats = write_fastas_and_report(
-            final_models, sample_name, fasta_to_dict(target_path, ordered=True),
+            final_models, sample_name, fasta_to_dict(target_path),
             yaml_final_dir, marker_type, overwrite, max_loci_files
         )
         message = (
@@ -1655,9 +1653,9 @@ def cleanup_post_extraction(
                 with open(cl, "rt") as clin:
                     for line in clin:
                         names_hit_contigs.append(line.strip("\n"))
-        all_contigs = fasta_to_dict(assembly_path, ordered=True)
-        hit_contigs = OrderedDict()
-        leftover_contigs = OrderedDict()
+        all_contigs = fasta_to_dict(assembly_path)
+        hit_contigs = {}
+        leftover_contigs = {}
         for contig_name in all_contigs:
             if contig_name in names_hit_contigs:
                 hit_contigs[contig_name] = dict(all_contigs[contig_name])
