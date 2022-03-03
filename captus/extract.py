@@ -278,8 +278,12 @@ def extract(full_command, args):
         log.log("")
 
         log.log(bold(f'{"Output options":>{mar}}:'))
-        log.log(f'{"Max. paralogs":>{mar}}: {bold(args.max_paralogs)}')
-        log.log(f'{"Max. separate loci files":>{mar}}: {bold(args.max_loci_files)}')
+        max_paralogs_msg = dim("(Keep all paralogs)") if args.max_paralogs == -1 else ""
+        log.log(f'{"Max. paralogs":>{mar}}: {bold(args.max_paralogs)} {max_paralogs_msg}')
+        loci_files_msg = ""
+        if args.max_loci_files == 0:
+            loci_files_msg = dim("(Do not write separate loci files per sample)")
+        log.log(f'{"Max. separate loci files":>{mar}}: {bold(args.max_loci_files)} {loci_files_msg}')
         log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
         log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
         log.log("")
