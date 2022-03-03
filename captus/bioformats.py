@@ -20,7 +20,6 @@ import re
 import statistics
 import sys
 import urllib
-from collections import OrderedDict
 
 from . import settings_assembly as set_a
 
@@ -411,7 +410,7 @@ def translate_fasta_dict(in_fasta_dict: dict, genetic_code_id: int, frame="guess
                     return translations[i]
 
     gc = genetic_code(genetic_code_id)
-    translated_fasta = OrderedDict()
+    translated_fasta = {}
     if frame == "guess":
         for seq_name in in_fasta_dict:
             translated_fasta[seq_name] = {
@@ -794,7 +793,7 @@ def site_pairwise_identity(site: str, seq_type: str):
         return [(matches / combos) * 100, combos]
 
 
-def fasta_to_dict(fasta_path, ordered=False):
+def fasta_to_dict(fasta_path):
     """
     Turns a FASTA file given with `fasta_path` into a dictionary. For example, for the sequence:
     ```text
@@ -813,10 +812,7 @@ def fasta_to_dict(fasta_path, ordered=False):
         opener = gzip.open
     else:
         opener = open
-    if ordered is True:
-        fasta_out = OrderedDict()
-    else:
-        fasta_out = {}
+    fasta_out = {}
     with opener(fasta_path, "rt") as fasta_in:
         for line in fasta_in:
             line = line.strip("\n")
@@ -852,7 +848,7 @@ def dict_to_fasta(
         action = "wt"
     if bool(in_fasta_dict):
         if sort:
-            in_fasta_dict = OrderedDict(sorted(in_fasta_dict.items(), key=lambda x: x[0]))
+            in_fasta_dict = sorted(in_fasta_dict.items(), key=lambda x: x[0])
         with opener(out_fasta_path, action) as fasta_out:
             if wrap == 0:
                 for name in in_fasta_dict:
@@ -1071,7 +1067,7 @@ def alignment_stats(fasta_path):
     return stats
 
 
-def fasta_headers_to_spades(fasta_dict, ordered=True):
+def fasta_headers_to_spades(fasta_dict):
     """
     Given a `fasta_dict` from the function `fasta_to_dict()`, transform MEGAHIT or SKESA headers
     into Spades-like (Velvet has identical header format to Spades, afaik) headers like this :
@@ -1099,10 +1095,7 @@ def fasta_headers_to_spades(fasta_dict, ordered=True):
             assembler = "skesa"
         break
 
-    if ordered is True:
-        fasta_dict_spades_headers = OrderedDict()
-    else:
-        fasta_dict_spades_headers = {}
+    fasta_dict_spades_headers = {}
 
     if assembler == "megahit":
         for name in fasta_dict:

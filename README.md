@@ -7,7 +7,7 @@ ___
 The simplest way to install Captus is to first create an isolated software environment with the dependencies with **`miniconda`**:
 
 ```bash
-conda create -n captus -c bioconda -c conda-forge "clipkit>=1.3.0" "python>=3.6" pandas plotly tqdm perl-bioperl-core=1.007002 bbmap falco fastqc mafft mmseqs2 megahit pigz vsearch
+conda create -n captus -c bioconda -c conda-forge "clipkit>=1.3.0" "python>=3.7" pandas plotly tqdm perl-bioperl-core=1.007002 bbmap falco fastqc mafft mmseqs2 megahit pigz vsearch
 ```
 
 Then clone the Captus repository:
