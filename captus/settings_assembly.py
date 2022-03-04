@@ -226,8 +226,8 @@ PROT_REFS = {
             "NT": Path(DATA_DIR, "Angiosperms353.FNA"),
         },
         "mega353": {
-            "AA": Path(DATA_DIR, "Mega353_centroids80.FAA"),
-            "NT": Path(DATA_DIR, "Mega353_centroids80.FNA"),
+            "AA": Path(DATA_DIR, "Mega353_cl0.76_cov0.8.FAA"),
+            "NT": Path(DATA_DIR, "Mega353_cl0.76_cov0.8.FNA"),
         },
     },
     "PTD": {
