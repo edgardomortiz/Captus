@@ -848,7 +848,7 @@ def dict_to_fasta(
         action = "wt"
     if bool(in_fasta_dict):
         if sort:
-            in_fasta_dict = dict(sorted(in_fasta_dict))
+            in_fasta_dict = dict(sorted(in_fasta_dict.items(), key=lambda x: x[0]))
         with opener(out_fasta_path, action) as fasta_out:
             if wrap == 0:
                 for name in in_fasta_dict:
