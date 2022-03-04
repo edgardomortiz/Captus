@@ -1065,7 +1065,7 @@ def scipio_coding(
             return message
         else:
             yaml_initial_dir = yaml_initial_file.parent
-            initial_models = scipio_yaml_to_dict(yaml_initial_file, min_identity,
+            initial_models = scipio_yaml_to_dict(yaml_initial_file, min_score, min_identity,
                                                  min_coverage, marker_type, transtable,
                                                  max_paralogs, predict)
 
@@ -1097,7 +1097,7 @@ def scipio_coding(
         return message
     else:
         yaml_final_dir = yaml_final_file.parent
-        final_models = scipio_yaml_to_dict(yaml_final_file, min_identity,
+        final_models = scipio_yaml_to_dict(yaml_final_file, min_score, min_identity,
                                            min_coverage, marker_type, transtable,
                                            max_paralogs, predict)
 
