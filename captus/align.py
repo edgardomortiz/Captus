@@ -878,7 +878,7 @@ def collect_sample_markers(
     start = time.time()
     markers_collected = []
 
-    fasta_in = fasta_to_dict(source_fasta_path, ordered=True)
+    fasta_in = fasta_to_dict(source_fasta_path)
     for seq_name_full in fasta_in:
         seq_name_parts = seq_name_full.split(settings.SEQ_NAME_SEP)
         marker_name = seq_name_parts[1]
@@ -1143,7 +1143,7 @@ def filter_paralogs_careful(shared_paralog_stats, fasta_model, fastas_paths, ove
     if file_is_empty(fasta_model):
         return red(f"'{fasta_model_short}': FAILED paralog removal, input file was empty")
 
-    aln = fasta_to_dict(fasta_model, ordered=True)
+    aln = fasta_to_dict(fasta_model)
     fasta_model_marker = fasta_model.parts[-3][-3:]
     if fasta_model.parts[-2] == "01_AA":
         fasta_model_format = "AA"
