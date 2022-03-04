@@ -1139,7 +1139,8 @@ def fasta_headers_to_spades(fasta_dict):
 
 
 def scipio_yaml_to_dict(
-        yaml_path, min_identity, min_coverage, marker_type, transtable, max_paralogs, predict
+        yaml_path, min_score, min_identity, min_coverage,
+        marker_type, transtable, max_paralogs, predict
 ):
     """
     Process Scipio's YAML output, verify translation of each model, add extra aminoacid in gaps if
@@ -2085,7 +2086,8 @@ def scipio_yaml_to_dict(
                 * (unfiltered_models[protein][model]["lwscore"]
                    / max_len_aa_recov[prot_cluster])
             )
-            if (unfiltered_models[protein][model]["identity"] >= min_identity
+            if (unfiltered_models[protein][model]["score"] >= min_score
+                and unfiltered_models[protein][model]["identity"] >= min_identity
                 and unfiltered_models[protein][model]["coverage"] >= min_coverage):
                 accepted_models.append(unfiltered_models[protein][model])
         if accepted_models:
