@@ -328,7 +328,7 @@ def translate(seq, genetic_code: dict, frame=1, start_as_M=False):
             return "X"
 
 
-    seq = seq.upper()
+    seq = seq.replace(" ", "").replace("-", "").upper()
     if frame < 0: seq = reverse_complement(seq)
 
     codons = [seq[p:p + 3] for p in range(abs(frame) - 1, len(seq), 3)
@@ -442,6 +442,7 @@ def fix_premature_stops(in_fasta_dict: dict):
             f'{in_fasta_dict[seq_name]["sequence"][:-1].replace("*", "X")}'
             f'{in_fasta_dict[seq_name]["sequence"][-1]}'
         )
+        seq_out = seq_out.replace(" ", "").replace("-", "")
         if in_fasta_dict[seq_name]["sequence"] != seq_out:
             has_premature_stops = True
         out_fasta_dict[seq_name] = {
@@ -896,7 +897,7 @@ def fasta_type(fasta_path):
                 has_headers = True
             else:
                 if has_headers is True:
-                    line_set = set(line.upper().replace("U", "T"))
+                    line_set = set(line.replace(" ", "").upper().replace("U", "T"))
                     if line_set - set(NT_IUPAC):
                         if not line_set - set(AA_IUPAC):
                             has_aminos = True
