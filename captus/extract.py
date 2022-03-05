@@ -915,8 +915,8 @@ def prepare_protein_refs(
                 aa_path = Path(Path(refset).resolve().parent, f"{Path(refset).stem}_fixed.faa")
                 dict_to_fasta(amino_refset_fixed, aa_path, wrap=80)
                 log.log(
-                    f"WARNING: Premature stop codons were found in {refset}"
-                    " and automatically converted to X"
+                    f"WARNING: {refset} contained gaps that were removed "
+                    " and/or premature stops that were converted to X"
                 )
             aa_msg = bold(aa_path)
         elif Path(refset).is_file() and fasta_type(refset) == "invalid":
