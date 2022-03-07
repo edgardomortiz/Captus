@@ -56,6 +56,8 @@ ___
 #### **`--overwrite`**
 Use this flag with caution, this will replace any previous result within the output directory (for the sample names that match).
 ___
+### *Proteins extraction global options (Scipio)*
+___
 #### **`--max_loci_scipio_x2`**
 When the number of different loci in the reference exceeds this value, `Captus` will not run a second, more exhaustive round of Scipio. Usually the results from the first round are extremely similar and sufficient, the second round can become extremely slow as the number of reference proteins grows.
 
@@ -64,7 +66,7 @@ ___
 #### **`--predict`**
 Scipio flags introns as dubious when the splice signals are not found at the exon edges, this may indicate that there are additional aminoacids in the recovered protein that are not present in the reference protein. Enable this flag to attempt translation of these dubious introns, if the translation does not introduce premature stop codons they will be added to the recovered protein.
 ___
-### *Proteins extraction global options (Scipio)*
+### *Nuclear proteins (Scipio)*
 ___
 #### **`-n, --nuc_refs`**
 The reference set of nuclear proteins to search and extract from the assemblies. `Captus` includes two sets:

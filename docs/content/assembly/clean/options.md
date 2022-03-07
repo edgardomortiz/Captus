@@ -65,7 +65,7 @@ We have bundled with `Captus` adaptor sequences, these options are available:
 - `BGI` = Including BGISEQ, DNBSEQ, and MGISEQ.
 - `ALL` = If you are unsure of the technology used for your sequences this combines both sets of adaptors.
 
-This argument is optional, the default is **Illumina**.
+This argument is optional, the default is **ALL**.
 ___
 #### **`--rna`**
 Enable this flag to trim poly-A tails from RNA-Seq reads.
@@ -122,4 +122,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-08-06)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-09-15)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2022-03-07)
