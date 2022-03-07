@@ -815,20 +815,33 @@ def fasta_to_dict(fasta_path):
         opener = open
     fasta_out = {}
     with opener(fasta_path, "rt") as fasta_in:
+        seq  = ""
+        name = ""
+        desc = ""
         for line in fasta_in:
             line = line.strip("\n")
             if not line:
                 continue
             if line.startswith(">"):
+                if seq:
+                    fasta_out[name] = {
+                        "description": desc,
+                        "sequence": seq,
+                    }
+                    seq = ""
                 if len(line.split()) > 1:
                     name = line[1:].split()[0]
                     desc = " ".join(line[1:].split()[1:])
                 else:
                     name = line[1:].rstrip()
                     desc = ""
-                fasta_out[name] = {"description": desc, "sequence": ""}
             else:
-                fasta_out[name]["sequence"] += line
+                seq += line
+        if seq:
+            fasta_out[name] = {
+                "description": desc,
+                "sequence": seq,
+            }
 
     return fasta_out
 

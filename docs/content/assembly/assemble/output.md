@@ -27,6 +27,7 @@ This directory contains the FASTA and FASTG assembly files as well as assembly s
 ___
 ### 4. **`assembly.fasta`**
 The main assembly file in FASTA format, this file contains the contigs assembled by `MEGAHIT`. The sequence header have been modified by `Captus` and will have the following format:
+{{% expand "Example" %}}
 ```text
 >NODE_230_length_748_cov_16.0000_k_175_flag_1
 AAGCAGCCTTTAGAATTTGACTTTTTATTTGTCTTTGTTTTTTATTTATTTATTTATAATTTAAAAAAACAAAAAACAAA
@@ -46,6 +47,7 @@ AATTCACCCTTACCACTAGGCCAAACCCTTGGGGTTACTTTCCGCTACTTTTTTAGAATGATTATCCTAAATCAAGAAAG
 GAATAGCATTGAGAAAAACATATCATGAAAATAAAAGTTTCTGTTTGCCTAAGTATGCATCACCTGTCGGATTATTACAC
 ....
 ```
+{{% /expand %}}
 ___
 ### 5. **`assembly_graph.fastg`**
 The assembly graph in [FASTG format](http://fastg.sourceforge.net/FASTG_Spec_v1.00.pdf). This file can be explored in [Bandage](https://rrwick.github.io/Bandage/) or similar software which are able to plot the connections between contigs, loops, circular segments, etc.
