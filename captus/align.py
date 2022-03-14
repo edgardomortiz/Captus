@@ -987,6 +987,19 @@ def fastas_origs_dests(dir_path: Path, orig_base_dir: str, dest_base_dir: str):
     return fastas_to_process
 
 
+def rehead_mafft_alignment(fasta_in: Path, fasta_out: Path):
+    unaligned = fasta_to_dict(fasta_in)
+    aligned = fasta_to_dict(fasta_out)
+    reheaded = {}
+    for seq_name in aligned:
+        reheaded[seq_name] = {
+            "description": unaligned[seq_name]["description"],
+            "sequence": aligned[seq_name]["sequence"]
+        }
+    dict_to_fasta(reheaded, fasta_out)
+    return
+
+
 def mafft(
     mafft_path, mafft_algorithm, threads, mafft_timeout, fasta_in: Path, fasta_out: Path, overwrite
 ):
@@ -1034,6 +1047,7 @@ def mafft(
                         message = red(f"'{fasta_out_short}': FAILED alignment, empty output file")
                         fasta_out.unlink()
                     else:
+                        rehead_mafft_alignment(fasta_in, fasta_out)
                         message = f"'{fasta_out_short}': aligned [{elapsed_time(time.time() - start)}]"
                 except subprocess.TimeoutExpired:
                     message = (

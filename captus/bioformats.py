@@ -2548,7 +2548,8 @@ def blat_misc_dna_psl_to_dict(
             q_inserts, t_strand, q_name, q_size = int(cols[4]), cols[8], cols[9], int(cols[10])
             t_base_inserts, t_name, t_size = int(cols[7]), cols[13], int(cols[14])
             # When an insertion as long as the query size is detected we must attempt splitting hit
-            if t_base_inserts >= min(q_size * set_a.DNA_MAX_INSERT_PROP, set_a.DNA_MAX_INSERT_SIZE):
+            if t_base_inserts >= min(q_size * set_a.DNA_MAX_INSERT_PROP,
+                                     set_a.DNA_MAX_INSERT_SIZE):
                 block_sizes = [int(s) for s in cols[18].strip(",").split(",")]
                 q_starts = [int(p) for p in cols[19].strip(",").split(",")]
                 t_starts = [int(p) for p in cols[20].strip(",").split(",")]
