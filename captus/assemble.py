@@ -220,6 +220,7 @@ def assemble(full_command, args):
     log.log(f'{"prune_level":>{mar}}: {bold(args.prune_level)}')
     log.log(f'{"merge_level":>{mar}}: {bold(args.merge_level)}')
     log.log(f'{"min_contig_len":>{mar}}: {bold(args.min_contig_len)}')
+    log.log(f'{"max_contig_gc":>{mar}}: {bold(args.max_contig_gc)}%')
     extra_options = settings.MEGAHIT_PRESETS[args.preset]["extra_options"]
     log.log(f'{"extra_options":>{mar}}: {bold(extra_options)}')
     tmp_dir = make_tmp_dir_within(args.tmp_dir, "captus_megahit_tmp")
@@ -251,6 +252,7 @@ def assemble(full_command, args):
             threads_per_assembly,
             out_dir,
             args.min_contig_len,
+            args.max_contig_gc,
             extra_options,
             tmp_dir,
             args.keep_all,
@@ -404,8 +406,8 @@ def adjust_megahit_concurrency(concurrent, threads_max, ram_B, num_samples, pres
 
 def megahit(
         megahit_path, megahit_toolkit_path, fastq_dir, fastq_r1, fastq_r2, k_list, min_count,
-        prune_level, merge_level, ram_B, threads, out_dir, min_contig_len, extra_options, tmp_dir,
-        keep_all, overwrite
+        prune_level, merge_level, ram_B, threads, out_dir, min_contig_len, max_contig_gc,
+        extra_options, tmp_dir, keep_all, overwrite
 ):
     """
     De novo assembly with MEGAHIT >= v1.2.9
@@ -453,6 +455,7 @@ def megahit(
             subprocess.run(megahit_command, stdout=megahit_log, stderr=megahit_log)
         cleanup_megahit_out_dir(sample_megahit_out_dir, megahit_log_file,
                                 megahit_toolkit_path, keep_all)
+        filter_assembly_by_gc(sample_megahit_out_dir, max_contig_gc)
         asm_stats = get_asm_stats(sample_megahit_out_dir)
         message = f"'{sample_name}': {asm_stats} [{elapsed_time(time.time() - start)}]"
     else:
@@ -545,6 +548,25 @@ def cleanup_megahit_out_dir(sample_megahit_out_dir, megahit_log_file, megahit_to
         Path(sample_megahit_out_dir, "checkpoints.txt").unlink()
         Path(sample_megahit_out_dir, "done").unlink()
         Path(sample_megahit_out_dir, "options.json").unlink()
+
+
+def filter_assembly_by_gc(sample_megahit_out_dir, max_contig_gc):
+    if max_contig_gc >= 100 or max_contig_gc <= 0:
+        return
+    assembly_path = Path(sample_megahit_out_dir, "assembly.fasta")
+    unfiltered = fasta_to_dict(assembly_path)
+    accepted = {}
+    rejected = {}
+    for seq_name in unfiltered:
+        seq = unfiltered[seq_name]["sequence"].upper().replace("-", "").replace("N", "")
+        gc = round(seq.replace("C", "G").count("G") / len(seq) * 100, 5)
+        if gc > max_contig_gc:
+            rejected[seq_name] = unfiltered[seq_name]
+        else:
+            accepted[seq_name] = unfiltered[seq_name]
+    dict_to_fasta(accepted, assembly_path, wrap=80)
+    dict_to_fasta(rejected, Path(sample_megahit_out_dir, f'filtered_contigs.fasta'), wrap=80)
+    return
 
 
 def get_asm_stats(sample_megahit_out_dir):

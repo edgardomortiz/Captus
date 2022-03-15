@@ -141,6 +141,7 @@ def align(full_command, args):
         log.log(f'{"Markers to collect":>{mar}}: {bold(markers)} {dim(markers_ignored)}')
         log.log(f'{"Alignment formats":>{mar}}: {bold(formats)} {dim(formats_ignored)}')
         log.log(f'{"Max. paralogs":>{mar}}: {bold(args.max_paralogs)}')
+        log.log(f'{"Min. samples":>{mar}}: {bold(args.min_samples)}')
         log.log("")
         log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
         log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
@@ -149,9 +150,9 @@ def align(full_command, args):
         log.log("")
         log.log(make_output_dirtree(markers, formats, out_dir, settings.ALN_DIRS["UNAL"], mar))
         log.log("")
-        collect_extracted_markers(markers, formats, args.max_paralogs, extracted_sample_dirs,
-                                  out_dir, settings.ALN_DIRS["UNAL"], refs_paths, args.overwrite,
-                                  show_less)
+        collect_extracted_markers(markers, formats, args.max_paralogs, args.min_samples,
+                                  extracted_sample_dirs, out_dir, settings.ALN_DIRS["UNAL"],
+                                  refs_paths, args.overwrite, show_less)
         log.log("")
 
 
@@ -207,6 +208,7 @@ def align(full_command, args):
                 args.mafft_timeout,
                 fasta_orig,
                 fastas_to_align[fasta_orig],
+                args.min_samples,
                 args.overwrite,
             ))
 
@@ -274,8 +276,8 @@ def align(full_command, args):
                                         Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["FAST"]),
                                         mar))
             log.log("")
-            paralog_fast_filter(fastas_to_filter, args.overwrite, concurrent,
-                                show_less, args.debug)
+            paralog_fast_filter(fastas_to_filter, args.min_samples, args.overwrite,
+                                concurrent, args.debug, show_less)
             log.log("")
 
         if filter_method in ["careful", "both"]:
@@ -296,7 +298,8 @@ def align(full_command, args):
             manager = Manager()
             shared_paralog_stats = manager.list()
             paralog_careful_filter(shared_paralog_stats, fastas_to_filter, filtering_refs,
-                                   concurrent, args.overwrite, show_less, args.debug)
+                                   args.min_samples, args.overwrite,
+                                   concurrent, args.debug, show_less)
             paralog_stats_tsv = write_paralog_stats(out_dir, shared_paralog_stats)
             log.log("")
             log.log(f'{"Paralog statistics":>{mar}}: {bold(paralog_stats_tsv)}')
@@ -338,8 +341,8 @@ def align(full_command, args):
                                                  settings.ALN_DIRS["NREF"]),
                                             mar))
                 log.log("")
-                rem_refs(refs_paths, fastas_to_rem_refs, args.overwrite,
-                         concurrent, show_less, args.debug)
+                rem_refs(refs_paths, fastas_to_rem_refs, args.min_samples,
+                         args.overwrite, concurrent, args.debug, show_less)
                 log.log("")
 
             if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["FAST"]).exists():
@@ -357,8 +360,8 @@ def align(full_command, args):
                                                  settings.ALN_DIRS["NRFA"]),
                                             mar))
                 log.log("")
-                rem_refs(refs_paths, fastas_to_rem_refs, args.overwrite,
-                         concurrent, show_less, args.debug)
+                rem_refs(refs_paths, fastas_to_rem_refs, args.min_samples,
+                         args.overwrite, concurrent, args.debug, show_less)
                 log.log("")
 
             if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["CARE"]).exists():
@@ -376,8 +379,8 @@ def align(full_command, args):
                                                  settings.ALN_DIRS["NRCA"]),
                                             mar))
                 log.log("")
-                rem_refs(refs_paths, fastas_to_rem_refs, args.overwrite,
-                         concurrent, show_less, args.debug)
+                rem_refs(refs_paths, fastas_to_rem_refs, args.min_samples,
+                         args.overwrite, concurrent, args.debug, show_less)
                 log.log("")
 
 
@@ -459,6 +462,7 @@ def align(full_command, args):
                 args.clipkit_gaps,
                 fasta_orig,
                 fastas_to_trim[fasta_orig],
+                args.min_samples,
                 args.overwrite,
             ))
 
@@ -772,8 +776,8 @@ def make_output_dirtree(markers, formats, out_dir, base_dir, margin):
 
 
 def collect_extracted_markers(
-    markers, formats, max_paralogs, extracted_sample_dirs, out_dir, base_dir, refs_paths,
-    overwrite, show_less
+    markers, formats, max_paralogs, min_samples, extracted_sample_dirs,
+    out_dir, base_dir, refs_paths, overwrite, show_less
 ):
     source_files = [Path(settings.MARKER_DIRS[m], f"{m}{settings.FORMAT_SUFFIXES[f]}")
                    for m in markers.split(",") for f in formats.split(",")
@@ -832,7 +836,7 @@ def collect_extracted_markers(
     with tqdm(total=len(fastas_per_marker), ncols=tqdm_cols, unit="file") as pbar:
         for fasta in fastas_per_marker:
             if overwrite is True or not fasta.exists():
-                if num_samples(fastas_per_marker[fasta]) >= settings.MIN_SAMPLES_ALN:
+                if num_samples(fastas_per_marker[fasta]) >= min_samples:
                     dict_to_fasta(fastas_per_marker[fasta], fasta, sort=True)
                     accepted += 1
                 else:
@@ -845,7 +849,7 @@ def collect_extracted_markers(
         f" [{elapsed_time(time.time() - start)}]"
     ))
     log.log(
-        f"     {accepted} saved, {rejected} not saved for having <4 samples,"
+        f"     {accepted} saved, {rejected} not saved for having <{min_samples} samples,"
         f" {skipped} already existed and skipped"
     )
 
@@ -1001,14 +1005,15 @@ def rehead_mafft_alignment(fasta_in: Path, fasta_out: Path):
 
 
 def mafft(
-    mafft_path, mafft_algorithm, threads, mafft_timeout, fasta_in: Path, fasta_out: Path, overwrite
+    mafft_path, mafft_algorithm, threads, mafft_timeout,
+    fasta_in: Path, fasta_out: Path, min_samples, overwrite
 ):
     start = time.time()
     fasta_out_short = Path(*fasta_out.parts[-3:])
-    if num_samples(fasta_to_dict(fasta_in)) < settings.MIN_SAMPLES_ALN:
+    if num_samples(fasta_to_dict(fasta_in)) < min_samples:
         message = dim(
             f"'{fasta_out_short}': skipped (input FASTA has fewer than"
-            f" {settings.MIN_SAMPLES_ALN} samples)"
+            f" {min_samples} samples)"
         )
         return message
     if fasta_out.exists():
@@ -1066,12 +1071,13 @@ def mafft(
     return message
 
 
-def paralog_fast_filter(fastas_paths, overwrite, concurrent, show_less, debug):
+def paralog_fast_filter(fastas_paths, min_samples, overwrite, concurrent, debug, show_less):
     filter_paralogs_fast_params = []
     for fasta in fastas_paths:
         filter_paralogs_fast_params.append((
             fasta,
             fastas_paths[fasta],
+            min_samples,
             overwrite,
         ))
     if debug:
@@ -1086,7 +1092,7 @@ def paralog_fast_filter(fastas_paths, overwrite, concurrent, show_less, debug):
                                 "alignment", concurrent, show_less)
 
 
-def filter_paralogs_fast(fasta_in: Path, fasta_out: Path, overwrite):
+def filter_paralogs_fast(fasta_in: Path, fasta_out: Path, min_samples, overwrite):
     start = time.time()
 
     fasta_out_short = Path(*fasta_out.parts[-3:])
@@ -1100,13 +1106,13 @@ def filter_paralogs_fast(fasta_in: Path, fasta_out: Path, overwrite):
                 f"{settings.SEQ_NAME_SEP}ref" in seq_name):
                 seq_name_out = seq_name.replace(f"{settings.SEQ_NAME_SEP}00", "")
                 fasta_without_paralogs[seq_name_out] = dict(fasta_with_paralogs[seq_name])
-        if num_samples(fasta_without_paralogs) >= settings.MIN_SAMPLES_ALN:
+        if num_samples(fasta_without_paralogs) >= min_samples:
             dict_to_fasta(fasta_without_paralogs, fasta_out)
             message = f"'{fasta_out_short}': paralogs removed [{elapsed_time(time.time() - start)}]"
         else:
             message = red(
                 f"'{fasta_out_short}': not saved (filtered FASTA had fewer than"
-                f" {settings.MIN_SAMPLES_ALN} samples) [{elapsed_time(time.time() - start)}]"
+                f" {min_samples} samples) [{elapsed_time(time.time() - start)}]"
             )
     else:
         message = dim(f"'{fasta_out_short}': skipped (output FASTA already exists)")
@@ -1115,7 +1121,7 @@ def filter_paralogs_fast(fasta_in: Path, fasta_out: Path, overwrite):
 
 
 def paralog_careful_filter(
-    shared_paralog_stats, fastas_paths, filtering_refs, concurrent, overwrite, show_less, debug
+    shared_paralog_stats, fastas_paths, filtering_refs, min_samples, overwrite, concurrent, debug, show_less
 ):
     fastas = {}
     for marker in filtering_refs:
@@ -1134,6 +1140,7 @@ def paralog_careful_filter(
             shared_paralog_stats,
             fastas[marker_name],
             fastas_marker,
+            min_samples,
             overwrite
         ))
 
@@ -1149,7 +1156,7 @@ def paralog_careful_filter(
                                 "marker", concurrent, show_less)
 
 
-def filter_paralogs_careful(shared_paralog_stats, fasta_model, fastas_paths, overwrite):
+def filter_paralogs_careful(shared_paralog_stats, fasta_model, fastas_paths, min_samples, overwrite):
 
     start = time.time()
 
@@ -1233,7 +1240,7 @@ def filter_paralogs_careful(shared_paralog_stats, fasta_model, fastas_paths, ove
                             seq_name.split(settings.SEQ_NAME_SEP)[:-1]
                         )
                         fasta_without_paralogs[seq_name_out] = fasta_with_paralogs[seq_name]
-            if num_samples(fasta_without_paralogs) >= settings.MIN_SAMPLES_ALN:
+            if num_samples(fasta_without_paralogs) >= min_samples:
                 dict_to_fasta(fasta_without_paralogs, fastas_paths[fasta])
             else:
                 fastas_saved -= 1
@@ -1249,7 +1256,7 @@ def filter_paralogs_careful(shared_paralog_stats, fasta_model, fastas_paths, ove
     else:
         messages.append(red(
             f"'{fasta_model.parts[-3]}-{fasta_model.stem}': not saved (filtered FASTAs had fewer"
-            f" than {settings.MIN_SAMPLES_ALN} samples) [{elapsed_time(time.time() - start)}]"
+            f" than {min_samples} samples) [{elapsed_time(time.time() - start)}]"
         ))
 
     return "\n".join(messages)
@@ -1277,7 +1284,7 @@ def write_paralog_stats(out_dir, shared_paralog_stats):
         return stats_tsv_file
 
 
-def rem_refs(refs_paths, fastas_paths, overwrite, concurrent, show_less, debug):
+def rem_refs(refs_paths, fastas_paths, min_samples, overwrite, concurrent, debug, show_less):
     ref_names = []
     for marker in refs_paths:
         if refs_paths[marker]["NT_path"]:
@@ -1299,6 +1306,7 @@ def rem_refs(refs_paths, fastas_paths, overwrite, concurrent, show_less, debug):
             fasta,
             fastas_paths[fasta],
             ref_names,
+            min_samples,
             overwrite,
         ))
     if debug:
@@ -1311,7 +1319,7 @@ def rem_refs(refs_paths, fastas_paths, overwrite, concurrent, show_less, debug):
                                 "alignment", concurrent, show_less)
 
 
-def rem_refs_from_fasta(fasta_in: Path, fasta_out: Path, ref_names: list, overwrite):
+def rem_refs_from_fasta(fasta_in: Path, fasta_out: Path, ref_names: list, min_samples, overwrite):
     start = time.time()
 
     fasta_out_short = Path(*fasta_out.parts[-4:])
@@ -1323,7 +1331,7 @@ def rem_refs_from_fasta(fasta_in: Path, fasta_out: Path, ref_names: list, overwr
         for seq_name in fasta_with_refs:
             if seq_name not in ref_names:
                 fasta_without_refs[seq_name] = dict(fasta_with_refs[seq_name])
-        if num_samples(fasta_without_refs) >= settings.MIN_SAMPLES_ALN:
+        if num_samples(fasta_without_refs) >= min_samples:
             dict_to_fasta(fasta_without_refs, fasta_out)
             message = (
                 f"'{fasta_out_short}': references removed [{elapsed_time(time.time() - start)}]"
@@ -1331,7 +1339,7 @@ def rem_refs_from_fasta(fasta_in: Path, fasta_out: Path, ref_names: list, overwr
         else:
             message = red(
                 f"'{fasta_out_short}': not saved (filtered FASTA had fewer than"
-                f" {settings.MIN_SAMPLES_ALN} samples) [{elapsed_time(time.time() - start)}]"
+                f" {min_samples} samples) [{elapsed_time(time.time() - start)}]"
             )
     else:
         message = dim(f"'{fasta_out_short}': skipped (output FASTA already exists)")
@@ -1340,7 +1348,8 @@ def rem_refs_from_fasta(fasta_in: Path, fasta_out: Path, ref_names: list, overwr
 
 
 def clipkit(
-    clipkit_path, clipkit_algorithm, clipkit_gaps, fasta_in: Path, fasta_out: Path, overwrite
+    clipkit_path, clipkit_algorithm, clipkit_gaps, fasta_in: Path, fasta_out: Path,
+    min_samples, overwrite
 ):
     start = time.time()
 
@@ -1371,13 +1380,13 @@ def clipkit(
                 for line in clipkit_stats:
                     clipkit_log.write(line)
         clipkit_stats_file.unlink()
-        if num_samples(fasta_to_dict(fasta_out)) >= settings.MIN_SAMPLES_ALN:
+        if num_samples(fasta_to_dict(fasta_out)) >= min_samples:
             message = f"'{fasta_out_short}': trimmed [{elapsed_time(time.time() - start)}]"
         else:
             fasta_out.unlink()
             message = red(
                 f"'{fasta_out_short}': not saved (trimmed FASTA had fewer than"
-                f" {settings.MIN_SAMPLES_ALN} samples) [{elapsed_time(time.time() - start)}]"
+                f" {min_samples} samples) [{elapsed_time(time.time() - start)}]"
             )
     else:
         message = dim(f"'{fasta_out_short}': skipped (output FASTA already exists)")
