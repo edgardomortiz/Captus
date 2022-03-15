@@ -91,6 +91,11 @@ Minimum contig length in bp in output assembly.
 
 This argument is optional, the default is **auto** (= mean read length + smallest kmer in `k_list`)
 ___
+#### **`--max_contig_gc`**
+Maximum GC percentage allowed per contig. Useful to filter contamination. For example, bacteria usually exceed 60% GC content while eukaryotes rarely exceed that limit. 100.0 disables the GC filter.
+
+This argument is optional, the default is **100.0** (filter disabled)
+___
 #### **`-tmp_dir`**
 MEGAHIT needs a temporary directory in an internal hard drive, otherwise it refuses to run.
 
@@ -108,4 +113,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-08-06)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2022-02-17)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2022-03-15)

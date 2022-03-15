@@ -43,8 +43,13 @@ For each marker type, `Captus` creates several different formats. You can provid
 
 This argument is optional, the default is **AA,NT,GE,MA**
 ___
-#### **`-p, --max_paralogs`**
-Maximum number of secondary hits (copies) allowed per sample in the initial unfiltered alignments. Large numbers of marker copies per sample can increase alignment times. Hits (copies) are ranked from best to worst during the 'extract' step. -1 disables the initial removal of paralogs and aligns which might be useful if you expect very high ploidy levels for example.
+#### **`--max_paralogs`**
+Maximum number of secondary hits (copies) per sample to import from the extraction step. Large numbers of marker copies per sample can increase alignment times. Hits (copies) are ranked from best to worst during the 'extract' step. -1 disables the initial removal of paralogs and aligns which might be useful if you expect very high ploidy levels for example.
+
+This argument is optional, the default is **4**
+___
+#### **`--min_samples`**
+Minimum number of samples in a marker to proceed with alignment. Markers with fewer samples will be skipped. The default **4** corresponds to smallest number of sequences to build a rooted phylogeny.
 
 This argument is optional, the default is **4**
 ___
@@ -135,4 +140,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-08-06)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2022-02-17)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2022-03-14)

@@ -446,6 +446,16 @@ class CaptusAssembly(object):
                  " smallest kmer size in '--k_list'"
         )
         megahit_group.add_argument(
+            "--max_contig_gc",
+            action="store",
+            default=100.0,
+            type=float,
+            dest="max_contig_gc",
+            help="Maximum GC percentage allowed per contig. Useful to filter contamination. For"
+                 " example, bacteria usually exceed 60%% GC content while eukaryotes rarely exceed"
+                 " that limit. 100.0 disables the GC filter"
+        )
+        megahit_group.add_argument(
             "--tmp_dir",
             action="store",
             default="$HOME",
@@ -1066,16 +1076,25 @@ class CaptusAssembly(object):
                  "ALL = Shortcut for AA,NT,GE,GF,MA,MF"
         )
         input_group.add_argument(
-            "-p", "--max_paralogs",
+            "--max_paralogs",
              action="store",
              default=4,
              type=int,
              dest="max_paralogs",
-             help="Maximum number of secondary hits (copies) allowed per sample in the initial"
-                  " unfiltered alignments. Large numbers of marker copies per sample can increase"
+             help="Maximum number of secondary hits (copies) per sample to import from the"
+                  " extraction step. Large numbers of marker copies per sample can increase"
                   " alignment times. Hits (copies) are ranked from best to worst during the"
                   " 'extract' step. -1 disables the initial removal of paralogs and aligns which"
                   " might be useful if you expect very high ploidy levels for example"
+        )
+        input_group.add_argument(
+            "--min_samples",
+             action="store",
+             default=4,
+             type=int,
+             dest="min_samples",
+             help="Minimum number of samples in a marker to proceed with alignment. Markers with"
+                  " fewer samples will be skipped"
         )
 
         output_group = parser.add_argument_group("Output")
