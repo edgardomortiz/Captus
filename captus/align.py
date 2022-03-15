@@ -140,8 +140,9 @@ def align(full_command, args):
     else:
         log.log(f'{"Markers to collect":>{mar}}: {bold(markers)} {dim(markers_ignored)}')
         log.log(f'{"Alignment formats":>{mar}}: {bold(formats)} {dim(formats_ignored)}')
-        log.log(f'{"Max. paralogs":>{mar}}: {bold(args.max_paralogs)}')
-        log.log(f'{"Min. samples":>{mar}}: {bold(args.min_samples)}')
+        max_paralogs_msg = dim("(Collect all paralogs)") if args.max_paralogs == -1 else ""
+        log.log(f'{"Max. paralogs to collect":>{mar}}: {bold(args.max_paralogs)} {max_paralogs_msg}')
+        log.log(f'{"Min. samples to align":>{mar}}: {bold(args.min_samples)}')
         log.log("")
         log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
         log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
@@ -849,8 +850,8 @@ def collect_extracted_markers(
         f" [{elapsed_time(time.time() - start)}]"
     ))
     log.log(
-        f"     {accepted} saved, {rejected} not saved for having <{min_samples} samples,"
-        f" {skipped} already existed and skipped"
+        f"     {accepted} saved, {rejected} not saved for having fewer than {min_samples} samples,"
+        f" {skipped} already existed and were skipped"
     )
 
     # Add references to all the possible collected FASTAs
@@ -920,7 +921,7 @@ def add_refs(ref_path, dest_dir):
             if ("[query=" in fasta_in[seq_name]["description"]
                 and not seq_name.endswith(f"{settings.SEQ_NAME_SEP}ref")):
                 refs_needed.append(
-                    fasta_in[seq_name]["description"].split("[query=")[1].split(":")[0]
+                    fasta_in[seq_name]["description"].split("[query=")[1].split("]")[0]
                 )
         for ref_name in set(refs_needed):
             name_parts = ref_name.split(settings.REFERENCE_CLUSTER_SEPARATOR)
@@ -1176,7 +1177,7 @@ def filter_paralogs_careful(shared_paralog_stats, fasta_model, fastas_paths, min
     refs = {}
     for seq in aln:
         if "query=" in aln[seq]["description"] and "hit=00" in aln[seq]["description"]:
-            ref = aln[seq]["description"].split("query=")[1].split(":")[0]
+            ref = aln[seq]["description"].split("query=")[1].split("]")[0]
             if ref in refs:
                 refs[ref] += 1
             else:
