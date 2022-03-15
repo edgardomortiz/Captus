@@ -1331,10 +1331,12 @@ def write_fastas_and_report(
             len_aa = f"[length={len(seq_aa)}] "
 
             ref_coords = format_coords(hits[ref][h]["ref_coords"])
-            query = (
-                f'[query={hits[ref][h]["ref_name"]}:{ref_coords}] '
-                f'[contigs={hits[ref][h]["hit_contigs"]}]'.replace("\n", ";")
-            )
+            # This query description sometimes becomes too long for alignment software
+            # query = (
+            #     f'[query={hits[ref][h]["ref_name"]}:{ref_coords}] '
+            #     f'[contigs={hits[ref][h]["hit_contigs"]}]'.replace("\n", ";")
+            # )
+            query = (f'[query={hits[ref][h]["ref_name"]}] ')
 
             shifts_flanked, shifts_gene, shifts_nt, shifts_aa = "", "", "", ""
             if marker_type in ["NUC", "PTD", "MIT"]:
@@ -1352,8 +1354,8 @@ def write_fastas_and_report(
                 shifts_nt = [str(p + 1) for p in range(len(seq_nt)) if seq_nt[p] == "N"]
                 shifts_aa = [str(math.ceil(int(p) / 3)) for p in shifts_nt]
                 if shifts_nt:
-                    shifts_aa = f'[frameshifts={",".join(shifts_aa)}] '
-                    shifts_nt = f'[frameshifts={",".join(shifts_nt)}] '
+                    shifts_aa = f'[frameshifts={",".join(shifts_aa)}]'
+                    shifts_nt = f'[frameshifts={",".join(shifts_nt)}]'
                 else:
                     shifts_aa, shifts_nt = "", ""
 
@@ -1363,24 +1365,24 @@ def write_fastas_and_report(
                 seq_name = settings.SEQ_NAME_SEP.join([sample_name, ref, f"{h:02}"])
 
             flanked_seqs[seq_name] = {
-                "description": f"{description}{len_flanked}{shifts_flanked}{query}",
+                "description": f"{query}{description}{len_flanked}{shifts_flanked}",
                 "sequence": seq_flanked,
                 "ref_name": ref
             }
             gene_seqs[seq_name] = {
-                "description": f"{description}{len_gene}{shifts_gene}{query}",
+                "description": f"{query}{description}{len_gene}{shifts_gene}",
                 "sequence": seq_gene,
                 "ref_name": ref
             }
 
             if marker_type in ["NUC", "PTD", "MIT"]:
                 cds_nt_seqs[seq_name] = {
-                    "description": f"{description}{len_nt}{shifts_nt}{query}",
+                    "description": f"{query}{description}{len_nt}{shifts_nt}",
                     "sequence": seq_nt,
                     "ref_name": ref
                 }
                 cds_aa_seqs[seq_name] = {
-                    "description": f"{description}{len_aa}{shifts_aa}{query}",
+                    "description": f"{query}{description}{len_aa}{shifts_aa}",
                     "sequence": seq_aa,
                     "ref_name": ref
                 }
