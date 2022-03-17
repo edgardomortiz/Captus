@@ -820,8 +820,7 @@ def fasta_to_dict(fasta_path):
         desc = ""
         for line in fasta_in:
             line = line.strip("\n")
-            if not line:
-                continue
+            if not line: continue
             if line.startswith(">"):
                 if seq:
                     fasta_out[name] = {
@@ -831,7 +830,7 @@ def fasta_to_dict(fasta_path):
                     seq = ""
                 if len(line.split()) > 1:
                     name = line[1:].split()[0]
-                    desc = " ".join(line[1:].split()[1:])
+                    desc = " ".join(line.split()[1:])
                 else:
                     name = line[1:].rstrip()
                     desc = ""
@@ -842,7 +841,6 @@ def fasta_to_dict(fasta_path):
                 "description": desc,
                 "sequence": seq,
             }
-
     return fasta_out
 
 
@@ -860,31 +858,19 @@ def dict_to_fasta(
         action = "at"
     else:
         action = "wt"
-    if bool(in_fasta_dict):
-        if sort:
-            in_fasta_dict = dict(sorted(in_fasta_dict.items(), key=lambda x: x[0]))
+    if in_fasta_dict:
+        if sort: in_fasta_dict = dict(sorted(in_fasta_dict.items(), key=lambda x: x[0]))
         with opener(out_fasta_path, action) as fasta_out:
-            if wrap == 0:
-                for name in in_fasta_dict:
-                    if in_fasta_dict[name]["description"]:
-                        header = f'>{name} {in_fasta_dict[name]["description"]}'.strip()
-                    else:
-                        header = f">{name}".strip()
-                    fasta_out.write(f'{header}\n{in_fasta_dict[name]["sequence"]}\n')
-            elif wrap > 0:
-                for name in in_fasta_dict:
-                    if in_fasta_dict[name]["description"]:
-                        header = f'>{name} {in_fasta_dict[name]["description"]}'.strip()
-                    else:
-                        header = f">{name}".strip()
-                    sequence = in_fasta_dict[name]["sequence"]
-                    wrapped = "\n".join([sequence[i:i + wrap] for i in range(0, len(sequence), wrap)])
-                    fasta_out.write(f'{header}\n{wrapped}\n')
+            for name in in_fasta_dict:
+                header = f'>{name} {in_fasta_dict[name]["description"]}'.strip()
+                seq = in_fasta_dict[name]["sequence"]
+                if wrap == 0: wrap = len(seq)
+                wrapped = "\n".join([seq[i:i + wrap] for i in range(0, len(seq), wrap)])
+                fasta_out.write(f'{header}\n{wrapped}\n')
     else:
         if write_if_empty:
             with opener(out_fasta_path, action) as fasta_out:
                 fasta_out.write("")
-
     return out_fasta_path
 
 
@@ -957,7 +943,7 @@ def alignment_stats(fasta_path):
         fasta_list = []
         for seq_name in fasta_dict:
             seq = fasta_dict[seq_name]["sequence"]
-            left_gaps = "#" * (len(seq) - len(seq.lstrip("-")))
+            left_gaps  = "#" * (len(seq) - len(seq.lstrip("-")))
             right_gaps = "#" * (len(seq) - len(seq.rstrip("-")))
             fasta_list.append(f'{left_gaps}{seq.strip("-")}{right_gaps}')
 
@@ -1009,8 +995,7 @@ def alignment_stats(fasta_path):
 
     def pattern_type(pattern, seq_type):
         pattern = pattern.replace("-", "").upper()
-        if not pattern:
-            return "constant"
+        if not pattern: return "constant"
         r_sets = []
         if seq_type == "NT":
             r_sets = [set(NT_IUPAC[r]) for r in pattern]
@@ -1043,8 +1028,7 @@ def alignment_stats(fasta_path):
     }
 
     aln_type = fasta_type(fasta_path)
-    if aln_type == "invalid":
-        return stats
+    if aln_type == "invalid": return stats
 
     fasta_dict = fasta_to_dict(fasta_path)
     stats["sequences"] = len(fasta_dict)
@@ -1052,8 +1036,7 @@ def alignment_stats(fasta_path):
     stats["avg_copies"] = stats["sequences"] / stats["samples"]
 
     num_sites = aligned_length(fasta_dict)
-    if not num_sites:
-        return stats
+    if not num_sites: return stats
     stats["sites"] = num_sites
 
     sites = transpose_aln(mark_terminal_gaps(fasta_dict), num_sites)
