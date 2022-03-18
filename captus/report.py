@@ -355,6 +355,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         yaxis2=dict(showticklabels=False),
         hoverlabel=dict(
             font_color="rgb(64,64,64)",
+            bordercolor="rgb(64,64,64)",
         ),
         barmode="overlay",
         bargap=0,
@@ -1843,6 +1844,7 @@ def build_assembly_report(out_dir, asm_stats_tsv):
         ),
         hoverlabel=dict(
             font_color="rgb(64,64,64)",
+            bordercolor="rgb(64,64,64)",
         ),
         barmode="overlay",
         # height=180 + 15 * len(sample_list),
@@ -2247,25 +2249,25 @@ def build_alignment_report(out_dir, aln_stats_tsv):
     }
 
     stage_dict = {
-        "False-unfiltered-False": "02_aligned_untrimmed / 01_unfiltered",
-        "False-fast-False": "02_aligned_untrimmed / 02_fast",
-        "False-careful-False": "02_aligned_untrimmed / 03_careful",
-        "False-unfiltered-True": "02_aligned_untrimmed / 04_unfiltered_no_refs",
-        "False-fast-True": "02_aligned_untrimmed / 05_fast_no_refs",
-        "False-careful-True": "02_aligned_untrimmed / 06_careful_no_refs",
-        "True-unfiltered-False": "03_aligned_trimmed / 01_unfiltered",
-        "True-fast-False": "03_aligned_trimmed / 02_fast",
-        "True-careful-False": "03_aligned_trimmed / 03_careful",
-        "True-unfiltered-True": "03_aligned_trimmed / 04_unfiltered_no_refs",
-        "True-fast-True": "03_aligned_trimmed / 05_fast_no_refs",
-        "True-careful-True": "03_aligned_trimmed / 06_careful_no_refs",
+        "False-unfiltered-False": "02_aligned_untrimmed/ <br>01_unfiltered -",
+        "False-fast-False": "02_aligned_untrimmed/ <br>02_fast -",
+        "False-careful-False": "02_aligned_untrimmed/ <br>03_careful -",
+        "False-unfiltered-True": "02_aligned_untrimmed/ <br>04_unfiltered_no_refs -",
+        "False-fast-True": "02_aligned_untrimmed/ <br>05_fast_no_refs -",
+        "False-careful-True": "02_aligned_untrimmed/ <br>06_careful_no_refs -",
+        "True-unfiltered-False": "03_aligned_trimmed/ <br>01_unfiltered -",
+        "True-fast-False": "03_aligned_trimmed/ <br>02_fast -",
+        "True-careful-False": "03_aligned_trimmed/ <br>03_careful -",
+        "True-unfiltered-True": "03_aligned_trimmed/ <br>04_unfiltered_no_refs -",
+        "True-fast-True": "03_aligned_trimmed/ <br>05_fast_no_refs -",
+        "True-careful-True": "03_aligned_trimmed/ <br>06_careful_no_refs -",
     }
 
     var_dict = {
         "Sequences": "seqs",
         "Samples": "samples",
         "Sequences/Sample": "avg_copies",
-        "Alignment Length (bp)": "sites",
+        "Alignment Length": "sites",
         "Informative Sites": "informative",
         "Informativeness (%)": "informativeness",
         "Uninformative Sites": "uninformative",
@@ -2345,17 +2347,6 @@ def build_alignment_report(out_dir, aln_stats_tsv):
 
     updatemenus = [
         dict(
-            buttons=buttons,
-            type="dropdown",
-            direction="down",
-            pad={"t": 10, "b": 10},
-            showactive=True,
-            x=1,
-            xanchor="right",
-            y=1,
-            yanchor="bottom"
-        ),
-        dict(
             buttons=buttonsX,
             type="dropdown",
             direction="up",
@@ -2368,6 +2359,20 @@ def build_alignment_report(out_dir, aln_stats_tsv):
             yanchor="top"
         ),
     ]
+    if len(marker_type_list) > 1:
+        updatemenus.append(
+            dict(
+                buttons=buttons,
+                type="dropdown",
+                direction="down",
+                pad={"t": 10, "b": 10},
+                showactive=True,
+                x=1,
+                xanchor="right",
+                y=1,
+                yanchor="bottom"
+            )
+        )
 
     annotations = [
         dict(
@@ -2405,12 +2410,14 @@ def build_alignment_report(out_dir, aln_stats_tsv):
         yaxis=dict(
             title="Processing Step",
             showgrid=False,
-            ticks="outside",
+            # ticks="outside",
+            ticklabelposition="outside top",
             zeroline=False,
             autorange="reversed",
         ),
         hoverlabel=dict(
                 font_color="rgb(64,64,64)",
+                bordercolor="rgb(64,64,64)",
             ),
         legend=dict(
             title=dict(
@@ -2419,24 +2426,24 @@ def build_alignment_report(out_dir, aln_stats_tsv):
             ),
             traceorder="reversed+grouped",
         ),
-        annotations=annotations,
+        annotations=annotations if len(marker_type_list) > 1 else None,
         updatemenus=updatemenus,
     )
     figs.append(fig)
 
     stage_dict = {
-        "False-unfiltered-False": "02_aligned_untrimmed<br>└ 01_unfiltered",
-        "False-fast-False": "02_aligned_untrimmed<br>└ 02_fast",
-        "False-careful-False": "02_aligned_untrimmed<br>└ 03_careful",
-        "False-unfiltered-True": "02_aligned_untrimmed<br>└ 04_unfiltered_no_refs",
-        "False-fast-True": "02_aligned_untrimmed<br>└ 05_fast_no_refs",
-        "False-careful-True": "02_aligned_untrimmed<br>└ 06_careful_no_refs",
-        "True-unfiltered-False": "03_aligned_trimmed<br>└ 01_unfiltered",
-        "True-fast-False": "03_aligned_trimmed<br>└ 02_fast",
-        "True-careful-False": "03_aligned_trimmed<br>└ 03_careful",
-        "True-unfiltered-True": "03_aligned_trimmed<br>└ 04_unfiltered_no_refs",
-        "True-fast-True": "03_aligned_trimmed<br>└ 05_fast_no_refs",
-        "True-careful-True": "03_aligned_trimmed<br>└ 06_careful_no_refs",
+        "False-unfiltered-False": "02_aligned_untrimmed/<br>01_unfiltered",
+        "False-fast-False": "02_aligned_untrimmed/<br>02_fast",
+        "False-careful-False": "02_aligned_untrimmed/<br>03_careful",
+        "False-unfiltered-True": "02_aligned_untrimmed/<br>04_unfiltered_no_refs",
+        "False-fast-True": "02_aligned_untrimmed/<br>05_fast_no_refs",
+        "False-careful-True": "02_aligned_untrimmed/<br>06_careful_no_refs",
+        "True-unfiltered-False": "03_aligned_trimmed/<br>01_unfiltered",
+        "True-fast-False": "03_aligned_trimmed/<br>02_fast",
+        "True-careful-False": "03_aligned_trimmed/<br>03_careful",
+        "True-unfiltered-True": "03_aligned_trimmed/<br>04_unfiltered_no_refs",
+        "True-fast-True": "03_aligned_trimmed/<br>05_fast_no_refs",
+        "True-careful-True": "03_aligned_trimmed/<br>06_careful_no_refs",
     }
 
     hovertemplate = "<br>".join([
@@ -2444,7 +2451,7 @@ def build_alignment_report(out_dir, aln_stats_tsv):
             "Marker type: <b>%{customdata[4]}</b>",
             "Sequences: <b>%{customdata[7]:,.0f}</b>",
             "Samples: <b>%{customdata[8]:,.0f}</b>",
-            "Sequences/sambple: <b>%{customdata[9]:.2f}</b>",
+            "Sequences/sample: <b>%{customdata[9]:.2f}</b>",
             "Alignment length: <b>%{customdata[10]:,.0f} %{customdata[20]}</b>",
             "Informative sites: <b>%{customdata[11]:,.0f}</b>",
             "Informativeness: <b>%{customdata[12]:.2f}%</b>",
@@ -2459,7 +2466,7 @@ def build_alignment_report(out_dir, aln_stats_tsv):
     for j, marker_type in enumerate(marker_type_list):
         data = df[df["marker_type"] == marker_type]
         stage_list = data["stage"].unique()
-        fmt_list = data["format"].unique()
+        fmt_list = list(reversed(data["format"].unique()))
         fig = go.Figure()
         buttons_stage = []
         for i, stage in enumerate(stage_list):
@@ -2469,13 +2476,14 @@ def build_alignment_report(out_dir, aln_stats_tsv):
                     go.Histogram2dContour(
                         x=d[list(var_dict.values())[3]],
                         y=d[list(var_dict.values())[4]],
-                        contours_coloring="lines",
+                        contours_coloring="fill",
                         colorscale=[
-                            [0, "#080808"],
+                            [0, "rgba(8,8,8,0)"],
                             [1, color_dict[fmt]],
                         ],
+                        opacity=0.5,
                         showscale=False,
-                        line_width=1,
+                        line_width=0.1,
                         visible=True if i == 0 else False,
                         hoverinfo="skip",
                         legendgroup=fmt,
@@ -2494,6 +2502,7 @@ def build_alignment_report(out_dir, aln_stats_tsv):
                         marker=dict(
                             size=8,
                             color=color_dict[fmt],
+                            opacity=0.7,
                             line=dict(
                                 # color="white",
                                 width=1,
@@ -2705,13 +2714,14 @@ def build_alignment_report(out_dir, aln_stats_tsv):
             ),
             hoverlabel=dict(
                 font_color="rgb(64,64,64)",
+                bordercolor="rgb(64,64,64)",
             ),
             legend=dict(
                 title=dict(
                     text="<b>Format</b>",
                     side="top",
                 ),
-                tracegroupgap=0,
+                traceorder="reversed",
             ),
             barmode="overlay",
             annotations=annotations,
