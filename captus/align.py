@@ -14,6 +14,7 @@ not, see <http://www.gnu.org/licenses/>.
 
 import json
 import shutil
+import statistics
 import subprocess
 import time
 from multiprocessing import Manager
@@ -1188,16 +1189,16 @@ def filter_paralogs_careful(shared_paralog_stats, fasta_model, fastas_paths, min
     best_ref_seq = aln[f"{best_ref}{settings.SEQ_NAME_SEP}ref"]["sequence"]
 
     tsv = []
-    accepted = []
-    for seq in aln:
-        if settings.SEQ_NAME_SEP not in seq or seq.endswith(f"{settings.SEQ_NAME_SEP}ref"):
-            accepted.append(seq)
-
+    accepted = [seq for seq in aln if seq.endswith(f"{settings.SEQ_NAME_SEP}ref")]
     samples_with_paralogs = {}
     for seq in aln:
-        if settings.SEQ_NAME_SEP in seq and not seq.endswith(f"{settings.SEQ_NAME_SEP}ref"):
-            sample_name = settings.SEQ_NAME_SEP.join(seq.split(settings.SEQ_NAME_SEP)[:-1])
-            hit_num = seq.split(settings.SEQ_NAME_SEP)[-1]
+        if not seq.endswith(f"{settings.SEQ_NAME_SEP}ref"):
+            if settings.SEQ_NAME_SEP in seq:
+                sample_name = settings.SEQ_NAME_SEP.join(seq.split(settings.SEQ_NAME_SEP)[:-1])
+                hit_num = seq.split(settings.SEQ_NAME_SEP)[-1]
+            else:
+                sample_name = seq
+                hit_num = "00"
             length_seq = len(aln[seq]["sequence"].replace("-", ""))
             lenght_ref = len(best_ref_seq.replace("-", ""))
             pid = pairwise_identity(best_ref_seq, aln[seq]["sequence"], fasta_model_format)
@@ -1222,8 +1223,14 @@ def filter_paralogs_careful(shared_paralog_stats, fasta_model, fastas_paths, min
     for sample in samples_with_paralogs:
         accepted.append(max(samples_with_paralogs[sample], key=samples_with_paralogs[sample].get))
 
+    pids = [float(row[8]) for row in tsv if row[6] in accepted]
+    min_pid = statistics.mean(pids) - (settings.PID_STDEVS * statistics.stdev(pids))
     for row in tsv:
-        if row[6] in accepted: row[10] = f"{True}"
+        if row[6] in accepted:
+            if float(row[8]) >= min_pid:
+                row[10] = f'{True}'
+            else:
+                del accepted[row[6]]
 
     shared_paralog_stats += tsv
     messages = []

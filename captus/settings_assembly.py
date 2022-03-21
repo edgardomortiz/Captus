@@ -224,6 +224,7 @@ PROT_REFS = {
         "angiosperms353": {
             "AA": Path(DATA_DIR, "Angiosperms353.FAA"),
             "NT": Path(DATA_DIR, "Angiosperms353.FNA"),
+            "notes": "This version was clustered at 0.98 identity and 0.1 coverage with mmseqs2",
         },
         "mega353": {
             "AA": Path(DATA_DIR, "Mega353_cl0.76_cov0.8.FAA"),
@@ -511,6 +512,13 @@ MAFFT_ALGORITHMS = {
 # Separator used in output sequences names, for example used to distinguish sample name from gene
 # name or to indicate copy number
 SEQ_NAME_SEP = "__"
+
+# During the careful filter of paralogs, the identity to the the most common reference is calculated
+# for each best matching copy of each sample.
+# Best matching copies below mean(identities) - (PID_STDEVS * stdev(identitites)) are removed too,
+# to avoid the inclusion of low identity paralogs when the best copy was not found for a sample
+# Experimental: The currendt default 2 excludes the lowest ~2.2% assuming a normal distribution
+PID_STDEVS = 2
 
 # File name for sequence-to-sample equivalence table used by ASTRAL-Pro to analyze trees that
 # include paralogs
