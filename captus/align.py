@@ -514,6 +514,7 @@ def align(full_command, args):
                                 "alignment", concurrent, show_less)
     log.log("")
     if shared_seq_names:
+        shared_seq_names = list(set(shared_seq_names))
         seq_to_sample_file = Path(out_dir, settings.ASTRAL_PRO_EQ)
         with open(seq_to_sample_file, "wt") as seq_to_sample:
             seq_to_sample.write("\n".join(sorted(shared_seq_names)))
@@ -1412,9 +1413,9 @@ def extract_seq_names(shared_seq_names, fasta_path):
     if file_is_empty(fasta_path):
         return red(f"'{short_path}': FAILED name extraction, file was empty")
 
-    for seq_name in fasta_to_dict(fasta_path):
-        equivalence = f"{seq_name}\t{seq_name.split(settings.SEQ_NAME_SEP)[0]}"
-        if equivalence not in shared_seq_names: shared_seq_names.append(equivalence)
+    equivalences = [f'{seq_name}\t{seq_name.split(settings.SEQ_NAME_SEP)[0]}'
+                    for seq_name in fasta_to_dict(fasta_path)]
+    shared_seq_names += equivalences
     message = f"'{short_path}': names extracted [{elapsed_time(time.time() - start)}]"
 
     return message
