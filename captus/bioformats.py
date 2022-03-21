@@ -702,7 +702,7 @@ def align_prots(s1, s2, method, scoring_matrix=PAM250):
         return False
 
 
-def pairwise_identity(seq1: str, seq2: str, seq_type: str):
+def pairwise_identity(seq1: str, seq2: str, seq_type: str, ignore_internal_gaps=False):
     """
     Given a pair of aligned sequences 'seq1' and 'seq2', calculate the identity of the overlapping
     region
@@ -715,6 +715,8 @@ def pairwise_identity(seq1: str, seq2: str, seq_type: str):
         Sequence 2
     seq_type : str
         'AA' if aminoacid, 'NT' if nucleotide
+    ignore_internal_gaps : bool, optional
+        Wheter to include the length of internal gaps in calculation or not, by default False
 
     Returns
     -------
@@ -734,13 +736,19 @@ def pairwise_identity(seq1: str, seq2: str, seq_type: str):
     seq1_end, seq2_end = len(seq1.rstrip("-")), len(seq2.rstrip("-"))
     overlap_length = min(seq1_end, seq2_end) - max(seq1_start, seq2_start)
     matches = 0
+    aligned_length = 0
     if overlap_length > 0:
         for pos in range(max(seq1_start, seq2_start), min(seq1_end, seq2_end)):
             pair = "".join(sorted(f"{seq1[pos]}{seq2[pos]}"))
-            matches += PIDS[pair]
-            if pair == "--":
-                overlap_length -= 1
-        return (matches / overlap_length) * 100
+            if ignore_internal_gaps:
+                if not "-" in pair:
+                    matches += PIDS[pair]
+                    aligned_length += 1
+            else:
+                if pair != "--":
+                    matches += PIDS[pair]
+                    aligned_length += 1
+        return (matches / aligned_length) * 100
     else:
         return 0.00
 

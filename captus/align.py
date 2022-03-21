@@ -1201,7 +1201,9 @@ def filter_paralogs_careful(shared_paralog_stats, fasta_model, fastas_paths, min
                 hit_num = "00"
             length_seq = len(aln[seq]["sequence"].replace("-", ""))
             lenght_ref = len(best_ref_seq.replace("-", ""))
-            pid = pairwise_identity(best_ref_seq, aln[seq]["sequence"], fasta_model_format)
+            pid = pairwise_identity(best_ref_seq, aln[seq]["sequence"],
+                                    fasta_model_format,
+                                    ignore_internal_gaps=True)
             paralog_score = (pid / 100) * (length_seq / lenght_ref)
             if sample_name in samples_with_paralogs:
                 samples_with_paralogs[sample_name][seq] = paralog_score
@@ -1230,7 +1232,7 @@ def filter_paralogs_careful(shared_paralog_stats, fasta_model, fastas_paths, min
             if float(row[8]) >= min_pid:
                 row[10] = f'{True}'
             else:
-                del accepted[row[6]]
+                del accepted[accepted.index(row[6])]
 
     shared_paralog_stats += tsv
     messages = []
