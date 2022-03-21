@@ -864,9 +864,11 @@ def dict_to_fasta(
             for name in in_fasta_dict:
                 header = f'>{name} {in_fasta_dict[name]["description"]}'.strip()
                 seq = in_fasta_dict[name]["sequence"]
-                if wrap == 0: wrap = len(seq)
-                wrapped = "\n".join([seq[i:i + wrap] for i in range(0, len(seq), wrap)])
-                fasta_out.write(f'{header}\n{wrapped}\n')
+                if wrap > 0:
+                    seq_out = "\n".join([seq[i:i + wrap] for i in range(0, len(seq), wrap)])
+                else:
+                    seq_out = seq
+                fasta_out.write(f'{header}\n{seq_out}\n')
     else:
         if write_if_empty:
             with opener(out_fasta_path, action) as fasta_out:
