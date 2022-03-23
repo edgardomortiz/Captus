@@ -224,11 +224,12 @@ PROT_REFS = {
         "angiosperms353": {
             "AA": Path(DATA_DIR, "Angiosperms353.FAA"),
             "NT": Path(DATA_DIR, "Angiosperms353.FNA"),
-            "notes": "This version was clustered at 0.98 identity and 0.1 coverage with mmseqs2",
+            "notes": "Clustered at 0.98 identity and 0.1 coverage with mmseqs2, isolated Xs removed",
         },
         "mega353": {
-            "AA": Path(DATA_DIR, "Mega353_cl0.76_cov0.8.FAA"),
-            "NT": Path(DATA_DIR, "Mega353_cl0.76_cov0.8.FNA"),
+            "AA": Path(DATA_DIR, "Mega353.FAA"),
+            "NT": Path(DATA_DIR, "Mega353.FNA"),
+            "notes": "Clustered at 0.78 identity and 0.1 coverage with mmseqs2, isolated Xs removed",
         },
     },
     "PTD": {
