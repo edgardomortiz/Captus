@@ -172,8 +172,8 @@ MEGAHIT_MIN_THREADS = 4
 # complex graphs that are hard to visualize
 MIN_KMER_SIZE_FOR_FASTG = 31
 
-# Minimum RAM reserved a BLAT instance in bytes (2GB)
-BLAT_MIN_RAM_B = 2 * 1024 ** 3
+# Minimum RAM reserved a BLAT/Scipio instances in bytes (2GB)
+EXTRACTION_MIN_RAM_B = 2 * 1024 ** 3
 
 # Hidden option: Switch to True to fill protein gaps with X
 FILL_GAP_WITH_X = False
