@@ -19,6 +19,7 @@ import statistics
 import subprocess
 import time
 from pathlib import Path
+from weakref import ref
 
 from tqdm import tqdm
 
@@ -28,8 +29,8 @@ from .bioformats import (blat_misc_dna_psl_to_dict, dict_to_fasta, fasta_headers
                          fasta_to_dict, fasta_type, fix_premature_stops, scipio_yaml_to_dict,
                          split_mmseqs_clusters_file, translate_fasta_dict, write_gff3)
 from .misc import (ElapsedTimeThread, bioperl_get_version, blat_path_version, bold, bold_green,
-                   bold_yellow, compress_list_files, dim, elapsed_time, format_dep_msg,
-                   has_valid_ext, dir_is_empty, make_output_dir, make_tmp_dir_within,
+                   bold_yellow, compress_list_files, dim, dir_is_empty, elapsed_time,
+                   format_dep_msg, has_valid_ext, make_output_dir, make_tmp_dir_within,
                    mmseqs_path_version, python_library_check, quit_with_error, red,
                    remove_formatting, scipio_path_version, set_ram, set_threads, successful_exit,
                    tqdm_parallel_async_run, tqdm_serial_run, yaml_perl_get_version)
@@ -76,9 +77,6 @@ def extract(full_command, args):
     threads_max, threads_total = set_threads(args.threads)
     log.log(f'{"Max. Threads":>{mar}}: {bold(threads_max)} {dim(f"(out of {threads_total})")}')
     log.log("")
-
-    # Set up concurrency now to be used either at extraction or during clustering/extraction
-    concurrent, ram_B_per_extraction = adjust_blat_concurrency(args.concurrent, threads_max, ram_B)
 
     # Set up software usage and actions based on given arguments
     if any([args.nuc_refs, args.ptd_refs, args.mit_refs, args.dna_refs]):
@@ -205,31 +203,45 @@ def extract(full_command, args):
                 "'--captus_assemblies_dir' and/or '--fastas' argument"
             )
 
-        log.log(f'{"Concurrent extractions":>{mar}}: {bold(concurrent)}')
-        log.log(f'{"RAM per extraction":>{mar}}: {bold(f"{ram_B_per_extraction / 1024 ** 3:.1f}GB")}')
-        log.log(f'{"Threads per extraction":>{mar}}: {bold("1")}'
-                f' {dim("(Scipio and BLAT are single-threaded)")}')
-        log.log("")
-
         protein_refs = prepare_protein_refs(args.nuc_refs,
                                             args.ptd_refs,
                                             args.mit_refs,
                                             args.nuc_transtable,
                                             args.ptd_transtable,
                                             args.mit_transtable)
+        max_prot_ref_size = 0
         log.log("")
         if any([protein_refs["NUC"]["AA_path"],
                 protein_refs["PTD"]["AA_path"],
                 protein_refs["MIT"]["AA_path"]]):
-            log.log(bold(f'{"Protein options":>{mar}}:'))
+            log.log(bold(f'{"PROTEIN OPTIONS":>{mar}}:'))
+            if protein_refs["NUC"]["AA_path"]:
+                nuc_query = fasta_to_dict(protein_refs["NUC"]["AA_path"])
+                nuc_query_info = reference_info(nuc_query)
+                max_prot_ref_size = max(max_prot_ref_size, nuc_query_info["total_size"])
+            if protein_refs["PTD"]["AA_path"]:
+                ptd_query = fasta_to_dict(protein_refs["PTD"]["AA_path"])
+                ptd_query_info = reference_info(ptd_query)
+                max_prot_ref_size = max(max_prot_ref_size, ptd_query_info["total_size"])
+            if protein_refs["MIT"]["AA_path"]:
+                mit_query = fasta_to_dict(protein_refs["MIT"]["AA_path"])
+                mit_query_info = reference_info(mit_query)
+                max_prot_ref_size = max(max_prot_ref_size, mit_query_info["total_size"])
             log.log(f'{"Max. loci for Scipio x2":>{mar}}: {bold(args.max_loci_scipio_x2)}')
             log.log(f'{"Predict dubious introns":>{mar}}: {bold(args.predict)}')
+            prot_concurrent, prot_ram_B_per_extract = adjust_concurrency(args.concurrent,
+                                                                            threads_max,
+                                                                            max_prot_ref_size,
+                                                                            ram_B)
+            log.log(f'{"Concurrent extractions":>{mar}}: {bold(prot_concurrent)}')
+            log.log(f'{"RAM per extraction":>{mar}}:'
+                    f' {bold(f"{prot_ram_B_per_extract / 1024 ** 3:.1f}GB")}')
+            log.log(f'{"Threads per extraction":>{mar}}: {bold("1")}'
+                    f' {dim("(Scipio and BLAT are single-threaded)")}')
             log.log("")
         log.log(bold(f'{"Nuclear proteins":>{mar}}:'))
         log.log(f'{"reference":>{mar}}: {protein_refs["NUC"]["AA_msg"]}')
         if protein_refs["NUC"]["AA_path"]:
-            nuc_query = fasta_to_dict(protein_refs["NUC"]["AA_path"])
-            nuc_query_info = reference_info(nuc_query)
             log.log(f'{"reference info":>{mar}}: {nuc_query_info["info_msg"]}')
             log.log(f'{"min_score":>{mar}}: {bold(args.nuc_min_score)}')
             nuc_min_identity = adjust_min_identity(args.nuc_min_identity, args.nuc_transtable)
@@ -241,8 +253,6 @@ def extract(full_command, args):
         log.log(bold(f'{"Plastidial proteins":>{mar}}:'))
         log.log(f'{"reference":>{mar}}: {protein_refs["PTD"]["AA_msg"]}')
         if protein_refs["PTD"]["AA_path"]:
-            ptd_query = fasta_to_dict(protein_refs["PTD"]["AA_path"])
-            ptd_query_info = reference_info(ptd_query)
             log.log(f'{"reference info":>{mar}}: {ptd_query_info["info_msg"]}')
             log.log(f'{"min_score":>{mar}}: {bold(args.ptd_min_score)}')
             ptd_min_identity = adjust_min_identity(args.ptd_min_identity, args.ptd_transtable)
@@ -254,8 +264,6 @@ def extract(full_command, args):
         log.log(bold(f'{"Mitochondrial proteins":>{mar}}:'))
         log.log(f'{"reference":>{mar}}: {protein_refs["MIT"]["AA_msg"]}')
         if protein_refs["MIT"]["AA_path"]:
-            mit_query = fasta_to_dict(protein_refs["MIT"]["AA_path"])
-            mit_query_info = reference_info(mit_query)
             log.log(f'{"reference info":>{mar}}: {mit_query_info["info_msg"]}')
             log.log(f'{"min_score":>{mar}}: {bold(args.mit_min_score)}')
             mit_min_identity = adjust_min_identity(args.mit_min_identity, args.mit_transtable)
@@ -264,19 +272,34 @@ def extract(full_command, args):
             log.log(f'{"min_coverage":>{mar}}: {bold(mit_min_coverage)}')
             log.log(f'{"translation table":>{mar}}: {bold(args.mit_transtable)}')
         log.log("")
+        log.log("")
 
+        dna_ref_size = 0
         dna_ref = prepare_dna_refs(args.dna_refs)
-        log.log(bold(f'{"Miscellaneous DNA options":>{mar}}:'))
-        log.log(f'{"reference":>{mar}}: {dna_ref["DNA"]["NT_msg"]}')
+        log.log(bold(f'{"MISCELLANEOUS DNA OPTIONS":>{mar}}:'))
         if dna_ref["DNA"]["NT_path"]:
             dna_query = fasta_to_dict(dna_ref["DNA"]["NT_path"])
             dna_query_info = reference_info(dna_query)
+            dna_ref_size = max(dna_ref_size, dna_query_info["total_size"])
+            dna_concurrent, dna_ram_B_per_extract = adjust_concurrency(args.concurrent,
+                                                                        threads_max,
+                                                                        dna_ref_size,
+                                                                        ram_B)
+            log.log(f'{"Concurrent extractions":>{mar}}: {bold(dna_concurrent)}')
+            log.log(f'{"RAM per extraction":>{mar}}:'
+                    f' {bold(f"{dna_ram_B_per_extract / 1024 ** 3:.1f}GB")}')
+            log.log(f'{"Threads per extraction":>{mar}}: {bold("1")}'
+                    f' {dim("(BLAT is single-threaded)")}')
+            log.log("")
+        log.log(f'{"reference":>{mar}}: {dna_ref["DNA"]["NT_msg"]}')
+        if dna_ref["DNA"]["NT_path"]:
             log.log(f'{"reference info":>{mar}}: {dna_query_info["info_msg"]}')
             log.log(f'{"min_identity":>{mar}}: {bold(args.dna_min_identity)}')
             log.log(f'{"min_coverage":>{mar}}: {bold(args.dna_min_coverage)}')
         log.log("")
+        log.log("")
 
-        log.log(bold(f'{"Output options":>{mar}}:'))
+        log.log(bold(f'{"OUTPUT OPTIONS":>{mar}}:'))
         max_paralogs_msg = dim("(Keep all paralogs)") if args.max_paralogs == -1 else ""
         log.log(f'{"Max. paralogs":>{mar}}: {bold(args.max_paralogs)} {max_paralogs_msg}')
         loci_files_msg = ""
@@ -392,6 +415,8 @@ def extract(full_command, args):
                     f' {bold(f"{len(scipio_params)} protein")} and'
                     f' {bold(f"{len(blat_params)} nucleotide")}')
             log.log("")
+
+
             if protein_refs["NUC"]["AA_path"]:
                 log.log(f'{"Nuclear proteins":>{mar}}:'
                         f' {bold(f"{out_dir}/[Sample_name]__captus-ext/")}'
@@ -411,7 +436,7 @@ def extract(full_command, args):
             log.log(f'{"Annotated assemblies":>{mar}}: '
                     f'{bold(f"{out_dir}/[Sample_name]__captus-ext/06_assembly_annotated")}')
             log.log(f'{"":>{mar}}  '
-                    f'{dim("(All these output directories will be created for each sample)")}')
+                    f'{dim("(These output directories will be created for each sample)")}')
             log.log("")
 
             json_path = update_refs_json({**protein_refs, **dna_ref}, out_dir) # concat two dict
@@ -426,7 +451,7 @@ def extract(full_command, args):
                                     "extraction", args.show_less)
                 else:
                     tqdm_parallel_async_run(scipio_coding, scipio_params, d_msg, f_msg,
-                                            "extraction", concurrent, args.show_less)
+                                            "extraction", prot_concurrent, args.show_less)
                 log.log("")
 
             if blat_params:
@@ -437,17 +462,18 @@ def extract(full_command, args):
                                     "extraction", args.show_less)
                 else:
                     tqdm_parallel_async_run(blat_misc_dna, blat_params, d_msg, f_msg,
-                                            "extraction", concurrent, args.show_less)
+                                            "extraction", dna_concurrent, args.show_less)
                 log.log("")
 
             d_msg = "Merging GFFs, summarizing recovery stats, and cleaning up"
             f_msg = "Merged GFF and summary recovery stats created"
+            cleanup_concurrent = min(settings.MAX_WRITING_INSTANCES, threads_max)
             if args.debug:
                 tqdm_serial_run(cleanup_post_extraction, cleanup_params, d_msg, f_msg,
                                 "sample", args.show_less)
             else:
                 tqdm_parallel_async_run(cleanup_post_extraction, cleanup_params, d_msg, f_msg,
-                                        "sample", concurrent, args.show_less)
+                                        "sample", cleanup_concurrent, args.show_less)
             log.log("")
 
         # Nothing to extract
@@ -460,7 +486,7 @@ def extract(full_command, args):
 
 
     ################################################################################################
-    ####################################################################### MEGAHIT ASSEMBLY SECTION
+    ############################################################################# CLUSTERING SECTION
     log.log_section_header("Clustering and Extracting Markers Across Samples with MMseqs2/BLAT")
     log.log_explanation(
         "Now Captus will cluster the assembly sequences across samples to discover homologous"
@@ -559,11 +585,24 @@ def extract(full_command, args):
                 "  \u25BA STEP 2 OF 3: Extracting cluster-derived DNA markers with BLAT"
             ))
             log.log("")
+            clust_ref_size = 0
             clust_ref = prepare_dna_refs(captus_clusters_ref, cluster=True)
-            log.log(f'{"reference":>{mar}}: {clust_ref["CLR"]["NT_msg"]}')
             if clust_ref["CLR"]["NT_path"]:
                 clust_query = fasta_to_dict(clust_ref["CLR"]["NT_path"])
                 clust_query_info = reference_info(clust_query)
+                clust_ref_size = max(clust_ref_size, clust_query_info["total_size"])
+                clust_concurrent, clust_ram_B_per_extract = adjust_concurrency(args.concurrent,
+                                                                                threads_max,
+                                                                                clust_ref_size,
+                                                                                ram_B)
+                log.log(f'{"Concurrent extractions":>{mar}}: {bold(clust_concurrent)}')
+                log.log(f'{"RAM per extraction":>{mar}}:'
+                        f' {bold(f"{clust_ram_B_per_extract / 1024 ** 3:.1f}GB")}')
+                log.log(f'{"Threads per extraction":>{mar}}: {bold("1")}'
+                        f' {dim("(BLAT is single-threaded)")}')
+                log.log("")
+            log.log(f'{"reference":>{mar}}: {clust_ref["CLR"]["NT_msg"]}')
+            if clust_ref["CLR"]["NT_path"]:
                 log.log(f'{"reference info":>{mar}}: {clust_query_info["info_msg"]}')
                 log.log(f'{"dna_min_identity":>{mar}}: {bold(args.dna_min_identity)}')
                 log.log(f'{"dna_min_coverage":>{mar}}: {bold(args.dna_min_coverage)}')
@@ -595,7 +634,7 @@ def extract(full_command, args):
                 log.log(f'{"Clustering output":>{mar}}:'
                         f' {bold(f"{out_dir}/[Sample_name]__captus-ext/")}'
                         f'{bold(settings.MARKER_DIRS["CLR"])}')
-                log.log(f'{"":>{mar}}  {dim("A directory will be created for each sample")}')
+                log.log(f'{"":>{mar}}  {dim("(A directory will be created for each sample)")}')
                 log.log("")
 
                 json_path = update_refs_json(clust_ref, out_dir)
@@ -609,7 +648,7 @@ def extract(full_command, args):
                                     "extraction", args.show_less)
                 else:
                     tqdm_parallel_async_run(blat_misc_dna, blat_clusters_params, d_msg, f_msg,
-                                            "extraction", concurrent, args.show_less)
+                                            "extraction", clust_concurrent, args.show_less)
                 log.log("")
                 log.log("")
                 log.log(bold_yellow(
@@ -629,13 +668,13 @@ def extract(full_command, args):
                     ))
                 d_msg = "Merging GFFs, summarizing recovery stats, and cleaning up"
                 f_msg = "Merged GFF and summary recovery stats created"
-
+                cleanup_concurrent = min(settings.MAX_WRITING_INSTANCES, threads_max)
                 if args.debug:
                     tqdm_serial_run(cleanup_post_extraction, cleanup_params, d_msg, f_msg,
                                     "sample", args.show_less)
                 else:
                     tqdm_parallel_async_run(cleanup_post_extraction, cleanup_params, d_msg, f_msg,
-                                            "sample", concurrent, args.show_less)
+                                            "sample", cleanup_concurrent, args.show_less)
                 log.log("")
                 cleanup_clustering_dir(clustering_dir, clust_prefix, clust_tmp_dir,
                                        threads_max, args.keep_all)
@@ -690,11 +729,11 @@ def extract(full_command, args):
     )
 
 
-def adjust_blat_concurrency(concurrent, threads_max, ram_B):
+def adjust_concurrency(concurrent, threads_max, ref_size_bp, ram_B):
     """
-    Adjust the proposed number of 'concurrent' BLAT processes so 'RAM_per_assembly' is never smaller
-    than 'settings.BLAT_MIN_RAM_B'. Once the right 'concurrent' has been found 'ram_per_assembly' is
-    ireadjusted
+    Adjust the proposed number of 'concurrent' BLAT/Scipio processes so 'RAM_per_extraction' is
+    never smaller than 'settings.EXTRACTION_MIN_RAM_B'. Once the right 'concurrent' has been found,
+    'ram_per_extraction' is readjusted
     """
     if concurrent == "auto":
         concurrent = threads_max
@@ -703,9 +742,11 @@ def adjust_blat_concurrency(concurrent, threads_max, ram_B):
             concurrent = int(concurrent)
         except ValueError:
             quit_with_error("Invalid value for '--concurrent', set it to 'auto' or use a number")
-
+    ref_ram_b = math.floor(ref_size_bp * math.log(ref_size_bp) * 4 / 1e8) * 1024 ** 3
+    min_ram_b = max(settings.EXTRACTION_MIN_RAM_B, ref_ram_b)
+    if min_ram_b >= ram_B: return 1, ram_B
     if concurrent > 1:
-        while ram_B // concurrent < settings.BLAT_MIN_RAM_B:
+        while ram_B // concurrent < min_ram_b:
             concurrent -= 1
     ram_B_per_extraction = ram_B // concurrent
     return concurrent, ram_B_per_extraction
@@ -1123,9 +1164,11 @@ def scipio_coding(
 
 def reference_info(query_dict):
     num_seqs = len(query_dict)
+    total_size = 0
     separators_found = 0
 
     for seq_name in query_dict:
+        total_size += len(query_dict[seq_name]["sequence"])
         if settings.REFERENCE_CLUSTER_SEPARATOR in seq_name:
             if len(list(filter(None, seq_name.split(settings.REFERENCE_CLUSTER_SEPARATOR)))) > 1:
                 separators_found += 1
@@ -1159,6 +1202,7 @@ def reference_info(query_dict):
 
     ref_info = {
         "num_seqs": num_seqs,
+        "total_size": total_size,
         "separators_found": separators_found,
         "num_loci": num_loci,
         "total_length_loci": total_length_loci,
