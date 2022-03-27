@@ -1397,14 +1397,19 @@ def clipkit(
         # Remove sequences that became shorter than 1 - clipkit_gaps of alignment length after
         # trimming. Added because IQ-TREE fails when alignment has empty sequences
         fasta_trimmed = fasta_to_dict(fasta_out)
-        seq_names_to_remove = []
+        ungapped_lengths = []
         for seq_name in fasta_trimmed:
-            aln_length = len(fasta_trimmed[seq_name]["sequence"])
-            aln_ungapped = len(fasta_trimmed[seq_name]["sequence"].replace("-", ""))
-            if aln_ungapped / aln_length < (1 - clipkit_gaps):
-                seq_names_to_remove.append(seq_name)
-        if seq_names_to_remove:
-            for seq_name in seq_names_to_remove:
+            ungapped = len(fasta_trimmed[seq_name]["sequence"].replace("-", ""))
+            if ungapped > 0: ungapped_lengths.append(ungapped)
+        mean_ungapped = 0
+        if ungapped_lengths: mean_ungapped = statistics.mean(ungapped_lengths)
+        seqs_to_remove = []
+        for seq_name in fasta_trimmed:
+            ungapped = len(fasta_trimmed[seq_name]["sequence"].replace("-", ""))
+            if ungapped / mean_ungapped < (1 - clipkit_gaps):
+                seqs_to_remove.append(seq_name)
+        if seqs_to_remove:
+            for seq_name in seqs_to_remove:
                 del fasta_trimmed[seq_name]
             dict_to_fasta(fasta_trimmed, fasta_out)
         if num_samples(fasta_trimmed) >= min_samples:
