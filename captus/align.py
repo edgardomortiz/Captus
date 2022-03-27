@@ -102,8 +102,6 @@ def align(full_command, args):
         prepare_redo(out_dir, args.redo_from)
         log.log("")
 
-
-
     if mafft_status == "not found":
         log.log(
             f"{bold('WARNING:')} MAFFT could not be found, the markers will be collected from"
@@ -290,6 +288,7 @@ def align(full_command, args):
             )
             log.log("")
             log.log(bold(f'{"CAREFUL paralog filtering":>{mar}}:'))
+            log.log(f'{"Filter tolerance":>{mar}}: {bold(args.tolerance)} {bold("STDEVS")}')
             log.log(f'{"FASTA files to process":>{mar}}: {bold(len(fastas_to_filter))}')
             log.log(make_output_dirtree(markers,
                                         formats,
@@ -300,7 +299,7 @@ def align(full_command, args):
             manager = Manager()
             shared_paralog_stats = manager.list()
             paralog_careful_filter(shared_paralog_stats, fastas_to_filter, filtering_refs,
-                                   args.min_samples, args.overwrite,
+                                   args.tolerance, args.min_samples, args.overwrite,
                                    concurrent, args.debug, show_less)
             paralog_stats_tsv = write_paralog_stats(out_dir, shared_paralog_stats)
             log.log("")
@@ -1124,7 +1123,8 @@ def filter_paralogs_fast(fasta_in: Path, fasta_out: Path, min_samples, overwrite
 
 
 def paralog_careful_filter(
-    shared_paralog_stats, fastas_paths, filtering_refs, min_samples, overwrite, concurrent, debug, show_less
+    shared_paralog_stats, fastas_paths, filtering_refs, tolerance,
+    min_samples, overwrite, concurrent, debug, show_less
 ):
     fastas = {}
     for marker in filtering_refs:
@@ -1143,6 +1143,7 @@ def paralog_careful_filter(
             shared_paralog_stats,
             fastas[marker_name],
             fastas_marker,
+            tolerance,
             min_samples,
             overwrite
         ))
@@ -1159,7 +1160,9 @@ def paralog_careful_filter(
                                 "marker", concurrent, show_less)
 
 
-def filter_paralogs_careful(shared_paralog_stats, fasta_model, fastas_paths, min_samples, overwrite):
+def filter_paralogs_careful(
+    shared_paralog_stats, fasta_model, fastas_paths, tolerance, min_samples, overwrite
+):
 
     start = time.time()
 
@@ -1227,7 +1230,7 @@ def filter_paralogs_careful(shared_paralog_stats, fasta_model, fastas_paths, min
         accepted.append(max(samples_with_paralogs[sample], key=samples_with_paralogs[sample].get))
 
     pids = [float(row[8]) for row in tsv if row[6] in accepted]
-    min_pid = statistics.mean(pids) - (settings.PID_STDEVS * statistics.stdev(pids))
+    min_pid = statistics.mean(pids) - (tolerance * statistics.stdev(pids))
     for row in tsv:
         if row[6] in accepted:
             if float(row[8]) >= min_pid:

@@ -96,6 +96,11 @@ We provide two filtering methods for paralog removal, you can select either or b
 
 This argument is optional, the default is **both**.
 ___
+#### **`--tolerance`**
+Only applicable to the 'careful' filter. If the selected copy's identity to the most commonly chosen reference is below this number of Standard Deviations from the mean, it will also be removed (the lower the number the stricter the filter).
+
+This argument is optional, the default is **2.0**.
+___
 ### *ClipKIT*
 ___
 #### **`--clipkit_algorithm`**
@@ -140,4 +145,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-08-06)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2022-03-14)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2022-03-27)
