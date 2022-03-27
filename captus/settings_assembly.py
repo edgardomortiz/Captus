@@ -514,13 +514,6 @@ MAFFT_ALGORITHMS = {
 # name or to indicate copy number
 SEQ_NAME_SEP = "__"
 
-# During the careful filter of paralogs, the identity to the the most common reference is calculated
-# for each best matching copy of each sample.
-# Best matching copies below mean(identities) - (PID_STDEVS * stdev(identitites)) are removed too,
-# to avoid the inclusion of low identity paralogs when the best copy was not found for a sample
-# Experimental: The currendt default 2 excludes the lowest ~2.2% assuming a normal distribution
-PID_STDEVS = 2
-
 # File name for sequence-to-sample equivalence table used by ASTRAL-Pro to analyze trees that
 # include paralogs
 ASTRAL_PRO_EQ = "captus-assembly_align.astral-pro.tsv"
