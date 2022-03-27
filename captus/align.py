@@ -1398,11 +1398,15 @@ def clipkit(
         # trimming. Added because IQ-TREE fails when alignment has empty sequences
         fasta_trimmed = fasta_to_dict(fasta_out)
         ungapped_lengths = []
+        aln_length = 0
         for seq_name in fasta_trimmed:
             ungapped = len(fasta_trimmed[seq_name]["sequence"].replace("-", ""))
+            aln_length = len(fasta_trimmed[seq_name]["sequence"])
             if ungapped > 0: ungapped_lengths.append(ungapped)
-        mean_ungapped = 0
-        if ungapped_lengths: mean_ungapped = statistics.mean(ungapped_lengths)
+        if ungapped_lengths:
+            mean_ungapped = statistics.mean(ungapped_lengths)
+        else:
+            mean_ungapped = aln_length
         seqs_to_remove = []
         for seq_name in fasta_trimmed:
             ungapped = len(fasta_trimmed[seq_name]["sequence"].replace("-", ""))
