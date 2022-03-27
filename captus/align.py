@@ -1396,12 +1396,13 @@ def clipkit(
         clipkit_stats_file.unlink()
         # Eliminate sequences that were empty after trimming, empty seqs cause IQ-TREE to fail
         fasta_trimmed = fasta_to_dict(fasta_out)
-        modified = False
+        seq_names_to_remove = []
         for seq_name in fasta_trimmed:
             if len(fasta_trimmed[seq_name]["sequence"].replace("-", "")) == 0:
-                modified = True
+                seq_names_to_remove.append(seq_name)
+        if seq_names_to_remove:
+            for seq_name in seq_names_to_remove:
                 del fasta_trimmed[seq_name]
-        if modified:
             dict_to_fasta(fasta_trimmed, fasta_out)
         if num_samples(fasta_trimmed) >= min_samples:
             message = f"'{fasta_out_short}': trimmed [{elapsed_time(time.time() - start)}]"
