@@ -1394,7 +1394,16 @@ def clipkit(
                 for line in clipkit_stats:
                     clipkit_log.write(line)
         clipkit_stats_file.unlink()
-        if num_samples(fasta_to_dict(fasta_out)) >= min_samples:
+        # Eliminate sequences that were empty after trimming, empty seqs cause IQ-TREE to fail
+        fasta_trimmed = fasta_to_dict(fasta_out)
+        modified = False
+        for seq_name in fasta_trimmed:
+            if len(fasta_trimmed[seq_name]["sequence"].replace("-", "")) == 0:
+                modified = True
+                del fasta_trimmed[seq_name]
+        if modified:
+            dict_to_fasta(fasta_trimmed, fasta_out)
+        if num_samples(fasta_trimmed) >= min_samples:
             message = f"'{fasta_out_short}': trimmed [{elapsed_time(time.time() - start)}]"
         else:
             fasta_out.unlink()
