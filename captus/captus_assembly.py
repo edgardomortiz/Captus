@@ -1164,6 +1164,16 @@ class CaptusAssembly(object):
                  "none = Skip paralog removal, just remove reference sequences from the"
                  " alignments. Useful for phylogenetic methods that allow paralogs like ASTRAL-Pro"
         )
+        paralog_group.add_argument(
+            "--tolerance",
+            action="store",
+            default=2.0,
+            type=float,
+            dest="tolerance",
+            help="Only applicable to the 'careful' filter. If the selected copy's identity to the"
+                 " most commonly chosen reference is below this number of Standard Deviations from"
+                 " the mean, it will also be removed (the lower the number the stricter the filter)"
+        )
 
         clipkit_group = parser.add_argument_group("ClipKIT")
         clipkit_group.add_argument(
