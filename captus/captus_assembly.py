@@ -1167,7 +1167,7 @@ class CaptusAssembly(object):
         paralog_group.add_argument(
             "--tolerance",
             action="store",
-            default=2.0,
+            default=4.0,
             type=float,
             dest="tolerance",
             help="Only applicable to the 'careful' filter. If the selected copy's identity to the"
