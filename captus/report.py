@@ -1893,20 +1893,20 @@ def build_extraction_report(out_dir, ext_stats_tsv):
     start = time.time()
 
     # Load datatable
-    df = pd.read_table(ext_stats_tsv, low_memory=False)
+    df = pd.read_table(
+        ext_stats_tsv,
+        low_memory=False,
+        usecols=[*range(0,17)],
+    )
 
     # Preprocess
-    df_best = (
-        df.loc[df.groupby(["sample_name", "marker_type", "locus"])["lwscore"].idxmax(),:]
-        .reset_index(drop=True)
-        .fillna("NaN")
-    )
+    df_best = df[df["hit"] == 0].reset_index(drop=True).fillna("NaN")
     df_best["hit"] = df.groupby(["sample_name", "marker_type", "locus"], as_index=False).count()["hit"]
     df_best.loc[df_best["ref_type"] == "nucl", "ref_len_unit"] = "bp"
     df_best.loc[df_best["ref_type"] == "prot", "ref_len_unit"] = "aa"
 
     # Define variables
-    marker_type = df_best["marker_type"].sort_values().unique()
+    marker_type = df_best["marker_type"].unique()
     if len(marker_type) > 1:
         marker_type = np.insert(marker_type, 0, "ALL")
     var_list = ["pct_recovered", "pct_identity", "hit", "score", "lwscore"]
@@ -1917,25 +1917,6 @@ def build_extraction_report(out_dir, ext_stats_tsv):
         "Score",
         "Length-weighted Score"
     ]
-    hovertemplate = "<br>".join([
-        "Sample: <b>%{customdata[0]}</b>",
-        "Marker type: <b>%{customdata[1]}</b>",
-        "Locus: <b>%{customdata[2]}</b>",
-        "Ref name: <b>%{customdata[3]}</b>",
-        "Ref coords: <b>%{customdata[4]}</b>",
-        "Ref type: <b>%{customdata[5]}</b>",
-        "Ref len matched: <b>%{customdata[6]:,.0f} %{customdata[20]}</b>",
-        "Total hits (copies): <b>%{customdata[7]}</b>",
-        "Recovered length: <b>%{customdata[8]:.2f}%</b>",
-        "Identity: <b>%{customdata[9]:.2f}%</b>",
-        "Score: <b>%{customdata[10]:.3f}</b>",
-        "Length-weighted score: <b>%{customdata[11]:.3f}</b>",
-        "Hit length: <b>%{customdata[12]:,.0f} bp</b>",
-        "CDS length: <b>%{customdata[13]:,.0f} bp</b>",
-        "Intron length: <b>%{customdata[14]:,.0f} bp</b>",
-        "Flanking length: <b>%{customdata[15]:,.0f} bp</b>",
-        "Frameshift: <b>%{customdata[16]}</b><extra></extra>",
-    ])
     colorscale = [
         [0.0, "rgb(94,79,162)"],
         [0.1, "rgb(50,136,189)"],
@@ -2034,6 +2015,35 @@ def build_extraction_report(out_dir, ext_stats_tsv):
         else:
             data = df_best[df_best["marker_type"] == marker]
             x = data["locus"]
+        if data.size > 500000:
+            customdata = None
+            hovertemplate = "<br>".join([
+                "Sample: <b>%{y}</b>",
+                "Locus: <b>%{x}</b>",
+                "Recovered length: <b>%{z:.2f}%</b><extra></extra>",
+            ])
+        else:
+            customdata = data
+            hovertemplate = "<br>".join([
+                "Sample: <b>%{customdata[0]}</b>",
+                "Marker type: <b>%{customdata[1]}</b>",
+                "Locus: <b>%{customdata[2]}</b>",
+                "Ref name: <b>%{customdata[3]}</b>",
+                "Ref coords: <b>%{customdata[4]}</b>",
+                "Ref type: <b>%{customdata[5]}</b>",
+                "Ref len matched: <b>%{customdata[6]:,.0f} %{customdata[17]}</b>",
+                "Total hits (copies): <b>%{customdata[7]}</b>",
+                "Recovered length: <b>%{customdata[8]:.2f}%</b>",
+                "Identity: <b>%{customdata[9]:.2f}%</b>",
+                "Score: <b>%{customdata[10]:.3f}</b>",
+                "Length-weighted score: <b>%{customdata[11]:.3f}</b>",
+                "Hit length: <b>%{customdata[12]:,.0f} bp</b>",
+                "CDS length: <b>%{customdata[13]:,.0f} bp</b>",
+                "Intron length: <b>%{customdata[14]:,.0f} bp</b>",
+                "Flanking length: <b>%{customdata[15]:,.0f} bp</b>",
+                "Frameshift: <b>%{customdata[16]}</b><extra></extra>",
+            ])
+            
         fig = go.Figure()
         fig.add_trace(
             go.Heatmap(
@@ -2049,7 +2059,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
                     outlinecolor="rgb(8,8,8)",
                     outlinewidth=1,
                 ),
-                customdata=data,
+                customdata=customdata,
                 hovertemplate=hovertemplate,
                 hoverongaps=False,
                 xgap=0.5,
@@ -2063,15 +2073,48 @@ def build_extraction_report(out_dir, ext_stats_tsv):
             if var == "pct_recovered":
                 zmax = data[var].max() if data[var].max() < 200 else 200
                 cmap = [colorscale2] if data[var].max() < 200 else [colorscale]
+                if data.size > 500000:
+                    hovertemplate = "<br>".join([
+                        "Sample: <b>%{y}</b>",
+                        "Locus: <b>%{x}</b>",
+                        "Recovered length: <b>%{z:.2f}%</b><extra></extra>",
+                    ])
             elif var == "pct_identity":
                 zmax = data[var].max() if data[var].max() < 100 else 100
                 cmap = [colorscale2] if data[var].max() <= 100 else [colorscale]
+                if data.size > 500000:
+                    hovertemplate = "<br>".join([
+                        "Sample: <b>%{y}</b>",
+                        "Locus: <b>%{x}</b>",
+                        "Identity: <b>%{z:.2f}%</b><extra></extra>",
+                    ])
             elif var == "hit":
                 zmax = data[var].max() if data[var].max() < 50 else 50
                 cmap = [colorscale2] if data[var].max() < 50 else [colorscale]
+                if data.size > 500000:
+                    hovertemplate = "<br>".join([
+                        "Sample: <b>%{y}</b>",
+                        "Locus: <b>%{x}</b>",
+                        "Total hits (copies): <b>%{z}</b><extra></extra>",
+                    ])
+            elif var == "score":
+                zmax = data[var].max() if data[var].max() < 2 else 2
+                cmap = [colorscale2] if data[var].max() < 2 else [colorscale]
+                if data.size > 500000:
+                    hovertemplate = "<br>".join([
+                        "Sample: <b>%{y}</b>",
+                        "Locus: <b>%{x}</b>",
+                        "Score: <b>%{z:.3f}</b><extra></extra>",
+                    ])
             else:
                 zmax = data[var].max() if data[var].max() < 2 else 2
                 cmap = [colorscale2] if data[var].max() < 2 else [colorscale]
+                if data.size > 500000:
+                    hovertemplate = "<br>".join([
+                        "Sample: <b>%{y}</b>",
+                        "Locus: <b>%{x}</b>",
+                        "Length-weighted score: <b>%{z:.3f}</b><extra></extra>",
+                    ])
             button = dict(
                 label=var_lab_list[j],
                 method="restyle",
@@ -2082,6 +2125,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
                         "zmax": zmax,
                         "colorscale": cmap,
                         "colorbar.ticksuffix": None if j > 1 else "%",
+                        "hovertemplate": hovertemplate,
                     }
                 ],
             )
@@ -2266,7 +2310,7 @@ def build_alignment_report(out_dir, aln_stats_tsv):
     var_dict = {
         "Sequences": "seqs",
         "Samples": "samples",
-        "Sequences/Sample": "avg_copies",
+        "Sequences per Sample": "avg_copies",
         "Alignment Length": "sites",
         "Informative Sites": "informative",
         "Informativeness (%)": "informativeness",
@@ -2451,7 +2495,7 @@ def build_alignment_report(out_dir, aln_stats_tsv):
             "Marker type: <b>%{customdata[4]}</b>",
             "Sequences: <b>%{customdata[7]:,.0f}</b>",
             "Samples: <b>%{customdata[8]:,.0f}</b>",
-            "Sequences/sample: <b>%{customdata[9]:.2f}</b>",
+            "Sequences per sample: <b>%{customdata[9]:.2f}</b>",
             "Alignment length: <b>%{customdata[10]:,.0f} %{customdata[20]}</b>",
             "Informative sites: <b>%{customdata[11]:,.0f}</b>",
             "Informativeness: <b>%{customdata[12]:.2f}%</b>",
