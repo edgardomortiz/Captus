@@ -15,7 +15,7 @@ Just open this file in your browser (Microsoft Edge, Google Chrome, Mozilla Fire
 {{% notice info %}}
 
 - All original data for the report is stored in `captus-assembly_assemble.stats.tsv`.
-- Since all tables and plots in the report are created using [`Plotly`](https://plotly.com/python), you can use some interactive functions such as zoom in/out, pan, hover, and download plot as a PNG.
+- Since all tables and plots in the report are created using [`Plotly`](https://plotly.com/python), you can use some interactive functions such as zoom in/out, pan, hover, and download plot as a SVG.
 For more information, please visit the following sites:
 
   - <https://plotly.com/chart-studio-help/zoom-pan-hover-controls>
@@ -59,8 +59,9 @@ In addition to the above statistics, this plot shows some more detailed statisti
 
 ##### Feature:
 
-- By switching `Variable` dropdown at the top, you can change the variable to show.
-{{< plotly json="/plotly/assemble_report_visual_stats.json" height="300px" >}}
+- By switching the dropdown at the X-axis, you can change the variable to show.
+- Samples are sorted in descending order by each variable.
+{{< plotly json="/plotly/assemble_report_visual_stats.json" height="260px" >}}
 
 {{% expand "Description of each variable" %}}
 |Variable|Description|
@@ -72,13 +73,13 @@ In addition to the above statistics, this plot shows some more detailed statisti
 |**Contig N50 (bp)**|Weighted average of contig length such that 50% of total assembly length is represented by contigs equal to or longer than this value|
 |**Longest Contig (bp)**|Longest contig length|
 |**Shortest Contig (bp)**|Shortest contig length|
-|**Contig Breakdown by Length (%)**|Percentage of contigs ≥ 1, 2, 5, or 10 kbp in the total number of contigs|
-|**Length Breakdown by Contig Length (%)**|Percentage of contigs ≥ 1, 2, 5, or 10 kbp in the total length of all contigs|
+|**Contig Breakdown by Length (%)**|Percentage of contigs ≥ 1, 2, 5, and 10 kbp in the total number of contigs|
+|**Length Breakdown by Contig Length (%)**|Percentage of contigs ≥ 1, 2, 5, and 10 kbp in the total length of all contigs|
 |**GC Content (%)**|Mean GC content of all contigs|
 |**Mean Depth (x)**|Mean depth of all contigs|
-|**Contig Breakdown by Depth (%)**|Percentage of contigs with ≥ 1, 2, 5, or 10x depth in the total number of contigs|
+|**Contig Breakdown by Depth (%)**|Percentage of contigs with ≥ 1, 2, 5, and 10x depth in the total number of contigs|
 {{% /expand %}}
 
 ---
 Created by [Gentaro Shigita]({{< ref "../../credits/#gentaro-shigita">}}) (11.08.2021)  
-Last modified by [Gentaro Shigita]({{< ref "../../credits/#gentaro-shigita">}}) (28.09.2021)
+Last modified by [Gentaro Shigita]({{< ref "../../credits/#gentaro-shigita">}}) (29.03.2022)

@@ -14,7 +14,7 @@ This makes it tedious to check every reports, and may lead to overlooking some s
 
 `Captus` summarizes the information in those disparate reports into a single HTML file, `captus-assembly_clean.report.html`. All you need to do is open this single file in your browser (Microsoft Edge, Google Chrome, Mozilla Firefox, Safari, etc., internet connection required) to get a quick overview on all your samples, both reads (for paired-end), and before and after cleaning!
 {{% notice info %}}
-Since all tables and plots in the report are created using [`Plotly`](https://plotly.com/python), you can use some interactive functions such as zoom in/out, pan, hover, and download plot as a PNG.
+Since all tables and plots in the report are created using [`Plotly`](https://plotly.com/python), you can use some interactive functions such as zoom in/out, pan, hover, and download plot as a SVG.
 For more information, please visit the following sites:
 
 - <https://plotly.com/chart-studio-help/zoom-pan-hover-controls>
@@ -86,6 +86,7 @@ This plot shows the change in the number of reads (left panel) and bases (right 
 ##### Features:
 
 - By switching the buttons at the top of the plot, you can choose whether to show counts or percentages.
+- Samples are sorted in descending order by number or percentage of bases passed cleaning.
 - By clicking on the legend, you can toggle between showing and hiding each series.
 
 Original data for this plot is stored in `03_qc_extras/reads_bases.tsv`.
@@ -217,7 +218,7 @@ Original data for this plot is stored in `03_qc_extras/seq_dup_levels.tsv`.
 
 This plot shows the cumulative adapter content at each position in the reads before and after cleaning.  
 For more details, read [<i class="fab fa-readme"></i> FastQC documentation](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/3%20Analysis%20Modules/10%20Adapter%20Content.html).  
-Original data for this plot is stored in `03_qc_extras/adapter_content.tsv`.
+Original data for this plot is stored in `03_qc_extras/adaptor_content.tsv`.
 {{< tabs groupId="Adapter Content" >}}
 {{% tab name="Captus" %}}
 {{< plotly json="/plotly/cleaning_report_adapter_content.json" height="300px" >}}
@@ -230,4 +231,4 @@ Original data for this plot is stored in `03_qc_extras/adapter_content.tsv`.
 
 ---
 Created by [Gentaro Shigita]({{< ref "../../credits/#gentaro-shigita">}}) (11.08.2021)  
-Last modified by [Gentaro Shigita]({{< ref "../../credits/#gentaro-shigita">}}) (29.09.2021)
+Last modified by [Gentaro Shigita]({{< ref "../../credits/#gentaro-shigita">}}) (29.03.2022)
