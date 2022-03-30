@@ -472,8 +472,8 @@ GFF_COLORS = {
 # Alignment output folders
 ALN_DIRS = {
     "UNAL": "01_unaligned",
-    "ALND": "02_aligned_untrimmed",
-    "TRIM": "03_aligned_trimmed",
+    "ALND": "02_untrimmed",
+    "TRIM": "03_trimmed",
     "UNFI": "01_unfiltered",
     "FAST": "02_fast",
     "CARE": "03_careful",
