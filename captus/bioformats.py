@@ -1324,6 +1324,7 @@ def scipio_yaml_to_dict(
                             except ValueError:
                                 pass
                         else:
+                            if k == "    target" and " " in v: v = v.strip("'").split()[0]
                             if v.startswith("'"): v = v.strip("'").replace(" ", "")
                             if v.startswith("["): v = [int(n) for n in v[1:-1].split(", ")]
                         if k == "  - ID":
