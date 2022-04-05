@@ -742,7 +742,7 @@ def adjust_concurrency(concurrent, threads_max, ref_size_bp, ram_B):
             concurrent = int(concurrent)
         except ValueError:
             quit_with_error("Invalid value for '--concurrent', set it to 'auto' or use a number")
-    ref_ram_b = math.floor(ref_size_bp * math.log(ref_size_bp) * 4 / 1e8) * 1024 ** 3
+    ref_ram_b = (ref_size_bp * math.log(ref_size_bp) * 42 / 1e9) * (1024 ** 3)
     min_ram_b = max(settings.EXTRACTION_MIN_RAM_B, ref_ram_b)
     if min_ram_b >= ram_B: return 1, ram_B
     if concurrent > 1:
