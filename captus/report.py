@@ -2015,7 +2015,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
         else:
             data = df_best[df_best["marker_type"] == marker]
             matrix_size = len(data['sample_name'].unique()) * len(data['locus'].unique())
-        if data.size > 500000:
+        if matrix_size > 500000:
             customdata = None
             hovertemplate = "<br>".join([
                 "Sample: <b>%{y}</b>",
