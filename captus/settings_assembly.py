@@ -102,7 +102,7 @@ BBDUK_QUALITY_ZIPLEVEL = 5
 # Maximum number of concurrent reading processes from the HDD. For example, if too many FastQC or
 # Falco instances are launched performance suffers due to hard drive limitations (might improve
 # in the future with SSDs)
-MAX_PARALLEL_HDD_READ = 4
+MAX_HDD_READ_INSTANCES = 4
 
 # Compression level for subsampled FASTQ files
 REFORMAT_ZIPLEVEL = 5
@@ -423,7 +423,7 @@ DNA_UP_DOWN_STREAM_BP = 1000
 
 # Maximum number of FASTA files to rehead and write simultaneously. Too many may hurt performance
 # if HDD, it may improve with SSDs
-MAX_WRITING_INSTANCES = 16
+MAX_HDD_WRITE_INSTANCES = 16
 
 # Clustering identity percentage, if '--cl_min_identity' is left as 'auto' it becomes 99% of the
 # '--dna_min_identity' value

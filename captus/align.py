@@ -126,7 +126,7 @@ def align(full_command, args):
         " FASTA files are not aligned yet. If provided, Captus will include the reference aminoacid/"
         "nucleotide sequences in the alignments. "
     )
-    concurrent = max(1, min(settings.MAX_PARALLEL_HDD_READ, threads_max))
+    concurrent = max(1, min(settings.MAX_HDD_READ_INSTANCES, threads_max))
     markers, markers_ignored = check_value_list(args.markers, settings.MARKER_DIRS)
     formats, formats_ignored = check_value_list(args.formats, settings.FORMAT_DIRS)
     show_less = not args.show_more
