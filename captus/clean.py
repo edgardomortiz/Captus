@@ -622,7 +622,7 @@ def bbduk_filter_quality(
 
 def set_qc_stats_concurrency(concurrent, threads_max):
     if concurrent == "auto":
-        concurrent = settings.MAX_PARALLEL_HDD_READ
+        concurrent = settings.MAX_HDD_READ_INSTANCES
     else:
         try:
             concurrent = int(concurrent)

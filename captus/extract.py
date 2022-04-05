@@ -467,7 +467,7 @@ def extract(full_command, args):
 
             d_msg = "Merging GFFs, summarizing recovery stats, and cleaning up"
             f_msg = "Merged GFF and summary recovery stats created"
-            cleanup_concurrent = min(settings.MAX_WRITING_INSTANCES, threads_max)
+            cleanup_concurrent = min(settings.MAX_HDD_WRITE_INSTANCES, threads_max)
             if args.debug:
                 tqdm_serial_run(cleanup_post_extraction, cleanup_params, d_msg, f_msg,
                                 "sample", args.show_less)
@@ -567,7 +567,7 @@ def extract(full_command, args):
             else:
                 rehead_and_concatenate_fastas(fastas_to_cluster, clustering_dir,
                                               clustering_input_file, args.cl_max_seq_len,
-                                              min(settings.MAX_WRITING_INSTANCES, threads_max),
+                                              min(settings.MAX_HDD_WRITE_INSTANCES, threads_max),
                                               args.show_less)
             log.log("")
             log.log(bold("Clustering contigs across samples (this may take a while, please wait):"))
@@ -668,7 +668,7 @@ def extract(full_command, args):
                     ))
                 d_msg = "Merging GFFs, summarizing recovery stats, and cleaning up"
                 f_msg = "Merged GFF and summary recovery stats created"
-                cleanup_concurrent = min(settings.MAX_WRITING_INSTANCES, threads_max)
+                cleanup_concurrent = min(settings.MAX_HDD_WRITE_INSTANCES, threads_max)
                 if args.debug:
                     tqdm_serial_run(cleanup_post_extraction, cleanup_params, d_msg, f_msg,
                                     "sample", args.show_less)

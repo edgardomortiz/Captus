@@ -271,7 +271,7 @@ class CaptusAssembly(object):
             type=str,
             dest="concurrent",
             help="Captus will attempt to run FastQC concurrently on this many samples. If set to"
-                 f" 'auto', Captus will run at most {settings.MAX_PARALLEL_HDD_READ} instances of"
+                 f" 'auto', Captus will run at most {settings.MAX_HDD_READ_INSTANCES} instances of"
                  " FastQC or as many CPU cores are available, whatever number is lower"
         )
         other_group.add_argument(

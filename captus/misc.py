@@ -339,7 +339,7 @@ def pigz_compress(file_in, threads):
 
 def compress_list_files(files_list, threads):
     compress_params = []
-    t = min(threads, settings_assembly.MAX_WRITING_INSTANCES)
+    t = min(threads, settings_assembly.MAX_HDD_WRITE_INSTANCES)
     if shutil.which("pigz"):
         for ungz_file in files_list:
             if ungz_file.is_file():
