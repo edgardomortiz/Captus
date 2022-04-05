@@ -2011,10 +2011,10 @@ def build_extraction_report(out_dir, ext_stats_tsv):
         if marker == "ALL":
             data = df_best
             data["marker_type - locus"] = data["marker_type"] + " - " + data["locus"].astype(str)
-            x = data["marker_type - locus"]
+            matrix_size = len(data['sample_name'].unique()) * len(data['marker_type - locus'].unique())
         else:
             data = df_best[df_best["marker_type"] == marker]
-            x = data["locus"]
+            matrix_size = len(data['sample_name'].unique()) * len(data['locus'].unique())
         if data.size > 500000:
             customdata = None
             hovertemplate = "<br>".join([
@@ -2047,7 +2047,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
         fig = go.Figure()
         fig.add_trace(
             go.Heatmap(
-                x=x,
+                x=data["marker_type - locus"] if marker == "ALL" else data["locus"],
                 y=data["sample_name"],
                 z=data[var_list[0]],
                 zmin=data[var_list[0]].min(),
@@ -2073,7 +2073,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
             if var == "pct_recovered":
                 zmax = data[var].max() if data[var].max() < 200 else 200
                 cmap = [colorscale2] if data[var].max() < 200 else [colorscale]
-                if data.size > 500000:
+                if matrix_size > 500000:
                     hovertemplate = "<br>".join([
                         "Sample: <b>%{y}</b>",
                         "Locus: <b>%{x}</b>",
@@ -2082,7 +2082,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
             elif var == "pct_identity":
                 zmax = data[var].max() if data[var].max() < 100 else 100
                 cmap = [colorscale2] if data[var].max() <= 100 else [colorscale]
-                if data.size > 500000:
+                if matrix_size > 500000:
                     hovertemplate = "<br>".join([
                         "Sample: <b>%{y}</b>",
                         "Locus: <b>%{x}</b>",
@@ -2091,7 +2091,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
             elif var == "hit":
                 zmax = data[var].max() if data[var].max() < 50 else 50
                 cmap = [colorscale2] if data[var].max() < 50 else [colorscale]
-                if data.size > 500000:
+                if matrix_size > 500000:
                     hovertemplate = "<br>".join([
                         "Sample: <b>%{y}</b>",
                         "Locus: <b>%{x}</b>",
@@ -2100,7 +2100,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
             elif var == "score":
                 zmax = data[var].max() if data[var].max() < 2 else 2
                 cmap = [colorscale2] if data[var].max() < 2 else [colorscale]
-                if data.size > 500000:
+                if matrix_size > 500000:
                     hovertemplate = "<br>".join([
                         "Sample: <b>%{y}</b>",
                         "Locus: <b>%{x}</b>",
@@ -2109,7 +2109,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
             else:
                 zmax = data[var].max() if data[var].max() < 2 else 2
                 cmap = [colorscale2] if data[var].max() < 2 else [colorscale]
-                if data.size > 500000:
+                if matrix_size > 500000:
                     hovertemplate = "<br>".join([
                         "Sample: <b>%{y}</b>",
                         "Locus: <b>%{x}</b>",
@@ -2293,18 +2293,18 @@ def build_alignment_report(out_dir, aln_stats_tsv):
     }
 
     stage_dict = {
-        "False-unfiltered-False": "02_aligned_untrimmed/ <br>01_unfiltered -",
-        "False-fast-False": "02_aligned_untrimmed/ <br>02_fast -",
-        "False-careful-False": "02_aligned_untrimmed/ <br>03_careful -",
-        "False-unfiltered-True": "02_aligned_untrimmed/ <br>04_unfiltered_no_refs -",
-        "False-fast-True": "02_aligned_untrimmed/ <br>05_fast_no_refs -",
-        "False-careful-True": "02_aligned_untrimmed/ <br>06_careful_no_refs -",
-        "True-unfiltered-False": "03_aligned_trimmed/ <br>01_unfiltered -",
-        "True-fast-False": "03_aligned_trimmed/ <br>02_fast -",
-        "True-careful-False": "03_aligned_trimmed/ <br>03_careful -",
-        "True-unfiltered-True": "03_aligned_trimmed/ <br>04_unfiltered_no_refs -",
-        "True-fast-True": "03_aligned_trimmed/ <br>05_fast_no_refs -",
-        "True-careful-True": "03_aligned_trimmed/ <br>06_careful_no_refs -",
+        "False-unfiltered-False": "02_untrimmed/ <br>01_unfiltered -",
+        "False-fast-False": "02_untrimmed/ <br>02_fast -",
+        "False-careful-False": "02_untrimmed/ <br>03_careful -",
+        "False-unfiltered-True": "02_untrimmed/ <br>04_unfiltered_no_refs -",
+        "False-fast-True": "02_untrimmed/ <br>05_fast_no_refs -",
+        "False-careful-True": "02_untrimmed/ <br>06_careful_no_refs -",
+        "True-unfiltered-False": "03_trimmed/ <br>01_unfiltered -",
+        "True-fast-False": "03_trimmed/ <br>02_fast -",
+        "True-careful-False": "03_trimmed/ <br>03_careful -",
+        "True-unfiltered-True": "03_trimmed/ <br>04_unfiltered_no_refs -",
+        "True-fast-True": "03_trimmed/ <br>05_fast_no_refs -",
+        "True-careful-True": "03_trimmed/ <br>06_careful_no_refs -",
     }
 
     var_dict = {
@@ -2476,18 +2476,18 @@ def build_alignment_report(out_dir, aln_stats_tsv):
     figs.append(fig)
 
     stage_dict = {
-        "False-unfiltered-False": "02_aligned_untrimmed/<br>01_unfiltered",
-        "False-fast-False": "02_aligned_untrimmed/<br>02_fast",
-        "False-careful-False": "02_aligned_untrimmed/<br>03_careful",
-        "False-unfiltered-True": "02_aligned_untrimmed/<br>04_unfiltered_no_refs",
-        "False-fast-True": "02_aligned_untrimmed/<br>05_fast_no_refs",
-        "False-careful-True": "02_aligned_untrimmed/<br>06_careful_no_refs",
-        "True-unfiltered-False": "03_aligned_trimmed/<br>01_unfiltered",
-        "True-fast-False": "03_aligned_trimmed/<br>02_fast",
-        "True-careful-False": "03_aligned_trimmed/<br>03_careful",
-        "True-unfiltered-True": "03_aligned_trimmed/<br>04_unfiltered_no_refs",
-        "True-fast-True": "03_aligned_trimmed/<br>05_fast_no_refs",
-        "True-careful-True": "03_aligned_trimmed/<br>06_careful_no_refs",
+        "False-unfiltered-False": "02_untrimmed/<br>01_unfiltered",
+        "False-fast-False": "02_untrimmed/<br>02_fast",
+        "False-careful-False": "02_untrimmed/<br>03_careful",
+        "False-unfiltered-True": "02_untrimmed/<br>04_unfiltered_no_refs",
+        "False-fast-True": "02_untrimmed/<br>05_fast_no_refs",
+        "False-careful-True": "02_untrimmed/<br>06_careful_no_refs",
+        "True-unfiltered-False": "03_trimmed/<br>01_unfiltered",
+        "True-fast-False": "03_trimmed/<br>02_fast",
+        "True-careful-False": "03_trimmed/<br>03_careful",
+        "True-unfiltered-True": "03_trimmed/<br>04_unfiltered_no_refs",
+        "True-fast-True": "03_trimmed/<br>05_fast_no_refs",
+        "True-careful-True": "03_trimmed/<br>06_careful_no_refs",
     }
 
     hovertemplate = "<br>".join([
