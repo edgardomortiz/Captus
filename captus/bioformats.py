@@ -748,7 +748,10 @@ def pairwise_identity(seq1: str, seq2: str, seq_type: str, ignore_internal_gaps=
                 if pair != "--":
                     matches += PIDS[pair]
                     aligned_length += 1
-        return (matches / aligned_length) * 100
+        try:
+            return (matches / aligned_length) * 100
+        except ZeroDivisionError:
+            return 0.00
     else:
         return 0.00
 
