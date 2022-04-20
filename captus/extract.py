@@ -19,7 +19,6 @@ import statistics
 import subprocess
 import time
 from pathlib import Path
-from weakref import ref
 
 from tqdm import tqdm
 
@@ -1762,8 +1761,8 @@ def rehead_and_concatenate_fastas(
     """
     Since all the FASTAs coming from all the samples will be joined in a single file for clustering,
     we have to include the sample names in the headers to be able to distinguish them later.
-    The sample's name + '|' + original contig name will be used as new headers, so try to avoid
-    the use of '|' to name the samples. The descriptions will be lost (MMseqs ignores them afaik).
+    The sample's name + '__' + original contig name will be used as new headers, so try to avoid
+    the use of '__' to name the samples. The descriptions will be lost (MMseqs ignores them afaik).
     """
     start = time.time()
     rehead_params = []
@@ -1812,8 +1811,8 @@ def rehead_fasta_with_sample_name(sample_name, sample_fasta_path, clustering_dir
 
 
 def mmseqs2_cluster(
-        mmseqs2_path, clustering_input_file, clustering_dir, clust_min_identity, clust_min_coverage,
-        clust_gap_open, clust_gap_extend, clust_tmp_dir, threads
+        mmseqs2_path, clustering_input_file, clustering_dir, clust_min_identity,
+        clust_min_coverage, clust_gap_open, clust_gap_extend, clust_tmp_dir, threads
 ):
     """
     Run MMseqs easy-linclust but perform some parameter checking/conversion before, the FASTA input

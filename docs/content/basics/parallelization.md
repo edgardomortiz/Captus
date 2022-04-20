@@ -26,4 +26,7 @@ This flag enables the debugging mode, this _**disables parallelization**_ so err
 ___
 #### **`--show_less`**
 This flags produces less verbose screen printout. Essentially, information about each sample will not be shown (but still logged) during the run.
+
 ___
+Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (06.08.2021)  
+Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (11.08.2022)

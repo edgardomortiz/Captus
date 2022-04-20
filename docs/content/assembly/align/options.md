@@ -42,6 +42,15 @@ For each marker type, `Captus` creates several different formats. You can provid
 \* AA, NT, GE, and GF are valid only for NUC, PTD, and MIT markers, while MA and MF are valid only for DNA and CLR
 
 This argument is optional, the default is **AA,NT,GE,MA**
+
+{{% expand "Formats for protein markers" %}}
+![Formats for protein markers](/images/protein_extraction.png?width=600&classes=shadow)
+{{% /expand %}}
+{{% expand "Formats for miscellaneous DNA markers" %}}
+![Format s for miscellaneous DNA markers](/images/misc_dna_extraction.png?width=600&classes=shadow)
+{{% /expand %}}
+
+
 ___
 #### **`--max_paralogs`**
 Maximum number of secondary hits (copies) per sample to import from the extraction step. Large numbers of marker copies per sample can increase alignment times. Hits (copies) are ranked from best to worst during the 'extract' step. -1 disables the initial removal of paralogs and aligns which might be useful if you expect very high ploidy levels for example.
@@ -144,5 +153,5 @@ ___
 See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
-Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-08-06)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2022-03-27)
+Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (06.08.2021)  
+Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (27.03.2022)
