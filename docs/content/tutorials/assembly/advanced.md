@@ -75,7 +75,7 @@ you can easily integrate samples assembled with another tool.
 ```shell
 captus_assembly assemble -r 01_clean_reads_CAP -o 02_assemblies_CAP
 captus_assembly assemble -r 01_clean_reads_RNA -o 02_assemblies_RNA --preset RNA
-captus_assembly assemble -r 01_clean_reads_GSK -o 02_assemblies_GSK --preset WGS
+captus_assembly assemble -r 01_clean_reads_WGS -o 02_assemblies_WGS --preset WGS
 ```
 
 For descriptions of the other output files, see [here]({{< ref "assembly/assemble/output">}}).
