@@ -2056,7 +2056,12 @@ def scipio_yaml_to_dict(
     unfiltered_models = {}
     for protein in yaml: # prot = protein (reference protein)
         for yaml_model in yaml[protein]: # yaml_mod = gene model (hit, or paralog)
-            model = parse_model(yaml[protein][yaml_model], protein, marker_type, gencode, predict)
+            model = parse_model(yaml[protein][yaml_model],
+                                protein,
+                                marker_type,
+                                gencode,
+                                predict,
+                                min_identity)
             if model:
                 if protein in unfiltered_models:
                     unfiltered_models[protein][yaml_model] = model
