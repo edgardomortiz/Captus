@@ -181,12 +181,14 @@ FILL_GAP_WITH_X = False
 # Minimum stretch of missing aminoacids in recovered protein to be filled by "X"
 SCIPIO_MIN_GAP_LEN_TO_X = 5
 
-# Minimum match rate between segment flagged as 'gap' by Scipio but that can be cleanly translated
-# and incorporated into the recovered coding sequence
-SCIPIO_MIN_GAP_MATCH_RATE = 0.1
+# Maximum gap size as proportion of reference length. For example, 0.5 means that only gaps that are
+# at most as long as half the length of the reference will be translated and aligned
+SCIPIO_MAX_GAP_AS_REF_PROP = 0.5
 
-# Maximum length of translated gap / length of unmatched aminoacids in reference protein
-SCIPIO_MAX_GAP_DELTA = 10
+# Use a more relaxed identity between the translated gap and the unmatched segment in the reference
+# by subtracting this number from the 'min_identity' chosen for extraction.
+# minimum gap identity = min identity - SCIPIO_MAX_GAP_DELTA_IDENTITY
+SCIPIO_MAX_GAP_DELTA_IDENTITY = 0.3
 
 # When aligning the translations from the three reading frames to a protein segment, penalize the
 # match rate by this number as many times as stop codons are found in the translation corresponding
@@ -348,7 +350,7 @@ SCIPIO_GENOME_BASIC_SETTINGS = {
     # Change here the initial settings for plastidial genes:
     "PTD": [
         "--region_size=0",
-        "--blat_params=-maxIntron=2000",
+        "--blat_params=-maxIntron=1300",
         "--max_assemble_size=9000",
     ],
     # Change here the initial settings for mitochondrial genes:
@@ -372,9 +374,9 @@ SCIPIO_GENOME_EXTRA_SETTINGS = {
     # Change here the final settings for plastidial genes:
     "PTD": [
         "--region_size=0",
-        "--blat_params=-oneOff=1 -maxIntron=2000",
+        "--blat_params=-oneOff=1 -maxIntron=1300",
         "--blat_tilesize=6",
-        "--exhaust_align_size=2000",
+        "--exhaust_align_size=1300",
         "--max_assemble_size=9000",
         "--min_intron_len=500",
         "--gap_to_close=120",

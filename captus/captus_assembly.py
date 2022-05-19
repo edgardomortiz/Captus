@@ -696,7 +696,7 @@ class CaptusAssembly(object):
         scipio_nuc_group.add_argument(
             "--nuc_min_score",
             action="store",
-            default=0.12,
+            default=0.13,
             type=float,
             dest="nuc_min_score",
             help="Minimum Scipio score to retain hits to reference proteins."
@@ -704,7 +704,7 @@ class CaptusAssembly(object):
         scipio_nuc_group.add_argument(
             "--nuc_min_identity",
             action="store",
-            default=55,
+            default=65,
             type=float,
             dest="nuc_min_identity",
             help="Minimum identity percentage to retain hits to reference proteins"
@@ -744,7 +744,7 @@ class CaptusAssembly(object):
         scipio_ptd_group.add_argument(
             "--ptd_min_score",
             action="store",
-            default=0.2,
+            default=0.3,
             type=float,
             dest="ptd_min_score",
             help="Minimum Scipio score to retain hits to reference proteins"
@@ -752,7 +752,7 @@ class CaptusAssembly(object):
         scipio_ptd_group.add_argument(
             "--ptd_min_identity",
             action="store",
-            default=65,
+            default=75,
             type=float,
             dest="ptd_min_identity",
             help="Minimum identity percentage to retain hits to reference proteins"
@@ -792,7 +792,7 @@ class CaptusAssembly(object):
         scipio_mit_group.add_argument(
             "--mit_min_score",
             action="store",
-            default=0.2,
+            default=0.3,
             type=float,
             dest="mit_min_score",
             help="Minimum Scipio score to retain hits to reference proteins"
@@ -800,7 +800,7 @@ class CaptusAssembly(object):
         scipio_mit_group.add_argument(
             "--mit_min_identity",
             action="store",
-            default=65,
+            default=75,
             type=float,
             dest="mit_min_identity",
             help="Minimum identity percentage to retain hits to reference proteins"
@@ -1078,7 +1078,7 @@ class CaptusAssembly(object):
         input_group.add_argument(
             "--max_paralogs",
              action="store",
-             default=4,
+             default=5,
              type=int,
              dest="max_paralogs",
              help="Maximum number of secondary hits (copies) per sample to import from the"

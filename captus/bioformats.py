@@ -1640,7 +1640,7 @@ def scipio_yaml_to_dict(
             else:
                 return None
 
-    def translate_between_exons(mod: dict, i: int, gencode: dict, predict: bool):
+    def translate_between_exons(mod: dict, i: int, gencode: dict, predict: bool, min_identity: float):
         if (len(mod["mat_nt"][i]) > 2
             and mod["mat_types"][i-1] == mod["mat_types"][i+1] == "exon"
             and mod["hit_ids"][i-1] == mod["hit_ids"][i] == mod["hit_ids"][i+1]):
@@ -1669,12 +1669,14 @@ def scipio_yaml_to_dict(
                 prot_gap = ref_seq[0][max(mod["ref_ends"][i-1] - ref_seq[1], 0) :
                                       min(mod["ref_starts"][i+1] - ref_seq[1], len(ref_seq[0]))]
                 len_gap = len(prot_gap)
+                max_gap_size = mod["ref_size"] * set_a.SCIPIO_MAX_GAP_AS_REF_PROP
+                min_gap_identity = (min_identity / 100) - set_a.SCIPIO_MAX_GAP_DELTA_IDENTITY
+
                 if len_gap > 0:
                     len_chunk = len(current_chunk) // 3
                     overlap = min(len_gap, len_chunk) / max(len_gap, len_chunk)
                     # Don't align if 'current_chunk' is too long compared to the unmatched protein
-                    if (len_chunk / len_gap <= set_a.SCIPIO_MAX_GAP_DELTA
-                        and len_gap * len_chunk <= set_a.RECURSION_LIMIT):
+                    if len_chunk <= max_gap_size and len_gap * len_chunk <= set_a.RECURSION_LIMIT:
                         rfs  = {i: translate(current_chunk, gencode, frame=i, start_as_M=False)
                                 for i in [1,2,3]}
                         # Global alignment if they overlap at least 80%
@@ -1684,8 +1686,9 @@ def scipio_yaml_to_dict(
                         else:
                             alns = {i: align_prots(rfs[i], prot_gap, "sw") for i in rfs}
                         # Prioritize filling gaps without skipping leading or trailing bases
+
                         if (len(current_chunk) % 3 == 0 and not "*" in rfs[1]
-                            and alns[1]["match_rate"] >= set_a.SCIPIO_MIN_GAP_MATCH_RATE):
+                            and alns[1]["match_rate"] >= min_gap_identity):
                             lead, trail = 0, 0
                             seq_chunks = ["", mod["mat_nt"][i].upper()]
                             mod["mismatches"] += [pos+mod["ref_ends"][i-1]
@@ -1696,7 +1699,7 @@ def scipio_yaml_to_dict(
                                 alns[rf]["match_rate"] *= (set_a.SCIPIO_STOP_PENALTY
                                                            ** alns[rf]["s1_aln"].count("*"))
                             rf, aln = max(alns.items(), key=(lambda x: x[1]["match_rate"]))
-                            if (aln["match_rate"] >= set_a.SCIPIO_MIN_GAP_MATCH_RATE
+                            if (aln["match_rate"] >= min_gap_identity
                                 and not "*" in aln["s1_aln"]):
                                 lead  = rf - 1
                                 trail = (len(current_chunk) - lead) % 3
@@ -1782,7 +1785,7 @@ def scipio_yaml_to_dict(
 
         return mod
 
-    def check_gaps_and_concat_seqs(mod: dict, gencode: dict, predict: bool):
+    def check_gaps_and_concat_seqs(mod: dict, gencode: dict, predict: bool, min_identity: float):
         # If the model doesn't end with 'downstream' or 'exon' trim it until last piece is an 'exon'
         if mod["mat_types"][-1] not in ["exon", "downstream"]:
             for i in reversed(range(len(mod["mat_types"]))):
@@ -1811,7 +1814,7 @@ def scipio_yaml_to_dict(
                 mod["seq_nt"] += mod["mat_nt"][i].upper()
                 last_exon = i
             if mod["mat_types"][i] in ["gap", "intron?"]:
-                mod = translate_between_exons(mod, i, gencode, predict)
+                mod = translate_between_exons(mod, i, gencode, predict, min_identity)
             if mod["mat_types"][i] in ["intron", "separator"]:
                 mod["seq_flanked"] += mod["mat_nt"][i].lower()
                 mod["seq_gene"] += mod["mat_nt"][i].lower()
@@ -1846,7 +1849,8 @@ def scipio_yaml_to_dict(
         return coords
 
     def parse_model(
-            yaml_mod: dict, protein_name: str, marker_type: str, gencode: dict, predict: bool
+            yaml_mod: dict, protein_name: str, marker_type: str, gencode: dict, predict: bool,
+            min_identity: float
     ):
         """
         A gene model is composed by several sequence matchings (e.g. exons, introns, etc.) which can
@@ -2022,7 +2026,7 @@ def scipio_yaml_to_dict(
         mod = fix_model(mod, gencode)
         if not mod: return None
 
-        mod = check_gaps_and_concat_seqs(mod, gencode, predict)
+        mod = check_gaps_and_concat_seqs(mod, gencode, predict, min_identity)
         prot_len_predicted = sum(mod["hit_ends"][i] - mod["hit_starts"][i]
                                  for i in range(len(mod["mat_types"]))
                                  if "predicted" in mod["mat_notes"][i])
