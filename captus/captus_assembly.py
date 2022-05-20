@@ -1208,7 +1208,7 @@ class CaptusAssembly(object):
         clipkit_group.add_argument(
             "--min_coverage",
             action="store",
-            default=0.10,
+            default=0.20,
             type=float,
             dest="min_coverage",
             help="Minimum coverage of sequence as proportion of the mean of sequence lengths in the"
