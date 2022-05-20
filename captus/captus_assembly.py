@@ -1121,7 +1121,7 @@ class CaptusAssembly(object):
 
         mafft_group = parser.add_argument_group("MAFFT")
         mafft_group.add_argument(
-            "--mafft_algorithm",
+            "--mafft_method",
             action="store",
             choices=[
                 "auto",
@@ -1133,7 +1133,7 @@ class CaptusAssembly(object):
             ],
             default="auto",
             type=str,
-            dest="mafft_algorithm",
+            dest="mafft_method",
             help="MAFFT's algorithm, see"
                  " https://mafft.cbrc.jp/alignment/software/algorithms/algorithms.html"
         )
@@ -1177,7 +1177,7 @@ class CaptusAssembly(object):
 
         clipkit_group = parser.add_argument_group("ClipKIT")
         clipkit_group.add_argument(
-            "--clipkit_algorithm",
+            "--clipkit_method",
             action="store",
             choices=[
                 "smart-gap",
@@ -1189,21 +1189,31 @@ class CaptusAssembly(object):
                 "kpi-smart-gap",
                 "kpi-gappy",
             ],
-            default="smart-gap",
+            default="gappy",
             type=str,
-            dest="clipkit_algorithm",
+            dest="clipkit_method",
             help="ClipKIT's algorithm, see"
                  " https://jlsteenwyk.com/ClipKIT/advanced/index.html#modes"
         )
         clipkit_group.add_argument(
             "--clipkit_gaps",
             action="store",
-            default=0.95,
+            default=0.90,
             type=float,
             dest="clipkit_gaps",
             help="Gappyness threshold per position. Accepted values between 0 and 1. This argument"
                  " is ignored when using the 'kpi' and 'kpic' algorithms or intermediate steps that"
                  " use 'smart-gap'"
+        )
+        clipkit_group.add_argument(
+            "--min_coverage",
+            action="store",
+            default=0.10,
+            type=float,
+            dest="min_coverage",
+            help="Minimum coverage of sequence as proportion of the mean of sequence lengths in the"
+                 " alignment, ignoring gaps. After ClipKIT finishes trimming columns, Captus will"
+                 " also remove short sequences below this threshold."
         )
 
         other_group = parser.add_argument_group("Other")

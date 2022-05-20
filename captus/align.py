@@ -180,8 +180,8 @@ def align(full_command, args):
         log.log(f'{"Concurrent alignments":>{mar}}: {bold(concurrent)}')
         log.log(f'{"Threads per alignment":>{mar}}: {bold(threads_per_alignment)}')
         log.log("")
-        log.log(f'{"Algorithm":>{mar}}: {bold(args.mafft_algorithm)}'
-                f' {dim(settings.MAFFT_ALGORITHMS[args.mafft_algorithm]["aka"])}')
+        log.log(f'{"Algorithm":>{mar}}: {bold(args.mafft_method)}'
+                f' {dim(settings.MAFFT_ALGORITHMS[args.mafft_method]["aka"])}')
         log.log(f'{"Timeout":>{mar}}: {bold(args.mafft_timeout)}'
                 f' {dim(f"[{elapsed_time(args.mafft_timeout)}]")}')
         log.log("")
@@ -203,7 +203,7 @@ def align(full_command, args):
         for fasta_orig in fastas_to_align:
             mafft_params.append((
                 mafft_path,
-                args.mafft_algorithm,
+                args.mafft_method,
                 threads_per_alignment,
                 args.mafft_timeout,
                 fasta_orig,
@@ -390,7 +390,7 @@ def align(full_command, args):
     log.log_section_header("Alignment Trimming with ClipKIT")
     log.log_explanation(
         "Now Captus will trim all the alignments using ClipKIT. The trimming strategy can be"
-        " specified with the flag --clipkit_algorithm. Trimmed alignments are saved separately in a"
+        " specified with the flag --clipkit_method. Trimmed alignments are saved separately in a"
         " new directory called '03_aligned_trimmed'"
     )
     if clipkit_status == "not found":
@@ -401,8 +401,10 @@ def align(full_command, args):
     else:
         log.log(f'{"Concurrent processes":>{mar}}: {bold(concurrent)}')
         log.log("")
-        log.log(f'{"Algorithm":>{mar}}: {bold(args.clipkit_algorithm)}')
+        log.log(f'{"Algorithm":>{mar}}: {bold(args.clipkit_method)}')
         log.log(f'{"Gaps threshold":>{mar}}: {bold(args.clipkit_gaps)}')
+        log.log(f'{"Min. sequence coverage":>{mar}}: {bold(args.min_coverage)}')
+        log.log(f'{"Min. samples to keep":>{mar}}: {bold(args.min_samples)}')
         log.log("")
         log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
         log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
@@ -459,10 +461,11 @@ def align(full_command, args):
         for fasta_orig in fastas_to_trim:
             clipkit_params.append((
                 clipkit_path,
-                args.clipkit_algorithm,
+                args.clipkit_method,
                 args.clipkit_gaps,
                 fasta_orig,
                 fastas_to_trim[fasta_orig],
+                args.min_coverage,
                 args.min_samples,
                 args.overwrite,
             ))
@@ -1007,7 +1010,7 @@ def rehead_mafft_alignment(fasta_in: Path, fasta_out: Path):
 
 
 def mafft(
-    mafft_path, mafft_algorithm, threads, mafft_timeout,
+    mafft_path, mafft_method, threads, mafft_timeout,
     fasta_in: Path, fasta_out: Path, min_samples, overwrite
 ):
     start = time.time()
@@ -1025,7 +1028,7 @@ def mafft(
         if f"{fasta_in}".lower().endswith(".faa"):
             mafft_cmd = [
                 mafft_path,
-                settings.MAFFT_ALGORITHMS[mafft_algorithm]["arg"],
+                settings.MAFFT_ALGORITHMS[mafft_method]["arg"],
                 "--amino",
                 "--maxiterate", "1000",
                 "--reorder",
@@ -1035,7 +1038,7 @@ def mafft(
         else:
             mafft_cmd = [
                 mafft_path,
-                settings.MAFFT_ALGORITHMS[mafft_algorithm]["arg"],
+                settings.MAFFT_ALGORITHMS[mafft_method]["arg"],
                 "--nuc",
                 "--maxiterate", "1000",
                 "--reorder",
@@ -1064,7 +1067,7 @@ def mafft(
                     fasta_out.unlink()
                     mafft_log.write(
                         "\n\nERROR: The alignment took too long to complete, increase"
-                        " '--mafft_timeout' or switch to a faster '--mafft_algorithm' like 'retree1'"
+                        " '--mafft_timeout' or switch to a faster '--mafft_method' like 'retree1'"
                         " or 'retree2'\n"
                     )
     else:
@@ -1362,8 +1365,8 @@ def rem_refs_from_fasta(fasta_in: Path, fasta_out: Path, ref_names: list, min_sa
 
 
 def clipkit(
-    clipkit_path, clipkit_algorithm, clipkit_gaps, fasta_in: Path, fasta_out: Path,
-    min_samples, overwrite
+    clipkit_path, clipkit_method, clipkit_gaps, fasta_in: Path, fasta_out: Path,
+    min_coverage, min_samples, overwrite
 ):
     start = time.time()
 
@@ -1376,7 +1379,7 @@ def clipkit(
             clipkit_path,
             f"{fasta_in}",
             "--output", f"{fasta_out}",
-            "--mode", f"{clipkit_algorithm}",
+            "--mode", f"{clipkit_method}",
             "--gaps", f"{clipkit_gaps}",
             "--input_file_format", "fasta",
             "--output_file_format", "fasta",
@@ -1394,8 +1397,9 @@ def clipkit(
                 for line in clipkit_stats:
                     clipkit_log.write(line)
         clipkit_stats_file.unlink()
-        # Remove sequences that became shorter than 1 - clipkit_gaps of alignment length after
-        # trimming. Added because IQ-TREE fails when alignment has empty sequences
+        # Initially added because IQ-TREE fails when a sample has empty sequence
+        # Calculate mean ungapped length, remove individual sequences under 'min_coverage'
+        # as proportion of the mean of ungapped lengths
         fasta_trimmed = fasta_to_dict(fasta_out)
         ungapped_lengths = []
         aln_length = 0
@@ -1410,7 +1414,7 @@ def clipkit(
         seqs_to_remove = []
         for seq_name in fasta_trimmed:
             ungapped = len(fasta_trimmed[seq_name]["sequence"].replace("-", ""))
-            if ungapped / mean_ungapped < (1 - clipkit_gaps):
+            if ungapped / mean_ungapped < min_coverage:
                 seqs_to_remove.append(seq_name)
         if seqs_to_remove:
             for seq_name in seqs_to_remove:
