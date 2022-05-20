@@ -184,6 +184,7 @@ def align(full_command, args):
                 f' {dim(settings.MAFFT_ALGORITHMS[args.mafft_method]["aka"])}')
         log.log(f'{"Timeout":>{mar}}: {bold(args.mafft_timeout)}'
                 f' {dim(f"[{elapsed_time(args.mafft_timeout)}]")}')
+        log.log(f'{"Outgroup":>{mar}}: {bold(args.outgroup)}')
         log.log("")
         log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
         log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
@@ -206,6 +207,7 @@ def align(full_command, args):
                 args.mafft_method,
                 threads_per_alignment,
                 args.mafft_timeout,
+                args.outgroup,
                 fasta_orig,
                 fastas_to_align[fasta_orig],
                 args.min_samples,
@@ -996,21 +998,30 @@ def fastas_origs_dests(dir_path: Path, orig_base_dir: str, dest_base_dir: str):
     return fastas_to_process
 
 
-def rehead_mafft_alignment(fasta_in: Path, fasta_out: Path):
+def rehead_root_mafft_alignment(fasta_in: Path, fasta_out: Path, outgroup: list):
+    outgroup = outgroup.split(",")
     unaligned = fasta_to_dict(fasta_in)
     aligned = fasta_to_dict(fasta_out)
     reheaded = {}
+    for sample_name in outgroup:
+        for seq_name in sorted(aligned):
+            if seq_name.split("__")[0] == sample_name:
+                reheaded[seq_name] = {
+                    "description": unaligned[seq_name]["description"],
+                    "sequence": aligned[seq_name]["sequence"]
+                }
     for seq_name in aligned:
-        reheaded[seq_name] = {
-            "description": unaligned[seq_name]["description"],
-            "sequence": aligned[seq_name]["sequence"]
-        }
+        if seq_name.split("__")[0] not in outgroup:
+            reheaded[seq_name] = {
+                "description": unaligned[seq_name]["description"],
+                "sequence": aligned[seq_name]["sequence"]
+            }
     dict_to_fasta(reheaded, fasta_out)
     return
 
 
 def mafft(
-    mafft_path, mafft_method, threads, mafft_timeout,
+    mafft_path, mafft_method, threads, mafft_timeout, outgroup,
     fasta_in: Path, fasta_out: Path, min_samples, overwrite
 ):
     start = time.time()
@@ -1057,7 +1068,7 @@ def mafft(
                         message = red(f"'{fasta_out_short}': FAILED alignment, empty output file")
                         fasta_out.unlink()
                     else:
-                        rehead_mafft_alignment(fasta_in, fasta_out)
+                        rehead_root_mafft_alignment(fasta_in, fasta_out, outgroup)
                         message = f"'{fasta_out_short}': aligned [{elapsed_time(time.time() - start)}]"
                 except subprocess.TimeoutExpired:
                     message = (
