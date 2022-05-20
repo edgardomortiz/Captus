@@ -1145,6 +1145,16 @@ class CaptusAssembly(object):
             dest="mafft_timeout",
             help="Maximum allowed time in seconds for a single alignment"
         )
+        mafft_group.add_argument(
+            "--outgroup",
+            action="store",
+            default="",
+            type=str,
+            dest="outgroup",
+            help="Outgroup sample names, separated by commas, no spaces. Since phylogenetic programs"
+                 " usually root the resulting trees at the first taxon in the alignment, Captus will"
+                 " place these samples at the beggining of every alignment in the given order"
+        )
 
         paralog_group = parser.add_argument_group("Paralog filtering")
         paralog_group.add_argument(
