@@ -434,9 +434,6 @@ MMSEQS2_BLAT_DNA_IDENTITY_FACTOR = 0.99
 # Minimum clustering identity when set to 'auto'
 MMSEQS_MIN_AUTO_MIN_IDENTITY = 75
 
-# MMseqs sensitivity set the same as default 4 (experiment increasing a little?)
-MMSEQS2_SENSITIVITY = 4.0
-
 # Coverage mode for MMseqs2, parameter '--cov-mode':
 # 0: coverage of query and target
 # 1: coverage of target
@@ -452,11 +449,22 @@ MMSEQS2_SENSITIVITY = 4.0
 #        -c 0.6    +    +    +
 MMSEQS2_COV_MODE = 1
 
+# Penalty for opening a gap when aligning sequences during clustering. The lower the value the
+# slower clustering becomes. Not recommended to go lower than 3, minimum possible value is 1
+MMSEQS2_GAP_OPEN = 3
+
+# Penalty for extending a gap when aligning sequences during clustering. The lower the value the
+# slower clustering becomes. Minimum possible value is 1"
+MMSEQS2_GAP_EXTEND = 1
+
 # From MMseqs2 help:
 # Scale k-mer per sequence based on sequence length as kmer-per-seq val + scale x seqlen
 # kmer-per-seq is 21 by default, so if we set this value to 0.3 for a 500 bp sequence, MMseqs2 will
 # sample (500*0.3)+21 = 171 kmers from that sequence
 MMSEQS2_KMER_PER_SEQ_SCALE = 0.3
+
+# MMseqs sensitivity set the same as default 4 (experiment increasing a little?)
+MMSEQS2_SENSITIVITY = 4.0
 
 # A cluster must have at least this proportion of the total number of samples to be used as
 # reference
@@ -476,12 +484,12 @@ ALN_DIRS = {
     "UNAL": "01_unaligned",
     "ALND": "02_untrimmed",
     "TRIM": "03_trimmed",
-    "UNFI": "01_unfiltered",
-    "FAST": "02_fast",
-    "CARE": "03_careful",
-    "NREF": "04_unfiltered_no_refs",
-    "NRFA": "05_fast_no_refs",
-    "NRCA": "06_careful_no_refs",
+    "UNFR": "01_unfiltered_w_refs",
+    "NAIR": "02_naive_w_refs",
+    "INFR": "03_informed_w_refs",
+    "UNFI": "04_unfiltered",
+    "NAIV": "05_naive",
+    "INFO": "06_informed",
 }
 
 # MAFFT algorithms choices to real MAFFT syntax translation

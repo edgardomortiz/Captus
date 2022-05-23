@@ -850,6 +850,29 @@ class CaptusAssembly(object):
                  " extraction."
         )
         mmseqs2_group.add_argument(
+            "--mmseqs2_method",
+            action="store",
+            choices=[
+                "easy-linclust",
+                "easy-cluster",
+            ],
+            default="easy-linclust",
+            type=str,
+            dest="mmseqs2_method",
+            help="B|MMseqs2 clustering algorithm, options are:\n"
+                 "easy-linclust = Fast linear time, less sensitive clustering\n"
+                 "easy-cluster = Sensitive, slower, homology search"
+        )
+        mmseqs2_group.add_argument(
+            "--cluster_mode",
+            action="store",
+            default=2,
+            type=int,
+            dest="cluster_mode",
+            help="MMseqs2 clustering mode (https://github.com/soedinglab/mmseqs2/wiki#clustering-"
+                 "modes)"
+        )
+        mmseqs2_group.add_argument(
             "--cl_min_identity",
             action="store",
             default="auto",
@@ -858,6 +881,17 @@ class CaptusAssembly(object):
             help="Minimum similarity percentage between sequences in a cluster, when set to 'auto'"
                  f" it becomes {settings.MMSEQS2_BLAT_DNA_IDENTITY_FACTOR:.0%}% of the '--dna_min"
                  f"_identity' value but never less than {settings.MMSEQS_MIN_AUTO_MIN_IDENTITY}%%"
+        )
+        mmseqs2_group.add_argument(
+            "--cl_seq_id_mode",
+            action="store",
+            default=1,
+            type=int,
+            dest="cl_seq_id_mode",
+            help="B|MMseqs2 sequence identity mode, options are:\n"
+                 "0 = Alignment length\n"
+                 "1 = Shorter sequence\n"
+                 "2 = Longer sequence"
         )
         mmseqs2_group.add_argument(
             "--cl_min_coverage",
@@ -869,23 +903,13 @@ class CaptusAssembly(object):
                  " of the longest sequence in the cluster"
         )
         mmseqs2_group.add_argument(
-            "--cl_gap_open",
-            action="store",
-            default=3,
-            type=int,
-            dest="cl_gap_open",
-            help="Penalty for opening a gap when aligning sequences during clustering. The lower the"
-                 " value the slower clustering becomes. Not recommended to go lower than 3, minimum"
-                 " possible value is 1"
-        )
-        mmseqs2_group.add_argument(
-            "--cl_gap_extend",
+            "--cl_cov_mode",
             action="store",
             default=1,
             type=int,
-            dest="cl_gap_extend",
-            help="Penalty for extending a gap when aligning sequences during clustering. The lower"
-                 " the value the slower clustering becomes. Minimum possible value is 1"
+            dest="cl_cov_mode",
+            help="MMseqs2 sequence coverage mode (https://github.com/soedinglab/mmseqs2/wiki#how-"
+                 "to-set-the-right-alignment-coverage-to-cluster)"
         )
         mmseqs2_group.add_argument(
             "--cl_max_seq_len",
@@ -897,21 +921,11 @@ class CaptusAssembly(object):
                  " MMseqs2 is 65535. Use 0 to disable this filter"
         )
         mmseqs2_group.add_argument(
-            "--cl_tmp_dir",
-            action="store",
-            default="$HOME",
-            type=str,
-            dest="cl_tmp_dir",
-            help="Where to create the temporary directory 'captus_mmseqs2_tmp' for MMseqs2."
-                 " Clustering can become slow when done on external drives, set this location to a"
-                 " fast, preferably local, drive"
-        )
-        mmseqs2_group.add_argument(
-            "--cl_min_len",
+            "--cl_rep_min_len",
             action="store",
             default=200,
             type=int,
-            dest="cl_min_len",
+            dest="cl_rep_min_len",
             help="After clustering is finished, only accept cluster representatives of at least this"
                  " length to be part of the new miscellaneous DNA reference. Use 0 to disable this"
                  " filter"
@@ -924,6 +938,16 @@ class CaptusAssembly(object):
             dest="cl_min_samples",
             help="Minimum number of samples per cluster, if set to 'auto' the number is adjusted to"
                  f" {settings.CLR_MIN_SAMPLE_PROP:.0%}% of the total number of samples or at least 4"
+        )
+        mmseqs2_group.add_argument(
+            "--cl_tmp_dir",
+            action="store",
+            default="$HOME",
+            type=str,
+            dest="cl_tmp_dir",
+            help="Where to create the temporary directory 'captus_mmseqs2_tmp' for MMseqs2."
+                 " Clustering can become slow when done on external drives, set this location to a"
+                 " fast, preferably local, drive"
         )
 
         other_group = parser.add_argument_group("Other")
@@ -1146,6 +1170,12 @@ class CaptusAssembly(object):
             help="Maximum allowed time in seconds for a single alignment"
         )
         mafft_group.add_argument(
+            "--disable_codon_align",
+            action="store_true",
+            dest="disable_codon_align",
+            help="Do not align nucleotide coding sequences based on their protein alignment"
+        )
+        mafft_group.add_argument(
             "--outgroup",
             action="store",
             default="",
@@ -1160,13 +1190,13 @@ class CaptusAssembly(object):
         paralog_group.add_argument(
             "--filter_method",
             action="store",
-            choices=["fast", "careful", "both", "none"],
+            choices=["naive", "informed", "both", "none"],
             default="both",
             type=str,
             dest="filter_method",
             help="B|Methods for filtering paralogous sequences:\n"
-                 "fast = Only the best hit for each sample (marked as hit=00) is retained\n"
-                 "careful = Only keep the copy (regardless of hit ranking) that is most similar to"
+                 "naive = Only the best hit for each sample (marked as hit=00) is retained\n"
+                 "informed = Only keep the copy (regardless of hit ranking) that is most similar to"
                  " the reference sequence that was chosen most frequently among all other samples"
                  " in the alignment"
                  "both = Two separate folders will be created, each containing the results from each"
@@ -1180,7 +1210,7 @@ class CaptusAssembly(object):
             default=4.0,
             type=float,
             dest="tolerance",
-            help="Only applicable to the 'careful' filter. If the selected copy's identity to the"
+            help="Only applicable to the 'informed' filter. If the selected copy's identity to the"
                  " most commonly chosen reference is below this number of Standard Deviations from"
                  " the mean, it will also be removed (the lower the number the stricter the filter)"
         )
@@ -1218,7 +1248,7 @@ class CaptusAssembly(object):
         clipkit_group.add_argument(
             "--min_coverage",
             action="store",
-            default=0.20,
+            default=0.30,
             type=float,
             dest="min_coverage",
             help="Minimum coverage of sequence as proportion of the mean of sequence lengths in the"

@@ -184,32 +184,68 @@ def align(full_command, args):
                 f' {dim(settings.MAFFT_ALGORITHMS[args.mafft_method]["aka"])}')
         log.log(f'{"Timeout":>{mar}}: {bold(args.mafft_timeout)}'
                 f' {dim(f"[{elapsed_time(args.mafft_timeout)}]")}')
+        log.log(f'{"Codon-align CDS in NT":>{mar}}: {bold(not(args.disable_codon_align))}')
         log.log(f'{"Outgroup":>{mar}}: {bold(args.outgroup)}')
         log.log("")
         log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
         log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
         fastas_to_align = fastas_origs_dests(out_dir,
-                                            settings.ALN_DIRS["UNAL"],
-                                            Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"]))
+                                             settings.ALN_DIRS["UNAL"],
+                                             Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFR"]))
         log.log(f'{"FASTA files to align":>{mar}}: {bold(len(fastas_to_align))}')
         log.log("")
         log.log(make_output_dirtree(markers,
                                     formats,
                                     out_dir,
-                                    Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"]),
+                                    Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFR"]),
                                     mar))
         log.log("")
 
+        aa_origs, aa_dests = [], []
+        nt_origs, nt_dests = [], []
+        if not args.disable_codon_align:
+            for fasta_orig in sorted(fastas_to_align):
+                if fasta_orig.parts[-2] == settings.FORMAT_DIRS["AA"]:
+                    aa_origs.append(fasta_orig)
+                    aa_dests.append(fastas_to_align[fasta_orig])
+                    nt_equiv = Path(str(fasta_orig).replace(
+                        settings.FORMAT_DIRS["AA"], settings.FORMAT_DIRS["NT"]).replace(".faa", ".fna"))
+                    if nt_equiv in fastas_to_align:
+                        nt_origs.append(nt_equiv)
+                        nt_dests.append(fastas_to_align[nt_equiv])
+                    else:
+                        nt_origs.append("")
+                        nt_dests.append("")
+        other_origs, other_dests = [], []
+        for fasta_orig in sorted(fastas_to_align):
+            if fasta_orig not in aa_origs and fasta_orig not in nt_origs:
+                other_origs.append(fasta_orig)
+                other_dests.append(fastas_to_align[fasta_orig])
+
         mafft_params = []
-        for fasta_orig in fastas_to_align:
+        for aa_orig, aa_dest, nt_orig, nt_dest in zip(aa_origs, aa_dests, nt_origs, nt_dests):
+            fasta_origs = list(filter(None, [aa_orig, nt_orig]))
+            fasta_dests = list(filter(None, [aa_dest, nt_dest]))
             mafft_params.append((
                 mafft_path,
                 args.mafft_method,
                 threads_per_alignment,
                 args.mafft_timeout,
                 args.outgroup,
-                fasta_orig,
-                fastas_to_align[fasta_orig],
+                fasta_origs,
+                fasta_dests,
+                args.min_samples,
+                args.overwrite,
+            ))
+        for fasta_orig, fasta_dest in zip(other_origs, other_dests):
+            mafft_params.append((
+                mafft_path,
+                args.mafft_method,
+                threads_per_alignment,
+                args.mafft_timeout,
+                args.outgroup,
+                [fasta_orig],
+                [fasta_dest],
                 args.min_samples,
                 args.overwrite,
             ))
@@ -242,10 +278,10 @@ def align(full_command, args):
         filtering_refs = select_filtering_refs(refs_paths, markers, formats, args.filter_method)
         filter_method = args.filter_method.lower()
         if not filtering_refs:
-            if args.filter_method == "careful":
+            if args.filter_method == "informed":
                 filter_method = None
             elif args.filter_method == "both":
-                filter_method = "fast"
+                filter_method = "naive"
         if filter_method == "none": filter_method = None
 
         log.log(f'{"Concurrent processes":>{mar}}: {bold(concurrent)}')
@@ -263,44 +299,44 @@ def align(full_command, args):
         log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
         log.log("")
 
-        if filter_method in ["fast", "both"]:
+        if filter_method in ["naive", "both"]:
             fastas_to_filter = fastas_origs_dests(
                 out_dir,
-                Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"]),
-                Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["FAST"])
+                Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFR"]),
+                Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIR"])
             )
             log.log("")
-            log.log(bold(f'{"FAST paralog filtering":>{mar}}:'))
+            log.log(bold(f'{"NAIVE paralog filtering":>{mar}}:'))
             log.log(f'{"FASTA files to process":>{mar}}: {bold(len(fastas_to_filter))}')
             log.log(make_output_dirtree(markers,
                                         formats,
                                         out_dir,
-                                        Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["FAST"]),
+                                        Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIR"]),
                                         mar))
             log.log("")
-            paralog_fast_filter(fastas_to_filter, args.min_samples, args.overwrite,
+            paralog_naive_filter(fastas_to_filter, args.min_samples, args.overwrite,
                                 concurrent, args.debug, show_less)
             log.log("")
 
-        if filter_method in ["careful", "both"]:
+        if filter_method in ["informed", "both"]:
             fastas_to_filter = fastas_origs_dests(
                 out_dir,
-                Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"]),
-                Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["CARE"])
+                Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFR"]),
+                Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["INFR"])
             )
             log.log("")
-            log.log(bold(f'{"CAREFUL paralog filtering":>{mar}}:'))
+            log.log(bold(f'{"INFORMED paralog filtering":>{mar}}:'))
             log.log(f'{"Filter tolerance":>{mar}}: {bold(args.tolerance)} {bold("STDEVS")}')
             log.log(f'{"FASTA files to process":>{mar}}: {bold(len(fastas_to_filter))}')
             log.log(make_output_dirtree(markers,
                                         formats,
                                         out_dir,
-                                        Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["CARE"]),
+                                        Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["INFR"]),
                                         mar))
             log.log("")
             manager = Manager()
             shared_paralog_stats = manager.list()
-            paralog_careful_filter(shared_paralog_stats, fastas_to_filter, filtering_refs,
+            paralog_informed_filter(shared_paralog_stats, fastas_to_filter, filtering_refs,
                                    args.tolerance, args.min_samples, args.overwrite,
                                    concurrent, args.debug, show_less)
             paralog_stats_tsv = write_paralog_stats(out_dir, shared_paralog_stats)
@@ -329,11 +365,11 @@ def align(full_command, args):
             remove_references = False
 
         if remove_references:
-            if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"]).exists():
+            if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFR"]).exists():
                 fastas_to_rem_refs = fastas_origs_dests(
                     out_dir,
-                    Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"]),
-                    Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NREF"])
+                    Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFR"]),
+                    Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"])
                 )
                 log.log("")
                 log.log(f'{"FASTA files to process":>{mar}}: {bold(len(fastas_to_rem_refs))}')
@@ -341,18 +377,18 @@ def align(full_command, args):
                                             formats,
                                             out_dir,
                                             Path(settings.ALN_DIRS["ALND"],
-                                                 settings.ALN_DIRS["NREF"]),
+                                                 settings.ALN_DIRS["UNFI"]),
                                             mar))
                 log.log("")
                 rem_refs(refs_paths, fastas_to_rem_refs, args.min_samples,
                          args.overwrite, concurrent, args.debug, show_less)
                 log.log("")
 
-            if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["FAST"]).exists():
+            if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIR"]).exists():
                 fastas_to_rem_refs = fastas_origs_dests(
                     out_dir,
-                    Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["FAST"]),
-                    Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NRFA"])
+                    Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIR"]),
+                    Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIV"])
                 )
                 log.log("")
                 log.log(f'{"FASTA files to process":>{mar}}: {bold(len(fastas_to_rem_refs))}')
@@ -360,18 +396,18 @@ def align(full_command, args):
                                             formats,
                                             out_dir,
                                             Path(settings.ALN_DIRS["ALND"],
-                                                 settings.ALN_DIRS["NRFA"]),
+                                                 settings.ALN_DIRS["NAIV"]),
                                             mar))
                 log.log("")
                 rem_refs(refs_paths, fastas_to_rem_refs, args.min_samples,
                          args.overwrite, concurrent, args.debug, show_less)
                 log.log("")
 
-            if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["CARE"]).exists():
+            if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["INFR"]).exists():
                 fastas_to_rem_refs = fastas_origs_dests(
                     out_dir,
-                    Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["CARE"]),
-                    Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NRCA"])
+                    Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["INFR"]),
+                    Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["INFO"])
                 )
                 log.log("")
                 log.log(f'{"FASTA files to process":>{mar}}: {bold(len(fastas_to_rem_refs))}')
@@ -379,7 +415,7 @@ def align(full_command, args):
                                             formats,
                                             out_dir,
                                             Path(settings.ALN_DIRS["ALND"],
-                                                 settings.ALN_DIRS["NRCA"]),
+                                                 settings.ALN_DIRS["INFO"]),
                                             mar))
                 log.log("")
                 rem_refs(refs_paths, fastas_to_rem_refs, args.min_samples,
@@ -392,8 +428,10 @@ def align(full_command, args):
     log.log_section_header("Alignment Trimming with ClipKIT")
     log.log_explanation(
         "Now Captus will trim all the alignments using ClipKIT. The trimming strategy can be"
-        " specified with the flag --clipkit_method. Trimmed alignments are saved separately in a"
-        " new directory called '03_aligned_trimmed'"
+        " specified with the flag '--clipkit_method'. Once columns are trimmed by ClipKIT, Captus"
+        " will remove sequences with less than '--min_coverage' than the mean length of sequences,"
+        " ignoring gaps. Trimmed alignments are saved separately in a new directory called "
+        "'03_aligned_trimmed'"
     )
     if clipkit_status == "not found":
         log.log(red(
@@ -416,6 +454,27 @@ def align(full_command, args):
         log.log(f'{"FASTA files to trim":>{mar}}: {bold(len(fastas_to_trim))}')
         log.log("")
         log.log("Creating output directories:")
+        if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFR"]).exists():
+            log.log(make_output_dirtree(markers,
+                                        formats,
+                                        out_dir,
+                                        Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["UNFR"]),
+                                        mar))
+            log.log("")
+        if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIR"]).exists():
+            log.log(make_output_dirtree(markers,
+                                        formats,
+                                        out_dir,
+                                        Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["NAIR"]),
+                                        mar))
+            log.log("")
+        if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["INFR"]).exists():
+            log.log(make_output_dirtree(markers,
+                                        formats,
+                                        out_dir,
+                                        Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["INFR"]),
+                                        mar))
+            log.log("")
         if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"]).exists():
             log.log(make_output_dirtree(markers,
                                         formats,
@@ -423,39 +482,18 @@ def align(full_command, args):
                                         Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["UNFI"]),
                                         mar))
             log.log("")
-        if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["FAST"]).exists():
+        if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIV"]).exists():
             log.log(make_output_dirtree(markers,
                                         formats,
                                         out_dir,
-                                        Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["FAST"]),
+                                        Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["NAIV"]),
                                         mar))
             log.log("")
-        if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["CARE"]).exists():
+        if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["INFO"]).exists():
             log.log(make_output_dirtree(markers,
                                         formats,
                                         out_dir,
-                                        Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["CARE"]),
-                                        mar))
-            log.log("")
-        if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NREF"]).exists():
-            log.log(make_output_dirtree(markers,
-                                        formats,
-                                        out_dir,
-                                        Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["NREF"]),
-                                        mar))
-            log.log("")
-        if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NRFA"]).exists():
-            log.log(make_output_dirtree(markers,
-                                        formats,
-                                        out_dir,
-                                        Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["NRFA"]),
-                                        mar))
-            log.log("")
-        if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NRCA"]).exists():
-            log.log(make_output_dirtree(markers,
-                                        formats,
-                                        out_dir,
-                                        Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["NRCA"]),
+                                        Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["INFO"]),
                                         mar))
             log.log("")
 
@@ -602,11 +640,11 @@ def align(full_command, args):
 
 def prepare_redo(out_dir, redo_from):
     alignment = [Path(out_dir, settings.ALN_DIRS["ALND"])]
-    filtering = [Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["FAST"]),
-                 Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["CARE"])]
-    removal = [Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NREF"]),
-               Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NRFA"]),
-               Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NRCA"])]
+    filtering = [Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIR"]),
+                 Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["INFR"])]
+    removal = [Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"]),
+               Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIV"]),
+               Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["INFO"])]
     trimming = [Path(out_dir, settings.ALN_DIRS["TRIM"])]
     dirs_to_delete = []
     if redo_from.lower() == "alignment":
@@ -1022,9 +1060,17 @@ def rehead_root_mafft_alignment(fasta_in: Path, fasta_out: Path, outgroup: list)
 
 def mafft(
     mafft_path, mafft_method, threads, mafft_timeout, outgroup,
-    fasta_in: Path, fasta_out: Path, min_samples, overwrite
+    fastas_in: list, fastas_out: list, min_samples, overwrite
 ):
+
     start = time.time()
+
+    # If two FASTAs are passed to 'fastas_in', they are in order: AA nd NT;
+    # align the first FASTA, if it is AA it is used as model for NT equivalent
+    # which is the same as codon-aligning the NT coding sequence
+    fasta_in = fastas_in[0]
+    fasta_out = fastas_out[0]
+
     fasta_out_short = Path(*fasta_out.parts[-3:])
     if num_samples(fasta_to_dict(fasta_in)) < min_samples:
         message = dim(
@@ -1063,7 +1109,7 @@ def mafft(
             with open(mafft_log_file, "a") as mafft_log:
                 try:
                     subprocess.run(mafft_cmd, stdout=mafft_out, stderr=mafft_log,
-                                   timeout=mafft_timeout)
+                                timeout=mafft_timeout)
                     if file_is_empty(fasta_out):
                         message = red(f"'{fasta_out_short}': FAILED alignment, empty output file")
                         fasta_out.unlink()
@@ -1081,34 +1127,93 @@ def mafft(
                         " '--mafft_timeout' or switch to a faster '--mafft_method' like 'retree1'"
                         " or 'retree2'\n"
                     )
+        if len(fastas_in) == 2:
+            codon_message = codon_align(mafft_path,
+                                        mafft_method,
+                                        threads,
+                                        mafft_timeout,
+                                        outgroup,
+                                        fasta_out,
+                                        fastas_in[1],
+                                        fastas_out[1],
+                                        min_samples,
+                                        overwrite)
+            message += f'\n{codon_message}'
+
     else:
         message = dim(f"'{fasta_out_short}': skipped (output FASTA already exists)")
 
     return message
 
 
-def paralog_fast_filter(fastas_paths, min_samples, overwrite, concurrent, debug, show_less):
-    filter_paralogs_fast_params = []
+def codon_align(
+    mafft_path, mafft_method, threads, mafft_timeout, outgroup,
+    aa_aligned: Path, nt_orig: Path, nt_dest: Path, min_samples, overwrite
+):
+    if not aa_aligned.exists() or file_is_empty(aa_aligned):
+        return mafft(mafft_path, mafft_method, threads, mafft_timeout, outgroup,
+                     [nt_orig], [nt_dest], min_samples, overwrite)
+    else:
+        start = time.time()
+        fasta_out_short = Path(*nt_dest.parts[-3:])
+        if num_samples(fasta_to_dict(nt_orig)) < min_samples:
+            message = dim(
+                f"'{fasta_out_short}': skipped (input FASTA has fewer than"
+                f" {min_samples} samples)"
+            )
+            return message
+        if nt_dest.exists():
+            if len(fasta_to_dict(nt_dest)) == 0:
+                nt_dest.unlink()
+        if overwrite is True or not nt_dest.exists():
+            aa_aligned = fasta_to_dict(aa_aligned)
+            nt_unaligned = fasta_to_dict(nt_orig)
+            nt_aligned = {}
+            for seq_name in aa_aligned:
+                seq_aa = aa_aligned[seq_name]["sequence"]
+                seq_nt = nt_unaligned[seq_name]["sequence"]
+                nt_start = 0
+                seq_nt_out = ""
+                for aa in seq_aa:
+                    if aa == "-":
+                        seq_nt_out += "-"*3
+                    else:
+                        seq_nt_out += seq_nt[nt_start:nt_start+3]
+                        nt_start += 3
+                nt_aligned[seq_name] = {
+                    "description": nt_unaligned[seq_name]["description"],
+                    "sequence": seq_nt_out,
+                }
+            dict_to_fasta(nt_aligned, nt_dest)
+            message = f"'{fasta_out_short}': codon-aligned [{elapsed_time(time.time() - start)}]"
+        else:
+            message = dim(f"'{fasta_out_short}': skipped (output FASTA already exists)")
+
+        return message
+
+
+def paralog_naive_filter(fastas_paths, min_samples, overwrite, concurrent, debug, show_less):
+    filter_paralogs_naive_params = []
     for fasta in fastas_paths:
-        filter_paralogs_fast_params.append((
+        filter_paralogs_naive_params.append((
             fasta,
             fastas_paths[fasta],
             min_samples,
             overwrite,
         ))
     if debug:
-        tqdm_serial_run(filter_paralogs_fast, filter_paralogs_fast_params,
+        tqdm_serial_run(filter_paralogs_naive, filter_paralogs_naive_params,
                         "Removing potential paralogs from alignments",
                         "Potential paralog removal completed",
                         "alignment", show_less)
     else:
-        tqdm_parallel_async_run(filter_paralogs_fast, filter_paralogs_fast_params,
+        tqdm_parallel_async_run(filter_paralogs_naive, filter_paralogs_naive_params,
                                 "Removing potential paralogs from alignments",
                                 "Potential paralog removal completed",
                                 "alignment", concurrent, show_less)
 
 
-def filter_paralogs_fast(fasta_in: Path, fasta_out: Path, min_samples, overwrite):
+def filter_paralogs_naive(fasta_in: Path, fasta_out: Path, min_samples, overwrite):
     start = time.time()
 
     fasta_out_short = Path(*fasta_out.parts[-3:])
@@ -1136,7 +1241,7 @@ def filter_paralogs_fast(fasta_in: Path, fasta_out: Path, min_samples, overwrite
     return message
 
 
-def paralog_careful_filter(
+def paralog_informed_filter(
     shared_paralog_stats, fastas_paths, filtering_refs, tolerance,
     min_samples, overwrite, concurrent, debug, show_less
 ):
@@ -1147,13 +1252,13 @@ def paralog_careful_filter(
                 and fasta.parts[-3] == filtering_refs[marker]["marker_dir"]):
                 fastas[fasta.stem] = fasta
 
-    filter_paralogs_careful_params = []
+    filter_paralogs_informed_params = []
     for marker_name in fastas:
         fastas_marker = {}
         for fasta in fastas_paths:
             if fasta.stem == marker_name and fasta.parts[-3] == fastas[marker_name].parts[-3]:
                 fastas_marker[fasta] = fastas_paths[fasta]
-        filter_paralogs_careful_params.append((
+        filter_paralogs_informed_params.append((
             shared_paralog_stats,
             fastas[marker_name],
             fastas_marker,
@@ -1163,18 +1268,18 @@ def paralog_careful_filter(
         ))
 
     if debug:
-        tqdm_serial_run(filter_paralogs_careful, filter_paralogs_careful_params,
+        tqdm_serial_run(filter_paralogs_informed, filter_paralogs_informed_params,
                         "Removing potential paralogs from markers",
                         "Potential paralog removal completed",
                         "marker", show_less)
     else:
-        tqdm_parallel_async_run(filter_paralogs_careful, filter_paralogs_careful_params,
+        tqdm_parallel_async_run(filter_paralogs_informed, filter_paralogs_informed_params,
                                 "Removing potential paralogs from markers",
                                 "Potential paralog removal completed",
                                 "marker", concurrent, show_less)
 
 
-def filter_paralogs_careful(
+def filter_paralogs_informed(
     shared_paralog_stats, fasta_model, fastas_paths, tolerance, min_samples, overwrite
 ):
 
@@ -1483,7 +1588,7 @@ def compute_aln_stats(shared_aln_stats, fasta_path):
         f"{fasta_path}",                                    # [0] alignment file location
         f'{bool(not "untrimmed" in fasta_path_parts[-5])}', # [1] alignment was trimmed
         f'{fasta_path_parts[-4].split("_")[1]}',            # [2] paralog filter applied
-        f'{bool("no_refs" in fasta_path_parts[-4])}',       # [3] references removed
+        f'{bool("w_refs" in fasta_path_parts[-4])}',        # [3] still with references
         aln_marker,                                         # [4] marker type
         aln_format,                                         # [5] alignment format
         fasta_path.stem,                                    # [6] locus name
@@ -1516,7 +1621,7 @@ def write_aln_stats(out_dir, shared_aln_stats):
             tsv_out.write("\t".join(["path",
                                      "trimmed",
                                      "paralog_filter",
-                                     "no_refs",
+                                     "with_refs",
                                      "marker_type",
                                      "format",
                                      "locus",
