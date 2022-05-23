@@ -1156,6 +1156,7 @@ def codon_align(
     mafft_path, mafft_method, threads, mafft_timeout, outgroup,
     aa_aligned: Path, nt_orig: Path, nt_dest: Path, min_samples, overwrite
 ):
+    print(aa_aligned, nt_orig, nt_dest)
     if not aa_aligned.exists() or file_is_empty(aa_aligned):
         return mafft(mafft_path, mafft_method, threads, mafft_timeout, outgroup,
                      [nt_orig], [nt_dest], min_samples, overwrite)
@@ -1176,20 +1177,21 @@ def codon_align(
             nt_unaligned = fasta_to_dict(nt_orig)
             nt_aligned = {}
             for seq_name in aa_aligned:
-                seq_aa = aa_aligned[seq_name]["sequence"]
-                seq_nt = nt_unaligned[seq_name]["sequence"]
-                nt_start = 0
-                seq_nt_out = ""
-                for aa in seq_aa:
-                    if aa == "-":
-                        seq_nt_out += "-"*3
-                    else:
-                        seq_nt_out += seq_nt[nt_start:nt_start+3]
-                        nt_start += 3
-                nt_aligned[seq_name] = {
-                    "description": nt_unaligned[seq_name]["description"],
-                    "sequence": seq_nt_out,
-                }
+                if seq_name in nt_unaligned:
+                    seq_aa = aa_aligned[seq_name]["sequence"]
+                    seq_nt = nt_unaligned[seq_name]["sequence"]
+                    nt_start = 0
+                    seq_nt_out = ""
+                    for aa in seq_aa:
+                        if aa == "-":
+                            seq_nt_out += "-"*3
+                        else:
+                            seq_nt_out += seq_nt[nt_start:nt_start+3]
+                            nt_start += 3
+                    nt_aligned[seq_name] = {
+                        "description": nt_unaligned[seq_name]["description"],
+                        "sequence": seq_nt_out,
+                    }
             dict_to_fasta(nt_aligned, nt_dest)
             message = f"'{fasta_out_short}': codon-aligned [{elapsed_time(time.time() - start)}]"
         else:
