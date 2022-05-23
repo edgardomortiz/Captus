@@ -19,6 +19,7 @@ import subprocess
 import time
 from multiprocessing import Manager
 from pathlib import Path
+from numpy import source
 
 from tqdm import tqdm
 
@@ -922,13 +923,18 @@ def collect_extracted_markers(
 
 
 def collect_sample_markers(
-    shared_fastas_per_marker, source_fasta_path, sample_name,destination, suffix, max_paralogs
+    shared_fastas_per_marker, source_fasta_path, sample_name, destination, suffix, max_paralogs
 ):
     start = time.time()
     markers_collected = []
 
     fasta_in = fasta_to_dict(source_fasta_path)
     for seq_name_full in fasta_in:
+        # Replace connecting 'n's only for alignment, otherwise MAFFT takes forever and opens
+        # enormous gaps
+        if Path(destination).parts[-2] in [settings.MARKER_DIRS["DNA"],settings.MARKER_DIRS["CLR"]]:
+            seq_no_ns = fasta_in[seq_name_full]["sequence"].replace("n", "-")
+            fasta_in[seq_name_full]["sequence"] = seq_no_ns
         seq_name_parts = seq_name_full.split(settings.SEQ_NAME_SEP)
         marker_name = seq_name_parts[1]
         fasta_out = Path(destination, f"{marker_name}{suffix}")
