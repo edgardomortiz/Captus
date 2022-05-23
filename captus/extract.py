@@ -526,6 +526,7 @@ def extract(full_command, args):
                                   settings.MMSEQS_MIN_AUTO_MIN_IDENTITY)
         else:
             cl_min_identity = float(args.cl_min_identity)
+        if args.cluster_mode != 2: args.cl_seq_id_mode = 0
         clust_tmp_dir = make_tmp_dir_within(args.cl_tmp_dir, "captus_mmseqs2_tmp")
         fastas_to_cluster, num_leftovers = find_fasta_leftovers(fastas_to_extract)
         if args.cl_min_samples == "auto":
@@ -535,14 +536,18 @@ def extract(full_command, args):
 
         log.log(bold_yellow("  \u25BA STEP 1 OF 3: Clustering contigs across samples with MMseqs2"))
         log.log("")
+        log.log(f'{"MMseqs2 method":>{mar}}: {bold(args.mmseqs2_method)}')
+        log.log(f'{"cluster_mode":>{mar}}: {bold(args.cluster_mode)}')
         log.log(f'{"min_seq_id":>{mar}}: {bold(cl_min_identity)}')
+        log.log(f'{"seq_id_mode":>{mar}}: {bold(args.cl_seq_id_mode)}')
         log.log(f'{"cov":>{mar}}: {bold(args.cl_min_coverage)}')
-        log.log(f'{"gap_open":>{mar}}: {bold(args.cl_gap_open)}')
-        log.log(f'{"gap_extend":>{mar}}: {bold(args.cl_gap_extend)}')
+        log.log(f'{"cov_mode":>{mar}}: {bold(args.cl_cov_mode)}')
+        log.log(f'{"gap_open":>{mar}}: {bold(settings.MMSEQS2_GAP_OPEN)}')
+        log.log(f'{"gap_extend":>{mar}}: {bold(settings.MMSEQS2_GAP_EXTEND)}')
         log.log(f'{"max_seq_len":>{mar}}: {bold(args.cl_max_seq_len)}')
         log.log(f'{"tmp_dir":>{mar}}: {bold(clust_tmp_dir)}')
         log.log("")
-        log.log(f'{"Min. locus length":>{mar}}: {bold(args.cl_min_len)}')
+        log.log(f'{"Min. locus length":>{mar}}: {bold(args.cl_rep_min_len)}')
         log.log(f'{"Min. samples per cluster":>{mar}}: {bold(cl_min_samples)}')
         log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
         log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
@@ -570,14 +575,14 @@ def extract(full_command, args):
                                               args.show_less)
             log.log("")
             log.log(bold("Clustering contigs across samples (this may take a while, please wait):"))
-            clust_prefix = mmseqs2_cluster(args.mmseqs2_path,
+            clust_prefix = mmseqs2_cluster(args.mmseqs2_path, args.mmseqs2_method, args.cluster_mode,
                                            clustering_input_file, clustering_dir,
-                                           cl_min_identity, args.cl_min_coverage,
-                                           args.cl_gap_open, args.cl_gap_extend,
+                                           cl_min_identity, args.cl_seq_id_mode,
+                                           args.cl_min_coverage, args.cl_cov_mode,
                                            clust_tmp_dir, threads_max)
             log.log("")
             log.log(bold("Filtering clusters:"))
-            captus_clusters_ref = filter_clusters(clust_prefix, cl_min_samples, args.cl_min_len)
+            captus_clusters_ref = filter_clusters(clust_prefix, cl_min_samples, args.cl_rep_min_len)
             log.log("")
             log.log("")
             log.log(bold_yellow(
@@ -1811,36 +1816,39 @@ def rehead_fasta_with_sample_name(sample_name, sample_fasta_path, clustering_dir
 
 
 def mmseqs2_cluster(
-        mmseqs2_path, clustering_input_file, clustering_dir, clust_min_identity,
-        clust_min_coverage, clust_gap_open, clust_gap_extend, clust_tmp_dir, threads
+        mmseqs2_path, mmseqs2_method, cluster_mode, clustering_input_file, clustering_dir,
+        min_identity, seq_id_mode, min_coverage, cov_mode, clustering_tmp_dir, threads
 ):
     """
     Run MMseqs easy-linclust but perform some parameter checking/conversion before, the FASTA input
     file has to be decompressed, we can compress it afterwards
     """
     start = time.time()
-    if not 0 < clust_min_identity <= 1:
-        clust_min_identity = min(1.0, round((abs(clust_min_identity) / 100), 3))
-    if not 0 < clust_min_coverage <= 1:
-        clust_min_coverage = min(1.0, round((abs(clust_min_coverage) / 100), 3))
+    if not 0 < min_identity <= 1:
+        min_identity = min(1.0, round((abs(min_identity) / 100), 3))
+    if not 0 < min_coverage <= 1:
+        min_coverage = min(1.0, round((abs(min_coverage) / 100), 3))
 
-    files_prefix = f"clust_id{clust_min_identity * 100:.2f}_cov{clust_min_coverage * 100:.2f}"
+    files_prefix = f"clust_id{min_identity * 100:.2f}_cov{min_coverage * 100:.2f}"
     result_prefix = f"{Path(clustering_dir, files_prefix)}"
     mmseqs2_cmd = [
         mmseqs2_path,
-        "easy-linclust",
+        mmseqs2_method,
         f"{clustering_input_file}",
         f"{result_prefix}",
-        f"{clust_tmp_dir}",
-        "--min-seq-id", f"{clust_min_identity}",
-        "-c", f"{clust_min_coverage}",
-        "--cov-mode", f"{settings.MMSEQS2_COV_MODE}",
-        "--cluster-mode", "0",
-        "--gap-open", f"{max(1, clust_gap_open)}",
-        "--gap-extend", f"{max(1, clust_gap_extend)}",
+        f"{clustering_tmp_dir}",
+        "--min-seq-id", f"{min_identity}",
+        "--seq-id-mode", f"{seq_id_mode}",
+        "-c", f"{min_coverage}",
+        "--cov-mode", f"{cov_mode}",
+        "--cluster-mode", f"{cluster_mode}",
+        "--gap-open", f"{max(1, settings.MMSEQS2_GAP_OPEN)}",
+        "--gap-extend", f"{max(1, settings.MMSEQS2_GAP_EXTEND)}",
         "--kmer-per-seq-scale", f"{settings.MMSEQS2_KMER_PER_SEQ_SCALE}",
         "--threads", f"{threads}",
     ]
+    if cluster_mode == "easy-cluster":
+        mmseqs2_cmd += ["--cluster-reassign"]
     mmseqs2_log_file = Path(clustering_dir, f"{files_prefix}.log")
     mmseqs2_thread = ElapsedTimeThread()
     mmseqs2_thread.start()

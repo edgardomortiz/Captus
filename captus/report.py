@@ -390,7 +390,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         phred64_sample_list = df.query("percentile_90 > 42")["sample_name"].unique()
         phred64_index = df[(df["sample_name"].isin(phred64_sample_list)) & (df["stage"] == "Before")].index
         df.iloc[phred64_index,4:] = df.iloc[phred64_index,4:] - 31
-    
+
     var_list = [
         "mean",
         "percentile_90",
@@ -422,7 +422,7 @@ def build_qc_report(out_dir, qc_extras_dir):
             ascending=[True, False],
             inplace=True,
     )
-    
+
     # For paired-end
     if "R2" in df["read"].to_list():
         df_R1 = df[df["read"] == "R1"]
@@ -2043,7 +2043,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
                 "Flanking length: <b>%{customdata[15]:,.0f} bp</b>",
                 "Frameshift: <b>%{customdata[16]}</b><extra></extra>",
             ])
-            
+
         fig = go.Figure()
         fig.add_trace(
             go.Heatmap(
@@ -2278,7 +2278,7 @@ def build_alignment_report(out_dir, aln_stats_tsv):
     start = time.time()
 
     df = pd.read_table(aln_stats_tsv)
-    df["stage"] = df["trimmed"].astype(str).str.cat([df["paralog_filter"], df["no_refs"].astype(str)], sep="-")
+    df["stage"] = df["trimmed"].astype(str).str.cat([df["paralog_filter"], df["with_refs"].astype(str)], sep="-")
     df.loc[df["format"] == "AA", "aln_len_unit"] = "aa"
     df.loc[df["format"] != "AA", "aln_len_unit"] = "bp"
     marker_type_list = df["marker_type"].unique()
@@ -2293,18 +2293,18 @@ def build_alignment_report(out_dir, aln_stats_tsv):
     }
 
     stage_dict = {
-        "False-unfiltered-False": "02_untrimmed/ <br>01_unfiltered -",
-        "False-fast-False": "02_untrimmed/ <br>02_fast -",
-        "False-careful-False": "02_untrimmed/ <br>03_careful -",
-        "False-unfiltered-True": "02_untrimmed/ <br>04_unfiltered_no_refs -",
-        "False-fast-True": "02_untrimmed/ <br>05_fast_no_refs -",
-        "False-careful-True": "02_untrimmed/ <br>06_careful_no_refs -",
-        "True-unfiltered-False": "03_trimmed/ <br>01_unfiltered -",
-        "True-fast-False": "03_trimmed/ <br>02_fast -",
-        "True-careful-False": "03_trimmed/ <br>03_careful -",
-        "True-unfiltered-True": "03_trimmed/ <br>04_unfiltered_no_refs -",
-        "True-fast-True": "03_trimmed/ <br>05_fast_no_refs -",
-        "True-careful-True": "03_trimmed/ <br>06_careful_no_refs -",
+        "False-unfiltered-True": "02_untrimmed/ <br>01_unfiltered_w_refs -",
+        "False-naive-True": "02_untrimmed/ <br>02_naive_w_refs -",
+        "False-informed-True": "02_untrimmed/ <br>03_informed_w_refs -",
+        "False-unfiltered-False": "02_untrimmed/ <br>04_unfiltered -",
+        "False-naive-False": "02_untrimmed/ <br>05_naive -",
+        "False-informed-False": "02_untrimmed/ <br>06_informed -",
+        "True-unfiltered-True": "03_trimmed/ <br>01_unfiltered_w_refs -",
+        "True-naive-True": "03_trimmed/ <br>02_naive_w_refs -",
+        "True-informed-True": "03_trimmed/ <br>03_informed_w_refs -",
+        "True-unfiltered-False": "03_trimmed/ <br>04_unfiltered -",
+        "True-naive-False": "03_trimmed/ <br>05_naive -",
+        "True-informed-False": "03_trimmed/ <br>06_informed -",
     }
 
     var_dict = {
@@ -2476,18 +2476,18 @@ def build_alignment_report(out_dir, aln_stats_tsv):
     figs.append(fig)
 
     stage_dict = {
-        "False-unfiltered-False": "02_untrimmed/<br>01_unfiltered",
-        "False-fast-False": "02_untrimmed/<br>02_fast",
-        "False-careful-False": "02_untrimmed/<br>03_careful",
-        "False-unfiltered-True": "02_untrimmed/<br>04_unfiltered_no_refs",
-        "False-fast-True": "02_untrimmed/<br>05_fast_no_refs",
-        "False-careful-True": "02_untrimmed/<br>06_careful_no_refs",
-        "True-unfiltered-False": "03_trimmed/<br>01_unfiltered",
-        "True-fast-False": "03_trimmed/<br>02_fast",
-        "True-careful-False": "03_trimmed/<br>03_careful",
-        "True-unfiltered-True": "03_trimmed/<br>04_unfiltered_no_refs",
-        "True-fast-True": "03_trimmed/<br>05_fast_no_refs",
-        "True-careful-True": "03_trimmed/<br>06_careful_no_refs",
+        "False-unfiltered-True": "02_untrimmed/<br>01_unfiltered_w_refs",
+        "False-naive-True": "02_untrimmed/<br>02_naive_w_refs",
+        "False-informed-True": "02_untrimmed/<br>03_informed_w_refs",
+        "False-unfiltered-False": "02_untrimmed/<br>04_unfiltered",
+        "False-naive-False": "02_untrimmed/<br>05_naive",
+        "False-informed-False": "02_untrimmed/<br>06_informed",
+        "True-unfiltered-True": "03_trimmed/<br>01_unfiltered_w_refs",
+        "True-naive-True": "03_trimmed/<br>02_naive_w_refs",
+        "True-informed-True": "03_trimmed/<br>03_informed_w_refs",
+        "True-unfiltered-False": "03_trimmed/<br>04_unfiltered",
+        "True-naive-False": "03_trimmed/<br>05_naive",
+        "True-informed-False": "03_trimmed/<br>06_informed",
     }
 
     hovertemplate = "<br>".join([
@@ -2772,7 +2772,7 @@ def build_alignment_report(out_dir, aln_stats_tsv):
             updatemenus=updatemenus,
         )
         figs.append(fig)
-    
+
     # Save plot in html
     aln_html_report = Path(out_dir, "captus-assembly_align.report.html")
     with open(aln_html_report, "w") as f:
