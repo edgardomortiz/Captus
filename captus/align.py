@@ -936,7 +936,7 @@ def collect_sample_markers(
             seq_no_ns = fasta_in[seq_name_full]["sequence"].replace("n", "-")
             fasta_in[seq_name_full]["sequence"] = seq_no_ns
         # Replace stop codons by X, MAFFT automatically removes the '*' symbol
-        if Path(destination).parts[-2] == settings.MARKER_DIRS["AA"]:
+        if Path(destination).parts[-1] == settings.FORMAT_DIRS["AA"]:
             seq_no_stops = fasta_in[seq_name_full]["sequence"].replace("*", "X")
             fasta_in[seq_name_full]["sequence"] = seq_no_stops
         seq_name_parts = seq_name_full.split(settings.SEQ_NAME_SEP)
