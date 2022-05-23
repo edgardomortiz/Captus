@@ -1156,7 +1156,6 @@ def codon_align(
     mafft_path, mafft_method, threads, mafft_timeout, outgroup,
     aa_aligned: Path, nt_orig: Path, nt_dest: Path, min_samples, overwrite
 ):
-    print(aa_aligned, nt_orig, nt_dest)
     if not aa_aligned.exists() or file_is_empty(aa_aligned):
         return mafft(mafft_path, mafft_method, threads, mafft_timeout, outgroup,
                      [nt_orig], [nt_dest], min_samples, overwrite)
