@@ -142,7 +142,7 @@ MEGAHIT_MIN_RAM_B = 4 * 1024 ** 3
 
 # Presets for MEGAHIT assemblies of RNAseq and WGS
 MEGAHIT_PRESETS = {
-    "HYB": {
+    "CAPSKIM": {
         "k_list": "31,39,47,63,79,95,111,127,143,159,175",
         "min_count": 2,
         "prune_level": 2,
