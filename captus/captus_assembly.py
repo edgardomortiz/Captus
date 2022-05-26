@@ -421,14 +421,14 @@ class CaptusAssembly(object):
             action="store",
             type=str,
             dest="preset",
-            help="B|The default preset is 'HYB', these settings work well with either hybridization"
-                 " capture or genome skimming data (or a combination of both). You can assemble"
-                 " RNA-Seq reads with the 'RNA' preset or high-coverage Whole Genome Sequencing"
-                 " reads with the 'WGS' preset, however, both presets require a minimum of 8GB of"
-                 " RAM to work well (default: HYB)\n"
-                 f'HYB = --k-list {settings.MEGAHIT_PRESETS["HYB"]["k_list"]}'
-                 f' --min-count {settings.MEGAHIT_PRESETS["HYB"]["min_count"]}'
-                 f' --prune-level {settings.MEGAHIT_PRESETS["HYB"]["prune_level"]}\n'
+            help="B|The default preset is 'CAPSKIM', these settings work well with either"
+                 " hybridization capture or genome skimming data (or a combination of both). You can"
+                 " assemble RNA-Seq reads with the 'RNA' preset or high-coverage Whole Genome"
+                 " Sequencing reads with the 'WGS' preset, however, both presets require a minimum"
+                 " of 8GB of RAM to work well (default: CAPSKIM)\n"
+                 f'CAPSKIM = --k-list {settings.MEGAHIT_PRESETS["CAPSKIM"]["k_list"]}'
+                 f' --min-count {settings.MEGAHIT_PRESETS["CAPSKIM"]["min_count"]}'
+                 f' --prune-level {settings.MEGAHIT_PRESETS["CAPSKIM"]["prune_level"]}\n'
                  f'RNA = --k-list {settings.MEGAHIT_PRESETS["RNA"]["k_list"]}'
                  f' --min-count {settings.MEGAHIT_PRESETS["RNA"]["min_count"]}'
                  f' --prune-level {settings.MEGAHIT_PRESETS["RNA"]["prune_level"]}\n'
