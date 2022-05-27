@@ -29,7 +29,7 @@ After the run is finished we should see a new directory called `03_extractions` 
 A subdirectory ending in `__captus-ext` is created to contain the extracted markers of each sample separately (**S1**, **S2**, **S3**, and **S4** in the image).
 ___
 ### 2. **`01_coding_NUC`**, **`02_coding_PTD`**, **`03_coding_MIT`**
-These directories contain the extracted **coding** markers from the **NUC**lear, **P**las**T**i**D**ial, and **MIT**ochondrial genomes respectively.
+These directories contain the extracted **coding** markers from the **NUC**lear, **P**las**T**i**D**ial, and **MIT**ochondrial genomes respectively.  
 The markers are presented in four formats: protein sequence (**coding_AA**), coding sequence in nucleotide (**coding_NT**), exons and introns concatenated (**genes**), and the concatenation of exons and introns flanked by a fixed length of sequence (**genes_flanked**):
 
 ![Protein extraction formats](/images/protein_extraction.png?width=600&classes=shadow)
@@ -107,7 +107,8 @@ ___
 Directory for Scipio's initial run results. The directory contains the set of filtered protein references `[MARKER_TYPE]_best_proteins.faa` (when using multi-sequence per locus references) and the log of Scipio's initial run `[MARKER_TYPE]_scipio_initial.log`. Suffixes can be `NUC`, `PTD`, or `MIT`.
 ___
 ### 12. **`04_misc_DNA`**, **`05_clusters`**
-These directories contain the extracted **miscellaneous DNA** markers, either from a **DNA** custom set of references or from the **CL**uste**R**ing resulting from using the option `--cluster_leftovers`.
+These directories contain the extracted **miscellaneous DNA** markers, either from a **DNA** custom set of references or from the **CL**uste**R**ing resulting from using the option `--cluster_leftovers`.  
+The markers are presented in two formats: matching DNA segments (**matches**), and the matched segments including flanks and other intervening segments not present in the reference (**matches_flanked**).
 
 ![Miscellaneous DNA extraction formats](/images/misc_dna_extraction.png?width=600&classes=shadow)
 ___
@@ -250,7 +251,7 @@ ___
 This is the final [Marker Recovery report]({{< ref "assembly/extract/report">}}), summarizing marker extraction statistics across all samples and marker types.
 ___
 ### 28. **`captus-assembly_extract.log`**
-This is the log from `Captus`, it contains the command used and all the information shown during the run. If the option `--show_less` was enabled the log will also contain all the extra detailed information that was hidden during the run.
+This is the log from `Captus`, it contains the command used and all the information shown during the run. If the option `--show_less` was enabled, the log will also contain all the extra detailed information that was hidden during the run.
 ___
 ### 29. **`clust_id##.##_cov##.##_captus_clusters_refs.fasta`**
 This FASTA file contains the cluster representatives that will be searched and extracted across samples (prefix `CLR`), the loci names are called `captus_#`. These represent newly discovered homologus markers in contigs that had no hits to other reference proteins or miscellaneous DNA markers.
@@ -275,4 +276,4 @@ As you can see, **Sample name**, **Locus name**, and **Paralog ranking** are sep
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (13.04.2022)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (27.05.2022)

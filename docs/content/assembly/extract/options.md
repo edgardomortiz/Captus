@@ -41,7 +41,7 @@ Inside this directory, the extracted markers for each sample will be stored in a
 This argument is optinal, the default is **./03_extractions/**
 ___
 #### **`--max_paralogs`**
-Maximum number of secondary hits (copies) of any particular reference marker allowed in the output. We recommend disabling the removal of paralogs (secondary hits/copies) during the 'extract' step because the 'align' step uses a more careful filter for paralogs. This can be useful for exploratory runs, for example: if after an initial run allowing all paralogs we found out that the average number of secondary hits across samples is 5, we could use this number to get rid of outliers.
+Maximum number of secondary hits (copies) of any particular reference marker allowed in the output. We recommend disabling the removal of paralogs (secondary hits/copies) during the 'extract' step because the 'align' step uses a more sophisticated filter for paralogs. This can be useful for exploratory runs, for example: if after an initial run allowing all paralogs we found out that the average number of secondary hits across samples is 5, we could use this number to get rid of outliers.
 
 This argument is optional, the default is **-1** (include all paralogs in the output).
 ___
@@ -59,7 +59,7 @@ ___
 ### *Proteins extraction global options (Scipio)*
 ___
 #### **`--max_loci_scipio_x2`**
-When the number of different loci in the reference exceeds this value, `Captus` will not run a second, more exhaustive round of Scipio. Usually the results from the first round are extremely similar and sufficient, the second round can become extremely slow as the number of reference proteins grows.
+When the number of loci in a protein reference file exceeds this number, `Captus` will not run a second, more exhaustive round of Scipio. Usually the results from the first round are extremely similar and sufficient, the second round can become extremely slow as the number of reference proteins grows.
 
 This argument is optional, the default is **2000**.
 ___
@@ -86,12 +86,12 @@ ___
 #### **`--nuc_min_score`**
 Keep hits to the reference proteins that have at least this `Scipio` score. The default has been optimized to perform cross-species extraction in fragmented assemblies like the ones obtained from hybridization capture data. Accepted values are decimal from 0 to 1. For more details, read [<i class="fab fa-readme"></i> Scipio's settings](https://www.webscipio.org/help/webscipio#setting).
 
-This argument is optional, the default is **0.12**.
+This argument is optional, the default is **0.13**.
 ___
 #### **`--nuc_min_identity`**
 Minimum percentage of identity to the reference protein for a hit to be retained. Accepted values are any number between 0 and 100. For more details, read [<i class="fab fa-readme"></i> Scipio's settings](https://www.webscipio.org/help/webscipio#setting).
 
-This argument is optional, the default is **55**.
+This argument is optional, the default is **65**.
 ___
 #### **`--nuc_min_coverage`**
 Minimum percentage of coverage of the reference protein for a hit to be retained. Accepted values are any number between 0 and 100. For more details, read [<i class="fab fa-readme"></i> Scipio's settings](https://www.webscipio.org/help/webscipio#setting).
@@ -184,27 +184,49 @@ ___
 #### **`-c, --cluster_leftovers`**
 Enable [`MMseqs2`](https://github.com/soedinglab/MMseqs2) clustering across samples for the contigs that had no hits to the reference markers. A new miscellaneous DNA reference is built from the best representative of each cluster in order to perform a miscellaneous DNA marker extraction.
 ___
+#### **`--mmseqs2_method`**
+Select [MMseqs2's clustering algorithm](https://github.com/soedinglab/mmseqs2/wiki#easy-workflows). Valid options are:
+- `easy-linclust` = Fast linear time (for huge datasets), less sensitive clustering
+- `easy-cluster` = Sensitive homology search (slower)
+
+This argument is optional, the default is **easy-linclust**.
+___
+#### **`--cluster_mode`**
+Select [MMseqs2's clustering mode](https://github.com/soedinglab/mmseqs2/wiki#clustering-modes). Valid options are:
+- `0` = Greedy set cover
+- `1` = Connected component
+- `2` = Greedy incremental (analogous to CD-HIT)
+
+This argument is optional, the default is **2**.
+___
 #### **`--cl_min_identity`**
 Minimum percentage of similarity between sequences within a cluster. Accepted values are any number between 75 and 100. Since `Captus` will perform a [Miscellaneous DNA  marker extraction]({{< ref "#miscellaneous-dna-markers-blat">}}) using as reference the best representative of each cluster, it is convenient to set `--cl_min_identity` a little lower than `--dna_min_identity`.
 
 This identity threshold only affects the clustering used for the creation of the new reference of DNA markers, the actual marker extraction still depends of `dna_min_identity`.
 
-This argument is optional, the default is **auto** (= 98% of `dna_min_identity`).
+This argument is optional, the default is **auto** (= 99% of `dna_min_identity`).
+___
+#### **`--cl_seq_id_mode`**
+Select MMseqs2's sequence identity mode. Valid options are:
+- `0` = Alignment length
+- `1` = Shorter sequence
+- `2` = Longer sequence
+
+This argument is optional, the default is **1**.
 ___
 #### **`--cl_min_coverage`**
-For a sequence to be included in a cluster, this percentage of its length has to be matched by the longest sequence in the cluster [(Coverage Mode 1 in MMSeqs2)](https://github.com/soedinglab/MMseqs2/wiki#how-to-set-the-right-alignment-coverage-to-cluster). Accepted values are number between 0 and 100.
+For a sequence to be included in a cluster, this percentage of its length has to be matched by the longest sequence in the cluster. Accepted values are number between 0 and 100.
 
 This only affects the clustering used for the creation of the new reference of DNA markers, the actual marker extraction still depends of `dna_min_coverage`.
 
 This argument is optional, the default is **80**. 
 ___
-#### **`--cl_gap_open`**
-Penalty for opening a gap when aligning sequences during clustering. The lower the value the slower clustering becomes. Not recommended to go lower than 3, minimum possible value is 1.
-
-This argument is optional, the default is **3**.
-___
-#### **`--cl_gap_extend`**
-Penalty for extending a gap when aligning sequences during clustering. The lower the value the slower clustering becomes. Minimum possible value is 1.
+#### **`--cl_cov_mode`**
+Select [MMseqs2's sequence coverage mode](https://github.com/soedinglab/mmseqs2/wiki#how-to-set-the-right-alignment-coverage-to-cluster). Valid options are:
+- `0` = Bidirectional (query and target)
+- `1` = Target
+- `2` = Query
+- `3` = Target-in-query
 
 This argument is optional, the default is **1**.
 ___
@@ -213,20 +235,20 @@ Do not cluster sequences longer than this length in bp, the maximum allowed by M
 
 This argument is optional, the default is **20000**.
 ___
-#### **`--cl_tmp_dir`**
-Path where to create the temporary directory for `MMseqs2`. Clustering can become slow when done on external drives, set this location to an internal drive.
-
-This argument is optional, the default is **$HOME**.
-___
-#### **`--cl_min_len`**
+#### **`--cl_rep_min_len`**
 After clustering is finished, only accept cluster representatives of at least this length to be part of the new miscellaneous DNA reference. This avoids the creation of very short locus alignments. Use the value `0` to disable this filter.
 
-This argument is optional, the default is **200**
+This argument is optional, the default is **500**.
 ___
 #### **`--cl_min_samples`**
 Minimum number of samples per cluster.
 
 This argument is optional, the default is **auto** (= 30% of the total number of samples or at least 4).
+___
+#### **`--cl_tmp_dir`**
+Path where to create the temporary directory for `MMseqs2`. Clustering can become slow when done on external drives, set this location to an internal drive.
+
+This argument is optional, the default is **$HOME**.
 ___
 ### *Other*
 ___
@@ -245,4 +267,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (02.03.2022)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (27.05.2022)
