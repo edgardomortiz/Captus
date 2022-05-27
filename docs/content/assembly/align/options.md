@@ -77,7 +77,7 @@ Use this flag with caution, this will replace any previous result within the out
 ___
 ### *MAFFT*
 ___
-#### **`--mafft_algorithm`**
+#### **`--mafft_method`**
 Select [MAFFT's alignment algorithm](https://mafft.cbrc.jp/alignment/software/algorithms/algorithms.html). Valid algorithm names are:
 - `auto` = Automatic selection by `MAFFT` based on amount of data
 - `genafpair` = E-INS-i
@@ -93,26 +93,35 @@ Modify the waiting time in seconds for an individual alignment to complete. When
 
 This argument is optional, the default is **21600** (= 6 hours).
 ___
+#### **`--disable_codon_align`**
+When `AA`s and their corresponding `NT`s are aligned in the same run, `Captus` uses the `AA` alignment as template for aligning the `NT` format, thus obtaining a codon-aware alignment for the coding sequences in nucleotides. Use this flag to disable this method and use the regular `MAFFT` nucleotide alignment.
+___
+#### **`--outgroup`**
+Outgroup sample names, separated by commas, no spaces. `Captus` will place these samples whenever possible at the beginning of the alignments, since many phylogentic programs root the resulting phylogeny at the first sample in the alignment your phylogenetic analyses will be automatically rooted.  
+Example: `--outgroup sample2,sample5`
+
+This argument is optional and has no default.
+___
 ### *Paralog filtering*
 ___
 #### **`--filter_method`**
 We provide two filtering methods for paralog removal, you can select either or both:
-- `fast` = Only the best hit for each sample (marked as hit=00) is retained, when the reference only contains a single sequence per locus it is equivalent to the `carefu` method.
-- `careful` = Only keep the copy (regardless of hit ranking) that is most similar to the reference sequence that was
- chosen most frequently among all other samples in the alignment. This method was designed to take advantage of references that contain several sequences per locus (like `Angiosperms353`), if the reference only contains a single reference per locus the result will be identical to the `fast` method.
+- `naive` = Only the best hit for each sample (marked as hit=00) is retained, when the reference only contains a single sequence per locus it is equivalent to the `carefu` method.
+- `informed` = Only keep the copy (regardless of hit ranking) that is most similar to the reference sequence that was
+ chosen most frequently among all other samples in the alignment. This method was designed to take advantage of references that contain several sequences per locus (like `Angiosperms353`), if the reference only contains a single reference per locus the result will be very similar to the `naive` method (see `--tolerance`).
 - `both` = Two separate folders will be created, each containing the results from each filtering method.
 - `none` = Skip paralog removal, just remove reference sequences from the alignments. Useful for phylogenetic methods that allow paralogs like [`ASTRAL-Pro`](https://github.com/chaoszhang/A-pro).
 
 This argument is optional, the default is **both**.
 ___
 #### **`--tolerance`**
-Only applicable to the 'careful' filter. If the selected copy's identity to the most commonly chosen reference is below this number of Standard Deviations from the mean, it will also be removed (the lower the number the stricter the filter).
+Only applicable to the 'informed' filter. If the selected copy's identity to the most commonly chosen reference is below this number of Standard Deviations from the mean, it will also be removed (the lower the number the stricter the filter).
 
 This argument is optional, the default is **2.0**.
 ___
 ### *ClipKIT*
 ___
-#### **`--clipkit_algorithm`**
+#### **`--clipkit_method`**
 Select [ClipKIT's trimming mode](https://jlsteenwyk.com/ClipKIT/advanced/index.html#modes). Valid trimming modes are:
 - `smart-gap`
 - `gappy`
@@ -123,12 +132,17 @@ Select [ClipKIT's trimming mode](https://jlsteenwyk.com/ClipKIT/advanced/index.h
 - `kpi-smart-gap`
 - `kpi-gappy`
 
-This argument is optional, the default is **smart-gap**.
+This argument is optional, the default is **gappy**.
 ___
 #### **`--clipkit_gaps`**
 Gappynes threshold per position. Accepted values between 0 and 1. This argument is ignored when using the `kpi` and `kpic` algorithms or intermediate steps that use `smart-gap`.
 
 This argument is optional, the default is **0.9**.
+___
+#### **`--min_coverage`**
+Minimum coverage of sequence as proportion of the mean of sequence lengths in the alignment, ignoring gaps. After `ClipKIT` finishes trimming columns, `Captus` will also remove short sequences below this threshold.
+
+This argument is optional, the default is **0.3**.
 ___
 ### *Other*
 ___
@@ -154,4 +168,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (27.03.2022)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (27.05.2022)

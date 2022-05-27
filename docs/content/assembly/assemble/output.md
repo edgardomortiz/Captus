@@ -151,8 +151,8 @@ ___
 This is the final [Assembly report]({{< ref "assembly/assemble/report">}}), summarizing statistics across all samples assembled.
 ___
 ### 11. **`captus-assembly_assemble.log`**
-This is the log from `Captus`, it contains the command used and all the information shown during the run. If the option `--show_less` was enabled the log will also contain all the extra detailed information that was hidden during the run.
+This is the log from `Captus`, it contains the command used and all the information shown during the run. If the option `--show_less` was enabled, the log will also contain all the extra detailed information that was hidden during the run.
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (11.04.2022)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (27.05.2022)

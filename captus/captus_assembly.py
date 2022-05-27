@@ -147,7 +147,7 @@ class CaptusAssembly(object):
         adaptor_group.add_argument(
             "--adaptor_set",
             action="store",
-            default="Illumina",
+            default="ALL",
             type=str,
             dest="adaptor_set",
             help="B|Set of adaptors to remove\n"
@@ -653,7 +653,7 @@ class CaptusAssembly(object):
             default=2000,
             type=int,
             dest="max_loci_scipio_x2",
-            help="When the number of markers in a protein reference file exceeds this number, Captus"
+            help="When the number of loci in a protein reference file exceeds this number, Captus"
                  " will not run a second, more exhaustive round of Scipio. Usually the results from"
                  " the first round are extremely similar and sufficient, the second round can become"
                  " extremely slow as the number of reference proteins grows"
@@ -744,7 +744,7 @@ class CaptusAssembly(object):
         scipio_ptd_group.add_argument(
             "--ptd_min_score",
             action="store",
-            default=0.3,
+            default=0.2,
             type=float,
             dest="ptd_min_score",
             help="Minimum Scipio score to retain hits to reference proteins"
@@ -752,7 +752,7 @@ class CaptusAssembly(object):
         scipio_ptd_group.add_argument(
             "--ptd_min_identity",
             action="store",
-            default=75,
+            default=65,
             type=float,
             dest="ptd_min_identity",
             help="Minimum identity percentage to retain hits to reference proteins"
@@ -792,7 +792,7 @@ class CaptusAssembly(object):
         scipio_mit_group.add_argument(
             "--mit_min_score",
             action="store",
-            default=0.3,
+            default=0.2,
             type=float,
             dest="mit_min_score",
             help="Minimum Scipio score to retain hits to reference proteins"
@@ -800,7 +800,7 @@ class CaptusAssembly(object):
         scipio_mit_group.add_argument(
             "--mit_min_identity",
             action="store",
-            default=75,
+            default=65,
             type=float,
             dest="mit_min_identity",
             help="Minimum identity percentage to retain hits to reference proteins"
@@ -860,8 +860,8 @@ class CaptusAssembly(object):
             type=str,
             dest="mmseqs2_method",
             help="B|MMseqs2 clustering algorithm, options are:\n"
-                 "easy-linclust = Fast linear time, less sensitive clustering\n"
-                 "easy-cluster = Sensitive, slower, homology search"
+                 "easy-linclust = Fast linear time (for huge datasets), less sensitive clustering\n"
+                 "easy-cluster = Sensitive homology search (slower)"
         )
         mmseqs2_group.add_argument(
             "--cluster_mode",
@@ -869,8 +869,11 @@ class CaptusAssembly(object):
             default=2,
             type=int,
             dest="cluster_mode",
-            help="MMseqs2 clustering mode (https://github.com/soedinglab/mmseqs2/wiki#clustering-"
-                 "modes)"
+            help="B|MMseqs2 clustering mode (https://github.com/soedinglab/mmseqs2/wiki#clustering-"
+                 "modes), options are:\n"
+                 "0 = Greedy set cover\n"
+                 "1 = Connected component\n"
+                 "2 = Greedy incremental (analogous to CD-HIT)"
         )
         mmseqs2_group.add_argument(
             "--cl_min_identity",
@@ -923,7 +926,7 @@ class CaptusAssembly(object):
         mmseqs2_group.add_argument(
             "--cl_rep_min_len",
             action="store",
-            default=200,
+            default=500,
             type=int,
             dest="cl_rep_min_len",
             help="After clustering is finished, only accept cluster representatives of at least this"
@@ -1253,7 +1256,7 @@ class CaptusAssembly(object):
             dest="min_coverage",
             help="Minimum coverage of sequence as proportion of the mean of sequence lengths in the"
                  " alignment, ignoring gaps. After ClipKIT finishes trimming columns, Captus will"
-                 " also remove short sequences below this threshold."
+                 " also remove short sequences below this threshold"
         )
 
         other_group = parser.add_argument_group("Other")

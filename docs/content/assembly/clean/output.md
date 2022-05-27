@@ -81,7 +81,7 @@ ___
 This is the final [Cleaning report]({{< ref "assembly/clean/report">}}), summarizing statistics across all samples analyzed.
 ___
 ### 5. **`captus-assembly_clean.log`**
-This is the log from `Captus`, it contains the command used and all the information shown during the run. If the option `--show_less` was enabled the log will also contain all the extra detailed information that was hidden during the run.
+This is the log from `Captus`, it contains the command used and all the information shown during the run. If the option `--show_less` was enabled, the log will also contain all the extra detailed information that was hidden during the run.
 ___
 ### 6. **`00_adaptors_trimmed`**
 This is an intermediate directory that contains the FASTQ files without adaptors, prior to quality-trimming and filtering. The directory also stores `bbduk.sh` commands and logs for the adaptor trimming stage. If the option `--keep_all` was enabled the FASTQs from this intermediate are kept after the run, otherwise they are deleted.
@@ -221,4 +221,4 @@ This directory contains all the tab-separated-values tables needed to build the 
 {{% /expand %}}
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (11.04.2022)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (27.05.2022)

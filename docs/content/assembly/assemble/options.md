@@ -79,12 +79,12 @@ Thresholds for merging complex bubbles, the first number multiplied by the kmer 
 This argument is optional, the default is **20,0.95**.
 ___
 #### **`--preset`**
-The default preset 'HYB' has optimized settings that work well with either hybridization capture or genome skimming data (or a combination of both). We have also optimized other MEGAHIT parameter combinations specific to high-coverage (>= 30x depth) `WGS` data or `RNA`-Seq data. These modes will only work well with at least 8 GB of RAM. If, in addition to a `preset`, you provide your own `k_list`, `min_count`, or `prune_level`, your settings take priority over the preset's.
-- `HYB` = `--k-list 31,39,47,63,79,95,111,127,143,159,175 --min-count 2 --prune-level 2`
+The default preset 'CAPSKIM' has optimized settings that work well with either hybridization capture or genome skimming data (or a combination of both). We have also optimized other MEGAHIT parameter combinations specific to high-coverage (>= 30x depth) `WGS` data or `RNA`-Seq data. These modes will only work well with at least 8 GB of RAM. If, in addition to a `preset`, you provide your own `k_list`, `min_count`, or `prune_level`, your settings take priority over the preset's.
+- `CAPSKIM` = `--k-list 31,39,47,63,79,95,111,127,143,159,175 --min-count 2 --prune-level 2`
 - `RNA` = `--k-list 27,47,67,87,107,127,147,167 --min-count 2 --prune-level 2`
 - `WGS` = `--k-list 31,39,49,69,89,109,129,149,169 --min-count 3 --prune-level 2 --no-mercy`
 
-This argument is optional, the default is **HYB**.
+This argument is optional, the default is **CAPSKIM**.
 ___
 #### **`--min_contig_len`**
 Minimum contig length in bp in output assembly.
@@ -113,4 +113,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (15.03.2022)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (27.05.2022)
