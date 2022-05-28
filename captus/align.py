@@ -19,13 +19,13 @@ import subprocess
 import time
 from multiprocessing import Manager
 from pathlib import Path
-from numpy import source
 
+from numpy import source
 from tqdm import tqdm
 
 from . import log
 from . import settings_assembly as settings
-from .bioformats import alignment_stats, dict_to_fasta, fasta_to_dict, pairwise_identity
+from .bioformats import alignment_stats, dict_to_fasta, fasta_to_dict, fasta_type, pairwise_identity
 from .misc import (bold, clipkit_path_version, dim, dir_is_empty, elapsed_time, file_is_empty,
                    format_dep_msg, mafft_path_version, make_output_dir, python_library_check,
                    quit_with_error, red, set_ram, set_threads, successful_exit,
@@ -537,48 +537,37 @@ def align(full_command, args):
                        if not f"{file.name}".startswith(".")]
     manager = Manager()
     shared_seq_names = manager.list()
+    shared_sam_stats = manager.list()
     shared_aln_stats = manager.list()
 
-    extract_seq_names_params = []
-    compute_aln_stats_params = []
+    compute_stats_params = []
     for fasta in fastas_to_stats:
-        extract_seq_names_params.append((shared_seq_names, fasta))
-        compute_aln_stats_params.append((shared_aln_stats, fasta))
+        compute_stats_params.append((
+            shared_seq_names,
+            shared_sam_stats,
+            shared_aln_stats,
+            fasta
+        ))
 
     if args.debug:
-        tqdm_serial_run(extract_seq_names, extract_seq_names_params,
-                        "Extracting sequence names from alignments",
-                        "Sequence names extracted",
+        tqdm_serial_run(compute_stats, compute_stats_params,
+                        "Computing alignment and sample statistics",
+                        "Alignment and sample statistics completed",
                         "alignment", show_less)
     else:
-        tqdm_parallel_async_run(extract_seq_names, extract_seq_names_params,
-                                "Extracting sequence names from alignments",
-                                "Sequence names extracted",
+        tqdm_parallel_async_run(compute_stats, compute_stats_params,
+                                "Computing alignment and sample statistics",
+                                "Alignment and sample statistics completed",
                                 "alignment", concurrent, show_less)
     log.log("")
-    if shared_seq_names:
-        shared_seq_names = list(set(shared_seq_names))
-        seq_to_sample_file = Path(out_dir, settings.ASTRAL_PRO_EQ)
-        with open(seq_to_sample_file, "wt") as seq_to_sample:
-            seq_to_sample.write("\n".join(sorted(shared_seq_names)))
-        log.log(f'{"ASTRAL-Pro seq-to-sample":>{mar}}: {bold(seq_to_sample_file)}')
-        log.log("")
-        log.log("")
 
-    if args.debug:
-        tqdm_serial_run(compute_aln_stats, compute_aln_stats_params,
-                        "Computing alignment statistics",
-                        "Alignment statistics completed",
-                        "alignment", show_less)
-    else:
-        tqdm_parallel_async_run(compute_aln_stats, compute_aln_stats_params,
-                                "Computing alignment statistics",
-                                "Alignment statistics completed",
-                                "alignment", concurrent, show_less)
-    log.log("")
     aln_stats_tsv = write_aln_stats(out_dir, shared_aln_stats)
+    sam_stats_tsv = write_sam_stats(out_dir, shared_sam_stats)
+    astral_pro_tsv = write_astral_pro_seq_to_sam(out_dir, shared_seq_names)
     if aln_stats_tsv:
         log.log(f'{"Alignment statistics":>{mar}}: {bold(aln_stats_tsv)}')
+        log.log(f'{"Sample statistics":>{mar}}: {bold(sam_stats_tsv)}')
+        log.log(f'{"ASTRAL-Pro seq-to-sample":>{mar}}: {bold(astral_pro_tsv)}')
         log.log("")
         if all([numpy_found, pandas_found, plotly_found]):
 
@@ -588,7 +577,9 @@ def align(full_command, args):
             log.log_explanation(
                 "Generating Alignment Statistics report..."
             )
-            aln_html_report, aln_html_msg = build_alignment_report(out_dir, aln_stats_tsv)
+            aln_html_report, aln_html_msg = build_alignment_report(out_dir,
+                                                                   aln_stats_tsv,
+                                                                   sam_stats_tsv)
             log.log(f'{"Alignment report":>{mar}}: {bold(aln_html_report)}')
             log.log(f'{"":>{mar}}  {dim(aln_html_msg)}')
         else:
@@ -932,7 +923,7 @@ def collect_sample_markers(
     for seq_name_full in fasta_in:
         # Replace connecting 'n's only for alignment, otherwise MAFFT takes forever and opens
         # enormous gaps
-        if Path(destination).parts[-2] in [settings.MARKER_DIRS["DNA"],settings.MARKER_DIRS["CLR"]]:
+        if not Path(destination).parts[-1] in [settings.FORMAT_DIRS["AA"], settings.FORMAT_DIRS["NT"]]:
             seq_no_ns = fasta_in[seq_name_full]["sequence"].replace("n", "-")
             fasta_in[seq_name_full]["sequence"] = seq_no_ns
         # Replace stop codons by X, MAFFT automatically removes the '*' symbol
@@ -1047,7 +1038,10 @@ def fastas_origs_dests(dir_path: Path, orig_base_dir: str, dest_base_dir: str):
 
 
 def rehead_root_mafft_alignment(fasta_in: Path, fasta_out: Path, outgroup: list):
-    outgroup = outgroup.split(",")
+    if outgroup:
+        outgroup = outgroup.split(",")
+    else:
+        outgroup = []
     unaligned = fasta_to_dict(fasta_in)
     aligned = fasta_to_dict(fasta_out)
     reheaded = {}
@@ -1410,7 +1404,7 @@ def write_paralog_stats(out_dir, shared_paralog_stats):
     if not shared_paralog_stats:
         return red("No paralogs were found...")
     else:
-        stats_tsv_file = Path(out_dir, "captus-assembly_align.paralog_stats.tsv")
+        stats_tsv_file = Path(out_dir, "captus-assembly_align.paralogs.tsv")
         with open(stats_tsv_file, "wt") as tsv_out:
             tsv_out.write("\t".join(["marker_type",
                                      "format_filtered",
@@ -1561,29 +1555,53 @@ def clipkit(
     return message
 
 
-def extract_seq_names(shared_seq_names, fasta_path):
+def sample_stats(fasta_dict, aln_type):
+    sam_stats = {}
+    for seq_name in fasta_dict:
+        if seq_name.endswith(f'{settings.SEQ_NAME_SEP}ref'):
+            sam_name = seq_name
+        else:
+            sam_name = seq_name.split(settings.SEQ_NAME_SEP)[0]
+        seq_len = len(fasta_dict[seq_name]["sequence"])
+        cov_gapped = (len(fasta_dict[seq_name]["sequence"].strip("-")) / seq_len) * 100
+        ungapped_seq = fasta_dict[seq_name]["sequence"].replace("-", "")
+        cov_ungapped = (len(ungapped_seq) / seq_len) * 100
+        ambigs = 0
+        if aln_type == "AA":
+            for r in ungapped_seq.upper():
+                if r in list("BZJX"):
+                    ambigs += 1
+        elif aln_type == "NT":
+            for r in ungapped_seq.upper():
+                if r in list("MRWSYKVHDBN"):
+                    ambigs += 1
+        pct_ambig = (ambigs / len(ungapped_seq)) * 100
+        if sam_name not in sam_stats:
+            sam_stats[sam_name] = {
+                "cov_gapped": [cov_gapped],
+                "cov_ungapped": [cov_ungapped],
+                "pct_ambig": [pct_ambig],
+                "num_copies": 1,
+            }
+        else:
+            sam_stats[sam_name]["cov_gapped"].append(cov_gapped)
+            sam_stats[sam_name]["cov_ungapped"].append(cov_ungapped)
+            sam_stats[sam_name]["pct_ambig"].append(pct_ambig)
+            sam_stats[sam_name]["num_copies"] += 1
 
-    start = time.time()
-
-    short_path = Path(*fasta_path.parts[-5:])
-    if file_is_empty(fasta_path):
-        return red(f"'{short_path}': FAILED name extraction, file was empty")
-
-    equivalences = [f'{seq_name}\t{seq_name.split(settings.SEQ_NAME_SEP)[0]}'
-                    for seq_name in fasta_to_dict(fasta_path)]
-    shared_seq_names += equivalences
-    message = f"'{short_path}': names extracted [{elapsed_time(time.time() - start)}]"
-
-    return message
+    return sam_stats
 
 
-def compute_aln_stats(shared_aln_stats, fasta_path):
+def compute_stats(shared_seq_names, shared_sam_stats, shared_aln_stats, fasta_path):
 
     start = time.time()
 
     short_path = Path(*fasta_path.parts[-5:])
     if file_is_empty(fasta_path):
         return red(f"'{short_path}': FAILED statistics calculation, input file was empty")
+    aln_type = fasta_type(fasta_path)
+    if aln_type == "invalid":
+        return red(f"'{short_path}': FAILED statistics calculation, invalid input file")
 
     fasta_path_parts = fasta_path.parts
 
@@ -1593,8 +1611,9 @@ def compute_aln_stats(shared_aln_stats, fasta_path):
     for f in settings.FORMAT_DIRS:
         if fasta_path_parts[-2] == settings.FORMAT_DIRS[f]: aln_format = f
 
-    aln_stats = alignment_stats(fasta_path)
+    fasta_dict = fasta_to_dict(fasta_path)
 
+    aln_stats = alignment_stats(fasta_dict, aln_type)
     aln_tsv = [[
         f"{fasta_path}",                                    # [0] alignment file location
         f'{bool(not "untrimmed" in fasta_path_parts[-5])}', # [1] alignment was trimmed
@@ -1605,18 +1624,34 @@ def compute_aln_stats(shared_aln_stats, fasta_path):
         fasta_path.stem,                                    # [6] locus name
         f'{aln_stats["sequences"]}',                        # [7] num sequences
         f'{aln_stats["samples"]}',                          # [8] num samples
-        f'{aln_stats["avg_copies"]}',                       # [9] avg num copies
+        f'{aln_stats["avg_copies"]:.4f}',                   # [9] avg num copies
         f'{aln_stats["sites"]}',                            # [10] num sites
         f'{aln_stats["informative"]}',                      # [11] num informative sites
-        f'{aln_stats["informativeness"]}',                  # [12] pct of informative sites
+        f'{aln_stats["informativeness"]:.4f}',              # [12] pct of informative sites
         f'{aln_stats["uninformative"]}',                    # [13] num constant + singleton sites
         f'{aln_stats["constant"]}',                         # [14] num constant sites
         f'{aln_stats["singleton"]}',                        # [15] num singleton sites
         f'{aln_stats["patterns"]}',                         # [16] num unique columns
-        f'{aln_stats["avg_pid"]}',                          # [17] average pairwise identity
-        f'{aln_stats["missingness"]}',                      # [18] pct of gaps and Ns or Xs
+        f'{aln_stats["avg_pid"]:.4f}',                      # [17] average pairwise identity
+        f'{aln_stats["missingness"]:.4f}',                  # [18] pct of gaps and Ns or Xs
     ]]
     shared_aln_stats += aln_tsv
+
+    sam_stats = sample_stats(fasta_dict, aln_type)
+    sam_tsv = []
+    for sample in sam_stats:
+        sam_tsv.append([
+            sample,                                                      # sample name
+            f'{" / ".join(fasta_path.parts[-5:-1])}',                    # stage / marker / format
+            fasta_path.stem,                                             # locus name
+            f'{statistics.mean(sam_stats[sample]["cov_gapped"]):.4f}',   # pct cov, no terminal gaps
+            f'{statistics.mean(sam_stats[sample]["cov_ungapped"]):.4f}', # pct coverage, no gaps
+            f'{statistics.mean(sam_stats[sample]["pct_ambig"]):.4f}',    # pct ambiguities, no gaps
+            f'{sam_stats[sample]["num_copies"]}',                        # num copies
+        ])
+    shared_sam_stats += sam_tsv
+
+    shared_seq_names += list(fasta_dict.keys())
 
     message = f"'{short_path}': stats computed [{elapsed_time(time.time() - start)}]"
 
@@ -1627,7 +1662,7 @@ def write_aln_stats(out_dir, shared_aln_stats):
     if not shared_aln_stats:
         return None
     else:
-        stats_tsv_file = Path(out_dir, "captus-assembly_align.stats.tsv")
+        stats_tsv_file = Path(out_dir, "captus-assembly_align.alignments.tsv")
         with open(stats_tsv_file, "wt") as tsv_out:
             tsv_out.write("\t".join(["path",
                                      "trimmed",
@@ -1649,5 +1684,41 @@ def write_aln_stats(out_dir, shared_aln_stats):
                                      "avg_pid",
                                      "missingness",]) + "\n")
             for record in sorted(shared_aln_stats):
+                tsv_out.write("\t".join(record)+"\n")
+        return stats_tsv_file
+
+
+def write_sam_stats(out_dir, shared_sam_stats):
+    if not shared_sam_stats:
+        return None
+    else:
+        stats_tsv_file = Path(out_dir, "captus-assembly_align.samples.tsv")
+        with open(stats_tsv_file, "wt") as tsv_out:
+            tsv_out.write("\t".join(["sample",
+                                     "stage_marker_format",
+                                     "locus",
+                                     "cov_gapped",
+                                     "cov_ungapped",
+                                     "pct_ambig",
+                                     "num_copies",]) + "\n")
+            for record in sorted(shared_sam_stats):
+                tsv_out.write("\t".join(record)+"\n")
+        return stats_tsv_file
+
+
+def write_astral_pro_seq_to_sam(out_dir, shared_seq_names):
+    if not shared_seq_names:
+        return None
+    else:
+        unique_names = sorted(list(set(shared_seq_names)))
+        seq_to_sam = []
+        for name in unique_names:
+            if name.endswith(f'{settings.SEQ_NAME_SEP}ref'):
+                seq_to_sam.append([name, name])
+            else:
+                seq_to_sam.append([name, name.split(settings.SEQ_NAME_SEP)[0]])
+        stats_tsv_file = Path(out_dir, settings.ASTRAL_PRO_EQ)
+        with open(stats_tsv_file, "wt") as tsv_out:
+            for record in sorted(seq_to_sam):
                 tsv_out.write("\t".join(record)+"\n")
         return stats_tsv_file
