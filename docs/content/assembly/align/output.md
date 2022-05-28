@@ -73,7 +73,68 @@ ___
 ### 15. **`02_matches_flanked`**
 This directory contains the alignments of DNA sequence matches (`MF` in the figure above) including flanks and intervening segments not present in the references for the extracted markers gathered across samples. One FASTA file per marker, with extension `.fna`.
 ___
-### 16. **`captus-assembly_align.astral-pro.tsv`**
+### 16. **`captus-assembly_align.paralogs.tsv`**
+A tab-separated-values table recording which copy was selected during the `informed` filtering of paralogs.
+
+{{% expand "Information included in the table" %}}
+|Column|Description|
+|-|-|
+|**marker_type**|Type of marker. Possible values are `NUC`, `PTD`, `MIT`, `DNA`, or `CLR`.|
+|**format_filtered**|Alignment format used for identity comparison and filtering. For protein references, if the reference is provided both in aminoacids and nucleotides, the nucleotide format is used.|
+|**locus**|Name of the locus.|
+|**ref**|Name of most common the reference observed in the alignment.|
+|**sample**|Name of the sample.|
+|**hit**|Paralog ranking.|
+|**sequence**|Name of the sequence as it appears in the alignments.|
+|**length**|Lenght of the sequence in aminoacids if `format_filtered` is `AA`, or in nucleotides if `format_filtered` is `NT`|
+|**identity**|Identity of the sequence to the `ref` sequence, over the overlapping segment, ignoring internal gaps.|
+|**paralog_score**|(`length` / length of `ref`) * (`identity` / 100), the highest score decides the selected copy.|
+|**accepted**|Whether the copy is accepted (`TRUE`) or not (`FALSE`).|
+{{% /expand %}}
+___
+### 17. **`captus-assembly_align.alignments.tsv`**
+A tab-separated-values table recording alignment statistics for each of the alignments produced.
+
+{{% expand "Information included in the table" %}}
+|Column|Description|
+|-|-|
+|**path**|Absolute path to the alignment file.|
+|**trimmed**|Whether the alignment has been trimmed (`TRUE`) or not (`FALSE`).|
+|**paralog_filter**|Filtering strategy applied to the file. Possible values are `unfiltered`, `naive`, or `informed`.|
+|**with_refs**|Whether the file still contains the reference sequences (`TRUE`) or they have been removed (`FALSE`).|
+|**marker_type**|Type of marker. Possible values are `NUC`, `PTD`, `MIT`, `DNA`, or `CLR`.|
+|**format**|Alignment format. Possible values are `AA`,`NT`,`GE`,`GF`,`MA`,`MF`.|
+|**locus**|Name of the locus.|
+|**seqs**|Number of sequences in the alignment.|
+|**samples**|Number of samples represented in the alignment. The number can be smaller than `seqs` if the alignment has paralogs.|
+|**avg_copies**|`seqs` / `samples`|
+|**sites**|Alignment length.|
+|**informative**|Number of parsimony-informative-sites in the alignment.|
+|**informativeness**|(`informative` / `sites`) * 100|
+|**uninformative**|`constant` + `singleton`|
+|**constant**|Number of invariant sites in the alignment.|
+|**singleton**|Number of sites with variaton in a single sequence.|
+|**paterns**|Number of unique columns, for a detailed explanation see IQ-TREE's F.A.Q.: [What are the differences between alignment columns/sites and patterns?](http://www.iqtree.org/doc/Frequently-Asked-Questions).|
+|**avg_pid**|Average pairwise identity between sequences in the alignment.|
+|**missingness**|Proportion of missing data (`-`, `N`, `X`, `?`, `.`, `~`) in the alignment.|
+{{% /expand %}}
+___
+### 18. **`captus-assembly_align.samples.tsv`**
+A tab-separated-values table recording sample statistics across the different filtering and trimming stages, as well as marker types and formats.
+
+{{% expand "Information included in the table" %}}
+|Column|Description|
+|-|-|
+|**sample**|Sample name.|
+|**stage_marker_format**|Trimming stage / Filtering strategy / Marker type / Format.|
+|**locus**|Name of the locus.|
+|**cov_gapped**|Coverage of the sequence relative to alignment length, including internal gaps.|
+|**cov_ungapped**|Coverage of the sequence relative to alignment length, excluding internal gaps.|
+|**pct_ambig**|Percentage of ambiguities in the sequence, excluding gaps.|
+|**num_copies**|Number of copies in the alignment.|
+{{% /expand %}}
+___
+### 19. **`captus-assembly_align.astral-pro.tsv`**
 ASTRAL-Pro requires a tab-separated-values file for mapping the names of the paralog sequence names (first column) to the name of the sample (second column). `Captus` produces this file automatically.
 
 {{% expand "Example" %}}
@@ -106,56 +167,10 @@ GenusD_speciesD_CAP__05	GenusD_speciesD_CAP
 ```
 {{% /expand %}}
 ___
-### 17. **`captus-assembly_align.paralog_stats.tsv`**
-A tab-separated-values table recording which copy was selected during the `informed` filtering of paralogs.
-
-{{% expand "Information included in the table" %}}
-|Column|Description|
-|-|-|
-|**marker_type**|Type of marker. Possible values are `NUC`, `PTD`, `MIT`, `DNA`, or `CLR`.|
-|**format_filtered**|Alignment format used for identity comparison and filtering. For protein references, if the reference is provided both in aminoacids and nucleotides, the nucleotide format is used.|
-|**locus**|Name of the locus.|
-|**ref**|Name of most common the reference observed in the alignment.|
-|**sample**|Name of the sample.|
-|**hit**|Paralog ranking.|
-|**sequence**|Name of the sequence as it appears in the alignments.|
-|**length**|Lenght of the sequence in aminoacids if `format_filtered` is `AA`, or in nucleotides if `format_filtered` is `NT`|
-|**identity**|Identity of the sequence to the `ref` sequence.|
-|**paralog_score**|(`length` / length of the longest copy) * (`identity` / 100), the highest score decides the selected copy.|
-|**accepted**|Whether the copy is accepted (`TRUE`) or not (`FALSE`).|
-{{% /expand %}}
-___
-### 18. **`captus-assembly_align.stats.tsv`**
-A tab-separated-values table recording alignment statistics for each of the alignments produced.
-
-{{% expand "Information included in the table" %}}
-|Column|Description|
-|-|-|
-|**path**|Absolute path to the alignment file.|
-|**trimmed**|Whether the alignment has been trimmed (`TRUE`) or not (`FALSE`).|
-|**paralog_filter**|Filtering strategy applied to the file. Possible values are `unfiltered`, `naive`, or `informed`.|
-|**with_refs**|Whether the file still contains the reference sequences (`TRUE`) or they have been removed (`FALSE`).|
-|**marker_type**|Type of marker. Possible values are `NUC`, `PTD`, `MIT`, `DNA`, or `CLR`.|
-|**format**|Alignment format. Possible values are `AA`,`NT`,`GE`,`GF`,`MA`,`MF`.|
-|**locus**|Name of the locus.|
-|**seqs**|Number of sequences in the alignment.|
-|**samples**|Number of samples represented in the alignment. The number can be smaller than `seqs` if the alignment has paralogs.|
-|**avg_copies**|`seqs` / `samples`|
-|**sites**|Alignment length.|
-|**informative**|Number of parsimony-informative-sites in the alignment.|
-|**informativeness**|(`informative` / `sites`) * 100|
-|**uninformative**|`sites` - `informative`|
-|**constant**|Number of invariant sites in the alignment.|
-|**singleton**|Number of sites with variaton in a single sequence.|
-|**paterns**|Number of non-constant columns, for detailed explanation see IQ-TREE's F.A.Q.: [What are the differences between alignment columns/sites and patterns?](http://www.iqtree.org/doc/Frequently-Asked-Questions).|
-|**avg_pid**|Average pairwise identity between sequences in the alignment.|
-|**missingness**|Proportion of missing data (`-`, `N`, `X`, `?`, `.`, `~`) in the alignment.|
-{{% /expand %}}
-___
-### 19. **`captus-assembly_align.report.html`**
+### 20. **`captus-assembly_align.report.html`**
 This is the final [Aligment report]({{< ref "assembly/align/report">}}), summarizing alignment statistics across all processing stages, marker types, and formats.
 ___
-### 20. **`captus-assembly_align.log`**
+### 21. **`captus-assembly_align.log`**
 This is the log from `Captus`, it contains the command used and all the information shown during the run. Even if the option `--show_more` was disabled, the log will contain all the extra detailed information that was hidden during the run.
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (06.08.2021)  

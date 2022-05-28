@@ -924,7 +924,7 @@ def fasta_type(fasta_path):
         return "invalid"
 
 
-def alignment_stats(fasta_path):
+def alignment_stats(fasta_dict, aln_type):
     """
     Tally number of sequences, sites (total, singletons, informative, constant), patterns (unique
     sites), average pairwise identity and percentage of missingness (including gaps and ambiguities)
@@ -1040,10 +1040,6 @@ def alignment_stats(fasta_path):
         "missingness": "NA",
     }
 
-    aln_type = fasta_type(fasta_path)
-    if aln_type == "invalid": return stats
-
-    fasta_dict = fasta_to_dict(fasta_path)
     stats["sequences"] = len(fasta_dict)
     stats["samples"] = num_samples(fasta_dict)
     stats["avg_copies"] = stats["sequences"] / stats["samples"]
@@ -1060,19 +1056,19 @@ def alignment_stats(fasta_path):
     for idc in ids_combos:
         identities += idc[0] * idc[1]
         combos += idc[1]
-    stats["avg_pid"] = round(identities / combos, 5)
+    stats["avg_pid"] = identities / combos
 
     sites = clean_patterns(sites, aln_type)
     for site in sites:
         stats[pattern_type(site, aln_type)] += 1
-    stats["informativeness"] = round(stats["informative"] / stats["sites"] * 100, 5)
+    stats["informativeness"] = stats["informative"] / stats["sites"] * 100
     stats["uninformative"] = stats["constant"] + stats["singleton"]
 
     stats["patterns"] = len(set(sites))
 
     sites_concat = "".join(sites)
     if len(sites_concat):
-        stats["missingness"] = round(sites_concat.count("-") / len(sites_concat) * 100, 5)
+        stats["missingness"] = sites_concat.count("-") / len(sites_concat) * 100
 
     return stats
 

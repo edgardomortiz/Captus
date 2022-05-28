@@ -1181,7 +1181,7 @@ class CaptusAssembly(object):
         mafft_group.add_argument(
             "--outgroup",
             action="store",
-            default="",
+            default=None,
             type=str,
             dest="outgroup",
             help="Outgroup sample names, separated by commas, no spaces. Since phylogenetic programs"

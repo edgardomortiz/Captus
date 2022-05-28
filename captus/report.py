@@ -2274,7 +2274,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
     return ext_html_report, ext_html_msg
 
 
-def build_alignment_report(out_dir, aln_stats_tsv):
+def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
     start = time.time()
 
     df = pd.read_table(aln_stats_tsv)
