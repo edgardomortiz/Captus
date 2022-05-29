@@ -12,6 +12,7 @@ disableInlineCopyToClipBoard = true
 disableBreadcrumb = false
 disableNextPrev = false
 themeVariant = "green"
+collapsibleMenu = true
 
 [outputs]
 home = [ "HTML", "RSS", "JSON"]

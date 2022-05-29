@@ -9,7 +9,7 @@ The easiest way (until we eventually get `Captus` installing directly from Bioco
 
 First, let's create the `conda` environment:
 ```console
-conda create -n captus -c bioconda -c conda-forge -c jlsteenwyk clipkit "python>=3.6" pandas plotly tqdm perl-bioperl-core=1.007002 bbmap falco fastqc mafft mmseqs2 megahit pigz vsearch
+conda create -n captus -c bioconda -c conda-forge "python>=3.7" "clipkit>=1.3.0" pip pandas plotly tqdm perl-bioperl-core=1.007002 bbmap falco fastqc mafft mmseqs2 megahit pigz vsearch
 ```
 
 Once the environment is ready, let's activate it:
