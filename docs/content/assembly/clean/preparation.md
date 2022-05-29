@@ -1,11 +1,11 @@
----
-title: "Input Preparation"
-weight: 12
-pre: '<i class="fas fa-clipboard-check"></i> '
----
++++
+title = "Input Preparation"
+weight = 12
+pre = '<i class="fas fa-clipboard-check"></i> '
++++
 
 {{% notice note %}}
-Before starting your analysis, a <i class="fas fa-exclamation-triangle"></i> **VERY IMPORTANT** step is to rename you FASTQ files so they clearly identify your samples throughout the entire analysis.
+Before starting your analysis, a <i class="fa-solid fa-triangle-exclamation"></i> **VERY IMPORTANT** step is to rename you FASTQ files so they clearly identify your samples throughout the entire analysis.
 {{% /notice %}}
 
 In general, a good tip for renaming your samples is to think on how you want the names in your final phylogenetic tree.
@@ -38,5 +38,5 @@ And here, some examples or **invalid** FASTQ filenames:
 - `Malus_doméstica.fast`, the sample name contains and accent `é`, but most importantly, it will be ignored because of the invalid extension `.fast`
 
 ___
-Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (13.04.2022)
+Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (29.05.2022)

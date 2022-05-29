@@ -1,8 +1,8 @@
----
-title: "Clean"
-weight: 10
-pre: "<b>1. </b>"
----
++++
+title = "Clean"
+weight = 10
+pre = "<b>1. </b>"
++++
 
 Unless you are starting with your own assemblies, cleaning will be the first step in the analysis. `Captus` makes it easy to process many samples in a consistent manner, automatically, and providing a comprehensive Quality Control HTML report.
 
@@ -153,5 +153,5 @@ Our preference for `bbduk.sh` is justified at this point by the balance between 
 {{% /expand %}}
 
 ___
-Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-08-06)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (2021-08-27)
+Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (29.05.2022)

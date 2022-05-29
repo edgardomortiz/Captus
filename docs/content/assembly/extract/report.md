@@ -1,10 +1,11 @@
----
-title: "HTML Report"
-weight: 15
-pre: '<i class="fas fa-chart-bar"></i> '
-plotly: true
----
-### Concept
++++
+title = "HTML Report"
+weight = 15
+pre = '<i class="fas fa-chart-bar"></i> '
+plotly = true
++++
+
+## Concept
 
 ---
 In the `Captus` workflow, the results of this step, such as **how many loci/markers were recovered, in how many samples, and to what extent, would be the most direct indication of whether your analysis was successful or not**, and thus would be the most interesting for many users.
@@ -23,7 +24,7 @@ For more information, please visit the following sites:
 
 {{% /notice %}}
 
-### Example
+## Example
 
 ---
 Here is a small example of the report you can play with.  
@@ -99,5 +100,5 @@ This dropdown allows you to change the sorting manner of each axis as follows:
 |**Total Both**|Sort by **total** value|Sort by **total** value|
 
 ---
-Created by [Gentaro Shigita]({{< ref "../../credits/#gentaro-shigita">}}) (11.08.2021)  
-Last modified by [Gentaro Shigita]({{< ref "../../credits/#gentaro-shigita">}}) (24.03.2022)
+Created by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (11.08.2021)  
+Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (24.03.2022)

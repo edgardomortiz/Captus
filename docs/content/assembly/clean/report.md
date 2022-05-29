@@ -1,10 +1,11 @@
----
-title: "HTML Report"
-weight: 15
-pre: '<i class="fas fa-chart-bar"></i> '
-plotly: true
----
-### Concept
++++
+title = "HTML Report"
+weight = 15
+pre = '<i class="fas fa-chart-bar"></i> '
+plotly = true
++++
+
+## Concept
 
 ---
 **Proper cleaning is the first step to perform proper analysis** on high-throughput sequencing data.
@@ -22,26 +23,32 @@ For more information, please visit the following sites:
 
 {{% /notice %}}
 
-### Contents
+## Contents
 
 ---
 
-1. [*Summary Table*](#1-summary-table)
-2. [*Stats on Reads/Bases*](#2-stats-on-readsbases)
-3. [*Per Base Quality*](#3-per-base-quality)
-4. [*Per Read Quality*](#4-per-read-quality)
-5. [*Read Length Distribution*](#5-read-length-distribution)
-6. [*Per Base Nucleotide Content*](#6-per-base-nucleotide-content)
-7. [*Per Read GC Content*](#7-per-read-gc-content)
-8. [*Sequence Duplication Level*](#8-sequence-duplication-level)
-9. [*Adapter Content*](#9-adapter-content)
+- [Concept](#concept)
+- [Contents](#contents)
+  - [1. Summary Table](#1-summary-table)
+      - [Features:](#features)
+  - [2. Stats on Reads/Bases](#2-stats-on-readsbases)
+      - [Features:](#features-1)
+  - [3. Per Base Quality](#3-per-base-quality)
+      - [Features:](#features-2)
+  - [4. Per Read Quality](#4-per-read-quality)
+  - [5. Read Length Distribution](#5-read-length-distribution)
+  - [6. Per Base Nucleotide Content](#6-per-base-nucleotide-content)
+  - [7. Per Read GC Content](#7-per-read-gc-content)
+  - [8. Sequence Duplication Level](#8-sequence-duplication-level)
+      - [Features:](#features-3)
+  - [9. Adapter Content](#9-adapter-content)
 
 A brief description and interactive example for each section is given below.  
 By switching the tabs at the top of each plot, you can compare the plot produced by `Captus` with the corresponding plot from [`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc), which you may be familiar with.
 
 ---
 
-#### 1. Summary Table
+### 1. Summary Table
 
 This table shows the general statistics for each sample.
 
@@ -78,7 +85,7 @@ Original data for this table is stored in the files, `03_qc_extras/reads_bases.t
 
 ---
 
-#### 2. Stats on Reads/Bases
+### 2. Stats on Reads/Bases
 
 `Captus` cleans the reads through two consecutive rounds of adapter trimming (`Round1`, `Round2`) followed by quality filtering.  
 This plot shows the change in the number of reads (left panel) and bases (right panel) at each step of the cleaning process.
@@ -101,12 +108,12 @@ There is no corresponding plot.
 
 ---
 
-#### 3. Per Base Quality
+### 3. Per Base Quality
 
 This plot shows the range of Phred quality score at each position in the reads before and after cleaning.  
 For more details, read [<i class="fab fa-readme"></i> FastQC documentation](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/3%20Analysis%20Modules/2%20Per%20Base%20Sequence%20Quality.html).  
 
-##### Feature:
+##### Features:
 
 - By switching the dropdown at the top of the plot, you can change the variable to show.
 
@@ -123,7 +130,7 @@ Original data for this plot is stored in `03_qc_extras/per_base_seq_qual.tsv`.
 
 ---
 
-#### 4. Per Read Quality
+### 4. Per Read Quality
 
 This plot shows the distribution of the mean Phred quality score of the reads before and after cleaning.  
 For more details, read [<i class="fab fa-readme"></i> FastQC documentation](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/3%20Analysis%20Modules/3%20Per%20Sequence%20Quality%20Scores.html).  
@@ -140,7 +147,7 @@ Original data for this plot is stored in `03_qc_extras/per_seq_qual_scores.tsv`.
 
 ---
 
-#### 5. Read Length Distribution
+### 5. Read Length Distribution
 
 This plot shows the distribution of the read length before and after cleaning.  
 For more details, read [<i class="fab fa-readme"></i> FastQC documentation](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/3%20Analysis%20Modules/7%20Sequence%20Length%20Distribution.html).  
@@ -157,7 +164,7 @@ Original data for this plot is stored in `03_qc_extras/seq_len_dist.tsv`.
 
 ---
 
-#### 6. Per Base Nucleotide Content
+### 6. Per Base Nucleotide Content
 
 This plot shows the composition of the four nucleotides (A, T, G, C) at each position in the reads before and after cleaning.  
 For more details, read [<i class="fab fa-readme"></i> FastQC documentation](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/3%20Analysis%20Modules/4%20Per%20Base%20Sequence%20Content.html).  
@@ -174,7 +181,7 @@ Original data for this plot is stored in `03_qc_extras/per_base_seq_content.tsv`
 
 ---
 
-#### 7. Per Read GC Content
+### 7. Per Read GC Content
 
 This plot shows the distribution of GC content in the reads before and after cleaning.
 Broader or multiple peaks might be a sign of contamination with different sample.  
@@ -192,12 +199,12 @@ Original data for this plot is stored in `03_qc_extras/per_seq_gc_content.tsv`.
 
 ---
 
-#### 8. Sequence Duplication Level
+### 8. Sequence Duplication Level
 
 This plot shows the percentage of sequences with different degrees of duplication before and after cleaning.  
 For more details, read [<i class="fab fa-readme"></i> FastQC documentation](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/3%20Analysis%20Modules/8%20Duplicate%20Sequences.html).  
 
-##### Feature:
+##### Features:
 
 - By clicking on the legend, you can toggle between showing and hiding each series.
 
@@ -214,7 +221,7 @@ Original data for this plot is stored in `03_qc_extras/seq_dup_levels.tsv`.
 
 ---
 
-#### 9. Adapter Content
+### 9. Adapter Content
 
 This plot shows the cumulative adapter content at each position in the reads before and after cleaning.  
 For more details, read [<i class="fab fa-readme"></i> FastQC documentation](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/3%20Analysis%20Modules/10%20Adapter%20Content.html).  
@@ -230,5 +237,5 @@ Original data for this plot is stored in `03_qc_extras/adaptor_content.tsv`.
 {{< /tabs >}}
 
 ---
-Created by [Gentaro Shigita]({{< ref "../../credits/#gentaro-shigita">}}) (11.08.2021)  
-Last modified by [Gentaro Shigita]({{< ref "../../credits/#gentaro-shigita">}}) (29.03.2022)
+Created by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (11.08.2021)  
+Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (29.05.2022)

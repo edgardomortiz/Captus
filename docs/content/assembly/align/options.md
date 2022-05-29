@@ -1,8 +1,9 @@
----
-title: "Options"
-weight: 13
-pre: '<i class="fas fa-cog"></i> '
----
++++
+title = "Options"
+weight = 13
+pre = '<i class="fas fa-cog"></i> '
++++
+
 # align
 ___
 To show all available options and their default values you can type in your terminal:
@@ -11,14 +12,14 @@ captus_assembly align --help
 ```
 
 ___
-### *Input*
+## *Input*
 ___
-#### **`-e, --captus_extractions_dir`**
+### **`-e, --captus_extractions_dir`**
 Path to the output directory from the `extract` command, (e.g. `03_extractions` iy you used the default name). The `align` command depends entirely on the output from the `extract` step, in other words, you can't provide your unaligned or aligned FASTA files for processing.
 
 This argument is **required** <i class="fas fa-exclamation-triangle"></i>, the default is **./03_extractions/**
 ___
-#### **`-m, --markers`**
+### **`-m, --markers`**
 Which type(s) of markers to align, you can provide a comma-separated list (no spaces). These are the available marker types:
 - `NUC` = **Nuc**lear proteins inside directories '01_coding_NUC'
 - `PTD` = **P**las**t**i**d**ial proteins inside directories '02_coding_PTD'
@@ -29,7 +30,7 @@ Which type(s) of markers to align, you can provide a comma-separated list (no sp
 
 This argument is optional, the default is **ALL**.
 ___
-#### **`-f, --formats`**
+### **`-f, --formats`**
 For each marker type, `Captus` creates several different formats. You can provide a comma-separated list (no spaces) of the formats you wish to align. These are the available formats:
 - `AA` = Coding sequences in **a**mino**a**cids
 - `NT` = Coding sequences in **n**ucleo**t**ides
@@ -43,41 +44,41 @@ For each marker type, `Captus` creates several different formats. You can provid
 
 This argument is optional, the default is **AA,NT,GE,MA**
 
-{{% expand "Formats for protein markers" %}}
+{{% expand "Formats for protein markers" "true" %}}
 ![Formats for protein markers](/images/protein_extraction.png?width=600&classes=shadow)
 {{% /expand %}}
-{{% expand "Formats for miscellaneous DNA markers" %}}
+{{% expand "Formats for miscellaneous DNA markers" "true" %}}
 ![Format s for miscellaneous DNA markers](/images/misc_dna_extraction.png?width=600&classes=shadow)
 {{% /expand %}}
 
 
 ___
-#### **`--max_paralogs`**
+### **`--max_paralogs`**
 Maximum number of secondary hits (copies) per sample to import from the extraction step. Large numbers of marker copies per sample can increase alignment times. Hits (copies) are ranked from best to worst during the 'extract' step. -1 disables the initial removal of paralogs and aligns which might be useful if you expect very high ploidy levels for example.
 
 This argument is optional, the default is **4**
 ___
-#### **`--min_samples`**
+### **`--min_samples`**
 Minimum number of samples in a marker to proceed with alignment. Markers with fewer samples will be skipped. The default **4** corresponds to smallest number of sequences to build a rooted phylogeny.
 
 This argument is optional, the default is **4**
 ___
-### *Output*
+## *Output*
 ___
-#### **`-o, --out`**
+### **`-o, --out`**
 With this option you can redirect the output directory to a path of your choice, that path will be created if it doesn't already exist.
 
 This argument is optional, the default is **./04_alignments/**
 ___
-#### **`--keep_all`**
+### **`--keep_all`**
 Many intermediate log files are created by `MAFFT` and `ClipKIT` during assembly, `Captus` deletes all the unnecesary intermediate files unless you enable this flag.
 ___
-#### **`--overwrite`**
+### **`--overwrite`**
 Use this flag with caution, this will replace any previous result within the output directory (for the sample names that match).
 ___
-### *MAFFT*
+## *Alignment (MAFFT)*
 ___
-#### **`--mafft_method`**
+### **`--mafft_method`**
 Select [MAFFT's alignment algorithm](https://mafft.cbrc.jp/alignment/software/algorithms/algorithms.html). Valid algorithm names are:
 - `auto` = Automatic selection by `MAFFT` based on amount of data
 - `genafpair` = E-INS-i
@@ -88,23 +89,23 @@ Select [MAFFT's alignment algorithm](https://mafft.cbrc.jp/alignment/software/al
 
 This argument is optional, the default is **auto**.
 ___
-#### **`--mafft_timeout`**
+### **`--mafft_timeout`**
 Modify the waiting time in seconds for an individual alignment to complete. When using more exhaustive MAFFT algorithm (e.g. `genafpair`), alignment can take very long (up to hours depending on sample number an length of the sequences).
 
 This argument is optional, the default is **21600** (= 6 hours).
 ___
-#### **`--disable_codon_align`**
+### **`--disable_codon_align`**
 When `AA`s and their corresponding `NT`s are aligned in the same run, `Captus` uses the `AA` alignment as template for aligning the `NT` format, thus obtaining a codon-aware alignment for the coding sequences in nucleotides. Use this flag to disable this method and use the regular `MAFFT` nucleotide alignment.
 ___
-#### **`--outgroup`**
+### **`--outgroup`**
 Outgroup sample names, separated by commas, no spaces. `Captus` will place these samples whenever possible at the beginning of the alignments, since many phylogentic programs root the resulting phylogeny at the first sample in the alignment your phylogenetic analyses will be automatically rooted.  
 Example: `--outgroup sample2,sample5`
 
 This argument is optional and has no default.
 ___
-### *Paralog filtering*
+## *Paralog filtering*
 ___
-#### **`--filter_method`**
+### **`--filter_method`**
 We provide two filtering methods for paralog removal, you can select either or both:
 - `naive` = Only the best hit for each sample (marked as hit=00) is retained, when the reference only contains a single sequence per locus it is equivalent to the `carefu` method.
 - `informed` = Only keep the copy (regardless of hit ranking) that is most similar to the reference sequence that was
@@ -114,14 +115,14 @@ We provide two filtering methods for paralog removal, you can select either or b
 
 This argument is optional, the default is **both**.
 ___
-#### **`--tolerance`**
+### **`--tolerance`**
 Only applicable to the 'informed' filter. If the selected copy's identity to the most commonly chosen reference is below this number of Standard Deviations from the mean, it will also be removed (the lower the number the stricter the filter).
 
 This argument is optional, the default is **2.0**.
 ___
-### *ClipKIT*
+## *Trimming (ClipKIT)*
 ___
-#### **`--clipkit_method`**
+### **`--clipkit_method`**
 Select [ClipKIT's trimming mode](https://jlsteenwyk.com/ClipKIT/advanced/index.html#modes). Valid trimming modes are:
 - `smart-gap`
 - `gappy`
@@ -134,19 +135,19 @@ Select [ClipKIT's trimming mode](https://jlsteenwyk.com/ClipKIT/advanced/index.h
 
 This argument is optional, the default is **gappy**.
 ___
-#### **`--clipkit_gaps`**
+### **`--clipkit_gaps`**
 Gappynes threshold per position. Accepted values between 0 and 1. This argument is ignored when using the `kpi` and `kpic` algorithms or intermediate steps that use `smart-gap`.
 
 This argument is optional, the default is **0.9**.
 ___
-#### **`--min_coverage`**
+### **`--min_coverage`**
 Minimum coverage of sequence as proportion of the mean of sequence lengths in the alignment, ignoring gaps. After `ClipKIT` finishes trimming columns, `Captus` will also remove short sequences below this threshold.
 
 This argument is optional, the default is **0.3**.
 ___
-### *Other*
+## *Other*
 ___
-#### **`--redo_from`**
+### **`--redo_from`**
 You can repeat the analysis without undoing all the steps. These are the points from which you ca restart the `align` command:
 - `alignment` = Delete all subdirectories with alignments and restart.
 - `filtering` = Delete all subdirectories with paralog-filtered alignments and restart.
@@ -155,17 +156,17 @@ You can repeat the analysis without undoing all the steps. These are the points 
 
 This argument is optional and has no default.
 ___
-#### **`--mafft_path`**, **`--clipkit_path`**
+### **`--mafft_path`**, **`--clipkit_path`**
 If you have installed your own copies of `MAFFT` or `ClipKIT` you can provide the full path to those copies.
 
 These arguments are optional, the defaults are **mafft** and **clipkit** respectively.
 ___
-#### **`--show_less`**
+### **`--show_less`**
 Enable this flag to show individual alignment information during the run. Detailed information is written regardless to the log.
 ___
-#### **`--ram`**, **`--threads`**, **`--concurrent`**, **`--debug`**, 
+### **`--ram`**, **`--threads`**, **`--concurrent`**, **`--debug`**, 
 See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
-Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (27.05.2022)
+Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (27.05.2022)

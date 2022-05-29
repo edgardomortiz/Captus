@@ -1,10 +1,11 @@
----
-title: "Credits"
----
++++
+disableToc = true
+title = "Credits"
++++
 
-#### Edgardo M. Ortiz
+### Edgardo M. Ortiz
 
-#### Gentaro Shigita
+### Gentaro Shigita
 
 [<i class="fab fa-twitter fa-2x"></i>](https://twitter.com/gentaro_shigita)
 [<i class="fab fa-github fa-2x"></i>](https://github.com/shigita)

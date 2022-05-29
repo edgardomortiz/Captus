@@ -1,8 +1,8 @@
----
-title: "Output Files"
-weight: 14
-pre: '<i class="fas fa-dna"></i> '
----
++++
+title = "Output Files"
+weight = 14
+pre = '<i class="fas fa-dna"></i> '
++++
 
 For this example we will use the directory `02_assemblies` previously created with the [`assemble` module]({{< ref "assembly/assemble/output">}}). We run the following `Captus` command to search and extract our reference markers from the assemblies:
 
@@ -275,5 +275,5 @@ As you can see, **Sample name**, **Locus name**, and **Paralog ranking** are sep
 {{% /notice %}}
 
 ___
-Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (27.05.2022)
+Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (27.05.2022)

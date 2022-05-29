@@ -1,12 +1,13 @@
----
-title: "Input Preparation"
-weight: 12
-pre: '<i class="fas fa-clipboard-check"></i> '
----
++++
+title = "Input Preparation"
+weight = 12
+pre = '<i class="fas fa-clipboard-check"></i> '
++++
 
 At this point you should have *de novo* assemblies from your samples ready. However, `Captus` also gives you the flexibility of starting the analysis from this point by providing your own assemblies as FASTA files or complementing you newly aasembled samples with other assemblies (e.g. genomes or transcriptomes from GenBank). If you want to do so, please read the following note:
 
 {{% expand "How to rename your FASTA assemblies for Captus" %}}
+
 {{% notice note %}}
 In order to add your own FASTA assembly files, a <i class="fas fa-exclamation-triangle"></i> **VERY IMPORTANT** step is to rename them so they are clearly identified throughout the rest of the analysis.
 {{% /notice %}}
@@ -82,5 +83,5 @@ When the **separator** is not present (even in a single sequence in the whole re
 {{% /notice %}}
 
 ___
-Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (17.11.2021)
+Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (29.05.2021)

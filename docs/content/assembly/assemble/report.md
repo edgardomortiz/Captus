@@ -1,10 +1,11 @@
----
-title: "HTML Report"
-weight: 15
-pre: '<i class="fas fa-chart-bar"></i> '
-plotly: true
----
-### Concept
++++
+title = "HTML Report"
+weight = 15
+pre = '<i class="fas fa-chart-bar"></i> '
+plotly = true
++++
+
+## Concept
 
 ---
 **No successful marker extractions can be achieved without successful assemblies**.
@@ -22,11 +23,11 @@ For more information, please visit the following sites:
   - <https://plotly.com/chart-studio-help/getting-to-know-the-plotly-modebar>
 {{% /notice %}}
 
-### Contents
+## Contents
 
 ---
 
-#### 1. Summary Table
+### 1. Summary Table
 
 This table shows the general assembly statistics for each sample.  
 
@@ -53,7 +54,7 @@ This table shows the general assembly statistics for each sample.
 
 ---
 
-#### 2. Visual Stats
+### 2. Visual Stats
 
 In addition to the above statistics, this plot shows some more detailed statistics as a simple or stacked bar plot.
 
@@ -81,5 +82,5 @@ In addition to the above statistics, this plot shows some more detailed statisti
 {{% /expand %}}
 
 ---
-Created by [Gentaro Shigita]({{< ref "../../credits/#gentaro-shigita">}}) (11.08.2021)  
-Last modified by [Gentaro Shigita]({{< ref "../../credits/#gentaro-shigita">}}) (29.03.2022)
+Created by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (11.08.2021)  
+Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (29.03.2022)
