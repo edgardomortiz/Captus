@@ -1,9 +1,10 @@
----
-title: "Advanced"
-weight: 2
-pre: '<i class="fas fa-graduation-cap"></i> '
-summary: combine different data types target-capture, transcriptome, and whole genome sequencing.
----
++++
+title = "Advanced"
+weight = 2
+pre = '<i class="fas fa-graduation-cap"></i> '
+summary = "combine different data types target-capture, transcriptome, and whole genome sequencing."
++++
+
 In this advanced tutorial, different data types
 this tutorial will walk you through 
 
@@ -113,5 +114,5 @@ iqtree
 ```
 
 ---
-Created by [Gentaro Shigita]({{< ref "../../credits/#gentaro-shigita">}}) (01.10.2021)  
-Last modified by [Gentaro Shigita]({{< ref "../../credits/#gentaro-shigita">}}) (16.11.2021)
+Created by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (01.10.2021)  
+Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (29.05.2022)

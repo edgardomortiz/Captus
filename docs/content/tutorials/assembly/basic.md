@@ -1,25 +1,26 @@
----
-title: "Basic"
-weight: 1
-pre: '<i class="fas fa-school"></i> '
-plotly: true
-summary: through analysing target-capture sequence data.
----
++++
+title = "Basic"
+weight = 1
+pre = '<i class="fas fa-school"></i> '
+plotly = true
+summary = "analysis of target-capture sequence data."
++++
+
 This basic tutorial takes you through
 In this basic tutorial, you will master the most common and minimal usage of the `Captus` assembly pipeline through analyzing four sample data.
 
-### Preparation
+## Preparation
 
 ---
 
-#### Installation
+### Installation
 
 To run this tutorial, you need to install the following programs on your system:
 
 - `Captus` and its dependencies (see [Installation]({{< ref "basics/installation">}}))
 - `IQ-TREE` (see [IQ-TREE documentation](http://www.iqtree.org/doc/Quickstart#installation))
 
-#### Getting data
+### Getting data
 
 Download the file below and place it in a directory where you want to run this tutorial.
 
@@ -51,7 +52,7 @@ When you analyze your own data, please be sure that all files are named accordin
 All files are named according to the [naming convention]({{< ref "assembly/clean/preparation.md">}}).
 {{% /notice %}}
 
-### 1. Clean
+## 1. Clean
 
 ---
 
@@ -97,7 +98,7 @@ This command will end up creating a directory, `01_clean_reads`, containing the 
 Of these, the files with extension `*.fq.gz` are the files containing the cleaned reads, and going to be used for next step.  
 For descriptions of the other output files, see [here]({{< ref "assembly/clean/output">}}).
 
-### 2. Assemble
+## 2. Assemble
 
 ---
 Next, we would like to assemble contigs using the clean reads from the previous step.
@@ -127,7 +128,7 @@ This command will end up creating a directory, `02_assemblies`, containing the f
 `assembly.fasta` in each directory are the contigs assembled.  
 For descriptions of the other output files, see [here]({{< ref "assembly/assemble/output">}}).
 
-### 3. Extract
+## 3. Extract
 
 ---
 Now let's find out the target from the contigs
@@ -164,7 +165,7 @@ The command will end up with creating a directory, `03_extractions`, containing 
 
 For descriptions of the other output files, see [here]({{< ref "assembly/extract/output">}}).
 
-### 4. Align
+## 4. Align
 
 ---
 align across all samples
@@ -193,7 +194,7 @@ The command will end up creating a directory, `04_alignments`, containing the fo
 `02_aligned_untrimmed`, `03_aligned_trimmed` directories contain alignments in multi-FASTA format.
 For descriptions of the other output files, see [here]({{< ref "assembly/align/output">}}).
 
-### 5. Phylogenetic inference
+## 5. Phylogenetic inference
 
 ---
 
@@ -245,5 +246,5 @@ tree rooted using `GenusC_speciesC_CAP` should look like:
 This is a **minimal** tutorial, [Advanced tutorial]({{< ref "tutorials/assembly/advanced">}}) will show you more deeper world.
 
 ---
-Created by [Gentaro Shigita]({{< ref "../../credits/#gentaro-shigita">}}) (01.10.2021)  
-Last modified by [Gentaro Shigita]({{< ref "../../credits/#gentaro-shigita">}}) (16.11.2021)
+Created by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (01.10.2021)  
+Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (29.05.2022)

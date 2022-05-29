@@ -1,5 +1,8 @@
+<!-- Partial intended to be overwritten to add custom headers, like CSS or any other info
 <style type="text/css">
-pre code {
-    white-space: pre;
-}
+   /* Custom css */
 </style>
+-->
+{{ if .Params.plotly }}
+   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+{{ end }}

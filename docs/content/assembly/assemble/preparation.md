@@ -1,8 +1,8 @@
----
-title: "Input Preparation"
-weight: 12
-pre: '<i class="fas fa-clipboard-check"></i> '
----
++++
+title = "Input Preparation"
+weight = 12
+pre = '<i class="fas fa-clipboard-check"></i> '
++++
 
 If you cleaned your reads using `Captus` then the data is ready for analysis inside the directory you chose for the cleaned reads (`./01_cleaned_reads/` by default). Then you can proceed to check the [Options]({{< ref "/assembly/assemble/options">}}) of the `assemble` command.
 
@@ -11,5 +11,5 @@ If you want to provide reads cleaned elsewhere, please follow the same <i class=
 {{% /notice %}}
 
 ___
-Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (15.08.2021)
+Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (29.05.2021)

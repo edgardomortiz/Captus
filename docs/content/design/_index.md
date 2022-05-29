@@ -1,5 +1,4 @@
----
-title: "Design"
-weight: 3
----
-
++++
+title = "Design"
+weight = 3
++++

@@ -1,7 +1,7 @@
----
-title: "Installation"
-weight: 15
----
++++
+title = "Installation"
+weight = 15
++++
 
 ### *The easy way (recommended)*
 
@@ -31,21 +31,26 @@ And that is all!, just to verify it is installed try typing `captus_assembly --h
 (captus)$ captus_assembly --help
 usage: captus_assembly command [options]
 
-Captus 0.0.17: Assembly of Phylogenomic Datasets from High-Throughput Sequencing data
+Captus 0.9.1: Assembly of Phylogenomic Datasets from High-Throughput
+Sequencing data
 
 Captus-assembly commands:
   command     Program commands (in typical order of execution)
-                clean = Trim adaptors and quality filter reads with BBTools, run FastQC on the raw
-                        and cleaned reads
-                assemble = Perform de novo assembly with MEGAHIT: Assembling reads that were
-                           cleaned with the 'clean' command is recommended, but reads cleaned
-                           elsewhere are also allowed
-                extract = Recover targeted markers with BLAT and Scipio: Extracting markers from
-                          the assembly obtained with the 'assemble' command is recommended, but
-                          any other assemblies in FASTA format are also allowed.
-                align = Align extracted markers across samples with MAFFT: Marker alignment
-                        depends on the directory structure created by the 'extract' command. This
-                        step also performs paralog filtering and alignment trimming using ClipKIT
+                clean = Trim adaptors and quality filter reads with BBTools,
+                        run FastQC on the raw and cleaned reads
+                assemble = Perform de novo assembly with MEGAHIT: Assembling
+                           reads that were cleaned with the 'clean' command is
+                           recommended, but reads cleaned elsewhere are also
+                           allowed
+                extract = Recover targeted markers with BLAT and Scipio:
+                          Extracting markers from the assembly obtained with
+                          the 'assemble' command is recommended, but any other
+                          assemblies in FASTA format are also allowed.
+                align = Align extracted markers across samples with MAFFT:
+                        Marker alignment depends on the directory structure
+                        created by the 'extract' command. This step also
+                        performs paralog filtering and alignment trimming
+                        using ClipKIT
 
 Help:
   -h, --help  Show this help message and exit
@@ -97,5 +102,5 @@ pip install .
 ```
 
 ___
-Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (05.09.2021)
+Created by [Edgardo M. Ortiz]({{< ref "../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
+Last modified by [Edgardo M. Ortiz]({{< ref "../more/credits/#edgardo-m-ortiz">}}) (29.05.2021)

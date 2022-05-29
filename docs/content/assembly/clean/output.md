@@ -1,8 +1,8 @@
----
-title: "Output Files"
-weight: 14
-pre: '<i class="fas fa-dna"></i> '
----
++++
+title = "Output Files"
+weight = 14
+pre = '<i class="fas fa-dna"></i> '
++++
 
 Imagine we start with a directory called `00_raw_reads` with the following content:
 
@@ -220,5 +220,5 @@ This directory contains all the tab-separated-values tables needed to build the 
 |**seq_len_dist.tsv**|Sequence length distribution, parsed from `Falco`'s output|
 {{% /expand %}}
 ___
-Created by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../credits/#edgardo-m-ortiz">}}) (27.05.2022)
+Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (29.05.2022)

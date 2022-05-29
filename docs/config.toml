@@ -1,26 +1,23 @@
 baseURL = "https://captus.github.io/"
 languageCode = "en-us"
-
 title = "Captus documentation"
 theme = "hugo-theme-relearn"
-themesdir = "themes"
 
 [params]
-  editURL = "https://github.com/edgardomortiz/Captus/tree/master/docs/content/"
-  baseURL = "https://captus.github.io/"
-  description = "Documentation and tutorials for Captus"
-  author = "Edgardo M. Ortiz"
-  showVisitedLinks = true
-  disableInlineCopyToClipBoard = true
-  disableBreadcrumb = false
-  disableNextPrev = false
-  themeVariant = "green"
+editURL = "https://github.com/edgardomortiz/Captus/tree/master/docs/content/"
+author = "Edgardo M. Ortiz"
+description = "Documentation and tutorials for Captus"
+showVisitedLinks = true
+disableInlineCopyToClipBoard = true
+disableBreadcrumb = false
+disableNextPrev = false
+themeVariant = "green"
 
 [outputs]
-  home = ["HTML", "RSS", "JSON"]
+home = [ "HTML", "RSS", "JSON"]
 
 [markup.goldmark.renderer]
-  unsafe= true
+unsafe = true
 
 [[menu.shortcuts]]
 name = "<i class='fab fa-fw fa-github'></i> GitHub repo"
@@ -30,5 +27,5 @@ weight = 10
 
 [[menu.shortcuts]]
 name = "<i class='fas fa-fw fa-bullhorn'></i> Credits"
-url = "/credits"
+url = "more/credits"
 weight = 15
