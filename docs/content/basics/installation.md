@@ -67,7 +67,7 @@ ___
 
 You will have to install all the the dependencies separately yourself:
 
-`Captus` was written for `python >= v3.6`, the only required library is `tqdm` but if you want to produce the HTML reports you will also need `pandas` and `plotly`
+`Captus` was written for `python >= v3.7`, the only required library is `tqdm` but if you want to produce the HTML reports you will also need `pandas` and `plotly`
 
 - `BBTools` (https://jgi.doe.gov/data-and-tools/bbtools/)
 
@@ -75,13 +75,13 @@ You will have to install all the the dependencies separately yourself:
 
 - `MEGAHIT` (https://github.com/voutcn/megahit)
 
-- `Scipio` (https://www.webscipio.org/) *
+- **\*** `Scipio` (https://www.webscipio.org/)
 
 - `BioPerl` (https://bioperl.org/)
 
 - `YAML` (https://metacpan.org/pod/YAML)
 
-- `BLAT >= 36x7` (http://hgdownload.soe.ucsc.edu/admin/exe/) *
+- **\*** `BLAT >= 36x7` (http://hgdownload.soe.ucsc.edu/admin/exe/)
 
 - `MMseqs2` (https://github.com/soedinglab/MMseqs2)
 
@@ -91,7 +91,7 @@ You will have to install all the the dependencies separately yourself:
 
 - `pigz` (https://zlib.net/pigz/)
 
-\* Bundled with `Captus`
+**\*** Bundled with `Captus`
 
 Once you have all the dependencies installed you can proceed to clone the repository and install `Captus` as described before:
 
@@ -103,4 +103,4 @@ pip install .
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../more/credits/#edgardo-m-ortiz">}}) (29.05.2021)
+Last modified by [Edgardo M. Ortiz]({{< ref "../more/credits/#edgardo-m-ortiz">}}) (30.05.2021)

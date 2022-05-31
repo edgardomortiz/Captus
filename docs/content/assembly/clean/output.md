@@ -19,7 +19,7 @@ Notice we are using default settings, the only required argument is the location
 ![Clean reads](/images/clean_reads.png?width=640&classes=shadow)
 
 ### 1. **`[sample]_R1.fq.gz`**, **`[sample]_R2.fq.gz`**
-In case of paired-end input we will have a pair of file like in the image, the forward reads are indicated by _R1 and the reverse reads by _R2. Single-end input will only return forward reads. [Wikipedia](https://en.wikipedia.org/wiki/FASTQ_format)'s entry for the format describes it in more detail.
+In case of paired-end input we will have a pair of files like in the image, the forward reads are indicated by **_R1** and the reverse reads by **_R2**. Single-end input will only return forward reads. [Wikipedia](https://en.wikipedia.org/wiki/FASTQ_format)'s entry for the format describes it in more detail.
 
 {{% expand "Example" %}}
 ![FASTQ format](/images/fastq_format.png?width=1000&classes=shadow)
@@ -207,18 +207,18 @@ This directory contains all the tab-separated-values tables needed to build the 
 {{% expand "List of tables produced" %}}
 |Table|Description|
 |-|-|
-|**adaptor_content.tsv**|Adaptor content percentages, parsed from `Falco`'s output|
+|**adaptor_content.tsv**|Adaptor content percentages, parsed from `Falco`'s or`FastQC`'s output|
 |**adaptors_round1.tsv**|Reads/bases after first round of adaptor removal, parsed from `bbduk.sh`'s logs|
 |**adaptors_round2.tsv**|Reads/bases after second round of adaptor removal, parsed from `bbduk.sh`'s logs|
 |**contaminants.tsv**|Contaminant content, compiled from `bbduk.sh`'s logs|
-|**per_base_seq_content.tsv**|Per base sequence content, parsed from `Falco`'s output|
-|**per_base_seq_qual.tsv**|Per base sequence quality, parsed from `Falco`'s output|
-|**per_seq_gc_content.tsv**|GC content per sequence, parsed from `Falco`'s output|
-|**per_seq_qual_scores.tsv**|Per sequence quality scores, parsed from `Falco`'s output|
+|**per_base_seq_content.tsv**|Per base sequence content, parsed from `Falco`'s or`FastQC`'s output|
+|**per_base_seq_qual.tsv**|Per base sequence quality, parsed from `Falco`'s or`FastQC`'s output|
+|**per_seq_gc_content.tsv**|GC content per sequence, parsed from `Falco`'s or`FastQC`'s output|
+|**per_seq_qual_scores.tsv**|Per sequence quality scores, parsed from `Falco`'s or`FastQC`'s output|
 |**reads_bases.tsv**|Reads/bases after quality filtering and contaminant removal, parsed from `bbduk.sh`'s logs|
-|**seq_dup_levels.tsv**|Sequence duplication levels, parsed from `Falco`'s output|
-|**seq_len_dist.tsv**|Sequence length distribution, parsed from `Falco`'s output|
+|**seq_dup_levels.tsv**|Sequence duplication levels, parsed from `Falco`'s or`FastQC`'s output|
+|**seq_len_dist.tsv**|Sequence length distribution, parsed from `Falco`'s or`FastQC`'s output|
 {{% /expand %}}
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (29.05.2022)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (30.05.2022)

@@ -5,7 +5,7 @@ weight = 20
 
 # (and other common options)
 ___
-Throughout Captus' commands we provide common options that allow you limit the computer's resources available to `Captus`, change the way of running parallel tasks, and control the amount of text shown during a run:
+Throughout Captus' modules we provide common options that allow you limit the computer's resources available to `Captus`, change the way of running parallel tasks, and control the amount of text shown during a run:
 
 ### **`--ram`**
 With this option you can specify the maximum RAM in GB that `Captus` is allowed to use. For example, if your system has 64 GB of RAM and you want to limit the use to 32.5 GB you would set the argument `--ram 32.5`.

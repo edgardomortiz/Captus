@@ -56,7 +56,7 @@ ___
 ### **`--max_paralogs`**
 Maximum number of secondary hits (copies) per sample to import from the extraction step. Large numbers of marker copies per sample can increase alignment times. Hits (copies) are ranked from best to worst during the 'extract' step. -1 disables the initial removal of paralogs and aligns which might be useful if you expect very high ploidy levels for example.
 
-This argument is optional, the default is **4**
+This argument is optional, the default is **5**
 ___
 ### **`--min_samples`**
 Minimum number of samples in a marker to proceed with alignment. Markers with fewer samples will be skipped. The default **4** corresponds to smallest number of sequences to build a rooted phylogeny.
@@ -90,7 +90,7 @@ Select [MAFFT's alignment algorithm](https://mafft.cbrc.jp/alignment/software/al
 This argument is optional, the default is **auto**.
 ___
 ### **`--mafft_timeout`**
-Modify the waiting time in seconds for an individual alignment to complete. When using more exhaustive MAFFT algorithm (e.g. `genafpair`), alignment can take very long (up to hours depending on sample number an length of the sequences).
+Modify the waiting time in seconds for an individual alignment to complete. When using more exhaustive MAFFT algorithm (e.g., `genafpair`), alignment can take very long (up to hours depending on sample number an length of the sequences).
 
 This argument is optional, the default is **21600** (= 6 hours).
 ___
@@ -98,7 +98,7 @@ ___
 When `AA`s and their corresponding `NT`s are aligned in the same run, `Captus` uses the `AA` alignment as template for aligning the `NT` format, thus obtaining a codon-aware alignment for the coding sequences in nucleotides. Use this flag to disable this method and use the regular `MAFFT` nucleotide alignment.
 ___
 ### **`--outgroup`**
-Outgroup sample names, separated by commas, no spaces. `Captus` will place these samples whenever possible at the beginning of the alignments, since many phylogentic programs root the resulting phylogeny at the first sample in the alignment your phylogenetic analyses will be automatically rooted.  
+Outgroup sample names, separated by commas, no spaces. `Captus` will place these samples whenever possible at the beginning of the alignments, since many phylogenetic programs root the resulting phylogeny at the first sample in the alignment your trees will be automatically rooted.  
 Example: `--outgroup sample2,sample5`
 
 This argument is optional and has no default.
@@ -107,7 +107,7 @@ ___
 ___
 ### **`--filter_method`**
 We provide two filtering methods for paralog removal, you can select either or both:
-- `naive` = Only the best hit for each sample (marked as hit=00) is retained, when the reference only contains a single sequence per locus it is equivalent to the `carefu` method.
+- `naive` = Only the best hit for each sample (marked as hit=00) is retained.
 - `informed` = Only keep the copy (regardless of hit ranking) that is most similar to the reference sequence that was
  chosen most frequently among all other samples in the alignment. This method was designed to take advantage of references that contain several sequences per locus (like `Angiosperms353`), if the reference only contains a single reference per locus the result will be very similar to the `naive` method (see `--tolerance`).
 - `both` = Two separate folders will be created, each containing the results from each filtering method.
@@ -116,7 +116,7 @@ We provide two filtering methods for paralog removal, you can select either or b
 This argument is optional, the default is **both**.
 ___
 ### **`--tolerance`**
-Only applicable to the 'informed' filter. If the selected copy's identity to the most commonly chosen reference is below this number of Standard Deviations from the mean, it will also be removed (the lower the number the stricter the filter).
+Only applicable to the `informed` filter. If the selected copy's identity to the most commonly chosen reference is below this number of Standard Deviations from the mean, it will also be removed (the lower the number the stricter the filter).
 
 This argument is optional, the default is **2.0**.
 ___
@@ -148,7 +148,7 @@ ___
 ## *Other*
 ___
 ### **`--redo_from`**
-You can repeat the analysis without undoing all the steps. These are the points from which you ca restart the `align` command:
+You can repeat the analysis without undoing all the steps. These are the points from which you can restart the `align` command:
 - `alignment` = Delete all subdirectories with alignments and restart.
 - `filtering` = Delete all subdirectories with paralog-filtered alignments and restart.
 - `removal` = Delete all subdirectories with alignments whose references have been removed and restart.
@@ -169,4 +169,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (27.05.2022)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (31.05.2022)

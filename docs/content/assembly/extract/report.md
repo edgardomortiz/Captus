@@ -32,8 +32,8 @@ This heatmap shows a extraction result of the [`Angiosperms353`](https://github.
 {{< plotly json="/plotly/extraction_report.json" height="400px" >}}
 {{% notice note %}}
 
-- If your result contains more than one marker type, the report will include a separete heatmap for each marker type as well as a global heatmap for all marker types.
-- If there are multiple overlapping hits, only the information about the best hit (the hit with the highest `Length-weighted score`) will be shown, except for the `Total Hits (Copies)`.
+- If your result contains more than one marker type, the report will include a separate heatmap for each marker type as well as a global heatmap for all marker types.
+- If there are multiple hits, only the information about the best hit (the hit with the highest `Length-weighted score`) will be shown, except for the `Total Hits (Copies)`.
 - Information about loci/markers that were not recovered in all samples, or samples where not all loci/markers were recovered, will not appear in the report.
 {{% /notice %}}
 
@@ -43,7 +43,7 @@ This heatmap shows a extraction result of the [`Angiosperms353`](https://github.
 
 #### Hover information
 
-By hovering mouse cursor over the heatmap, you can check detailed information as well as exact value of each single data point.  
+By hovering the mouse cursor over the heatmap, you can check detailed information as well as exact value of each single data point.  
 {{% expand "List of the information to be shown" %}}
 |Field|Description|
 |-|-|
@@ -101,4 +101,4 @@ This dropdown allows you to change the sorting manner of each axis as follows:
 
 ---
 Created by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (11.08.2021)  
-Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (24.03.2022)
+Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (31.05.2022)
