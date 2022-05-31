@@ -42,7 +42,7 @@ Inside this directory, the extracted markers for each sample will be stored in a
 This argument is optinal, the default is **./03_extractions/**
 ___
 ### **`--max_paralogs`**
-Maximum number of secondary hits (copies) of any particular reference marker allowed in the output. We recommend disabling the removal of paralogs (secondary hits/copies) during the 'extract' step because the 'align' step uses a more sophisticated filter for paralogs. This can be useful for exploratory runs, for example: if after an initial run allowing all paralogs we found out that the average number of secondary hits across samples is 5, we could use this number to get rid of outliers.
+Maximum number of secondary hits (copies) of any particular reference marker allowed in the output. We recommend disabling the removal of paralogs (secondary hits/copies) during the `extract` step because the `align` step uses a more sophisticated filter for paralogs. This can be useful for exploratory runs, for example: if after an initial run allowing all paralogs we found out that the average number of secondary hits across samples is 5, we could use this number to get rid of outliers.
 
 This argument is optional, the default is **-1** (include all paralogs in the output).
 ___
@@ -60,12 +60,12 @@ ___
 ## *Proteins extraction global options (Scipio)*
 ___
 ### **`--max_loci_scipio_x2`**
-When the number of loci in a protein reference file exceeds this number, `Captus` will not run a second, more exhaustive round of Scipio. Usually the results from the first round are extremely similar and sufficient, the second round can become extremely slow as the number of reference proteins grows.
+When the number of loci in a protein reference file exceeds this number, `Captus` will not run a second, more exhaustive round of `Scipio`. Usually the results from the first round are extremely similar and sufficient, the second round can become extremely slow as the number of reference proteins grows.
 
 This argument is optional, the default is **2000**.
 ___
 ### **`--predict`**
-Scipio flags introns as dubious when the splice signals are not found at the exon edges, this may indicate that there are additional aminoacids in the recovered protein that are not present in the reference protein. Enable this flag to attempt translation of these dubious introns, if the translation does not introduce premature stop codons they will be added to the recovered protein.
+Scipio flags introns as dubious when the splice signals are not found at the exon edges, this may indicate that there are additional aminoacids in the recovered protein that are not present in the reference protein. Enable this flag to attempt translation of these dubious introns, if the translation does not introduce premature stop codons they will be added to the recovered protein. Recommended if you are extracting from RNA assemblies (introns would have been removed in this type of data).
 ___
 ## *Nuclear proteins (Scipio)*
 ___
@@ -85,7 +85,7 @@ If you provide a nucleotide file for extraction you can specify the genetic code
 This argument is optional, the default is **1** (= the "Standard code". See the [complete list of translation tables](https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi)).
 ___
 ### **`--nuc_min_score`**
-Keep hits to the reference proteins that have at least this `Scipio` score. The default has been optimized to perform cross-species extraction in fragmented assemblies like the ones obtained from hybridization capture data. Accepted values are decimal from 0 to 1. For more details, read [<i class="fab fa-readme"></i> Scipio's settings](https://www.webscipio.org/help/webscipio#setting).
+Keep hits to the reference proteins that have at least this `Scipio` score. The default has been optimized to perform cross-species extraction in fragmented assemblies like the ones obtained from hybridization capture data. Accepted values are decimals from 0 to 1. For more details, read [<i class="fab fa-readme"></i> Scipio's settings](https://www.webscipio.org/help/webscipio#setting).
 
 This argument is optional, the default is **0.13**.
 ___
@@ -116,7 +116,7 @@ If you provide a nucleotide file for extraction you can specify the genetic code
 This argument is optional, the default is **11** (= the "Bacterial, Archaeal and Plant Plastid code". See the [complete list of translation tables](https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi)).
 ___
 ### **`--ptd_min_score`**
-Keep hits to the reference proteins that have at least this `Scipio` score. The default has been optimized to perform cross-species extraction in fragmented assemblies like the ones obtained from hybridization capture data. Accepted values are decimal from 0 to 1. For more details, read [<i class="fab fa-readme"></i> Scipio's settings](https://www.webscipio.org/help/webscipio#setting).
+Keep hits to the reference proteins that have at least this `Scipio` score. The default has been optimized to perform cross-species extraction in fragmented assemblies like the ones obtained from hybridization capture data. Accepted values are decimals from 0 to 1. For more details, read [<i class="fab fa-readme"></i> Scipio's settings](https://www.webscipio.org/help/webscipio#setting).
 
 This argument is optional, the default is **0.2**.
 ___
@@ -147,7 +147,7 @@ If you provide a nucleotide file for extraction you can specify the genetic code
 This argument is optional, the default is **1** (= the "Standard code". See the [complete list of translation tables](https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi)).
 ___
 ### **`--mit_min_score`**
-Keep hits to the reference proteins that have at least this `Scipio` score. The default has been optimized to perform cross-species extraction in fragmented assemblies like the ones obtained from hybridization capture data. Accepted values are decimal from 0 to 1. For more details, read [<i class="fab fa-readme"></i> Scipio's settings](https://www.webscipio.org/help/webscipio#setting).
+Keep hits to the reference proteins that have at least this `Scipio` score. The default has been optimized to perform cross-species extraction in fragmented assemblies like the ones obtained from hybridization capture data. Accepted values are decimals from 0 to 1. For more details, read [<i class="fab fa-readme"></i> Scipio's settings](https://www.webscipio.org/help/webscipio#setting).
 
 This argument is optional, the default is **0.2**.
 ___
@@ -268,4 +268,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (27.05.2022)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (31.05.2022)

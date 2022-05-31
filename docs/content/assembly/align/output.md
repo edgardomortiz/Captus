@@ -26,7 +26,7 @@ This directory contains the aligned FASTA files corresponding to each file in th
 ![Untrimmed alignments](/images/alignment_untrimmed_stages.png?width=1200&classes=shadow)
 ___
 ### 3. **`03_trimmed`**
-All the files present in the `02_untrimmed` directory are trimmed using `ClipKIT` which removes columns that are mostly empty (see options [`--clipkit_algorithm`]({{< relref "assembly/align/options#--clipkit_algorithm" >}}), [`--clipkit_gaps`]({{< relref "assembly/align/options#--clipkit_gaps" >}}), and [`--min_coverage`]({{< relref "assembly/align/options#--min_coverage" >}})). The files are organized in subdirectories, first by filtering strategy, then by [marker type]({{< relref "assembly/align/options#-m---markers" >}}), and finally by [format]({{< relref "assembly/align/options#-f---formats" >}}). The subdirectory structure is identical to the one inside the `02_untrimmed` directory (see **4** to **15** below).
+All the files present in the `02_untrimmed` directory are trimmed using `ClipKIT` which removes columns that are mostly empty (see options [`--clipkit_algorithm`]({{< relref "assembly/align/options#--clipkit_algorithm" >}}), [`--clipkit_gaps`]({{< relref "assembly/align/options#--clipkit_gaps" >}})), then `Captus` removes sequences that are too short after trimming ([`--min_coverage`]({{< relref "assembly/align/options#--min_coverage" >}})). The files are organized in subdirectories, first by filtering strategy, then by [marker type]({{< relref "assembly/align/options#-m---markers" >}}), and finally by [format]({{< relref "assembly/align/options#-f---formats" >}}). The subdirectory structure is identical to the one inside the `02_untrimmed` directory (see **4** to **15** below).
 ![Trimmed alignments](/images/alignment_trimmed_stages.png?width=1200&classes=shadow)
 ___
 ### 4. **`01_unfiltered_w_refs`**
@@ -175,4 +175,4 @@ This is the log from `Captus`, it contains the command used and all the informat
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (27.05.2022)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (31.05.2022)

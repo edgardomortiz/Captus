@@ -25,7 +25,7 @@ With this option you provide the location of your clean FASTQ files, there are s
 
 This argument is **required** <i class="fas fa-exclamation-triangle"></i>, the default is **./01_clean_reads/**
 
-{{% expand "Read this if you want to import FASTQ files cleaned elsewhere" %}}
+{{% expand "Read this if you want to assemble FASTQ files cleaned elsewhere" %}}
 Imagine that you have a directory `clean_reads` with the following structure:
 ```console
 clean_reads
@@ -52,27 +52,32 @@ ___
 ___
 ### **`-o, --out`**
 With this option you can redirect the output directory to a path of your choice, that path will be created if it doesn't already exist.
-
 Inside this directory, the assembly of each sample will be stored in a subdirectory with the ending `__captus-asm`.
 
 This argument is optional, the default is **./02_assemblies/**
 ___
 ### **`--keep_all`**
-Many intermediate files are created by MEGAHIT during assembly, some are large (like the individual FASTA files from each kmer size), `Captus` deletes all the unnecesary intermediate files unless you enable this flag.
+Many intermediate files are created by `MEGAHIT` during assembly, some are large (like the individual FASTA files from each kmer size), `Captus` deletes all the unnecesary intermediate files unless you enable this flag.
 ___
 ### **`--overwrite`**
 Use this flag with caution, this will replace any previous result within the output directory (for the sample names that match).
 ___
-## *MEGAHIT*
+## *de novo Assembly (MEGAHIT)*
 ___
 ### **`--k_list`**
 Comma-separated list (no spaces) of kmer sizes, all must be odd values in the range 15-255, in increments of at most 28. The final kmer size will be adjusted automatically so it never exceeds the mean read length of the sample by more than 31 (so don't worry if the largest kmer size in the default list seems too big for your read length).
+
+This argument is optional, default is `--k_list` in the default `--preset`.
 ___
 ### **`--min_count`**
 Minimum contig depth (called multiplicity in MEGAHIT). Acceptable values are integers >= 1. If your FASTQ files have many tens of million reads, it is recommended to use `--min_count 3` or higher to avoid low-coverage contigs resulting from erroneous reads (the higher the sequencing depth, the higher the number of reads with errors that will get assembled into spurious contigs).
+
+This argument is optional, defaults is `--min_count` in the default `--preset`.
 ___
 ### **`--prune_level`**
 Prunning strength for low-coverage edges during graph cleaning. Increasing the value beyond 2 can speed up the assembly at the cost of losing low-depth contigs. Acceptable values are integers between 0 and 3.
+
+This argument is optional, defaults is `--prune_level` in the default `--preset`.
 ___
 ### **`--merge_level`**
 Thresholds for merging complex bubbles, the first number multiplied by the kmer size represents the maximum bubble length to merge, the second number represents the minimum similarity required to merge bubbles. For example, `--merge_level 20,0.97` at kmer 175 will merge any two paths of at least 175 bp x 20 (3500 bp) with a similarity >= 97%.
@@ -97,7 +102,7 @@ Maximum GC percentage allowed per contig. Useful to filter contamination. For ex
 
 This argument is optional, the default is **100.0** (filter disabled)
 ___
-### **`-tmp_dir`**
+### **`--tmp_dir`**
 MEGAHIT needs a temporary directory in an internal hard drive, otherwise it refuses to run.
 
 This argument is optional, the default is **$HOME**
@@ -114,4 +119,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (29.05.2022)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (30.05.2022)

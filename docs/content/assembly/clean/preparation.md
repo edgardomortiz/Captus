@@ -5,7 +5,7 @@ pre = '<i class="fas fa-clipboard-check"></i> '
 +++
 
 {{% notice note %}}
-Before starting your analysis, a <i class="fa-solid fa-triangle-exclamation"></i> **VERY IMPORTANT** step is to rename you FASTQ files so they clearly identify your samples throughout the entire analysis.
+Before starting your analysis, a <i class="fas fa-exclamation-triangle"></i> **VERY IMPORTANT** step is to rename you FASTQ files so they clearly identify your samples throughout the entire analysis.
 {{% /notice %}}
 
 In general, a good tip for renaming your samples is to think on how you want the names in your final phylogenetic tree.
@@ -16,7 +16,7 @@ Also, please use this naming convention for your FASTQ files:
 
 ![Naming convention for FASTQ files](/images/fastq.png?width=600)
 
-- **IMPORTANT:** Even though underscores (`_`) is allowed in sample names, please **DO NOT** use more than **ONE** consecutive `_` in any case. We use double underscores (`__`) internally to separate several pieces of information during the processing and for the output (see for example [the FASTA headers of extracted markers]({{< relref "assembly/extract/output#fasta-headers-explanation" >}})).
+- **IMPORTANT:** Even though underscores (`_`) are allowed in sample names, please **DO NOT** use more than **ONE** consecutive `_` in any case. We use double underscores (`__`) internally to separate several pieces of information during the processing and for the output (see for example [the FASTA headers of extracted markers]({{< relref "assembly/extract/output#fasta-headers-explanation" >}})).
 - Any text found before the **_R#** pattern and the **extension** will become your **sample name** (`Pouteria_lucuma_EO9854` in this case).
 - If you are using **paired-end** reads, your R1 and R2 filenames should contain the patterns `_R1` and `_R2` respectively to be correctly matched and used as pairs. For **single-end** your filenames should still contain `_R1`.
 - These are the valid extensions: `.fq`, `.fastq`, `.fq.gz`, and `.fastq.gz`.
@@ -39,4 +39,4 @@ And here, some examples or **invalid** FASTQ filenames:
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (29.05.2022)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (30.05.2022)

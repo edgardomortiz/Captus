@@ -17,7 +17,7 @@ captus_assembly extract -a 02_assemblies \
 ```
 
 {{% notice warning %}}
-Notice the addition of option `--max_loci_files 500`, which is used only for showing the output directories containing separate FASTA file per marker (**3'**, **4'**, **5'**, **6'**, **13'**, and **14'** in the image below), we don't recommend using this option in your runs since it will unnecesarily create large numbers of small FASTA files which would have to be concatenated again anyways during the alignment step.  
+Notice the addition of option `--max_loci_files 500`, which is used only for showing the output directories containing separate FASTA file per marker (**3'**, **4'**, **5'**, **6'**, **13'**, and **14'** in the image below, not created by default), we don't recommend using this option in your runs since it will unnecesarily create large numbers of small FASTA files which would have to be concatenated again anyways during the alignment step.  
 You can read more about the option here: [**--max_loci_files**]({{< relref "assembly/extract/options#--max_loci_files" >}})
 {{% /notice %}}
 

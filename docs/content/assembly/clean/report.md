@@ -9,12 +9,13 @@ plotly = true
 
 ---
 **Proper cleaning is the first step to perform proper analysis** on high-throughput sequencing data.
-To evaluate the quality of the input reads and how it has been improved by the cleaning, `Captus` internally runs the well-known quality check program, [`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc), or its faster emulator, [`Falco`](https://github.com/smithlabcode/falco) on the reads before and after cleaning.
+To evaluate the quality of the input reads and how it was improved by the cleaning, `Captus` internally runs the well-known quality check program, [`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc), or its faster alternative, [`Falco`](https://github.com/smithlabcode/falco) on the reads before and after cleaning.
 Although both programs generate nice visual reports, those reports are generated as separate files for each sample, for each read direction (for paired-end), and before and after cleaning.
-This makes it tedious to check every reports, and may lead to overlooking some serious problems, such as residual low-quality bases and adapter sequences, contamination of different samples, and inappropriate settings of cleaning parameters.
+This makes it tedious to check every report, and may lead to overlooking some serious problems, such as residual low-quality bases and adaptor sequences, contamination of different samples, and inappropriate settings of cleaning parameters.
 
 `Captus` summarizes the information in those disparate reports into a single HTML file, `captus-assembly_clean.report.html`. All you need to do is open this single file in your browser (Microsoft Edge, Google Chrome, Mozilla Firefox, Safari, etc., internet connection required) to get a quick overview on all your samples, both reads (for paired-end), and before and after cleaning!
-{{% notice info %}}
+
+{{% notice tip %}}
 Since all tables and plots in the report are created using [`Plotly`](https://plotly.com/python), you can use some interactive functions such as zoom in/out, pan, hover, and download plot as a SVG.
 For more information, please visit the following sites:
 
@@ -41,7 +42,7 @@ For more information, please visit the following sites:
   - [7. Per Read GC Content](#7-per-read-gc-content)
   - [8. Sequence Duplication Level](#8-sequence-duplication-level)
       - [Features:](#features-3)
-  - [9. Adapter Content](#9-adapter-content)
+  - [9. Adaptor Content](#9-adaptor-content)
 
 A brief description and interactive example for each section is given below.  
 By switching the tabs at the top of each plot, you can compare the plot produced by `Captus` with the corresponding plot from [`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc), which you may be familiar with.
@@ -58,6 +59,7 @@ This table shows the general statistics for each sample.
 - By switching `Sort by` dropdown, you can re-sort the table in descending order according to the values in each column (by default, the table is sorted alpha-numerically by sample name).
 
 Original data for this table is stored in the files, `03_qc_extras/reads_bases.tsv`, `03_qc_extras/seq_len_dist.tsv`, `03_qc_extras/per_seq_qual_scores.tsv`, and `03_qc_extras/per_seq_gc_content.tsv`.
+
 {{< tabs groupId="Summary Table" >}}
 {{% tab name="Captus" %}}
 {{< plotly json="/plotly/cleaning_report_summary_table.json" height="210px" >}}
@@ -67,6 +69,7 @@ Original data for this table is stored in the files, `03_qc_extras/reads_bases.t
 ![fastqc_basic_statistics](/images/fastqc_basic_statistics.png?height=200px)
 {{% /tab %}}
 {{< /tabs >}}
+
 {{% expand "Description of each column" %}}
 |Column|Description|
 |-|-|
@@ -87,7 +90,7 @@ Original data for this table is stored in the files, `03_qc_extras/reads_bases.t
 
 ### 2. Stats on Reads/Bases
 
-`Captus` cleans the reads through two consecutive rounds of adapter trimming (`Round1`, `Round2`) followed by quality filtering.  
+`Captus` cleans the reads through two consecutive rounds of adaptor trimming (`Round1`, `Round2`) followed by quality trimming and filtering.  
 This plot shows the change in the number of reads (left panel) and bases (right panel) at each step of the cleaning process.
 
 ##### Features:
@@ -115,7 +118,7 @@ For more details, read [<i class="fab fa-readme"></i> FastQC documentation](http
 
 ##### Features:
 
-- By switching the dropdown at the top of the plot, you can change the variable to show.
+- By switching the dropdown at the top of the plot, you can change the variable to show, these variables represent the elements of the boxplots in the `FastQC` graph.
 
 Original data for this plot is stored in `03_qc_extras/per_base_seq_qual.tsv`.
 {{< tabs groupId="Per Base Quality" >}}
@@ -184,7 +187,7 @@ Original data for this plot is stored in `03_qc_extras/per_base_seq_content.tsv`
 ### 7. Per Read GC Content
 
 This plot shows the distribution of GC content in the reads before and after cleaning.
-Broader or multiple peaks might be a sign of contamination with different sample.  
+Broader or multiple peaks might be a sign of contamination with a different sample.  
 For more details, read [<i class="fab fa-readme"></i> FastQC documentation](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/3%20Analysis%20Modules/5%20Per%20Sequence%20GC%20Content.html).  
 Original data for this plot is stored in `03_qc_extras/per_seq_gc_content.tsv`.  
 {{< tabs groupId="Per Read GC Content" >}}
@@ -221,21 +224,21 @@ Original data for this plot is stored in `03_qc_extras/seq_dup_levels.tsv`.
 
 ---
 
-### 9. Adapter Content
+### 9. Adaptor Content
 
-This plot shows the cumulative adapter content at each position in the reads before and after cleaning.  
+This plot shows the cumulative adaptor content at each position in the reads before and after cleaning.  
 For more details, read [<i class="fab fa-readme"></i> FastQC documentation](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/3%20Analysis%20Modules/10%20Adapter%20Content.html).  
 Original data for this plot is stored in `03_qc_extras/adaptor_content.tsv`.
-{{< tabs groupId="Adapter Content" >}}
+{{< tabs groupId="Adaptor Content" >}}
 {{% tab name="Captus" %}}
-{{< plotly json="/plotly/cleaning_report_adapter_content.json" height="300px" >}}
+{{< plotly json="/plotly/cleaning_report_adaptor_content.json" height="300px" >}}
 {{% /tab %}}
 {{% tab name="FastQC" %}}
 <!-- GenusB_speciesB_CAP Read1 Before cleaning -->
-![fastqc_adapter_content](/images/fastqc_adapter_content.png?height=300px)
+![fastqc_adaptor_content](/images/fastqc_adaptor_content.png?height=300px)
 {{% /tab %}}
 {{< /tabs >}}
 
 ---
 Created by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (11.08.2021)  
-Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (29.05.2022)
+Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (30.05.2022)
