@@ -2372,8 +2372,8 @@ def blat_misc_dna_psl_to_dict(
 
                     overlap = path[h]["q_end"][-1] - path[h+1]["q_start"][0]
                     # Negative 'overlap' is a gap that has to be filled with 'n's
-                    gap_len = abs(overlap) if overlap < 0 else 0
-                    if gap_len > 0:
+                    if overlap <= 0:
+                        gap_len = abs(overlap) if overlap < 0 else 0
                         asm_hit["seq_flanked"] = stitch_contigs(
                             asm_hit["seq_flanked"], asm_hit["hit_contigs"].split("\n")[-1],
                             next_seq_flanked, path[h+1]["hit_contig"], gap_len
@@ -2455,7 +2455,7 @@ def blat_misc_dna_psl_to_dict(
         sequence = ""
         if flanked:
             for i in range(len(starts)):
-            # When we extract the flanked matches and there is intervening blocks of unmatched
+            # When we extract the flanked matches and there are intervening blocks of unmatched
             # sequence we must extract those as well, for example matching CDS against a genome will
             # match the exons, in the flanked version we recover the introns as well
                 sequence += fasta_dict[contig]["sequence"][starts[i]:ends[i]].upper()

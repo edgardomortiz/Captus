@@ -280,7 +280,9 @@ def find_and_match_fastqs(reads, recursive=False):
                     if has_valid_ext(file, valid_exts)]
     else:
         reads = [Path(Path(file).parent.resolve(), Path(file).name) for file in reads
-                 if Path(file).resolve().is_file() and has_valid_ext(file, valid_exts)]
+                 if Path(file).resolve().is_file()
+                 and has_valid_ext(file, valid_exts)
+                 and " " not in Path(file).name]
     # Remove hidden files from list
     reads = [Path(file) for file in reads if not f"{file.name}".startswith(".")]
     fastqs = {}
