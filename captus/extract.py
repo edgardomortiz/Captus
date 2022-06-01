@@ -1353,7 +1353,7 @@ def write_fastas_and_report(
         for h in range(len(hits[ref])):
 
             if marker_type in ["DNA", "CLR"]:
-                length = hits[ref][h]["matches"] + hits[ref][h]["mismatches"]
+                length = hits[ref][h]["match_len"]
             else:
                 length = len(hits[ref][h]["seq_aa"])
 
