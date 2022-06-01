@@ -2344,7 +2344,7 @@ def blat_misc_dna_psl_to_dict(
                 "seq_gene": extract_psl_sequence(target_dict, path[0], 0),
                 "seq_nt": "",  # not used
                 "seq_aa": "",  # not used
-                "match_len": path[0]["match_len"],  # 'matches' + 'rep_matches' + 'mismatches'
+                "match_len": path[0]["q_end"][-1] - path[0]["q_start"][0],# Reference length matched
             }
 
             if len(path) > 1:
@@ -2352,8 +2352,6 @@ def blat_misc_dna_psl_to_dict(
                 ref_ends = [list(path[0]["q_end"])]
                 hit_ids = [path[0]["identity"]]
                 match_props = [path[0]["matches"] / len(asm_hit["seq_gene"])]
-                mismatch_props = [path[0]["mismatches"] / len(asm_hit["seq_gene"])]
-                overlap_sum = 0
                 for h in range(len(path) - 1):
                     asm_hit["hit_ids"] += f'\n{path[h+1]["hit_id"]}'
                     asm_hit["hit_contigs"] += f'\n{path[h+1]["hit_contig"]}'
@@ -2368,7 +2366,6 @@ def blat_misc_dna_psl_to_dict(
                                                             flanked=True)
                     next_seq_gene = extract_psl_sequence(target_dict, path[h+1], 0)
                     match_props.append(path[h+1]["matches"] / len(next_seq_gene))
-                    mismatch_props.append(path[h+1]["mismatches"] / len(next_seq_gene))
 
                     overlap = path[h]["q_end"][-1] - path[h+1]["q_start"][0]
                     # Negative 'overlap' is a gap that has to be filled with 'n's
@@ -2382,7 +2379,6 @@ def blat_misc_dna_psl_to_dict(
                         ref_starts.append(list(path[h+1]["q_start"]))
                         ref_ends.append(list(path[h+1]["q_end"]))
                     else:
-                        overlap_sum += overlap
                         # Ignore overlapped portion from the hit with smaller 'identity' to the ref
                         if path[h]["identity"] >= path[h+1]["identity"]:
                             asm_hit["seq_flanked"] += next_seq_flanked[overlap:]
@@ -2412,10 +2408,11 @@ def blat_misc_dna_psl_to_dict(
                 # partial hits used in the assemble path
                 ave_match_prop = statistics.mean(match_props)
                 ave_mismatch_prop = 1 - ave_match_prop
-                asm_hit["score"] = (((ave_match_prop * (match_len + overlap_sum))
-                                     - (ave_mismatch_prop * (match_len + overlap_sum)))
-                                    / (asm_hit["ref_size"] + overlap_sum))
-                asm_hit["lwscore"] = asm_hit["score"] * (match_len / asm_hit["ref_size"])
+                asm_hit["score"] = (((ave_match_prop * match_len)
+                                     - (ave_mismatch_prop * match_len))
+                                    / asm_hit["ref_size"])
+                full_len = len(asm_hit["seq_gene"].replace("n", ""))
+                asm_hit["lwscore"] = asm_hit["score"] * (full_len / asm_hit["ref_size"])
                 asm_hit["gapped"] = bool("n" in asm_hit["seq_gene"])
                 asm_hit["match_len"] = match_len
 
