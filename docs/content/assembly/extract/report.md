@@ -64,6 +64,11 @@ By hovering the mouse cursor over the heatmap, you can check detailed informatio
 |***Intron length**|Total length of recovered introns|
 |***Flanking length**|Total length of recovered flanking sequences|
 |***Frameshift**|Positions of additonal or missing bases have been found that would lead to frameshifts during translation (These are most probable due to sequencing/assembly errors, but might also hint to the existance of pseudogenes)|
+|**Contigs in best hit**|Number of contigs used to assemble the best hit|
+|**Best hit L50**|Least number of contigs in best hit that contain 50% of the best hit's recovered length|
+|**Best hit L90**|Least number of contigs in best hit that contain 90% of the best hit's recovered length|
+|**Best hit LG50**|Least number of contigs in best hit that contain 50% of the reference locus length|
+|**Best hit LG90**|Least number of contigs in best hit that contain 90% of the reference locus length|
 
 If your data is huge (number of samples * number of loci/markers > 500000), the fields marked with `*` will not be shown.
 {{% /expand %}}
@@ -74,7 +79,7 @@ If your data is huge (number of samples * number of loci/markers > 500000), the 
 
 By default, the heatmaps show the `Recovered length (%)` of each sample and each locus/marker.  
 This dropdown allows you to switch the variable to be shown as a heatmap.  
-There are five options:
+There are ten options:
 |Variable|Description|
 |-|-|
 |**Recovered Length (%)** (default)|Percentage of recovered length in the reference sequence length|
@@ -82,6 +87,11 @@ There are five options:
 |**Total Hits (Copies)**|Number of hits found (Values greater than 1 imply the existence of paralogs)|
 |**Score**|`Scipio` score, calculated as (Number of matched residues - Number of mismatched residues) / Reference sequence length|
 |**Length-weighted Score**|Modified `Scipio` score to take account into the proportion recovered, calculated as (Number of matched residues - Number of mismatched residues) / Reference sequence length * Proportion recovered|
+|**Contigs in best hit**|Number of contigs used to assemble the best hit|
+|**Best hit L50**|Least number of contigs in best hit that contain 50% of the best hit's recovered length|
+|**Best hit L90**|Least number of contigs in best hit that contain 90% of the best hit's recovered length|
+|**Best hit LG50**|Least number of contigs in best hit that contain 50% of the reference locus length|
+|**Best hit LG90**|Least number of contigs in best hit that contain 90% of the reference locus length|
 
 ---
 
@@ -101,4 +111,4 @@ This dropdown allows you to change the sorting manner of each axis as follows:
 
 ---
 Created by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (11.08.2021)  
-Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (31.05.2022)
+Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (03.06.2022)

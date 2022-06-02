@@ -489,7 +489,7 @@ class CaptusAssembly(object):
             default="megahit_toolkit",
             type=str,
             dest="megahit_toolkit_path",
-            help="Path to MEGAHIT"
+            help="Path to MEGAHIT's toolkit"
         )
         other_group.add_argument(
             "--ram",

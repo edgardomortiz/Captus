@@ -473,6 +473,17 @@ MMSEQS2_SENSITIVITY = 4.0
 # reference
 CLR_MIN_SAMPLE_PROP = 0.3
 
+# Extraction statistics table header
+EXT_STATS_HEADER = [
+    "sample_name", "marker_type", "locus",
+    "ref_name", "ref_coords", "ref_type", "ref_len_matched",
+    "hit", "pct_recovered", "pct_identity", "score", "lwscore",
+    "hit_len", "cds_len", "intron_len", "flanks_len", "frameshifts",
+    "hit_contigs", "hit_l50", "hit_l90", "hit_lg50", "hit_lg90",
+    "ctg_names", "ctg_strands", "ctg_coords",
+]
+
+
 # GFF feature colors, Okabe & Ito palette
 GFF_COLORS = {
     "NUC": "#e69f00",  # orange

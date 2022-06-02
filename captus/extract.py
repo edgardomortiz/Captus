@@ -1339,14 +1339,50 @@ def write_fastas_and_report(
             formatted_coords.append(",".join(segment_coords))
         return ";".join(formatted_coords)
 
+    def calc_nx_lx(total_size: int, x: float, sorted_block_sizes: list):
+        x_size = total_size * x
+        c_size, nx, lx = 0, 0, 0
+        for i in range(len(sorted_block_sizes)):
+            c_size += sorted_block_sizes[i]
+            if c_size >= x_size:
+                nx, lx = sorted_block_sizes[i], i+1
+                break
+        return nx, lx
+
+    def fragmentation(ref_coords, ref_size):
+        block_sizes = []
+        for segment in ref_coords.split("\n"):
+            block_size = 0
+            for coord in segment.split(","):
+                start, end = int(coord.split("-")[0]), int(coord.split("-")[1])
+                if start == end:
+                    block_size += 1
+                else:
+                    block_size += (end - start)
+            block_sizes.append(block_size)
+        block_sizes = sorted(block_sizes, reverse=True)
+        rec_size = sum(block_sizes)
+        n50, l50 = calc_nx_lx(rec_size, 0.50, block_sizes)
+        n90, l90 = calc_nx_lx(rec_size, 0.90, block_sizes)
+        ng50, lg50 = calc_nx_lx(ref_size, 0.50, block_sizes)
+        ng90, lg90 = calc_nx_lx(ref_size, 0.90, block_sizes)
+        stats = {
+            "num_contigs": len(block_sizes),
+            "N50":  n50,
+            "N90":  n90,
+            "NG50": ng50,
+            "NG90": ng90,
+            "L50":  l50,
+            "L90":  l90,
+            "LG50": lg50,
+            "LG90": lg90,
+        }
+        return stats
+
     num_loci, num_paralogs = 0, 0
     lengths_best_hits, coverages_best_hits = [], []
     flanked_seqs, gene_seqs, cds_aa_seqs, cds_nt_seqs, hit_contigs = {}, {}, {}, {}, {}
-    stats_header = "\t".join(["sample_name", "marker_type",
-                              "locus", "ref_name", "ref_coords", "ref_type", "ref_len_matched",
-                              "hit", "pct_recovered", "pct_identity", "score", "lwscore",
-                              "hit_len", "cds_len", "intron_len", "flanks_len", "frameshifts",
-                              "ctg_names", "ctg_strands", "ctg_coords"])
+    stats_header = "\t".join(settings.EXT_STATS_HEADER)
     stats = []
     for ref in sorted(hits):
         num_loci += 1
@@ -1449,6 +1485,7 @@ def write_fastas_and_report(
                              "cds_len": "NA",
                              "intron_len": "NA",
                              "frameshifts": "NA"}
+            frag_stats = fragmentation(hits[ref][h]["ref_coords"], hits[ref][h]["ref_size"])
             stats.append("\t".join([sample_name,
                                     marker_type,
                                     ref,
@@ -1466,6 +1503,11 @@ def write_fastas_and_report(
                                     stats_row["intron_len"],
                                     f'{flanks_len}',
                                     stats_row["frameshifts"],
+                                    f'{frag_stats["num_contigs"]}',
+                                    f'{frag_stats["L50"] }',
+                                    f'{frag_stats["L90"] }',
+                                    f'{frag_stats["LG50"]}',
+                                    f'{frag_stats["LG90"]}',
                                     f'{hits[ref][h]["hit_contigs"]}'.replace("\n", ";"),
                                     f'{hits[ref][h]["strand"]}'.replace("\n", ";"),
                                     format_coords(hits[ref][h]["hit_coords"]),
@@ -1669,11 +1711,7 @@ def cleanup_post_extraction(
             return message
 
         # Concatenate all recovery statistics tables
-        stats_header = "\t".join(["sample_name", "marker_type",
-                                  "locus", "ref_name", "ref_coords", "ref_type", "ref_len_matched",
-                                  "hit", "pct_recovered", "pct_identity", "score", "lwscore",
-                                  "hit_len", "cds_len", "intron_len", "flanks_len", "frameshifts",
-                                  "ctg_names", "ctg_strands", "ctg_coords"]) + "\n"
+        stats_header = "\t".join(settings.EXT_STATS_HEADER) + "\n"
         sample_stats = list(sample_dir.resolve().rglob("[A-Z]*_recovery_stats.tsv"))
         sample_stats = [tsv for tsv in sample_stats
                         if tsv.parts[-2] != "06_assembly_annotated"]
@@ -1962,13 +2000,7 @@ def collect_ext_stats(out_dir):
         return None
     else:
         stats_file_out = Path(out_dir, "captus-assembly_extract.stats.tsv")
-        header = (
-            "\t".join(["sample_name", "marker_type", "locus",
-                       "ref_name", "ref_coords", "ref_type", "ref_len_matched",
-                       "hit", "pct_recovered", "pct_identity", "score", "lwscore",
-                       "hit_len", "cds_len", "intron_len", "flanks_len", "frameshifts",
-                       "ctg_names", "ctg_strands", "ctg_coords"]) + "\n"
-        )
+        header = "\t".join(settings.EXT_STATS_HEADER) + "\n"
         with open(stats_file_out, "wt") as tsv_out:
             tsv_out.write(header)
             for tsv in samples_stats:

@@ -1554,13 +1554,15 @@ def scipio_yaml_to_dict(
                 mod["mat_aa"]     = mod["mat_aa"][:last_intron_idx]
                 ref_ends = list(filter(None, mod["ref_ends"]))
                 mod["mismatches"] = list(filter(lambda x: x<=max(ref_ends), mod["mismatches"]))
+                if len(set(mod["hit_ids"])) < len(mod["hit_contigs"]):
+                    mod["hit_contigs"] = mod["hit_contigs"][:-1]
                 return mod
             else:
                 return mod
         else:
             return mod
 
-    def fix_model(mod: dict, gencode: dict, marker_type):
+    def fix_model(mod: dict, gencode: dict, marker_type: str):
         """
         When translation of concatenated exons does not match the translation given by Scipio, we
         need to check every exon for inconsistencies like extra dangling nucleotides that break the
@@ -1572,6 +1574,8 @@ def scipio_yaml_to_dict(
             Gene model formatted by function parse_model()
         gencode : dict
             Genetic code, output from function genetic_code()
+        marker_type : str
+            "NUC", "PTD", or "MIT"
 
         Returns
         -------
