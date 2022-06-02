@@ -1896,7 +1896,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
     df = pd.read_table(
         ext_stats_tsv,
         low_memory=False,
-        usecols=[*range(0,17)],
+        usecols=[*range(0,22)],
     )
 
     # Preprocess
@@ -1904,18 +1904,33 @@ def build_extraction_report(out_dir, ext_stats_tsv):
     df_best["hit"] = df.groupby(["sample_name", "marker_type", "locus"], as_index=False).count()["hit"]
     df_best.loc[df_best["ref_type"] == "nucl", "ref_len_unit"] = "bp"
     df_best.loc[df_best["ref_type"] == "prot", "ref_len_unit"] = "aa"
-
     # Define variables
     marker_type = df_best["marker_type"].unique()
     if len(marker_type) > 1:
         marker_type = np.insert(marker_type, 0, "ALL")
-    var_list = ["pct_recovered", "pct_identity", "hit", "score", "lwscore"]
+    var_list = [
+        "pct_recovered",
+        "pct_identity",
+        "hit",
+        "score",
+        "lwscore",
+        "hit_contigs",
+        "hit_l50",
+        "hit_l90",
+        "hit_lg50",
+        "hit_lg90",
+    ]
     var_lab_list = [
         "Recovered Length (%)",
         "Identity (%)",
         "Total Hits (Copies)",
         "Score",
-        "Length-weighted Score"
+        "Length-weighted Score",
+        "Contigs in best hit",
+        "Best hit L50",
+        "Best hit L90",
+        "Best hit LG50",
+        "Best hit LG90",
     ]
     colorscale = [
         [0.0, "rgb(94,79,162)"],
@@ -2011,10 +2026,10 @@ def build_extraction_report(out_dir, ext_stats_tsv):
         if marker == "ALL":
             data = df_best
             data["marker_type - locus"] = data["marker_type"] + " - " + data["locus"].astype(str)
-            matrix_size = len(data['sample_name'].unique()) * len(data['marker_type - locus'].unique())
+            matrix_size = len(data["sample_name"].unique()) * len(data["marker_type - locus"].unique())
         else:
             data = df_best[df_best["marker_type"] == marker]
-            matrix_size = len(data['sample_name'].unique()) * len(data['locus'].unique())
+            matrix_size = len(data["sample_name"].unique()) * len(data["locus"].unique())
         if matrix_size > 500000:
             customdata = None
             hovertemplate = "<br>".join([
@@ -2031,7 +2046,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
                 "Ref name: <b>%{customdata[3]}</b>",
                 "Ref coords: <b>%{customdata[4]}</b>",
                 "Ref type: <b>%{customdata[5]}</b>",
-                "Ref len matched: <b>%{customdata[6]:,.0f} %{customdata[17]}</b>",
+                "Ref len matched: <b>%{customdata[6]:,.0f} %{customdata[22]}</b>",
                 "Total hits (copies): <b>%{customdata[7]}</b>",
                 "Recovered length: <b>%{customdata[8]:.2f}%</b>",
                 "Identity: <b>%{customdata[9]:.2f}%</b>",
@@ -2041,7 +2056,12 @@ def build_extraction_report(out_dir, ext_stats_tsv):
                 "CDS length: <b>%{customdata[13]:,.0f} bp</b>",
                 "Intron length: <b>%{customdata[14]:,.0f} bp</b>",
                 "Flanking length: <b>%{customdata[15]:,.0f} bp</b>",
-                "Frameshift: <b>%{customdata[16]}</b><extra></extra>",
+                "Frameshift: <b>%{customdata[16]}</b>",
+                "Contigs in best hit: <b>%{customdata[17]}</b>",
+                "Best hit L50: <b>%{customdata[18]}</b>",
+                "Best hit L90: <b>%{customdata[19]}</b>",
+                "Best hit LG50: <b>%{customdata[20]}</b>",
+                "Best hit LG90: <b>%{customdata[21]}</b><extra></extra>",
             ])
 
         fig = go.Figure()
@@ -2105,6 +2125,51 @@ def build_extraction_report(out_dir, ext_stats_tsv):
                         "Sample: <b>%{y}</b>",
                         "Locus: <b>%{x}</b>",
                         "Score: <b>%{z:.3f}</b><extra></extra>",
+                    ])
+            elif var == "hit_contigs":
+                zmax = data[var].max() if data[var].max() < 50 else 50
+                cmap = [colorscale2] if data[var].max() < 50 else [colorscale]
+                if matrix_size > 500000:
+                    hovertemplate = "<br>".join([
+                        "Sample: <b>%{y}</b>",
+                        "Locus: <b>%{x}</b>",
+                        "Contigs in best hit: <b>%{z}</b><extra></extra>",
+                    ])
+            elif var == "hit_l50":
+                zmax = data[var].max() if data[var].max() < 50 else 50
+                cmap = [colorscale2] if data[var].max() < 50 else [colorscale]
+                if matrix_size > 500000:
+                    hovertemplate = "<br>".join([
+                        "Sample: <b>%{y}</b>",
+                        "Locus: <b>%{x}</b>",
+                        "Best hit L50: <b>%{z}</b><extra></extra>",
+                    ])
+            elif var == "hit_l90":
+                zmax = data[var].max() if data[var].max() < 50 else 50
+                cmap = [colorscale2] if data[var].max() < 50 else [colorscale]
+                if matrix_size > 500000:
+                    hovertemplate = "<br>".join([
+                        "Sample: <b>%{y}</b>",
+                        "Locus: <b>%{x}</b>",
+                        "Best hit L90: <b>%{z}</b><extra></extra>",
+                    ])
+            elif var == "hit_lg50":
+                zmax = data[var].max() if data[var].max() < 50 else 50
+                cmap = [colorscale2] if data[var].max() < 50 else [colorscale]
+                if matrix_size > 500000:
+                    hovertemplate = "<br>".join([
+                        "Sample: <b>%{y}</b>",
+                        "Locus: <b>%{x}</b>",
+                        "Best hit LG50: <b>%{z}</b><extra></extra>",
+                    ])
+            elif var == "hit_lg90":
+                zmax = data[var].max() if data[var].max() < 50 else 50
+                cmap = [colorscale2] if data[var].max() < 50 else [colorscale]
+                if matrix_size > 500000:
+                    hovertemplate = "<br>".join([
+                        "Sample: <b>%{y}</b>",
+                        "Locus: <b>%{x}</b>",
+                        "Best hit LG90: <b>%{z}</b><extra></extra>",
                     ])
             else:
                 zmax = data[var].max() if data[var].max() < 2 else 2

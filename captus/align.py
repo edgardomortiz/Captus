@@ -20,7 +20,6 @@ import time
 from multiprocessing import Manager
 from pathlib import Path
 
-from numpy import source
 from tqdm import tqdm
 
 from . import log
@@ -185,7 +184,7 @@ def align(full_command, args):
                 f' {dim(settings.MAFFT_ALGORITHMS[args.mafft_method]["aka"])}')
         log.log(f'{"Timeout":>{mar}}: {bold(args.mafft_timeout)}'
                 f' {dim(f"[{elapsed_time(args.mafft_timeout)}]")}')
-        log.log(f'{"Codon-align CDS in NT":>{mar}}: {bold(not(args.disable_codon_align))}')
+        log.log(f'{"Codon-align CDS":>{mar}}: {bold(not(args.disable_codon_align))}')
         log.log(f'{"Outgroup":>{mar}}: {bold(args.outgroup)}')
         log.log("")
         log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
@@ -1030,8 +1029,7 @@ def fastas_origs_dests(dir_path: Path, orig_base_dir: str, dest_base_dir: str):
     for path in list(Path(dir_path, orig_base_dir).rglob("*.f[an]a")):
         if not f"{path.name}".startswith("."):
             origin = path.resolve()
-            # destination = Path(*[p if p != orig_base_dir else dest_base_dir for p in origin.parts])
-            destination = Path(str(origin).replace(str(orig_base_dir), str(dest_base_dir)))
+            destination = Path(dir_path, dest_base_dir, origin.name)
             fastas_to_process[origin] = destination
 
     return fastas_to_process
