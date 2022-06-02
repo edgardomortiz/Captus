@@ -392,6 +392,9 @@ SCIPIO_GENOME_EXTRA_SETTINGS = {
     ],
 }
 
+# Minimum length of terminal exon for organellar proteins
+SCIPIO_MIN_LEN_FINAL_EXON = 21
+
 # Maximum insertion allowed expressed as proportion of the reference sequence length
 DNA_MAX_INSERT_PROP = 0.2
 

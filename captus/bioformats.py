@@ -1532,7 +1532,35 @@ def scipio_yaml_to_dict(
 
         return mod
 
-    def fix_model(mod: dict, gencode: dict):
+    def remove_short_terminal_exon(mod: dict):
+        mod_len = len(mod["mat_types"])
+        try:
+            exon_indexes = [i for i in range(mod_len) if mod["mat_types"][i] == "exon"]
+        except ValueError:
+            return mod
+        if len(exon_indexes) > 1:
+            last_exon_idx = exon_indexes[-1]
+            if (mod["mat_types"][last_exon_idx-1] == "intron"
+                and len(mod["mat_nt"][last_exon_idx]) < set_a.SCIPIO_MIN_LEN_FINAL_EXON):
+                last_intron_idx = last_exon_idx - 1
+                mod["ref_starts"] = mod["ref_starts"][:last_intron_idx]
+                mod["ref_ends"]   = mod["ref_ends"][:last_intron_idx]
+                mod["hit_ids"]    = mod["hit_ids"][:last_intron_idx]
+                mod["hit_starts"] = mod["hit_starts"][:last_intron_idx]
+                mod["hit_ends"]   = mod["hit_ends"][:last_intron_idx]
+                mod["mat_types"]  = mod["mat_types"][:last_intron_idx]
+                mod["mat_notes"]  = mod["mat_notes"][:last_intron_idx]
+                mod["mat_nt"]     = mod["mat_nt"][:last_intron_idx]
+                mod["mat_aa"]     = mod["mat_aa"][:last_intron_idx]
+                ref_ends = list(filter(None, mod["ref_ends"]))
+                mod["mismatches"] = list(filter(lambda x: x<=max(ref_ends), mod["mismatches"]))
+                return mod
+            else:
+                return mod
+        else:
+            return mod
+
+    def fix_model(mod: dict, gencode: dict, marker_type):
         """
         When translation of concatenated exons does not match the translation given by Scipio, we
         need to check every exon for inconsistencies like extra dangling nucleotides that break the
@@ -1550,11 +1578,23 @@ def scipio_yaml_to_dict(
         dict
             Modified gene model
         """
+
+        # Scipio rarely finds a distant, ver short terminal exon for some proteins like psbB, we
+        # need to remove that exon and fix the rest of the model (remove intron before the short
+        # terminal exon, remove stop codon sequence if found after the short exon)
+        if marker_type in ["PTD", "MIT"]:
+            mod = remove_short_terminal_exon(mod)
+
+        # Simply exit if model has no exons
+        if not "exon" in mod["mat_types"]:
+            return None
+
         mod_len = len(mod["mat_types"])
 
         # 1. Best case scenario: gene model translates exactly as Scipio and doesn't need fixing
         cds_nt, cds_aa = concat_cds(mod)
-        if translate(cds_nt, gencode, frame=1, start_as_M=False) == cds_aa:
+        if (translate(cds_nt, gencode, frame=1, start_as_M=False) == cds_aa
+            and len(cds_nt) % 3 == 0):
             return mod
 
         # 2. Fix cases where Scipio's translation is longer than possible given the exon seq
@@ -1570,7 +1610,8 @@ def scipio_yaml_to_dict(
                     mod["mat_aa"][i] = mod["mat_aa"][i][:end_aa]
                 mat_alns[i] = align_exon_nt_to_scipio_aa(mod["mat_nt"][i], gencode, mod["mat_aa"][i])
         cds_nt, cds_aa = concat_cds(mod)
-        if translate(cds_nt, gencode, frame=1, start_as_M=False) == cds_aa:
+        if (translate(cds_nt, gencode, frame=1, start_as_M=False) == cds_aa
+            and len(cds_nt) % 3 == 0):
             return mod
 
         # 3. Fix dangling nucleotides in exons when gaps are found, fixes coordinates as well
@@ -1587,41 +1628,46 @@ def scipio_yaml_to_dict(
                         mod["mat_nt"][i], gencode, mod["mat_aa"][i]
                     )
         cds_nt, cds_aa = concat_cds(mod)
-        if translate(cds_nt, gencode, frame=1, start_as_M=False) == cds_aa:
+        if (translate(cds_nt, gencode, frame=1, start_as_M=False) == cds_aa
+            and len(cds_nt) % 3 == 0):
             return mod
 
         # 4. Remove extra dangling bases that break reading frame
-        last_i = None
+        prev_i = None
+        last_exon_i = [i for i in range(mod_len) if mod["mat_types"][i] == "exon"][-1]
         for i in range(mod_len):
             if mod["mat_types"][i] == "exon":
                 # Remove extra leading nucleotides/aminoacids from first exon
-                if last_i is None:
+                if prev_i is None:
                     if mat_alns[i]["lead"] > 0:
                         mod = remove_leading(mod, i, mat_alns[i]["lead"], mat_alns[i])
                 # Continue with remaining exons
                 else:
-                    if mat_alns[last_i]["trail"] + mat_alns[i]["lead"] in [0, 3]:
+                    if mat_alns[prev_i]["trail"] + mat_alns[i]["lead"] in [0, 3]:
                         pass
-                    elif mat_alns[last_i]["trail"] == 0 and mat_alns[i]["lead"] in [1, 2]:
+                    elif mat_alns[prev_i]["trail"] == 0 and mat_alns[i]["lead"] in [1, 2]:
                         mod = remove_leading(mod, i, mat_alns[i]["lead"], mat_alns[i])
-                    elif mat_alns[last_i]["trail"] == 1 and mat_alns[i]["lead"] in [0, 1]:
-                        mod = remove_trailing(mod, last_i, 1, mat_alns[last_i], mod_len)
+                    elif mat_alns[prev_i]["trail"] == 1 and mat_alns[i]["lead"] in [0, 1]:
+                        mod = remove_trailing(mod, prev_i, 1, mat_alns[prev_i], mod_len)
                         mod = remove_leading(mod, i, mat_alns[i]["lead"], mat_alns[i])
-                    elif mat_alns[last_i]["trail"] == 2:
+                    elif mat_alns[prev_i]["trail"] == 2:
                         if mat_alns[i]["lead"] == 0:
-                            mod = remove_trailing(mod, last_i, 2, mat_alns[last_i], mod_len)
+                            mod = remove_trailing(mod, prev_i, 2, mat_alns[prev_i], mod_len)
                         elif mat_alns[i]["lead"] == 2:
                             # If last exon has an extra terminal aminoacid
-                            if (mat_alns[last_i]["s1_end"]
-                                < mat_alns[last_i]["s2_end"]):
+                            if (mat_alns[prev_i]["s1_end"]
+                                < mat_alns[prev_i]["s2_end"]):
                                 # Trim a single base from the start of current exon
                                 mod = remove_leading(mod, i, 1, mat_alns[i])
                             # If last exon has two extra bp but not extra amino
                             else:
                                 # Trim a single base from the end of last exon
-                                mod = remove_trailing(mod, last_i, 1, mat_alns[last_i], mod_len)
+                                mod = remove_trailing(mod, prev_i, 1, mat_alns[prev_i], mod_len)
+                # Remove extra trailing nucleotides/aminoacids from last exon
+                if i == last_exon_i and mat_alns[i]["trail"] > 0:
+                    mod = remove_trailing(mod, i, mat_alns[i]["trail"], mat_alns[i], mod_len)
                 mat_alns[i] = align_exon_nt_to_scipio_aa(mod["mat_nt"][i], gencode, mod["mat_aa"][i])
-                last_i = i
+                prev_i = i
 
         cds_nt, cds_aa = concat_cds(mod)
         cds_nt_translated = translate(cds_nt, gencode, frame=1, start_as_M=False)
@@ -2019,7 +2065,7 @@ def scipio_yaml_to_dict(
                     mod["mismatches"]      += mismatches
                     add_separator = False if has_overlap else True
 
-        mod = fix_model(mod, gencode)
+        mod = fix_model(mod, gencode, marker_type)
         if not mod: return None
 
         mod = check_gaps_and_concat_seqs(mod, gencode, predict, min_identity)
