@@ -1029,7 +1029,13 @@ def fastas_origs_dests(dir_path: Path, orig_base_dir: str, dest_base_dir: str):
     for path in list(Path(dir_path, orig_base_dir).rglob("*.f[an]a")):
         if not f"{path.name}".startswith("."):
             origin = path.resolve()
-            destination = Path(dir_path, dest_base_dir, origin.name)
+            # Troubleshoot later, needed if we want to take simlinks as input
+            # destination = Path(dir_path,
+            #                    dest_base_dir,
+            #                    origin.parent.parts[-2],
+            #                    origin.parent.parts[-1],
+            #                    origin.name)
+            destination = Path(str(origin).replace(str(orig_base_dir), str(dest_base_dir)))
             fastas_to_process[origin] = destination
 
     return fastas_to_process
