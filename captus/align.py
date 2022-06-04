@@ -1366,7 +1366,7 @@ def filter_paralogs_informed(
             else:
                 del accepted[accepted.index(row[6])]
 
-    shared_paralog_stats += tsv
+    shared_paralog_stats += ["\t".join(row)+"\n" for row in tsv]
     messages = []
     fastas_saved = len(fastas_paths)
     for fasta in fastas_paths:
@@ -1421,8 +1421,7 @@ def write_paralog_stats(out_dir, shared_paralog_stats):
                                      "identity",
                                      "paralog_score",
                                      "accepted"]) + "\n")
-            for record in sorted(shared_paralog_stats):
-                tsv_out.write("\t".join(record)+"\n")
+            tsv_out.writelines(sorted(shared_paralog_stats))
         return stats_tsv_file
 
 
@@ -1639,7 +1638,7 @@ def compute_stats(shared_seq_names, shared_sam_stats, shared_aln_stats, fasta_pa
         f'{aln_stats["avg_pid"]:.4f}',                      # [17] average pairwise identity
         f'{aln_stats["missingness"]:.4f}',                  # [18] pct of gaps and Ns or Xs
     ]]
-    shared_aln_stats += aln_tsv
+    shared_aln_stats += ["\t".join(row)+"\n" for row in aln_tsv]
 
     sam_stats = sample_stats(fasta_dict, aln_type)
     sam_tsv = []
@@ -1653,7 +1652,7 @@ def compute_stats(shared_seq_names, shared_sam_stats, shared_aln_stats, fasta_pa
             f'{statistics.mean(sam_stats[sample]["pct_ambig"]):.4f}',    # pct ambiguities, no gaps
             f'{sam_stats[sample]["num_copies"]}',                        # num copies
         ])
-    shared_sam_stats += sam_tsv
+    shared_sam_stats += ["\t".join(row)+"\n" for row in sam_tsv]
 
     shared_seq_names += list(fasta_dict.keys())
 
@@ -1687,8 +1686,7 @@ def write_aln_stats(out_dir, shared_aln_stats):
                                      "patterns",
                                      "avg_pid",
                                      "missingness",]) + "\n")
-            for record in sorted(shared_aln_stats):
-                tsv_out.write("\t".join(record)+"\n")
+            tsv_out.writelines(sorted(shared_aln_stats))
         return stats_tsv_file
 
 
@@ -1705,8 +1703,7 @@ def write_sam_stats(out_dir, shared_sam_stats):
                                      "cov_ungapped",
                                      "pct_ambig",
                                      "num_copies",]) + "\n")
-            for record in sorted(shared_sam_stats):
-                tsv_out.write("\t".join(record)+"\n")
+            tsv_out.writelines(sorted(shared_sam_stats))
         return stats_tsv_file
 
 
@@ -1714,15 +1711,14 @@ def write_astral_pro_seq_to_sam(out_dir, shared_seq_names):
     if not shared_seq_names:
         return None
     else:
-        unique_names = sorted(list(set(shared_seq_names)))
+        unique_names = set(shared_seq_names)
         seq_to_sam = []
         for name in unique_names:
             if name.endswith(f'{settings.SEQ_NAME_SEP}ref'):
-                seq_to_sam.append([name, name])
+                seq_to_sam.append(f'{name}\t{name}\n')
             else:
-                seq_to_sam.append([name, name.split(settings.SEQ_NAME_SEP)[0]])
+                seq_to_sam.append(f'{name}\t{name.split(settings.SEQ_NAME_SEP)[0]}\n')
         stats_tsv_file = Path(out_dir, settings.ASTRAL_PRO_EQ)
         with open(stats_tsv_file, "wt") as tsv_out:
-            for record in sorted(seq_to_sam):
-                tsv_out.write("\t".join(record)+"\n")
+            tsv_out.writelines(sorted(seq_to_sam))
         return stats_tsv_file
