@@ -2388,6 +2388,7 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
     }
 
     figs = []
+
     fig = go.Figure()
     for j, marker_type in enumerate(marker_type_list):
         data = df[df["marker_type"] == marker_type]
@@ -2503,7 +2504,7 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
         font_family="Arial",
         plot_bgcolor="rgb(8,8,8)",
         title=(
-            "<b>Captus-assembly: Align (Alignment/Trimming Report)<br>"
+            "<b>Captus-assembly: Align (Alignment Report)<br>"
             + "1. Stats Comparison at Each Processing Step"
             + "</b><br><sup>(Source: "
             + str(aln_stats_tsv.name)
@@ -2541,18 +2542,18 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
     figs.append(fig)
 
     stage_dict = {
-        "False-unfiltered-True": "02_untrimmed/<br>01_unfiltered_w_refs",
-        "False-naive-True": "02_untrimmed/<br>02_naive_w_refs",
-        "False-informed-True": "02_untrimmed/<br>03_informed_w_refs",
+        "True-informed-False":    "03_trimmed/<br>06_informed",
+        "True-naive-False":       "03_trimmed/<br>05_naive",
+        "True-unfiltered-False":  "03_trimmed/<br>04_unfiltered",
+        "True-informed-True":     "03_trimmed/<br>03_informed_w_refs",
+        "True-naive-True":        "03_trimmed/<br>02_naive_w_refs",
+        "True-unfiltered-True":   "03_trimmed/<br>01_unfiltered_w_refs",
+        "False-informed-False":   "02_untrimmed/<br>06_informed",
+        "False-naive-False":      "02_untrimmed/<br>05_naive",
         "False-unfiltered-False": "02_untrimmed/<br>04_unfiltered",
-        "False-naive-False": "02_untrimmed/<br>05_naive",
-        "False-informed-False": "02_untrimmed/<br>06_informed",
-        "True-unfiltered-True": "03_trimmed/<br>01_unfiltered_w_refs",
-        "True-naive-True": "03_trimmed/<br>02_naive_w_refs",
-        "True-informed-True": "03_trimmed/<br>03_informed_w_refs",
-        "True-unfiltered-False": "03_trimmed/<br>04_unfiltered",
-        "True-naive-False": "03_trimmed/<br>05_naive",
-        "True-informed-False": "03_trimmed/<br>06_informed",
+        "False-informed-True":    "02_untrimmed/<br>03_informed_w_refs",
+        "False-naive-True":       "02_untrimmed/<br>02_naive_w_refs",
+        "False-unfiltered-True":  "02_untrimmed/<br>01_unfiltered_w_refs",
     }
 
     hovertemplate = "<br>".join([
@@ -2574,7 +2575,7 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
 
     for j, marker_type in enumerate(marker_type_list):
         data = df[df["marker_type"] == marker_type]
-        stage_list = data["stage"].unique()
+        stage_list = list(reversed(data["stage"].unique()))
         fmt_list = list(reversed(data["format"].unique()))
         fig = go.Figure()
         buttons_stage = []
@@ -2838,6 +2839,242 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
         )
         figs.append(fig)
 
+    # HEATMAP OF SAMPLE OCCUPANCY IN THE ALIGNMENTS AT EACH STEP
+    sm = pd.read_table(sam_stats_tsv)
+    # Exclude reference sequences
+    sm = sm[~sm["sample"].str.contains("__ref")]
+    # Exclude stages that contain references in alignments
+    sm = sm[~sm["stage_marker_format"].str.contains("_w_refs")].reset_index()
+    # Summarize statistics by sample and stage_marker_format, data for heatmap
+    data = sm.groupby(["sample", "stage_marker_format"]).agg(
+        num_loci = ("locus", "nunique"),
+        mean_cov_gapped = ("cov_gapped", np.mean),
+        mean_cov_ungapped = ("cov_ungapped", np.mean),
+        mean_pct_ambig = ("pct_ambig", np.mean),
+        mean_num_copies = ("num_copies", np.mean)
+    ).reset_index()
+
+    # Individual heatmap elements
+    var_list = [
+        "num_loci",
+        "mean_cov_gapped",
+        "mean_cov_ungapped",
+        "mean_pct_ambig",
+        "mean_num_copies",
+    ]
+    var_lab_list = [
+        "Number of Loci",
+        "Mean Gapped Coverage (%)",
+        "Mean Ungapped Coverage (%)",
+        "Mean Ambiguities (%)",
+        "Mean Number of Copies",
+    ]
+    colorscale = [
+        [0.0, "rgb(94,79,162)"],
+        [0.1, "rgb(50,136,189)"],
+        [0.2, "rgb(102,194,165)"],
+        [0.3, "rgb(171,221,164)"],
+        [0.4, "rgb(230,245,152)"],
+        [0.5, "rgb(255,255,191)"],
+        [0.6, "rgb(254,224,139)"],
+        [0.7, "rgb(253,174,97)"],
+        [0.8, "rgb(244,109,67)"],
+        [0.9, "rgb(213,62,79)"],
+        [1.0, "rgb(158,1,66)"],
+    ]
+    hovertemplate = "<br>".join([
+        "Sample: <b>%{customdata[0]}</b>",
+        "Alignment Category: <b>%{customdata[1]}</b>",
+        "Number of Loci: <b>%{customdata[2]}</b>",
+        "Mean Gapped Coverage (%): <b>%{customdata[3]:.2f}%</b>",
+        "Mean Ungapped Coverage (%): <b>%{customdata[4]:.2f}%</b>",
+        "Mean Ambiguities (%): <b>%{customdata[5]:.4f}%</b>",
+        "Mean Number of Copies: <b>%{customdata[6]:.2f}</b><extra></extra>",
+    ])
+
+    # Draw heatmap
+    fig = go.Figure()
+    fig.add_trace(
+        go.Heatmap(
+            x=data["stage_marker_format"],
+            y=data["sample"],
+            z=data[var_list[0]],
+            zmin=data[var_list[0]].min(),
+            zmax=data[var_list[0]].max(),
+            colorscale=colorscale,
+            colorbar=dict(
+                ticks="outside",
+                outlinecolor="rgb(8,8,8)",
+                outlinewidth=1,
+            ),
+            customdata=data,
+            hovertemplate=hovertemplate,
+            hoverongaps=False,
+            xgap=0.5,
+            ygap=0.5,
+        )
+    )
+
+    # Dropdown for variables
+    buttons1 = []
+    for j, var in enumerate(var_list):
+        button = dict(
+            label=var_lab_list[j],
+            method="restyle",
+            args=[{
+                    "z": [data[var]],
+                    "zmin": data[var].min(),
+                    "zmax": data[var].max(),
+                    "colorscale": [colorscale],
+                    "colorbar.ticksuffix": None if j in [0,4] else "%",
+                    "hovertemplate": hovertemplate,
+            }],
+        )
+        buttons1.append(button)
+
+    # Dropdown for sorting
+    buttons2 = [
+        dict(
+            label="None",
+            method="relayout",
+            args=[{
+                "xaxis.categoryorder": "category ascending",
+                "yaxis.categoryorder": "category descending",
+            }],
+        ),
+        dict(
+            label="Mean X",
+            method="relayout",
+            args=[{
+                "xaxis.categoryorder": "mean descending",
+                "yaxis.categoryorder": "category descending",
+            }],
+        ),
+        dict(
+            label="Mean Y",
+            method="relayout",
+            args=[{
+                "xaxis.categoryorder": "category ascending",
+                "yaxis.categoryorder": "mean ascending",
+            }],
+        ),
+        dict(
+            label="Mean Both",
+            method="relayout",
+            args=[{
+                "xaxis.categoryorder": "mean descending",
+                "yaxis.categoryorder": "mean ascending",
+            }],
+        ),
+        dict(
+            label="Total X",
+            method="relayout",
+            args=[{
+                "xaxis.categoryorder": "total descending",
+                "yaxis.categoryorder": "category descending",
+            }],
+        ),
+        dict(
+            label="Total Y",
+            method="relayout",
+            args=[{
+                "xaxis.categoryorder": "category ascending",
+                "yaxis.categoryorder": "total ascending",
+            }],
+        ),
+        dict(
+            label="Total Both",
+            method="relayout",
+            args=[{
+                "xaxis.categoryorder": "total descending",
+                "yaxis.categoryorder": "total ascending",
+            }],
+        ),
+    ]
+
+    updatemenus=[
+        dict(
+            buttons=buttons1,
+            type="dropdown",
+            direction="down",
+            pad={"t": 10, "b": 10},
+            showactive=True,
+            x=0.5,
+            xanchor="right",
+            y=1,
+            yanchor="bottom",
+        ),
+        dict(
+            buttons=buttons2,
+            type="dropdown",
+            direction="down",
+            pad={"t": 10, "b": 10},
+            showactive=True,
+            x=1,
+            xanchor="right",
+            y=1,
+            yanchor="bottom",
+        ),
+    ]
+
+    annotations = [
+        dict(
+            text="<b>Variable:</b>",
+            x=0.5,
+            xref="paper",
+            xanchor="right",
+            xshift=-210,
+            y=1,
+            yref="paper",
+            yanchor="top",
+            yshift=36,
+            align="right",
+            showarrow=False,
+        ),
+        dict(
+            text="<b>Sort by Value:</b>",
+            x=1,
+            xref="paper",
+            xanchor="right",
+            xshift=-102,
+            y=1,
+            yref="paper",
+            yanchor="top",
+            yshift=36,
+            align="right",
+            showarrow=False,
+        ),
+    ]
+
+    # Layout setting
+    fig.update_layout(
+        font_family="Arial",
+        plot_bgcolor="rgb(8,8,8)",
+        title=(
+            "<b>3. Sample Occupancy at each Processing Step"
+            + "</b><br><sup>(Source: "
+            + str(sam_stats_tsv.name)
+            + ")</sup>"
+        ),
+        xaxis=dict(
+            title="Trimming / Filtering / Marker Type / Format",
+            type="category",
+            categoryorder="category ascending",
+            gridcolor="rgb(64,64,64)",
+            ticks="outside",
+        ),
+        yaxis=dict(
+            title="Sample",
+            type="category",
+            categoryorder="category descending",
+            gridcolor="rgb(64,64,64)",
+            ticks="outside",
+        ),
+        annotations=annotations,
+        updatemenus=updatemenus
+    )
+    figs.append(fig)
+
     # Save plot in html
     aln_html_report = Path(out_dir, "captus-assembly_align.report.html")
     with open(aln_html_report, "w") as f:
@@ -2847,7 +3084,7 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
                     full_html=False,
                     include_plotlyjs="cdn",
                     config=dict(
-                        scrollZoom=False if i == 0 else True,
+                        scrollZoom=True if i == 1 else False,
                         toImageButtonOptions=dict(
                             format="svg",
                         ),
