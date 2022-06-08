@@ -196,8 +196,12 @@ SCIPIO_MAX_GAP_DELTA_IDENTITY = 0.3
 SCIPIO_STOP_PENALTY = 0.5
 
 # Multiply 'lwscore' by this much, for each frameshift in the protein
-# e.g. for 3 frameshifts = lwscore * 0.95 * 0.95 * 0.95
-SCIPIO_FRAMESHIFT_PENALTY = 0.95
+# e.g. for 3 frameshifts = lwscore * 0.975 * 0.975 * 0.975
+SCIPIO_FRAMESHIFT_PENALTY = 0.975
+
+# Multiply 'lwscore' by this much, for each additional contig used in the assembly
+# e.g. for 3 contigs = lwscore * 0.995 * 0.995
+SCIPIO_EXTRA_CONTIG_PENALTY = 0.999
 
 # Maximum number of mismatches between recovered protein as given by Scipio and the new translation
 # performed by Captus after checking and fixing the gene model
