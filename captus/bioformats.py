@@ -1732,7 +1732,6 @@ def scipio_yaml_to_dict(
                         else:
                             alns = {i: align_prots(rfs[i], prot_gap, "sw") for i in rfs}
                         # Prioritize filling gaps without skipping leading or trailing bases
-
                         if (len(current_chunk) % 3 == 0 and not "*" in rfs[1]
                             and alns[1]["match_rate"] >= min_gap_identity):
                             lead, trail = 0, 0
@@ -1797,9 +1796,9 @@ def scipio_yaml_to_dict(
                 mod["hit_starts"][i] = mod["hit_ends"][i-1] + lead
                 mod["hit_ends"][i] = mod["hit_starts"][i+1] - trail
                 mod["mat_types"][i] += "/exon"
-                if mod["mat_types"][i] == "gap":
+                if "gap" in mod["mat_types"][i]:
                     mod["mat_notes"][i] += "/filled"
-                elif mod["mat_types"][i] == "intron?":
+                elif "intron?" in mod["mat_types"][i]:
                     mod["mat_notes"][i] += "/predicted"
             else:
                 mod["seq_flanked"] += mod["mat_nt"][i].lower()
@@ -1947,6 +1946,7 @@ def scipio_yaml_to_dict(
             "seq_gene":    "",    # 'seq_flanked' without 'upstream' or 'downstream' nucleotides
             "seq_nt":      "",    # concatenation of 'mat_nt' only for exons
             "seq_aa":      "",    # concatenation of 'mat_aa'
+            "match_len":   0,     # number of reference aminoacids matched
         }
         add_separator = False
 
@@ -2073,26 +2073,24 @@ def scipio_yaml_to_dict(
         if not mod: return None
 
         mod = check_gaps_and_concat_seqs(mod, gencode, predict, min_identity)
-        prot_len_predicted = sum(mod["hit_ends"][i] - mod["hit_starts"][i]
-                                 for i in range(len(mod["mat_types"]))
-                                 if "predicted" in mod["mat_notes"][i])
+        prot_len_matched   = sum([mod["ref_ends"][i] - mod["ref_starts"][i]
+                                  for i in range(len(mod["mat_types"]))
+                                  if ("predicted" not in mod["mat_notes"][i]
+                                      and "exon" in mod["mat_types"][i])])
         mod = merge_adjoining_exons(mod)
         mod["ref_coords"]  = concat_coords(mod["hit_ids"], mod["ref_starts"], mod["ref_ends"])
         mod["hit_coords"]  = concat_coords(mod["hit_ids"], mod["hit_starts"], mod["hit_ends"])
         mod["hit_ids"]     = "\n".join(list(dict.fromkeys(list(filter(None, mod["hit_ids"])))))
         mod["hit_contigs"] = "\n".join(mod["hit_contigs"])
         mod["strand"]      = "\n".join(mod["strand"])
-        prot_len           = (len(mod["seq_nt"].replace("n", "")) - prot_len_predicted) // 3
-        mismatch_rate      = len(set(mod["mismatches"])) / prot_len
-        mismatches         = mismatch_rate * prot_len
-        matches            = prot_len - mismatches
-        mod["coverage"]    = (matches + mismatches) / mod["ref_size"] * 100
-        mod["identity"]    = matches / (matches + mismatches) * 100
+        mismatch_rate      = len(set(mod["mismatches"])) / prot_len_matched
+        mismatches         = mismatch_rate * prot_len_matched
+        matches            = prot_len_matched - mismatches
+        mod["coverage"]    = prot_len_matched / mod["ref_size"] * 100
+        mod["identity"]    = matches / prot_len_matched * 100
         mod["score"]       = (matches - mismatches) / mod["ref_size"]
-        # mod["lwscore"]     = mod["score"] * (matches + mismatches) / mod["ref_size"]
-        # actual lwscore is computed in the filtered_models loop, for now just store length
-        mod["lwscore"]     = min(prot_len, mod["ref_size"])
         mod["gapped"]      = bool("gap" in "".join(mod["mat_notes"]))
+        mod["match_len"]   = min(prot_len_matched, mod["ref_size"])
 
         return mod
 
@@ -2131,14 +2129,14 @@ def scipio_yaml_to_dict(
                 prot_cluster = protein.split(set_a.REFERENCE_CLUSTER_SEPARATOR)[-1]
             else:
                 prot_cluster = protein
-            # At this point ["lwscore"] contains only the AA length recovered (later calculated)
             if prot_cluster in max_len_aa_recov:
-                if unfiltered_models[protein][model]["lwscore"] > max_len_aa_recov[prot_cluster]:
-                    max_len_aa_recov[prot_cluster] = unfiltered_models[protein][model]["lwscore"]
+                if unfiltered_models[protein][model]["match_len"] > max_len_aa_recov[prot_cluster]:
+                    max_len_aa_recov[prot_cluster] = unfiltered_models[protein][model]["match_len"]
             else:
-                max_len_aa_recov[prot_cluster] = unfiltered_models[protein][model]["lwscore"]
+                max_len_aa_recov[prot_cluster] = unfiltered_models[protein][model]["match_len"]
 
-    # Filter models by 'min_identity' and 'min_coverage'
+    # Filter models by 'min_score', 'min_identity', and 'min_coverage', calculate 'lwscore'
+    # penalize 'lwscore' by number of frameshifts
     filtered_models = {}
     for protein in unfiltered_models:
         accepted_models = []
@@ -2147,11 +2145,16 @@ def scipio_yaml_to_dict(
                 prot_cluster = protein.split(set_a.REFERENCE_CLUSTER_SEPARATOR)[-1]
             else:
                 prot_cluster = protein
+            frameshifts = len(set(
+                [math.ceil((p+1)/3)
+                 for p in range(len(unfiltered_models[protein][model]["seq_nt"]))
+                 if unfiltered_models[protein][model]["seq_nt"][p] == "N"]
+            ))
             unfiltered_models[protein][model]["lwscore"] = (
                 unfiltered_models[protein][model]["score"]
-                * (unfiltered_models[protein][model]["lwscore"]
+                * (unfiltered_models[protein][model]["match_len"]
                    / max_len_aa_recov[prot_cluster])
-            )
+            ) * (set_a.SCIPIO_FRAMESHIFT_PENALTY ** frameshifts)
             if (unfiltered_models[protein][model]["score"] >= min_score
                 and unfiltered_models[protein][model]["identity"] >= min_identity
                 and unfiltered_models[protein][model]["coverage"] >= min_coverage):

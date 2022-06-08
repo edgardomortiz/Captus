@@ -1388,10 +1388,7 @@ def write_fastas_and_report(
         num_loci += 1
         for h in range(len(hits[ref])):
 
-            if marker_type in ["DNA", "CLR"]:
-                length = hits[ref][h]["match_len"]
-            else:
-                length = len(hits[ref][h]["seq_aa"])
+            length = hits[ref][h]["match_len"]
 
             if h == 0:
                 lengths_best_hits.append(length)
