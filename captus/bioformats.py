@@ -1893,6 +1893,21 @@ def scipio_yaml_to_dict(
 
         return coords
 
+    def calc_prot_len_matched(mod: dict):
+        starts = [mod["ref_starts"][i] for i in range(len(mod["mat_types"]))
+                  if ("predicted" not in mod["mat_notes"][i] and "exon" in mod["mat_types"][i])]
+        ends = [mod["ref_ends"][i] for i in range(len(mod["mat_types"]))
+                if ("predicted" not in mod["mat_notes"][i] and "exon" in mod["mat_types"][i])]
+        prot_len_matched = sum([j-i for i,j in zip(starts, ends)])
+        # In very rare cases Scipio returns overlaps, especially when hit is spread over multiple
+        # contigs, discount the overlap so it doesn't influence 'lwscore'
+        for i in range(len(starts)-1):
+            overlap = starts[i+1]-ends[i]
+            if overlap < 0:
+                prot_len_matched -= (abs(overlap) + 1)
+
+        return prot_len_matched
+
     def parse_model(
             yaml_mod: dict, protein_name: str, marker_type: str, gencode: dict, predict: bool,
             min_identity: float
@@ -2073,10 +2088,7 @@ def scipio_yaml_to_dict(
         if not mod: return None
 
         mod = check_gaps_and_concat_seqs(mod, gencode, predict, min_identity)
-        prot_len_matched   = sum([mod["ref_ends"][i] - mod["ref_starts"][i]
-                                  for i in range(len(mod["mat_types"]))
-                                  if ("predicted" not in mod["mat_notes"][i]
-                                      and "exon" in mod["mat_types"][i])])
+        prot_len_matched   = calc_prot_len_matched(mod)
         mod = merge_adjoining_exons(mod)
         mod["ref_coords"]  = concat_coords(mod["hit_ids"], mod["ref_starts"], mod["ref_ends"])
         mod["hit_coords"]  = concat_coords(mod["hit_ids"], mod["hit_starts"], mod["hit_ends"])
@@ -2150,11 +2162,14 @@ def scipio_yaml_to_dict(
                  for p in range(len(unfiltered_models[protein][model]["seq_nt"]))
                  if unfiltered_models[protein][model]["seq_nt"][p] == "N"]
             ))
+            contigs = len(unfiltered_models[protein][model]["hit_contigs"].split("\n"))
             unfiltered_models[protein][model]["lwscore"] = (
-                unfiltered_models[protein][model]["score"]
-                * (unfiltered_models[protein][model]["match_len"]
-                   / max_len_aa_recov[prot_cluster])
-            ) * (set_a.SCIPIO_FRAMESHIFT_PENALTY ** frameshifts)
+                (unfiltered_models[protein][model]["score"]
+                 * (unfiltered_models[protein][model]["match_len"]
+                   / max_len_aa_recov[prot_cluster]))
+                * (set_a.SCIPIO_FRAMESHIFT_PENALTY ** frameshifts)
+                * (set_a.SCIPIO_EXTRA_CONTIG_PENALTY ** (contigs-1))
+            )
             if (unfiltered_models[protein][model]["score"] >= min_score
                 and unfiltered_models[protein][model]["identity"] >= min_identity
                 and unfiltered_models[protein][model]["coverage"] >= min_coverage):
