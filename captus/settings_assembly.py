@@ -183,7 +183,7 @@ SCIPIO_MIN_GAP_LEN_TO_X = 5
 
 # Maximum gap size as proportion of reference length. For example, 0.5 means that only gaps that are
 # at most as long as half the length of the reference will be translated and aligned
-SCIPIO_MAX_GAP_AS_REF_PROP = 0.5
+SCIPIO_MAX_GAP_AS_REF_PROP = 0.3
 
 # Use a more relaxed identity between the translated gap and the unmatched segment in the reference
 # by subtracting this number from the 'min_identity' chosen for extraction.
@@ -194,6 +194,10 @@ SCIPIO_MAX_GAP_DELTA_IDENTITY = 0.3
 # match rate by this number as many times as stop codons are found in the translation corresponding
 # to each reading frame
 SCIPIO_STOP_PENALTY = 0.5
+
+# Multiply 'lwscore' by this much, for each frameshift in the protein
+# e.g. for 3 frameshifts = lwscore * 0.95 * 0.95 * 0.95
+SCIPIO_FRAMESHIFT_PENALTY = 0.95
 
 # Maximum number of mismatches between recovered protein as given by Scipio and the new translation
 # performed by Captus after checking and fixing the gene model
