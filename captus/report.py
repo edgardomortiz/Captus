@@ -1913,7 +1913,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
         "pct_identity",
         "hit",
         "score",
-        "lwscore",
+        "wscore",
         "hit_contigs",
         "hit_l50",
         "hit_l90",
@@ -1925,7 +1925,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
         "Identity (%)",
         "Total Hits (Copies)",
         "Score",
-        "Length-weighted Score",
+        "Weighted Score",
         "Contigs in best hit",
         "Best hit L50",
         "Best hit L90",
@@ -2051,7 +2051,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
                 "Recovered length: <b>%{customdata[8]:.2f}%</b>",
                 "Identity: <b>%{customdata[9]:.2f}%</b>",
                 "Score: <b>%{customdata[10]:.3f}</b>",
-                "Length-weighted score: <b>%{customdata[11]:.3f}</b>",
+                "Weighted score: <b>%{customdata[11]:.3f}</b>",
                 "Hit length: <b>%{customdata[12]:,.0f} bp</b>",
                 "CDS length: <b>%{customdata[13]:,.0f} bp</b>",
                 "Intron length: <b>%{customdata[14]:,.0f} bp</b>",
@@ -2178,7 +2178,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
                     hovertemplate = "<br>".join([
                         "Sample: <b>%{y}</b>",
                         "Locus: <b>%{x}</b>",
-                        "Length-weighted score: <b>%{z:.3f}</b><extra></extra>",
+                        "Weighted score: <b>%{z:.3f}</b><extra></extra>",
                     ])
             button = dict(
                 label=var_lab_list[j],

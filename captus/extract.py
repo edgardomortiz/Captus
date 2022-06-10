@@ -1397,7 +1397,7 @@ def write_fastas_and_report(
                 num_paralogs += 1
 
             description = (
-                f'[hit={h:02}] [lwscore={hits[ref][h]["lwscore"]:.3f}] '
+                f'[hit={h:02}] [wscore={hits[ref][h]["wscore"]:.3f}] '
                 f'[cover={hits[ref][h]["coverage"]:.2f}] [ident={hits[ref][h]["identity"]:.2f}] '
                 f'[score={hits[ref][h]["score"]:.3f}] '
             )
@@ -1494,7 +1494,7 @@ def write_fastas_and_report(
                                     f'{hits[ref][h]["coverage"]:.2f}',
                                     f'{hits[ref][h]["identity"]:.2f}',
                                     f'{hits[ref][h]["score"]:.3f}',
-                                    f'{hits[ref][h]["lwscore"]:.3f}',
+                                    f'{hits[ref][h]["wscore"]:.3f}',
                                     f'{hit_len}',
                                     stats_row["cds_len"],
                                     stats_row["intron_len"],

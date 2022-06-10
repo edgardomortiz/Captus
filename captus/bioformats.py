@@ -1900,7 +1900,7 @@ def scipio_yaml_to_dict(
                 if ("predicted" not in mod["mat_notes"][i] and "exon" in mod["mat_types"][i])]
         prot_len_matched = sum([j-i for i,j in zip(starts, ends)])
         # In very rare cases Scipio returns overlaps, especially when hit is spread over multiple
-        # contigs, discount the overlap so it doesn't influence 'lwscore'
+        # contigs, discount the overlap so it doesn't influence 'wscore'
         for i in range(len(starts)-1):
             overlap = starts[i+1]-ends[i]
             if overlap < 0:
@@ -1955,7 +1955,7 @@ def scipio_yaml_to_dict(
             "coverage":    0.0,   # (matches + mismatches) / ref_size * 100
             "identity":    0.0,   # matches / (matches + mismatches) * 100
             "score":       0.0,   # (matches - mismatches) / ref_size
-            "lwscore":     0.0,   # score * (length AA / max length AA across refs)
+            "wscore":     0.0,   # score * (length AA / max length AA across refs)
             "gapped":      False, # recovered protein has gaps with respect to the reference
             "seq_flanked": "",    # concatenation of 'mat_nt'
             "seq_gene":    "",    # 'seq_flanked' without 'upstream' or 'downstream' nucleotides
@@ -2147,8 +2147,8 @@ def scipio_yaml_to_dict(
             else:
                 max_len_aa_recov[prot_cluster] = unfiltered_models[protein][model]["match_len"]
 
-    # Filter models by 'min_score', 'min_identity', and 'min_coverage', calculate 'lwscore'
-    # penalize 'lwscore' by number of frameshifts
+    # Filter models by 'min_score', 'min_identity', and 'min_coverage', calculate 'wscore'
+    # penalize 'wscore' by number of frameshifts
     filtered_models = {}
     for protein in unfiltered_models:
         accepted_models = []
@@ -2163,19 +2163,19 @@ def scipio_yaml_to_dict(
                  if unfiltered_models[protein][model]["seq_nt"][p] == "N"]
             ))
             contigs = len(unfiltered_models[protein][model]["hit_contigs"].split("\n"))
-            unfiltered_models[protein][model]["lwscore"] = (
+            unfiltered_models[protein][model]["wscore"] = (
                 (unfiltered_models[protein][model]["score"]
                  * (unfiltered_models[protein][model]["match_len"]
                    / max_len_aa_recov[prot_cluster]))
                 * (set_a.SCIPIO_FRAMESHIFT_PENALTY ** frameshifts)
-                * (set_a.SCIPIO_EXTRA_CONTIG_PENALTY ** (contigs-1))
+                * (set_a.EXTRA_CONTIG_PENALTY ** (contigs-1))
             )
             if (unfiltered_models[protein][model]["score"] >= min_score
                 and unfiltered_models[protein][model]["identity"] >= min_identity
                 and unfiltered_models[protein][model]["coverage"] >= min_coverage):
                 accepted_models.append(unfiltered_models[protein][model])
         if accepted_models:
-            accepted_models = sorted(accepted_models, key=lambda i: i["lwscore"], reverse=True)
+            accepted_models = sorted(accepted_models, key=lambda i: i["wscore"], reverse=True)
             if max_paralogs > -1:
                 accepted_models = accepted_models[:max_paralogs+1]
             filtered_models[protein] = accepted_models
@@ -2194,7 +2194,7 @@ def scipio_yaml_to_dict(
             if protein_cluster not in best_models:
                 best_models[protein_cluster] = filtered_models[protein]
             else:
-                if filtered_models[protein][0]["lwscore"] > best_models[protein_cluster][0]["lwscore"]:
+                if filtered_models[protein][0]["wscore"] > best_models[protein_cluster][0]["wscore"]:
                     best_models[protein_cluster] = filtered_models[protein]
         filtered_models = None
         return best_models
@@ -2304,7 +2304,7 @@ def blat_misc_dna_psl_to_dict(
 
     def greedy_assembly_partial_hits(hits_list, max_overlap_bp, max_paralogs: int):
         """
-        Partial hits are assembled greedily starting by the hits with the highest 'lwscore',
+        Partial hits are assembled greedily starting by the hits with the highest 'wscore',
         producing as many paralogs as necessary. Paralogs are merged from partial hits when all
         the hits within the paralog are compatible (they have overlap and identity within tolerated
         limits)
@@ -2319,8 +2319,8 @@ def blat_misc_dna_psl_to_dict(
 
         paths = []
         if part_hits:
-            # Sort partial hits by their 'lwscore'
-            part_hits = sorted(part_hits, key=lambda i: i["lwscore"], reverse=True)
+            # Sort partial hits by their 'wscore'
+            part_hits = sorted(part_hits, key=lambda i: i["wscore"], reverse=True)
             # Make an empty list as long as the number of hits, in the worst-case scenario no hit is
             # compatible with any other
             paths = [[] for h in part_hits]
@@ -2374,8 +2374,8 @@ def blat_misc_dna_psl_to_dict(
     def extract_and_stitch_edges(assembly_paths, max_overlap_bp: int, max_paralogs: int):
         """
         Returns a list of stitched sequences with metadata, sorted by relevance: 'full' hits first
-        sorted by 'lwscore', followed by assembled hits sorted by 'lwscore', and finally
-        partial unassembled hits sorted by 'lwscore'.
+        sorted by 'wscore', followed by assembled hits sorted by 'wscore', and finally
+        partial unassembled hits sorted by 'wscore'.
         Assembly: For overlaps follow the coordinate system of the query and remove the overlap from
         the partial hit with the lower 'identity', for non-overlapped partial hits, concatenate hits
         intercalating them with as many Ns as indicated by gap in query
@@ -2401,7 +2401,7 @@ def blat_misc_dna_psl_to_dict(
                 "coverage": path[0]["coverage"],         # ((matches + mismatches) / ref_size) * 100
                 "identity": path[0]["identity"],          # (matches / (matches + mismatches)) * 100
                 "score": path[0]["score"],  # Scipio-like score as (matches - mismatches) / ref_size
-                "lwscore": path[0]["lwscore"], # Scipio-like * (len matched / locus max len matched)
+                "wscore": path[0]["wscore"], # Scipio-like * (len matched / locus max len matched)
                 "gapped": path[0]["gapped"],          # set to True when is assembly of partial hits
                 "region": path[0]["region"],    # full, proximal, middle, distal with respect to ref
                 # assembled sequence match plus upstream and downstream buffer
@@ -2472,7 +2472,7 @@ def blat_misc_dna_psl_to_dict(
                 asm_hit["coverage"] = match_len / asm_hit["ref_size"] * 100.0
                 # Calculate the mean 'identity' of all the partial hits used in the assembled path
                 asm_hit["identity"] = statistics.mean(hit_ids)
-                # Recalculate the 'score' and 'lwscore' using sum of matches/mismatches from all
+                # Recalculate the 'score' and 'wscore' using sum of matches/mismatches from all
                 # partial hits used in the assemble path
                 ave_match_prop = statistics.mean(match_props)
                 ave_mismatch_prop = 1 - ave_match_prop
@@ -2480,15 +2480,15 @@ def blat_misc_dna_psl_to_dict(
                                      - (ave_mismatch_prop * match_len))
                                     / asm_hit["ref_size"])
                 full_len = len(asm_hit["seq_gene"].replace("n", ""))
-                asm_hit["lwscore"] = asm_hit["score"] * (full_len / asm_hit["ref_size"])
+                asm_hit["wscore"] = asm_hit["score"] * (full_len / asm_hit["ref_size"])
                 asm_hit["gapped"] = bool("n" in asm_hit["seq_gene"])
                 asm_hit["match_len"] = match_len
 
             # Append hits to the global assembly 'raw_assembly'
             raw_assembly.append(dict(asm_hit))
 
-        # Sorting hits by 'lwscore'
-        raw_assembly = sorted(raw_assembly, key=lambda i: i["lwscore"], reverse=True)
+        # Sorting hits by 'wscore'
+        raw_assembly = sorted(raw_assembly, key=lambda i: i["wscore"], reverse=True)
         # Filter hit by 'min_coverage' and 'min_identity'
         assembly = []
         for hit in raw_assembly:
@@ -2633,7 +2633,7 @@ def blat_misc_dna_psl_to_dict(
                 q_inserts, matches, rep_matches, mismatches
             )
             score = (matches + rep_matches - mismatches) / q_size
-            lwscore = score * ((matches + rep_matches + mismatches) / q_size)
+            wscore = score * ((matches + rep_matches + mismatches) / q_size)
             region = determine_matching_region(q_size, q_start[0], q_end[-1],
                                                t_size, t_start[0], t_end[-1], t_strand)
             gapped = not bool(region == "full")
@@ -2659,7 +2659,7 @@ def blat_misc_dna_psl_to_dict(
                     "coverage":   coverage,
                     "identity":   identity,
                     "score":      score,
-                    "lwscore":    lwscore,
+                    "wscore":    wscore,
                     "region":     region,
                     "gapped":     gapped,
                 }
@@ -2710,19 +2710,23 @@ def blat_misc_dna_psl_to_dict(
                     if hit["match_len"] > max_len_nt_recov[dna_ref_cluster]:
                         max_len_nt_recov[dna_ref_cluster] = hit["match_len"]
 
-        # Loop the object again to calculate the actual lwscore
+        # Loop the object again to calculate the actual wscore
         for dna_ref in dna_hits:
             if refs_have_separators:
                 dna_ref_cluster = dna_ref.split(set_a.REFERENCE_CLUSTER_SEPARATOR)[-1]
             else:
                 dna_ref_cluster = dna_ref
             for hit in dna_hits[dna_ref]:
-                hit["lwscore"] = hit["score"] * (hit["match_len"] / max_len_nt_recov[dna_ref_cluster])
-            # Sort hits from largest to smallest 'lwscore'
-            dna_hits[dna_ref] = sorted(dna_hits[dna_ref], key=lambda i: i["lwscore"], reverse=True)
+                contigs = len(hit["hit_contigs"].split("\n"))
+                hit["wscore"] = (
+                    hit["score"] * (hit["match_len"] / max_len_nt_recov[dna_ref_cluster])
+                    * (set_a.EXTRA_CONTIG_PENALTY ** (contigs-1))
+                )
+            # Sort hits from largest to smallest 'wscore'
+            dna_hits[dna_ref] = sorted(dna_hits[dna_ref], key=lambda i: i["wscore"], reverse=True)
 
         # If multiple references of the same kind exist in the reference, then choose the one with
-        # the best hit that has the highest 'lwscore'
+        # the best hit that has the highest 'wscore'
         best_dna_hits = {}
         for dna_ref in dna_hits:
             if refs_have_separators:
@@ -2732,7 +2736,7 @@ def blat_misc_dna_psl_to_dict(
             if dna_ref_cluster not in best_dna_hits:
                 best_dna_hits[dna_ref_cluster] = dna_hits[dna_ref]
             else:
-                if dna_hits[dna_ref][0]["lwscore"] > best_dna_hits[dna_ref_cluster][0]["lwscore"]:
+                if dna_hits[dna_ref][0]["wscore"] > best_dna_hits[dna_ref_cluster][0]["wscore"]:
                     best_dna_hits[dna_ref_cluster] = dna_hits[dna_ref]
         dna_hits = None
         return best_dna_hits
@@ -2794,7 +2798,7 @@ def write_gff3(hits, marker_type, out_gff_path):
             hit_coords = split_coords(hits[ref][h]["hit_coords"])
             strands = hits[ref][h]["strand"].split("\n")
             score = f'{hits[ref][h]["score"]:.3f}'
-            lwscore = f"""LWScore={urllib.parse.quote(f'{hits[ref][h]["lwscore"]:.3f}')}"""
+            wscore = f"""LWScore={urllib.parse.quote(f'{hits[ref][h]["wscore"]:.3f}')}"""
             cover_pct = f"""Coverage={urllib.parse.quote(f'{hits[ref][h]["coverage"]:.2f}')}"""
             ident_pct = f"""Identity={urllib.parse.quote(f'{hits[ref][h]["identity"]:.2f}')}"""
             color = f"Color={urllib.parse.quote(set_a.GFF_COLORS[marker_type])}"
@@ -2810,7 +2814,7 @@ def write_gff3(hits, marker_type, out_gff_path):
                         f"""Query={urllib.parse.quote(f'{hits[ref][h]["ref_name"]}:{ref_coords[c]}')}"""
                     )
                     attributes = ";".join([
-                        hit_id, name, lwscore, query, cover_pct, ident_pct, color
+                        hit_id, name, wscore, query, cover_pct, ident_pct, color
                     ])
                     gff.append("\t".join([
                         seq_id, source, feature_type, start, end, score, strand, phase, attributes
