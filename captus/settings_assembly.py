@@ -195,13 +195,13 @@ SCIPIO_MAX_GAP_DELTA_IDENTITY = 0.3
 # to each reading frame
 SCIPIO_STOP_PENALTY = 0.5
 
-# Multiply 'lwscore' by this much, for each frameshift in the protein
-# e.g. for 3 frameshifts = lwscore * 0.975 * 0.975 * 0.975
+# Multiply 'wscore' by this much, for each frameshift in the protein
+# e.g. for 3 frameshifts = wscore * 0.975 * 0.975 * 0.975
 SCIPIO_FRAMESHIFT_PENALTY = 0.975
 
-# Multiply 'lwscore' by this much, for each additional contig used in the assembly
-# e.g. for 3 contigs = lwscore * 0.995 * 0.995
-SCIPIO_EXTRA_CONTIG_PENALTY = 0.999
+# Multiply 'wscore' by this much, for each additional contig used in the assembly
+# e.g. for 3 contigs = wscore * 0.995 * 0.995
+EXTRA_CONTIG_PENALTY = 0.999
 
 # Maximum number of mismatches between recovered protein as given by Scipio and the new translation
 # performed by Captus after checking and fixing the gene model
@@ -485,7 +485,7 @@ CLR_MIN_SAMPLE_PROP = 0.3
 EXT_STATS_HEADER = [
     "sample_name", "marker_type", "locus",
     "ref_name", "ref_coords", "ref_type", "ref_len_matched",
-    "hit", "pct_recovered", "pct_identity", "score", "lwscore",
+    "hit", "pct_recovered", "pct_identity", "score", "wscore",
     "hit_len", "cds_len", "intron_len", "flanks_len", "frameshifts",
     "hit_contigs", "hit_l50", "hit_l90", "hit_lg50", "hit_lg90",
     "ctg_names", "ctg_strands", "ctg_coords",
