@@ -974,8 +974,8 @@ def add_refs(ref_path, dest_dir):
             if ref_name in ref_fasta:
                 markers_in_ref.append(name_parts[-1])
                 fastas_found.append(ref_name)
-            if ref_out not in fasta_in:
-                fasta_in[ref_out] = ref_fasta[ref_name]
+                if ref_out not in fasta_in:
+                    fasta_in[ref_out] = ref_fasta[ref_name]
         dict_to_fasta(fasta_in, fasta)
 
     if fastas_found:

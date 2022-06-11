@@ -143,7 +143,7 @@ ___
 ### **`--min_coverage`**
 Minimum coverage of sequence as proportion of the mean of sequence lengths in the alignment, ignoring gaps. After `ClipKIT` finishes trimming columns, `Captus` will also remove short sequences below this threshold.
 
-This argument is optional, the default is **0.3**.
+This argument is optional, the default is **0.4**.
 ___
 ## *Other*
 ___
