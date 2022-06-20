@@ -315,7 +315,7 @@ def align(full_command, args):
                                         mar))
             log.log("")
             paralog_naive_filter(fastas_to_filter, args.min_samples, args.overwrite,
-                                concurrent, args.debug, show_less)
+                                 concurrent, args.debug, show_less)
             log.log("")
 
         if filter_method in ["informed", "both"]:
@@ -337,8 +337,8 @@ def align(full_command, args):
             manager = Manager()
             shared_paralog_stats = manager.list()
             paralog_informed_filter(shared_paralog_stats, fastas_to_filter, filtering_refs,
-                                   args.tolerance, args.min_samples, args.overwrite,
-                                   concurrent, args.debug, show_less)
+                                    args.tolerance, args.min_samples, args.overwrite,
+                                    concurrent, args.debug, show_less)
             paralog_stats_tsv = write_paralog_stats(out_dir, shared_paralog_stats)
             log.log("")
             log.log(f'{"Paralog statistics":>{mar}}: {bold(paralog_stats_tsv)}')
@@ -1294,84 +1294,92 @@ def filter_paralogs_informed(
 
     start = time.time()
 
-    fasta_model_short = Path(*fastas_paths[fasta_model].parts[-3:])
-    if file_is_empty(fasta_model):
-        return red(f"'{fasta_model_short}': FAILED paralog removal, input file was empty")
-
-    aln = fasta_to_dict(fasta_model)
-    fasta_model_marker = fasta_model.parts[-3][-3:]
-    if fasta_model.parts[-2] == "01_AA":
-        fasta_model_format = "AA"
-    elif fasta_model.parts[-2] == "02_NT":
-        fasta_model_format = "NT"
-    elif fasta_model.parts[-2] == "01_matches":
-        fasta_model_format = "NT"
-
-    refs = {}
-    for seq in aln:
-        if "query=" in aln[seq]["description"] and "hit=00" in aln[seq]["description"]:
-            ref = aln[seq]["description"].split("query=")[1].split("]")[0]
-            if ref in refs:
-                refs[ref] += 1
-            else:
-                refs[ref] = 1
-    best_ref_full_name = max(refs, key=refs.get)
-    s = settings.REFERENCE_CLUSTER_SEPARATOR
-    best_ref = s.join(best_ref_full_name.split(s)[:-1])
-    best_ref_seq = aln[f"{best_ref}{settings.SEQ_NAME_SEP}ref"]["sequence"]
-
-    tsv = []
-    accepted = [seq for seq in aln if seq.endswith(f"{settings.SEQ_NAME_SEP}ref")]
-    samples_with_paralogs = {}
-    for seq in aln:
-        if not seq.endswith(f"{settings.SEQ_NAME_SEP}ref"):
-            if settings.SEQ_NAME_SEP in seq:
-                sample_name = settings.SEQ_NAME_SEP.join(seq.split(settings.SEQ_NAME_SEP)[:-1])
-                hit_num = seq.split(settings.SEQ_NAME_SEP)[-1]
-            else:
-                sample_name = seq
-                hit_num = "00"
-            length_seq = len(aln[seq]["sequence"].replace("-", ""))
-            lenght_ref = len(best_ref_seq.replace("-", ""))
-            pid = pairwise_identity(best_ref_seq, aln[seq]["sequence"],
-                                    fasta_model_format,
-                                    ignore_internal_gaps=True)
-            paralog_score = (pid / 100) * (length_seq / lenght_ref)
-            if sample_name in samples_with_paralogs:
-                samples_with_paralogs[sample_name][seq] = paralog_score
-            else:
-                samples_with_paralogs[sample_name] = {seq: paralog_score}
-            tsv.append([
-                fasta_model_marker,     # [0]  marker type
-                fasta_model_format,     # [1]  format used for filtering
-                fasta_model.stem,       # [2]  locus name
-                best_ref_full_name,     # [3]  reference name
-                sample_name,            # [4]  sample name
-                hit_num,                # [5]  hit ranking
-                seq,                    # [6]  sequence name
-                f"{length_seq}",        # [7]  ungapped sequence length
-                f"{pid:.5f}",           # [8]  identity to reference
-                f"{paralog_score:.5f}", # [9]  pid * (len(seq) / len(ref))
-                f"{False}",             # [10] accepted as ortholog
-            ])
-    for sample in samples_with_paralogs:
-        accepted.append(max(samples_with_paralogs[sample], key=samples_with_paralogs[sample].get))
-
-    pids = [float(row[8]) for row in tsv if row[6] in accepted]
-    min_pid = statistics.mean(pids) - (tolerance * statistics.stdev(pids))
-    for row in tsv:
-        if row[6] in accepted:
-            if float(row[8]) >= min_pid:
-                row[10] = f'{True}'
-            else:
-                del accepted[accepted.index(row[6])]
-
-    shared_paralog_stats += ["\t".join(row)+"\n" for row in tsv]
-    messages = []
-    fastas_saved = len(fastas_paths)
+    output_missing = False
     for fasta in fastas_paths:
-        fasta_with_paralogs, fasta_without_paralogs = fasta_to_dict(fasta), {}
-        if overwrite is True or not fastas_paths[fasta].exists():
+        if not fastas_paths[fasta].exists():
+            output_missing = True
+            break
+
+    fasta_model_short = Path(*fastas_paths[fasta_model].parts[-3:])
+
+    messages = []
+
+    if overwrite is True or output_missing is True:
+        if file_is_empty(fasta_model):
+            return red(f"'{fasta_model_short}': FAILED paralog removal, input file was empty")
+
+        aln = fasta_to_dict(fasta_model)
+        fasta_model_marker = fasta_model.parts[-3][-3:]
+        if fasta_model.parts[-2] == "01_AA":
+            fasta_model_format = "AA"
+        elif fasta_model.parts[-2] == "02_NT":
+            fasta_model_format = "NT"
+        elif fasta_model.parts[-2] == "01_matches":
+            fasta_model_format = "NT"
+
+        refs = {}
+        for seq in aln:
+            if "query=" in aln[seq]["description"] and "hit=00" in aln[seq]["description"]:
+                ref = aln[seq]["description"].split("query=")[1].split("]")[0]
+                if ref in refs:
+                    refs[ref] += 1
+                else:
+                    refs[ref] = 1
+        best_ref_full_name = max(refs, key=refs.get)
+        s = settings.REFERENCE_CLUSTER_SEPARATOR
+        best_ref = s.join(best_ref_full_name.split(s)[:-1])
+        best_ref_seq = aln[f"{best_ref}{settings.SEQ_NAME_SEP}ref"]["sequence"]
+
+        tsv = []
+        accepted = [seq for seq in aln if seq.endswith(f"{settings.SEQ_NAME_SEP}ref")]
+        samples_with_paralogs = {}
+        for seq in aln:
+            if not seq.endswith(f"{settings.SEQ_NAME_SEP}ref"):
+                if settings.SEQ_NAME_SEP in seq:
+                    sample_name = settings.SEQ_NAME_SEP.join(seq.split(settings.SEQ_NAME_SEP)[:-1])
+                    hit_num = seq.split(settings.SEQ_NAME_SEP)[-1]
+                else:
+                    sample_name = seq
+                    hit_num = "00"
+                length_seq = len(aln[seq]["sequence"].replace("-", ""))
+                lenght_ref = len(best_ref_seq.replace("-", ""))
+                pid = pairwise_identity(best_ref_seq, aln[seq]["sequence"],
+                                        fasta_model_format,
+                                        ignore_internal_gaps=True)
+                paralog_score = (pid / 100) * (length_seq / lenght_ref)
+                if sample_name in samples_with_paralogs:
+                    samples_with_paralogs[sample_name][seq] = paralog_score
+                else:
+                    samples_with_paralogs[sample_name] = {seq: paralog_score}
+                tsv.append([
+                    fasta_model_marker,     # [0]  marker type
+                    fasta_model_format,     # [1]  format used for filtering
+                    fasta_model.stem,       # [2]  locus name
+                    best_ref_full_name,     # [3]  reference name
+                    sample_name,            # [4]  sample name
+                    hit_num,                # [5]  hit ranking
+                    seq,                    # [6]  sequence name
+                    f"{length_seq}",        # [7]  ungapped sequence length
+                    f"{pid:.5f}",           # [8]  identity to reference
+                    f"{paralog_score:.5f}", # [9]  pid * (len(seq) / len(ref))
+                    f"{False}",             # [10] accepted as ortholog
+                ])
+        for sample in samples_with_paralogs:
+            accepted.append(max(samples_with_paralogs[sample], key=samples_with_paralogs[sample].get))
+
+        pids = [float(row[8]) for row in tsv if row[6] in accepted]
+        min_pid = statistics.mean(pids) - (tolerance * statistics.stdev(pids))
+        for row in tsv:
+            if row[6] in accepted:
+                if float(row[8]) >= min_pid:
+                    row[10] = f'{True}'
+                else:
+                    del accepted[accepted.index(row[6])]
+
+        shared_paralog_stats += ["\t".join(row)+"\n" for row in tsv]
+        fastas_saved = len(fastas_paths)
+        for fasta in fastas_paths:
+            fasta_with_paralogs, fasta_without_paralogs = fasta_to_dict(fasta), {}
             for seq_name in fasta_with_paralogs:
                 if seq_name in accepted:
                     if (seq_name.endswith(f"{settings.SEQ_NAME_SEP}ref")
@@ -1386,19 +1394,19 @@ def filter_paralogs_informed(
                 dict_to_fasta(fasta_without_paralogs, fastas_paths[fasta])
             else:
                 fastas_saved -= 1
-        else:
-            messages.append(dim(
-                f"'{fasta_model_short}': skipped (output FASTA already exists)"
+        if fastas_saved > 0:
+            messages.append((
+                f"'{fasta_model.parts[-3]}-{fasta_model.stem}': paralogs removed from"
+                f" {fastas_saved} files [{elapsed_time(time.time() - start)}]"
             ))
-    if fastas_saved > 0:
-        messages.append((
-            f"'{fasta_model.parts[-3]}-{fasta_model.stem}': paralogs removed from"
-            f" {fastas_saved} files [{elapsed_time(time.time() - start)}]"
-        ))
+        else:
+            messages.append(red(
+                f"'{fasta_model.parts[-3]}-{fasta_model.stem}': not saved (filtered FASTAs had fewer"
+                f" than {min_samples} samples) [{elapsed_time(time.time() - start)}]"
+            ))
     else:
-        messages.append(red(
-            f"'{fasta_model.parts[-3]}-{fasta_model.stem}': not saved (filtered FASTAs had fewer"
-            f" than {min_samples} samples) [{elapsed_time(time.time() - start)}]"
+        messages.append(dim(
+            f"'{fasta_model_short}': skipped (output FASTA already exists)"
         ))
 
     return "\n".join(messages)
@@ -1521,37 +1529,44 @@ def clipkit(
                 for line in clipkit_stats:
                     clipkit_log.write(line)
         clipkit_stats_file.unlink()
-        # Initially added because IQ-TREE fails when a sample has empty sequence
+        # Initially added because IQ-TREE fails when a sample has empty sequence:
         # Calculate mean ungapped length, remove individual sequences under 'min_coverage'
         # as proportion of the mean of ungapped lengths
-        fasta_trimmed = fasta_to_dict(fasta_out)
-        ungapped_lengths = []
-        aln_length = 0
-        for seq_name in fasta_trimmed:
-            ungapped = len(fasta_trimmed[seq_name]["sequence"].replace("-", ""))
-            aln_length = len(fasta_trimmed[seq_name]["sequence"])
-            if ungapped > 0: ungapped_lengths.append(ungapped)
-        if ungapped_lengths:
-            mean_ungapped = statistics.mean(ungapped_lengths)
+        if fasta_out.exists():
+            if file_is_empty(fasta_out):
+                message = red(f"'{fasta_out_short}': FAILED trimming, check ClipKIT's log")
+                fasta_out.unlink()
+            else:
+                fasta_trimmed = fasta_to_dict(fasta_out)
+                ungapped_lengths = []
+                aln_length = 0
+                for seq_name in fasta_trimmed:
+                    ungapped = len(fasta_trimmed[seq_name]["sequence"].replace("-", ""))
+                    aln_length = len(fasta_trimmed[seq_name]["sequence"])
+                    if ungapped > 0: ungapped_lengths.append(ungapped)
+                if ungapped_lengths:
+                    mean_ungapped = statistics.mean(ungapped_lengths)
+                else:
+                    mean_ungapped = aln_length
+                seqs_to_remove = []
+                for seq_name in fasta_trimmed:
+                    ungapped = len(fasta_trimmed[seq_name]["sequence"].replace("-", ""))
+                    if ungapped / mean_ungapped < min_coverage:
+                        seqs_to_remove.append(seq_name)
+                if seqs_to_remove:
+                    for seq_name in seqs_to_remove:
+                        del fasta_trimmed[seq_name]
+                    dict_to_fasta(fasta_trimmed, fasta_out)
+                if num_samples(fasta_trimmed) >= min_samples:
+                    message = f"'{fasta_out_short}': trimmed [{elapsed_time(time.time() - start)}]"
+                else:
+                    fasta_out.unlink()
+                    message = red(
+                        f"'{fasta_out_short}': not saved (trimmed FASTA had fewer than"
+                        f" {min_samples} samples) [{elapsed_time(time.time() - start)}]"
+                    )
         else:
-            mean_ungapped = aln_length
-        seqs_to_remove = []
-        for seq_name in fasta_trimmed:
-            ungapped = len(fasta_trimmed[seq_name]["sequence"].replace("-", ""))
-            if ungapped / mean_ungapped < min_coverage:
-                seqs_to_remove.append(seq_name)
-        if seqs_to_remove:
-            for seq_name in seqs_to_remove:
-                del fasta_trimmed[seq_name]
-            dict_to_fasta(fasta_trimmed, fasta_out)
-        if num_samples(fasta_trimmed) >= min_samples:
-            message = f"'{fasta_out_short}': trimmed [{elapsed_time(time.time() - start)}]"
-        else:
-            fasta_out.unlink()
-            message = red(
-                f"'{fasta_out_short}': not saved (trimmed FASTA had fewer than"
-                f" {min_samples} samples) [{elapsed_time(time.time() - start)}]"
-            )
+            message = red(f"'{fasta_out_short}': FAILED trimming, check ClipKIT's log")
     else:
         message = dim(f"'{fasta_out_short}': skipped (output FASTA already exists)")
 
