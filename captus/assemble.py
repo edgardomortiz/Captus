@@ -424,6 +424,10 @@ def megahit(
             shutil.rmtree(sample_megahit_out_dir, ignore_errors=True)
         mean_read_length = get_mean_read_length(Path(fastq_dir, fastq_r1),
                                                 settings.NUM_READS_TO_CALCULATE_MEAN_READ_LENGTH)
+        if mean_read_length is False:
+            message = red(f"'{sample_name}': skipped (FASTQ files have .gz"
+                           " extension but are not compressed, please verify)")
+            return message
         adjusted_k_list = adjust_megahit_k_list(k_list, mean_read_length,
                                                 settings.DELTA_MEAN_READ_LENGTH_TO_MAX_KMER_SIZE)
         adjusted_min_contig_len = adjust_megahit_min_contig_len(min_contig_len, mean_read_length,
@@ -474,13 +478,16 @@ def get_mean_read_length(fastq_path, num_reads):
         opener = gzip.open
     else:
         opener = open
-    with opener(fastq_path, "rt") as fastq:
-        for line in fastq:
-            line_count += 1
-            if line_count % 4 == 0:
-                read_lengths.append(len(line.strip("\n")))
-            if line_count == num_reads * 4:
-                break
+    try:
+        with opener(fastq_path, "rt") as fastq:
+            for line in fastq:
+                line_count += 1
+                if line_count % 4 == 0:
+                    read_lengths.append(len(line.strip("\n")))
+                if line_count == num_reads * 4:
+                    break
+    except gzip.BadGzipFile:
+        return False
 
     return math.ceil(statistics.mean(read_lengths))
 
