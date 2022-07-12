@@ -1,37 +1,31 @@
-# *Captus*
-### Assembly of Phylogenomic Datasets from High-Throughput Sequencing data
+# **Captus**
+### *Assembly of Phylogenomic Datasets from High-Throughput Sequencing data*
+[![Install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](http://bioconda.github.io/recipes/captus/README.html) [![Bioconda downloads](https://anaconda.org/bioconda/captus/badges/downloads.svg)](https://anaconda.org/bioconda/captus) [![Version in Bioconda](https://anaconda.org/bioconda/captus/badges/version.svg)](https://anaconda.org/bioconda/captus) [![Last updated](https://anaconda.org/bioconda/captus/badges/latest_release_date.svg)](https://github.com/edgardomortiz/Captus/releases)
 ___
-
 ## Installation
 
-The simplest way to install Captus is to first create an isolated software environment with the dependencies with **`miniconda`**:
+The simplest way to install `Captus` is to create an isolated software environment using `conda`,
+if you don't have `conda` we recommend to install [`miniconda`](https://docs.conda.io/en/latest/miniconda.html):
 
 ```bash
-conda create -n captus -c bioconda -c conda-forge "clipkit>=1.3.0" "python>=3.7" pip pandas plotly tqdm perl-bioperl-core=1.007002 bbmap falco fastqc mafft mmseqs2 megahit pigz vsearch
+conda create -n captus -c bioconda -c conda-forge captus
 ```
-
-Then clone the Captus repository:
-
-```bash
-git clone https://github.com/edgardomortiz/Captus
-```
-
-Now install Captus within the `conda` environment you created:
+Then activate the `conda` environment you created:
 
 ```bash
 conda activate captus
-cd Captus
-pip install .
 ```
-Run the following command:
+Finally, test that `Captus` was correctly installed:
 ```bash
 captus_assembly
 ```
+
+
 And if the program was correctly installed you will see the main help page of Captus:
 ```text
 usage: captus_assembly command [options]
 
-Captus 0.0.17: Assembly of Phylogenomic Datasets from High-Throughput Sequencing data
+Captus 0.9.84: Assembly of Phylogenomic Datasets from High-Throughput Sequencing data
 
 Captus-assembly commands:
   command     Program commands (in typical order of execution)
@@ -55,7 +49,7 @@ For help on a particular command: captus_assembly command -h
 
 ERROR: Missing command
 ```
-Alternatively, you can skip the installation with `pip` and simply run the following command in your `conda` environment (you will need to add Captus' directory to your `$PATH` to make it available from anywhere in the computer):
-```bash
-captus_assembly-runner.py
-```
+
+## Usage
+
+Website with Manual and tutorials will be soon available!
