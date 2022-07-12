@@ -247,6 +247,30 @@ PAM250 = score_matrix_to_dict([
 ])
 
 
+def get_mean_read_length(fastq_path, num_reads):
+    """
+    Determine mean read length to adjust MEGAHIT's '--k-list' and '--min-contig-len' accordingly
+    """
+    line_count = 0
+    read_lengths = []
+    if f"{fastq_path}".endswith(".gz"):
+        opener = gzip.open
+    else:
+        opener = open
+    try:
+        with opener(fastq_path, "rt") as fastq:
+            for line in fastq:
+                line_count += 1
+                if line_count % 4 == 0:
+                    read_lengths.append(len(line.strip("\n")))
+                if line_count == num_reads * 4:
+                    break
+    except gzip.BadGzipFile:
+        return False
+
+    return math.ceil(statistics.mean(read_lengths))
+
+
 def genetic_code(genetic_code_id):
     """
     Given the `genetic_code_id` returns the code-specific list of codon to aminoacid equivalences,
@@ -924,7 +948,7 @@ def fasta_type(fasta_path):
         return "invalid"
 
 
-def alignment_stats(fasta_dict, aln_type):
+def alignment_stats(fasta_dict, aln_type, coding: bool):
     """
     Tally number of sequences, sites (total, singletons, informative, constant), patterns (unique
     sites), average pairwise identity and percentage of missingness (including gaps and ambiguities)
@@ -1025,6 +1049,29 @@ def alignment_stats(fasta_dict, aln_type):
         else:
             return "singleton"
 
+    def gc_content(fasta_dict, seq_type, coding):
+        if seq_type != "NT":
+            return "NA", "NA", "NA", "NA"
+        else:
+            gc_bp = []
+            for seq_name in fasta_dict:
+                for r in fasta_dict[seq_name]["sequence"].replace("-", "").upper():
+                    if r in NT_IUPAC:
+                        g_prop = NT_IUPAC[r].count("G") / len(NT_IUPAC[r])
+                        c_prop = NT_IUPAC[r].count("C") / len(NT_IUPAC[r])
+                        gc_bp.append(g_prop + c_prop)
+            gc_total = round(sum(gc_bp) / len(gc_bp) * 100, 2)
+            if coding:
+                gc_bp_p1 = [gc_bp[i] for i in range(len(gc_bp)) if i % 3 == 0]
+                gc_bp_p2 = [gc_bp[i] for i in range(len(gc_bp)) if i % 3 == 1]
+                gc_bp_p3 = [gc_bp[i] for i in range(len(gc_bp)) if i % 3 == 2]
+                gc_codon_p1 = round(sum(gc_bp_p1) / len(gc_bp_p1) * 100, 2)
+                gc_codon_p2 = round(sum(gc_bp_p2) / len(gc_bp_p2) * 100, 2)
+                gc_codon_p3 = round(sum(gc_bp_p3) / len(gc_bp_p3) * 100, 2)
+                return gc_total, gc_codon_p1, gc_codon_p2, gc_codon_p3
+            else:
+                return gc_total, "NA", "NA", "NA"
+
     stats = {
         "sequences": "NA",
         "samples": "NA",
@@ -1038,6 +1085,10 @@ def alignment_stats(fasta_dict, aln_type):
         "patterns": "NA",
         "avg_pid": "NA",
         "missingness": "NA",
+        "gc": "NA",
+        "gc_codon_p1": "NA",
+        "gc_codon_p2": "NA",
+        "gc_codon_p3": "NA",
     }
 
     stats["sequences"] = len(fasta_dict)
@@ -1069,6 +1120,103 @@ def alignment_stats(fasta_dict, aln_type):
     sites_concat = "".join(sites)
     if len(sites_concat):
         stats["missingness"] = sites_concat.count("-") / len(sites_concat) * 100
+
+    gc_total, gc_codon_p1, gc_codon_p2, gc_codon_p3 = gc_content(fasta_dict, aln_type, coding)
+    stats["gc"] = gc_total
+    stats["gc_codon_p1"] = gc_codon_p1
+    stats["gc_codon_p2"] = gc_codon_p2
+    stats["gc_codon_p3"] = gc_codon_p3
+
+    return stats
+
+
+def sample_stats(fasta_dict, aln_type, coding):
+    """
+    Compile sample-wise statistic across alignments, last stage of `align` module
+
+    Parameters
+    ----------
+    fasta_dict : dict
+        FASTA as dictionary, from fasta_to_dict()
+    aln_type : str
+        NT for nucleotides or AA for aminoacids
+    coding : bool
+        Nucleotide alignment is coding or not
+
+    Returns
+    -------
+    stats
+        A dictionary with statistics of the sample within an alignment
+    """
+    stats = {}
+    for seq_name in fasta_dict:
+        if seq_name.endswith(f'{set_a.SEQ_NAME_SEP}ref'):
+            sam_name = seq_name
+        else:
+            sam_name = seq_name.split(set_a.SEQ_NAME_SEP)[0]
+        len_seq = len(fasta_dict[seq_name]["sequence"])
+        len_gapped = len(fasta_dict[seq_name]["sequence"].strip("-"))
+        ungapped_seq = fasta_dict[seq_name]["sequence"].replace("-", "")
+        len_ungapped = len(ungapped_seq)
+        ambigs = 0
+        gc_bp = []
+        gc_total = "NA"
+        gc_codon_p1 = "NA"
+        gc_codon_p2 = "NA"
+        gc_codon_p3 = "NA"
+        if aln_type == "AA":
+            for r in ungapped_seq.upper():
+                if r in list("BZJX"):
+                    ambigs += 1
+        elif aln_type == "NT":
+            for r in ungapped_seq.upper():
+                if r in list("MRWSYKVHDBN"):
+                    ambigs += 1
+                if r in NT_IUPAC:
+                    g_prop = NT_IUPAC[r].count("G") / len(NT_IUPAC[r])
+                    c_prop = NT_IUPAC[r].count("C") / len(NT_IUPAC[r])
+                    gc_bp.append(g_prop + c_prop)
+            gc_total = round(sum(gc_bp) / len(gc_bp) * 100, 2)
+            if coding:
+                gc_bp_p1 = [gc_bp[i] for i in range(len(gc_bp)) if i % 3 == 0]
+                gc_bp_p2 = [gc_bp[i] for i in range(len(gc_bp)) if i % 3 == 1]
+                gc_bp_p3 = [gc_bp[i] for i in range(len(gc_bp)) if i % 3 == 2]
+                gc_codon_p1 = round(sum(gc_bp_p1) / len(gc_bp_p1) * 100, 2)
+                gc_codon_p2 = round(sum(gc_bp_p2) / len(gc_bp_p2) * 100, 2)
+                gc_codon_p3 = round(sum(gc_bp_p3) / len(gc_bp_p3) * 100, 2)
+        if sam_name not in stats:
+            stats[sam_name] = {
+                "len_total": len_seq,
+                "len_gapped": [len_gapped],
+                "len_ungapped": [len_ungapped],
+                "ambigs": [ambigs],
+                "gc": [gc_total],
+                "gc_codon_p1": [gc_codon_p1],
+                "gc_codon_p2": [gc_codon_p2],
+                "gc_codon_p3": [gc_codon_p3],
+                "num_copies": 1,
+            }
+        else:
+            stats[sam_name]["len_gapped"].append(len_gapped)
+            stats[sam_name]["len_ungapped"].append(len_ungapped)
+            stats[sam_name]["ambigs"].append(ambigs)
+            stats[sam_name]["gc"].append(gc_total)
+            stats[sam_name]["gc_codon_p1"].append(gc_codon_p1)
+            stats[sam_name]["gc_codon_p2"].append(gc_codon_p2)
+            stats[sam_name]["gc_codon_p3"].append(gc_codon_p3)
+            stats[sam_name]["num_copies"] += 1
+    for sam_name in stats:
+        if len(stats[sam_name]["len_gapped"]) > 1:
+            for k in stats[sam_name]:
+                if type(stats[sam_name][k]) is list:
+                    try:
+                        stats[sam_name][k] = f'{statistics.mean(stats[sam_name][k]):.2f}'
+                    except TypeError:
+                        stats[sam_name][k] = "NA"
+        else:
+            for k in stats[sam_name]:
+                if type(stats[sam_name][k]) is list:
+                    stats[sam_name][k] = stats[sam_name][k][0]
 
     return stats
 

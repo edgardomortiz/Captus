@@ -22,7 +22,7 @@ from pathlib import Path
 
 from . import log
 from . import settings_assembly as settings
-from .bioformats import dict_to_fasta, fasta_headers_to_spades, fasta_to_dict
+from .bioformats import dict_to_fasta, fasta_headers_to_spades, fasta_to_dict, get_mean_read_length
 from .misc import (bbtools_path_version, bold, dim, elapsed_time, find_and_match_fastqs,
                    format_dep_msg, make_output_dir, make_tmp_dir_within, megahit_path_version,
                    megahit_tk_path_version, python_library_check, quit_with_error, red, set_ram,
@@ -468,30 +468,6 @@ def megahit(
     return message
 
 
-def get_mean_read_length(fastq_path, num_reads):
-    """
-    Determine mean read length to adjust MEGAHIT's '--k-list' and '--min-contig-len' accordingly
-    """
-    line_count = 0
-    read_lengths = []
-    if f"{fastq_path}".endswith(".gz"):
-        opener = gzip.open
-    else:
-        opener = open
-    try:
-        with opener(fastq_path, "rt") as fastq:
-            for line in fastq:
-                line_count += 1
-                if line_count % 4 == 0:
-                    read_lengths.append(len(line.strip("\n")))
-                if line_count == num_reads * 4:
-                    break
-    except gzip.BadGzipFile:
-        return False
-
-    return math.ceil(statistics.mean(read_lengths))
-
-
 def adjust_megahit_k_list(k_list, mean_read_length, delta):
     """
     Remove largest kmers sizes from 'k_list' if they exceed 'mean_read_length' by at least 'delta'
@@ -572,7 +548,7 @@ def filter_assembly_by_gc(sample_megahit_out_dir, max_contig_gc):
         else:
             accepted[seq_name] = unfiltered[seq_name]
     dict_to_fasta(accepted, assembly_path, wrap=80)
-    dict_to_fasta(rejected, Path(sample_megahit_out_dir, f'filtered_contigs.fasta'), wrap=80)
+    dict_to_fasta(rejected, Path(sample_megahit_out_dir, "filtered_contigs.fasta"), wrap=80)
     return
 
 
@@ -620,6 +596,21 @@ def get_asm_stats(sample_megahit_out_dir):
     d_least_5x = round(len(list(filter(lambda d: d >= 5, depths))) / n_least_0bp * 100, 3)
     d_least_10x = round(len(list(filter(lambda d: d >= 10, depths))) / n_least_0bp * 100, 3)
 
+    filt_fasta = Path(sample_megahit_out_dir, "filtered_contigs.fasta")
+    filt_n_contigs, filt_total_length, filt_avg_length, filt_gc_content = 0, 0, 0, 0
+    if filt_fasta.exists():
+        filt_asm = fasta_to_dict(Path(sample_megahit_out_dir, "filtered_contigs.fasta"))
+        filt_lengths = []
+        filt_gc_count = 0
+        for seq in filt_asm:
+            filt_lengths.append(len(filt_asm[seq]["sequence"]))
+            filt_gc_count += filt_asm[seq]["sequence"].count("G")
+            filt_gc_count += filt_asm[seq]["sequence"].count("C")
+        filt_n_contigs = len(filt_lengths)
+        filt_total_length = sum(filt_lengths)
+        filt_avg_length = math.ceil(statistics.mean(filt_lengths))
+        filt_gc_content = round(filt_gc_count / filt_total_length * 100, 3)
+
     stats_tsv = [
         "sample", sample,
         "n_contigs", n_least_0bp,
@@ -643,11 +634,15 @@ def get_asm_stats(sample_megahit_out_dir):
         "pct_contigs_>=_2x", d_least_2x,
         "pct_contigs_>=_5x", d_least_5x,
         "pct_contigs_>=_10x", d_least_10x,
+        "filtered_n_contigs", filt_n_contigs,
+        "filtered_total_length", filt_total_length,
+        "filtered_avg_length", filt_avg_length,
+        "filtered_gc_content", filt_gc_content,
     ]
 
     with open(Path(sample_megahit_out_dir, "assembly.stats.tsv"), "wt") as tsv_out:
         for i in range(0, len(stats_tsv), 2):
-            tsv_out.write(f"{stats_tsv[i].rjust(20)} : {stats_tsv[i+1]}\n")
+            tsv_out.write(f"{stats_tsv[i].rjust(21)} : {stats_tsv[i+1]}\n")
     with open(Path(sample_megahit_out_dir, "assembly.stats.t.tsv"), "wt") as tsv_out:
         tsv_out.write("\t".join(f"{stats_tsv[i+1]}" for i in range(0, len(stats_tsv), 2)) + "\n")
 
@@ -687,6 +682,10 @@ def collect_asm_stats(out_dir):
             "pct_contigs_>=_2x",
             "pct_contigs_>=_5x",
             "pct_contigs_>=_10x",
+            "filtered_n_contigs",
+            "filtered_total_length",
+            "filtered_avg_length",
+            "filtered_gc_content",
         ])]
         for file in tsv_files:
             with open(file, "rt") as tsv_in:

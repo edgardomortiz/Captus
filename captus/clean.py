@@ -21,6 +21,7 @@ from pathlib import Path
 
 from . import log
 from . import settings_assembly as settings
+from .bioformats import get_mean_read_length
 from .misc import (bbtools_path_version, bold, dim, elapsed_time, falco_path_version,
                    fastqc_path_version, find_and_match_fastqs, format_dep_msg, has_valid_ext,
                    make_output_dir, python_library_check, quit_with_error, red, set_ram,
@@ -642,21 +643,22 @@ def qc_stats(qc_program_name, qc_program_path, in_fastq, qc_stats_out_dir, overw
         qc_stats_cmd = [
             qc_program_path,
             "--outdir", f"{Path(qc_stats_out_dir, file_out_dir)}",
-            "--nogroup",
-            "--threads", "1",
-            "--adapters", f"{settings.QC_ADAPTORS_LIST}",
-            f"{in_fastq}"
         ]
     elif qc_program_name == "FastQC":
         qc_stats_cmd = [
             qc_program_path,
             "--outdir", f"{qc_stats_out_dir}",
             "--extract",
-            "--nogroup",
-            "--threads", "1",
-            "--adapters", f"{settings.QC_ADAPTORS_LIST}",
-            f"{in_fastq}"
         ]
+
+    cmd_last_part = [
+        "--threads", "1",
+        "--adapters", f"{settings.QC_ADAPTORS_LIST}",
+        f"{in_fastq}"
+    ]
+    if get_mean_read_length(in_fastq) <= 1000: cmd_last_part = ["--nogroup"] + cmd_last_part
+
+    qc_stats_cmd += cmd_last_part
 
     if "_R1" in in_fastq.name:
         idx = in_fastq.name.find("_R1") + 3

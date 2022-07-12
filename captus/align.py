@@ -24,7 +24,8 @@ from tqdm import tqdm
 
 from . import log
 from . import settings_assembly as settings
-from .bioformats import alignment_stats, dict_to_fasta, fasta_to_dict, fasta_type, pairwise_identity
+from .bioformats import (alignment_stats, dict_to_fasta, fasta_to_dict, fasta_type,
+                         pairwise_identity, sample_stats)
 from .misc import (bold, clipkit_path_version, dim, dir_is_empty, elapsed_time, file_is_empty,
                    format_dep_msg, mafft_path_version, make_output_dir, python_library_check,
                    quit_with_error, red, set_ram, set_threads, successful_exit,
@@ -1573,43 +1574,6 @@ def clipkit(
     return message
 
 
-def sample_stats(fasta_dict, aln_type):
-    sam_stats = {}
-    for seq_name in fasta_dict:
-        if seq_name.endswith(f'{settings.SEQ_NAME_SEP}ref'):
-            sam_name = seq_name
-        else:
-            sam_name = seq_name.split(settings.SEQ_NAME_SEP)[0]
-        seq_len = len(fasta_dict[seq_name]["sequence"])
-        cov_gapped = (len(fasta_dict[seq_name]["sequence"].strip("-")) / seq_len) * 100
-        ungapped_seq = fasta_dict[seq_name]["sequence"].replace("-", "")
-        cov_ungapped = (len(ungapped_seq) / seq_len) * 100
-        ambigs = 0
-        if aln_type == "AA":
-            for r in ungapped_seq.upper():
-                if r in list("BZJX"):
-                    ambigs += 1
-        elif aln_type == "NT":
-            for r in ungapped_seq.upper():
-                if r in list("MRWSYKVHDBN"):
-                    ambigs += 1
-        pct_ambig = (ambigs / len(ungapped_seq)) * 100
-        if sam_name not in sam_stats:
-            sam_stats[sam_name] = {
-                "cov_gapped": [cov_gapped],
-                "cov_ungapped": [cov_ungapped],
-                "pct_ambig": [pct_ambig],
-                "num_copies": 1,
-            }
-        else:
-            sam_stats[sam_name]["cov_gapped"].append(cov_gapped)
-            sam_stats[sam_name]["cov_ungapped"].append(cov_ungapped)
-            sam_stats[sam_name]["pct_ambig"].append(pct_ambig)
-            sam_stats[sam_name]["num_copies"] += 1
-
-    return sam_stats
-
-
 def compute_stats(shared_seq_names, shared_sam_stats, shared_aln_stats, fasta_path):
 
     start = time.time()
@@ -1631,7 +1595,8 @@ def compute_stats(shared_seq_names, shared_sam_stats, shared_aln_stats, fasta_pa
 
     fasta_dict = fasta_to_dict(fasta_path)
 
-    aln_stats = alignment_stats(fasta_dict, aln_type)
+    coding = bool(fasta_path_parts[-2] == "02_NT")
+    aln_stats = alignment_stats(fasta_dict, aln_type, coding)
     aln_tsv = [[
         f"{fasta_path}",                                    # [0] alignment file location
         f'{bool(not "untrimmed" in fasta_path_parts[-5])}', # [1] alignment was trimmed
@@ -1642,30 +1607,39 @@ def compute_stats(shared_seq_names, shared_sam_stats, shared_aln_stats, fasta_pa
         fasta_path.stem,                                    # [6] locus name
         f'{aln_stats["sequences"]}',                        # [7] num sequences
         f'{aln_stats["samples"]}',                          # [8] num samples
-        f'{aln_stats["avg_copies"]:.4f}',                   # [9] avg num copies
+        f'{aln_stats["avg_copies"]:.2f}',                   # [9] avg num copies
         f'{aln_stats["sites"]}',                            # [10] num sites
         f'{aln_stats["informative"]}',                      # [11] num informative sites
-        f'{aln_stats["informativeness"]:.4f}',              # [12] pct of informative sites
+        f'{aln_stats["informativeness"]:.2f}',              # [12] pct of informative sites
         f'{aln_stats["uninformative"]}',                    # [13] num constant + singleton sites
         f'{aln_stats["constant"]}',                         # [14] num constant sites
         f'{aln_stats["singleton"]}',                        # [15] num singleton sites
         f'{aln_stats["patterns"]}',                         # [16] num unique columns
-        f'{aln_stats["avg_pid"]:.4f}',                      # [17] average pairwise identity
-        f'{aln_stats["missingness"]:.4f}',                  # [18] pct of gaps and Ns or Xs
+        f'{aln_stats["avg_pid"]:.2f}',                      # [17] average pairwise identity
+        f'{aln_stats["missingness"]:.2f}',                  # [18] pct of gaps and Ns or Xs
+        f'{aln_stats["gc"]}',                               # [19] GC content in %
+        f'{aln_stats["gc_codon_p1"]}',                      # [20] GC content of pos1 in codon in %
+        f'{aln_stats["gc_codon_p2"]}',                      # [21] GC content of pos2 in codon in %
+        f'{aln_stats["gc_codon_p3"]}',                      # [22] GC content of pos3 in codon in %
     ]]
     shared_aln_stats += ["\t".join(row)+"\n" for row in aln_tsv]
 
-    sam_stats = sample_stats(fasta_dict, aln_type)
+    sam_stats = sample_stats(fasta_dict, aln_type, coding)
     sam_tsv = []
     for sample in sam_stats:
         sam_tsv.append([
-            sample,                                                      # sample name
-            f'{" / ".join(fasta_path.parts[-5:-1])}',                    # stage / marker / format
-            fasta_path.stem,                                             # locus name
-            f'{statistics.mean(sam_stats[sample]["cov_gapped"]):.4f}',   # pct cov, no terminal gaps
-            f'{statistics.mean(sam_stats[sample]["cov_ungapped"]):.4f}', # pct coverage, no gaps
-            f'{statistics.mean(sam_stats[sample]["pct_ambig"]):.4f}',    # pct ambiguities, no gaps
-            f'{sam_stats[sample]["num_copies"]}',                        # num copies
+            sample,                                         # [0] sample name
+            f'{" / ".join(fasta_path.parts[-5:-1])}',       # [1] stage / marker / format
+            fasta_path.stem,                                # [2] locus name
+            f'{sam_stats[sample]["len_total"]}',            # [3] alignment length
+            f'{sam_stats[sample]["len_gapped"]}',           # [4] length - terminal gaps
+            f'{sam_stats[sample]["len_ungapped"]}',         # [5] length - all gaps
+            f'{sam_stats[sample]["ambigs"]}',               # [6] num ambiguities
+            f'{sam_stats[sample]["gc"]}',                   # [7] GC content in %
+            f'{sam_stats[sample]["gc_codon_p1"]}',          # [8] GC content of pos1 in codon in %
+            f'{sam_stats[sample]["gc_codon_p2"]}',          # [9] GC content of pos2 in codon in %
+            f'{sam_stats[sample]["gc_codon_p3"]}',          # [10] GC content of pos3 in codon in %
+            f'{sam_stats[sample]["num_copies"]}',           # [11] num copies
         ])
     shared_sam_stats += ["\t".join(row)+"\n" for row in sam_tsv]
 
@@ -1700,7 +1674,11 @@ def write_aln_stats(out_dir, shared_aln_stats):
                                      "singleton",
                                      "patterns",
                                      "avg_pid",
-                                     "missingness",]) + "\n")
+                                     "missingness",
+                                     "gc",
+                                     "gc_codon_p1",
+                                     "gc_codon_p2",
+                                     "gc_codon_p3",]) + "\n")
             tsv_out.writelines(sorted(shared_aln_stats))
         return stats_tsv_file
 
@@ -1714,9 +1692,14 @@ def write_sam_stats(out_dir, shared_sam_stats):
             tsv_out.write("\t".join(["sample",
                                      "stage_marker_format",
                                      "locus",
-                                     "cov_gapped",
-                                     "cov_ungapped",
-                                     "pct_ambig",
+                                     "len_total",
+                                     "len_gapped",
+                                     "len_ungapped",
+                                     "ambigs",
+                                     "gc",
+                                     "gc_codon_p1",
+                                     "gc_codon_p2",
+                                     "gc_codon_p3",
                                      "num_copies",]) + "\n")
             tsv_out.writelines(sorted(shared_sam_stats))
         return stats_tsv_file
