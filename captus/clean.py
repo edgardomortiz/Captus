@@ -656,7 +656,8 @@ def qc_stats(qc_program_name, qc_program_path, in_fastq, qc_stats_out_dir, overw
         "--adapters", f"{settings.QC_ADAPTORS_LIST}",
         f"{in_fastq}"
     ]
-    if get_mean_read_length(in_fastq) <= 1000: cmd_last_part = ["--nogroup"] + cmd_last_part
+    mean_read_length = get_mean_read_length(in_fastq, settings.NUM_READS_TO_CALCULATE_MEAN_READ_LENGTH)
+    if mean_read_length <= 1000: cmd_last_part = ["--nogroup"] + cmd_last_part
 
     qc_stats_cmd += cmd_last_part
 
