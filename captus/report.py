@@ -1904,6 +1904,8 @@ def build_extraction_report(out_dir, ext_stats_tsv):
     df_best["hit"] = df.groupby(["sample_name", "marker_type", "locus"], as_index=False).count()["hit"]
     df_best.loc[df_best["ref_type"] == "nucl", "ref_len_unit"] = "bp"
     df_best.loc[df_best["ref_type"] == "prot", "ref_len_unit"] = "aa"
+    df_best.loc[df_best["frameshifts"] == "NaN", "n_frameshifts"] = 0
+    df_best.loc[df_best["frameshifts"] != "NaN", "n_frameshifts"] = df_best["frameshifts"].str.count(",") + 1
     # Define variables
     marker_type = df_best["marker_type"].unique()
     if len(marker_type) > 1:
@@ -1914,6 +1916,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
         "hit",
         "score",
         "wscore",
+        "n_frameshifts",
         "hit_contigs",
         "hit_l50",
         "hit_l90",
@@ -1926,11 +1929,12 @@ def build_extraction_report(out_dir, ext_stats_tsv):
         "Total Hits (Copies)",
         "Score",
         "Weighted Score",
-        "Contigs in best hit",
-        "Best hit L50",
-        "Best hit L90",
-        "Best hit LG50",
-        "Best hit LG90",
+        "Number of Frameshifts",
+        "Contigs in Best Hit",
+        "Best Hit L50",
+        "Best Hit L90",
+        "Best Hit LG50",
+        "Best Hit LG90",
     ]
     colorscale = [
         [0.0, "rgb(94,79,162)"],
@@ -2056,7 +2060,8 @@ def build_extraction_report(out_dir, ext_stats_tsv):
                 "CDS length: <b>%{customdata[13]:,.0f} bp</b>",
                 "Intron length: <b>%{customdata[14]:,.0f} bp</b>",
                 "Flanking length: <b>%{customdata[15]:,.0f} bp</b>",
-                "Frameshift: <b>%{customdata[16]}</b>",
+                "Number of frameshifts: <b>%{customdata[23]}</b>",
+                "Position of frameshifts: <b>%{customdata[16]}</b>",
                 "Contigs in best hit: <b>%{customdata[17]}</b>",
                 "Best hit L50: <b>%{customdata[18]}</b>",
                 "Best hit L90: <b>%{customdata[19]}</b>",
@@ -2126,52 +2131,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
                         "Locus: <b>%{x}</b>",
                         "Score: <b>%{z:.3f}</b><extra></extra>",
                     ])
-            elif var == "hit_contigs":
-                zmax = data[var].max() if data[var].max() < 50 else 50
-                cmap = [colorscale2] if data[var].max() < 50 else [colorscale]
-                if matrix_size > 500000:
-                    hovertemplate = "<br>".join([
-                        "Sample: <b>%{y}</b>",
-                        "Locus: <b>%{x}</b>",
-                        "Contigs in best hit: <b>%{z}</b><extra></extra>",
-                    ])
-            elif var == "hit_l50":
-                zmax = data[var].max() if data[var].max() < 50 else 50
-                cmap = [colorscale2] if data[var].max() < 50 else [colorscale]
-                if matrix_size > 500000:
-                    hovertemplate = "<br>".join([
-                        "Sample: <b>%{y}</b>",
-                        "Locus: <b>%{x}</b>",
-                        "Best hit L50: <b>%{z}</b><extra></extra>",
-                    ])
-            elif var == "hit_l90":
-                zmax = data[var].max() if data[var].max() < 50 else 50
-                cmap = [colorscale2] if data[var].max() < 50 else [colorscale]
-                if matrix_size > 500000:
-                    hovertemplate = "<br>".join([
-                        "Sample: <b>%{y}</b>",
-                        "Locus: <b>%{x}</b>",
-                        "Best hit L90: <b>%{z}</b><extra></extra>",
-                    ])
-            elif var == "hit_lg50":
-                zmax = data[var].max() if data[var].max() < 50 else 50
-                cmap = [colorscale2] if data[var].max() < 50 else [colorscale]
-                if matrix_size > 500000:
-                    hovertemplate = "<br>".join([
-                        "Sample: <b>%{y}</b>",
-                        "Locus: <b>%{x}</b>",
-                        "Best hit LG50: <b>%{z}</b><extra></extra>",
-                    ])
-            elif var == "hit_lg90":
-                zmax = data[var].max() if data[var].max() < 50 else 50
-                cmap = [colorscale2] if data[var].max() < 50 else [colorscale]
-                if matrix_size > 500000:
-                    hovertemplate = "<br>".join([
-                        "Sample: <b>%{y}</b>",
-                        "Locus: <b>%{x}</b>",
-                        "Best hit LG90: <b>%{z}</b><extra></extra>",
-                    ])
-            else:
+            elif var == "wscore":
                 zmax = data[var].max() if data[var].max() < 2 else 2
                 cmap = [colorscale2] if data[var].max() < 2 else [colorscale]
                 if matrix_size > 500000:
@@ -2179,6 +2139,60 @@ def build_extraction_report(out_dir, ext_stats_tsv):
                         "Sample: <b>%{y}</b>",
                         "Locus: <b>%{x}</b>",
                         "Weighted score: <b>%{z:.3f}</b><extra></extra>",
+                    ])
+            elif var == "n_frameshifts":
+                zmax = data[var].max() if data[var].max() < 10 else 10
+                cmap = [colorscale2] if data[var].max() < 10 else [colorscale]
+                if matrix_size > 500000:
+                    hovertemplate = "<br>".join([
+                        "Sample: <b>%{y}</b>",
+                        "Locus: <b>%{x}</b>",
+                        "Number of frameshifts: <b>%{z}</b><extra></extra>",
+                    ])
+            elif var == "hit_contigs":
+                zmax = data[var].max() if data[var].max() < 10 else 10
+                cmap = [colorscale2] if data[var].max() < 10 else [colorscale]
+                if matrix_size > 500000:
+                    hovertemplate = "<br>".join([
+                        "Sample: <b>%{y}</b>",
+                        "Locus: <b>%{x}</b>",
+                        "Contigs in best hit: <b>%{z}</b><extra></extra>",
+                    ])
+            elif var == "hit_l50":
+                zmax = data[var].max() if data[var].max() < 10 else 10
+                cmap = [colorscale2] if data[var].max() < 10 else [colorscale]
+                if matrix_size > 500000:
+                    hovertemplate = "<br>".join([
+                        "Sample: <b>%{y}</b>",
+                        "Locus: <b>%{x}</b>",
+                        "Best hit L50: <b>%{z}</b><extra></extra>",
+                    ])
+            elif var == "hit_l90":
+                zmax = data[var].max() if data[var].max() < 10 else 10
+                cmap = [colorscale2] if data[var].max() < 10 else [colorscale]
+                if matrix_size > 500000:
+                    hovertemplate = "<br>".join([
+                        "Sample: <b>%{y}</b>",
+                        "Locus: <b>%{x}</b>",
+                        "Best hit L90: <b>%{z}</b><extra></extra>",
+                    ])
+            elif var == "hit_lg50":
+                zmax = data[var].max() if data[var].max() < 10 else 10
+                cmap = [colorscale2] if data[var].max() < 10 else [colorscale]
+                if matrix_size > 500000:
+                    hovertemplate = "<br>".join([
+                        "Sample: <b>%{y}</b>",
+                        "Locus: <b>%{x}</b>",
+                        "Best hit LG50: <b>%{z}</b><extra></extra>",
+                    ])
+            elif var == "hit_lg90":
+                zmax = data[var].max() if data[var].max() < 10 else 10
+                cmap = [colorscale2] if data[var].max() < 10 else [colorscale]
+                if matrix_size > 500000:
+                    hovertemplate = "<br>".join([
+                        "Sample: <b>%{y}</b>",
+                        "Locus: <b>%{x}</b>",
+                        "Best hit LG90: <b>%{z}</b><extra></extra>",
                     ])
             button = dict(
                 label=var_lab_list[j],
@@ -2845,6 +2859,10 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
     sm = sm[~sm["sample"].str.contains("__ref")]
     # Exclude stages that contain references in alignments
     sm = sm[~sm["stage_marker_format"].str.contains("_w_refs")].reset_index()
+    # Calculate percentages
+    sm["cov_gapped"] = sm["len_gapped"] / sm["len_total"] * 100
+    sm["cov_ungapped"] = sm["len_ungapped"] / sm["len_total"] * 100
+    sm["pct_ambig"] = sm["ambigs"] / sm["len_total"] * 100
     # Summarize statistics by sample and stage_marker_format, data for heatmap
     data = sm.groupby(["sample", "stage_marker_format"]).agg(
         num_loci = ("locus", "nunique"),
