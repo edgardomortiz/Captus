@@ -5,7 +5,7 @@ ___
 ## Installation
 
 The simplest way to install `Captus` is to create an isolated software environment using `conda`,
-if you don't have `conda` we recommend to install [`miniconda`](https://docs.conda.io/en/latest/miniconda.html):
+if you don't have `conda` we recommend to install [`miniconda`](https://docs.conda.io/en/latest/miniconda.html). Once you have `conda` installed in your system you can run:
 
 ```bash
 conda create -n captus -c bioconda -c conda-forge captus
