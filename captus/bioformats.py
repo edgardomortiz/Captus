@@ -2103,7 +2103,7 @@ def scipio_yaml_to_dict(
             "coverage":    0.0,   # (matches + mismatches) / ref_size * 100
             "identity":    0.0,   # matches / (matches + mismatches) * 100
             "score":       0.0,   # (matches - mismatches) / ref_size
-            "wscore":     0.0,   # score * (length AA / max length AA across refs)
+            "wscore":      0.0,   # score * (length AA / max length AA across refs)
             "gapped":      False, # recovered protein has gaps with respect to the reference
             "seq_flanked": "",    # concatenation of 'mat_nt'
             "seq_gene":    "",    # 'seq_flanked' without 'upstream' or 'downstream' nucleotides

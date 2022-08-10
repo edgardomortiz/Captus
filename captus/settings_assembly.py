@@ -387,7 +387,7 @@ SCIPIO_GENOME_EXTRA_SETTINGS = {
         "--exhaust_align_size=1300",
         "--max_assemble_size=9000",
         "--min_intron_len=500",
-        "--gap_to_close=120",
+        "--gap_to_close=84", # Don't set >90, genes found in 1st round and lost in 2nd
     ],
     # Change here the final settings for mitochondrial genes:
     "MIT": [
@@ -396,7 +396,7 @@ SCIPIO_GENOME_EXTRA_SETTINGS = {
         "--blat_tilesize=6",
         "--exhaust_align_size=9000",
         "--max_assemble_size=50000",
-        "--gap_to_close=120",
+        "--gap_to_close=84", # Don't set >90, genes found in 1st round and lost in 2nd
     ],
 }
 
