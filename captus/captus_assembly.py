@@ -154,7 +154,7 @@ class CaptusAssembly(object):
                  "Illumina = Illumina adaptors included in BBTools\n"
                  "BGI = BGISEQ, DNBSEG, or MGISEQ adaptors\n"
                  "ALL = Illumina + BGI\n"
-                 "Alternatively, provide a path to a FASTA file containing your own adaptors"
+                 "Alternatively, you can provide a path to a FASTA file containing your own adaptors"
         )
         adaptor_group.add_argument(
             "--rna",
@@ -213,13 +213,13 @@ class CaptusAssembly(object):
             type=str,
             dest="qc_program",
             help="Which program to use to obtain the statistics from the raw and cleaned FASTQ files."
-                 "Falco should produce identical results to FastQC while being much faster"
+                 " Falco produces identical results to FastQC while being much faster"
         )
         qcstats_group.add_argument(
             "--skip_qc_stats",
             action="store_true",
             dest="skip_qc_stats",
-            help="Enable to skip FastQC/Falco analysis on raw and cleaned reads"
+            help="Skip FastQC/Falco analysis on raw and cleaned reads"
         )
 
         other_group = parser.add_argument_group("Other")
@@ -620,7 +620,7 @@ class CaptusAssembly(object):
             help="Maximum number of secondary hits (copies) of any particular reference marker"
                  " allowed in the output. We recommend disabling the removal of paralogs (secondary"
                  " hits/copies) during the 'extract' step because the 'align' step uses a more"
-                 " careful filter for paralogs. -1 disables the removal of paralogs"
+                 " sophisticated filter for paralogs. -1 disables the removal of paralogs"
         )
         output_group.add_argument(
             "--max_loci_files",
@@ -881,7 +881,7 @@ class CaptusAssembly(object):
             default="auto",
             type=str,
             dest="cl_min_identity",
-            help="Minimum similarity percentage between sequences in a cluster, when set to 'auto'"
+            help="Minimum identity percentage between sequences in a cluster, when set to 'auto'"
                  f" it becomes {settings.MMSEQS2_BLAT_DNA_IDENTITY_FACTOR:.0%}% of the '--dna_min"
                  f"_identity' value but never less than {settings.MMSEQS_MIN_AUTO_MIN_IDENTITY}%%"
         )

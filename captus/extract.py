@@ -960,7 +960,7 @@ def prepare_protein_refs(
                 aa_path = Path(Path(refset).resolve().parent, f"{Path(refset).stem}_fixed.faa")
                 dict_to_fasta(amino_refset_fixed, aa_path, wrap=80)
                 log.log(
-                    f"WARNING: {refset} contained gaps that were removed "
+                    f"WARNING: {refset} contained gaps that were removed"
                     " and/or premature stops that were converted to X"
                 )
             aa_msg = bold(aa_path)
@@ -1991,7 +1991,11 @@ def filter_clusters(clust_prefix, clust_min_samples, clust_min_len):
 
 
 def collect_ext_stats(out_dir):
-    samples_stats = sorted(list(Path(out_dir).resolve().rglob("*_recovery_stats.tsv")))
+    # Resolve each sample extraction subdirectory to follow symlinks correctly
+    ext_dirs = sorted(p.resolve() for p in list(Path(out_dir).rglob("*__captus-ext")))
+    samples_stats = []
+    for ext_dir in ext_dirs:
+        samples_stats += sorted(list(ext_dir.rglob("*_recovery_stats.tsv")))
     samples_stats = [tsv for tsv in samples_stats if tsv.parts[-2] == "06_assembly_annotated"]
     if not samples_stats:
         return None
