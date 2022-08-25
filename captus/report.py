@@ -42,6 +42,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     df2 = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["PSQS"]))
     df3 = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["SLEN"]))
     df4 = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["PSGC"]))
+    df5 = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["ADCO"]))
 
     # Output reads/bases%
     df1["reads_passed_cleaning_%"] = df1["reads_passed_cleaning"] / df1["reads_input"] * 100
@@ -65,6 +66,11 @@ def build_qc_report(out_dir, qc_extras_dir):
     gc = (df4.groupby(["sample_name", "stage"])["gc_content * count"].sum()
         / df4.groupby(["sample_name", "stage"])["count"].sum()
     )
+    # Adapter%
+    df5 = df5[df5["stage"] == "before"]
+    df5["total_adapter_content%"] = df5.iloc[:,4:].sum(axis=1)
+    df5 = df5.groupby(["sample_name", "read"])["total_adapter_content%"].max().reset_index()
+    df5 = df5.groupby(["sample_name"])["total_adapter_content%"].mean().reset_index()
 
     df = pd.DataFrame({
         "Sample": df1["sample"],
@@ -78,6 +84,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         "≥Q20 Reads%": q20.xs("after", level="stage").reset_index()["count"],
         "≥Q30 Reads%": q30.xs("after", level="stage").reset_index()["count"],
         "GC%": gc.xs("after", level="stage").reset_index()[0],
+        "Adapter%": df5["total_adapter_content%"],
     })
 
     sample_list = df["Sample"].unique()
@@ -87,25 +94,26 @@ def build_qc_report(out_dir, qc_extras_dir):
         [0.5, "#F5F5F5"],
         [1, "#BDE3D8"]
     ]
+
+    fill_color = []
+    for col in df.columns:
+        if col == "Sample":
+            fill_color.append("#F5F5F5")
+        else:
+            fill_color.append(
+                sample_colorscale(
+                    colorscale,
+                    normalize(df[col].fillna(0)),
+                )
+            )
+
     figs = []
     fig = go.Figure()
     fig.add_trace(go.Table(
         header=dict(values=["<b>" + col + "</b>" for col in df.columns]),
         cells=dict(
             values=[df[col] for col in df.columns],
-            fill_color=[
-                "#F5F5F5",
-                sample_colorscale(colorscale, normalize(df["Input Reads"].fillna(0))),
-                sample_colorscale(colorscale, normalize(df["Input Bases"].fillna(0))),
-                sample_colorscale(colorscale, normalize(df["Output Reads"].fillna(0))),
-                sample_colorscale(colorscale, normalize(df["Output Reads%"].fillna(0))),
-                sample_colorscale(colorscale, normalize(df["Output Bases"].fillna(0))),
-                sample_colorscale(colorscale, normalize(df["Output Bases%"].fillna(0))),
-                sample_colorscale(colorscale, normalize(df["Mean Read Length%"].fillna(0))),
-                sample_colorscale(colorscale, normalize(df["≥Q20 Reads%"].fillna(0))),
-                sample_colorscale(colorscale, normalize(df["≥Q30 Reads%"].fillna(0))),
-                sample_colorscale(colorscale, normalize(df["GC%"].fillna(0))),
-            ],
+            fill_color=fill_color,
             format=[None, ",", ",", ",", ".2f", ",", ".2f"],
             align=["left", "right"],
             height=21,
@@ -114,34 +122,38 @@ def build_qc_report(out_dir, qc_extras_dir):
 
     buttons = []
     for col in df.columns:
-        if col == "Sample":
-            df.sort_values(by=col, inplace=True)
-        else:
-            df.sort_values(by=col, inplace=True, ascending=False)
-        button = dict(label=col,
-            method="restyle",
-            args=[dict(
-                cells=dict(values=[df[col] for col in df.columns],
-                fill=dict(
-                    color=[
-                        "#F5F5F5",
-                        sample_colorscale(colorscale, normalize(df["Input Reads"].fillna(0))),
-                        sample_colorscale(colorscale, normalize(df["Input Bases"].fillna(0))),
-                        sample_colorscale(colorscale, normalize(df["Output Reads"].fillna(0))),
-                        sample_colorscale(colorscale, normalize(df["Output Reads%"].fillna(0))),
-                        sample_colorscale(colorscale, normalize(df["Output Bases"].fillna(0))),
-                        sample_colorscale(colorscale, normalize(df["Output Bases%"].fillna(0))),
-                        sample_colorscale(colorscale, normalize(df["Mean Read Length%"].fillna(0))),
-                        sample_colorscale(colorscale, normalize(df["≥Q20 Reads%"].fillna(0))),
-                        sample_colorscale(colorscale, normalize(df["≥Q30 Reads%"].fillna(0))),
-                        sample_colorscale(colorscale, normalize(df["GC%"].fillna(0))),
-                    ]
-                ),
-                format=[None, ",", ",", ",", ".2f", ",", ".2f"],
-                align=["left", "right"],
-                height=21,
+        df.sort_values(
+            by=col,
+            ascending=True if col == "Sample" else False,
+            inplace=True,
+        )
+        fill_color = []
+        for col2 in df.columns:
+            if col2 == "Sample":
+                fill_color.append("#F5F5F5")
+            else:
+                fill_color.append(
+                    sample_colorscale(
+                        colorscale,
+                        normalize(df[col2].fillna(0)),
+                    )
                 )
-            )]
+        button = dict(
+            label=col,
+            method="restyle",
+            args=[
+                dict(
+                    cells=dict(
+                        values=[df[col] for col in df.columns],
+                        fill=dict(
+                            color=fill_color,
+                        ),
+                        format=[None, ",", ",", ",", ".2f", ",", ".2f"],
+                        align=["left", "right"],
+                        height=21,
+                )
+                )
+            ],
         )
         buttons.append(button)
 
@@ -181,6 +193,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                 settings_assembly.QC_FILES["PSQS"],
                 settings_assembly.QC_FILES["SLEN"],
                 settings_assembly.QC_FILES["PSGC"],
+                settings_assembly.QC_FILES["ADCO"],
             ])
             + ")</sup>"
         ),
@@ -1501,36 +1514,99 @@ def build_assembly_report(out_dir, asm_stats_tsv):
     # Load datatable
     df = pd.read_table(asm_stats_tsv)
 
-    df = df.reindex(
-        columns=[
-            "sample",
-            "total_length",
-            "n_contigs",
-            "avg_length",
-            "N50",
-            "longest_contig",
-            "shortest_contig",
-            "pct_contigs_>=_1kbp",
-            "GC_content",
-            "avg_depth",
-        ],
-    )
+    if df["filtered_n_contigs"].max() == 0:
+        filtered = False
+    else:
+        filtered = True
 
-    df.rename(
-        columns={
-            "sample": "Sample",
-            "total_length": "Total Length (bp)",
-            "n_contigs": "Number of Contigs",
-            "avg_length": "Mean Length (bp)",
-            "N50": "Contig N50 (bp)",
-            "longest_contig": "Longest Contig (bp)",
-            "shortest_contig": "Shortest Contig (bp)",
-            "pct_contigs_>=_1kbp": "≥1kbp Contig (%)",
-            "GC_content": "GC Content (%)",
-            "avg_depth": "Mean Depth (x)",
-        },
-        inplace=True,
-    )
+    if filtered == True:
+        df = df.reindex(
+            columns=[
+                "sample",
+                "total_length",
+                "filtered_total_length",
+                "n_contigs",
+                "filtered_n_contigs",
+                "avg_length",
+                "N50",
+                "longest_contig",
+                "shortest_contig",
+                "pct_contigs_>=_1kbp",
+                "GC_content",
+                "filtered_gc_content",
+                "avg_depth",
+            ],
+        )
+        df.rename(
+            columns={
+                "sample": "Sample",
+                "total_length": "Total Length Survived (bp)",
+                "filtered_total_length": "Total Length Removed (bp)",
+                "n_contigs": "Number of Contigs Survived",
+                "filtered_n_contigs": "Number of Contigs Removed",
+                "avg_length": "Mean Length (bp)",
+                "N50": "Contig N50 (bp)",
+                "longest_contig": "Longest Contig (bp)",
+                "shortest_contig": "Shortest Contig (bp)",
+                "pct_contigs_>=_1kbp": "≥1 kbp Contigs (%)",
+                "GC_content": "GC Content Survived (%)",
+                "filtered_gc_content": "GC Content Removed (%)",
+                "avg_depth": "Mean Depth (x)",
+            },
+            inplace=True,
+        )
+        format = [
+            None,
+            ",",
+            ",",
+            ",",
+            ",",
+            ",",
+            ",",
+            ",",
+            ",",
+            ".2f",
+        ]
+    else:
+        df = df.reindex(
+            columns=[
+                "sample",
+                "total_length",
+                "n_contigs",
+                "avg_length",
+                "N50",
+                "longest_contig",
+                "shortest_contig",
+                "pct_contigs_>=_1kbp",
+                "GC_content",
+                "avg_depth",
+            ],
+        )
+        df.rename(
+            columns={
+                "sample": "Sample",
+                "total_length": "Total Length (bp)",
+                "n_contigs": "Number of Contigs",
+                "avg_length": "Mean Length (bp)",
+                "N50": "Contig N50 (bp)",
+                "longest_contig": "Longest Contig (bp)",
+                "shortest_contig": "Shortest Contig (bp)",
+                "pct_contigs_>=_1kbp": "≥1 kbp Contigs (%)",
+                "GC_content": "GC Content(%)",
+                "avg_depth": "Mean Depth (x)",
+            },
+            inplace=True,
+        )
+        format = [
+            None,
+            ",",
+            ",",
+            ",",
+            ",",
+            ",",
+            ",",
+            ".2f",
+        ]
 
     sample_list = df["Sample"].unique()
 
@@ -1540,6 +1616,18 @@ def build_assembly_report(out_dir, asm_stats_tsv):
         [1, "#BDE3D8"]
     ]
 
+    fill_color = []
+    for col in df.columns:
+        if col == "Sample":
+            fill_color.append("#F5F5F5")
+        else:
+            fill_color.append(
+                sample_colorscale(
+                    colorscale,
+                    normalize(df[col])
+                )
+            )
+
     figs = []
     fig = go.Figure()
     fig.add_trace(
@@ -1547,19 +1635,8 @@ def build_assembly_report(out_dir, asm_stats_tsv):
             header=dict(values=["<b>" + col + "</b>" for col in df.columns]),
             cells=dict(
                 values=[df[col] for col in df.columns],
-                fill_color=[
-                    "#F5F5F5",
-                    sample_colorscale(colorscale, normalize(df["Total Length (bp)"])),
-                    sample_colorscale(colorscale, normalize(df["Number of Contigs"])),
-                    sample_colorscale(colorscale, normalize(df["Mean Length (bp)"])),
-                    sample_colorscale(colorscale, normalize(df["Contig N50 (bp)"])),
-                    sample_colorscale(colorscale, normalize(df["Longest Contig (bp)"])),
-                    sample_colorscale(colorscale, normalize(df["Shortest Contig (bp)"])),
-                    sample_colorscale(colorscale, normalize(df["≥1kbp Contig (%)"])),
-                    sample_colorscale(colorscale, normalize(df["GC Content (%)"])),
-                    sample_colorscale(colorscale, normalize(df["Mean Depth (x)"])),
-                ],
-                format=[None, ",", ",", ",", ",", ",", ",", ".2f"],
+                fill_color=fill_color,
+                format=format,
                 align=["left", "right"],
                 height=21,
             )
@@ -1568,36 +1645,38 @@ def build_assembly_report(out_dir, asm_stats_tsv):
 
     buttons = []
     for col in df.columns:
-        if col == "Sample":
-            df.sort_values(by=col, inplace=True)
-        else:
-            df.sort_values(by=col, inplace=True, ascending=False)
+        df.sort_values(
+            by=col,
+            ascending=True if col == "Sample" else False,
+            inplace=True,
+        )
+        fill_color = []
+        for col2 in df.columns:
+            if col2 == "Sample":
+                fill_color.append("#F5F5F5")
+            else:
+                fill_color.append(
+                    sample_colorscale(
+                        colorscale,
+                        normalize(df[col2])
+                    )
+                )
         button = dict(
             label=col,
             method="restyle",
             args=[
                 dict(
-                cells=dict(
-                    values=[df[col] for col in df.columns],
-                fill=dict(
-                    color=[
-                        "#F5F5F5",
-                        sample_colorscale(colorscale, normalize(df["Total Length (bp)"])),
-                        sample_colorscale(colorscale, normalize(df["Number of Contigs"])),
-                        sample_colorscale(colorscale, normalize(df["Mean Length (bp)"])),
-                        sample_colorscale(colorscale, normalize(df["Contig N50 (bp)"])),
-                        sample_colorscale(colorscale, normalize(df["Longest Contig (bp)"])),
-                        sample_colorscale(colorscale, normalize(df["Shortest Contig (bp)"])),
-                        sample_colorscale(colorscale, normalize(df["≥1kbp Contig (%)"])),
-                        sample_colorscale(colorscale, normalize(df["GC Content (%)"])),
-                        sample_colorscale(colorscale, normalize(df["Mean Depth (x)"])),
-                    ]
-                ),
-                format=[None, ",", ",", ",", ",", ",", ",", ".2f"],
-                align=["left", "right"],
-                height=21,
+                    cells=dict(
+                        values=[df[col] for col in df.columns],
+                        fill=dict(
+                            color=fill_color,
+                        ),
+                        format=format,
+                        align=["left", "right"],
+                        height=21,
+                    )
                 )
-            )]
+            ],
         )
         buttons.append(button)
 
@@ -1617,7 +1696,7 @@ def build_assembly_report(out_dir, asm_stats_tsv):
         x=1,
         xref="paper",
         xanchor="right",
-        xshift=-155,
+        xshift=-200 if filtered == True else -155,
         y=1,
         yref="paper",
         yanchor="top",
@@ -1646,178 +1725,243 @@ def build_assembly_report(out_dir, asm_stats_tsv):
     df = pd.read_table(asm_stats_tsv)
 
     # Variables available as drop-down menu
-    var_list = [
-        "total_length",
-        "n_contigs",
-        "avg_length",
-        "median_length",
-        "N50",
-        "longest_contig",
-        "shortest_contig",
-        [
+    var_dict = {
+        "Total Length (bp)": [
+            "total_length",
+            None,
+            None,
+            "filtered_total_length" if filtered == True else None,
+        ],
+        "Number of Contigs": [
+            "n_contigs",
+            None,
+            None,
+            "filtered_n_contigs" if filtered == True else None,
+        ],
+        "Mean Length (bp)": [
+            "avg_length",
+            None,
+            None,
+            "filtered_avg_length" if filtered == True else None,
+        ],
+        "Median Length (bp)": [
+            "median_length",
+            None,
+            None,
+            None,
+        ],
+        "Contig N50 (bp)": [
+            "N50",
+            None,
+            None,
+            None,
+        ],
+        "Longest Contig (bp)": [
+            "longest_contig",
+            None,
+            None,
+            None,
+        ],
+        "Shortest Contig (bp)": [
+            "shortest_contig",
+            None,
+            None,
+            None,
+        ],
+        "Contig Breakdown<br> by Length (%)": [
             "pct_contigs_>=_1kbp",
             "pct_contigs_>=_2kbp",
             "pct_contigs_>=_5kbp",
             "pct_contigs_>=_10kbp",
         ],
-        [
+        "Length Breakdown<br> by Contig Length (%)": [
             "pct_length_>=_1kbp",
             "pct_length_>=_2kbp",
             "pct_length_>=_5kbp",
             "pct_length_>=_10kbp",
         ],
-        "GC_content",
-        "avg_depth",
-        [
+        "GC Content (%)": [
+            "GC_content",
+            None,
+            None,
+            "filtered_gc_content" if filtered == True else None,
+        ],
+        "Mean Depth (x)": [
+            "avg_depth",
+            None,
+            None,
+            None,
+        ],
+        "Contig Breakdown<br> by Depth (%)": [
             "pct_contigs_>=_1x",
             "pct_contigs_>=_2x",
             "pct_contigs_>=_5x",
             "pct_contigs_>=_10x",
         ],
-    ]
+    }
 
-    # Button labels
-    button_lab_list = [
-        "Total Length (bp)",
-        "Number of Contigs",
-        "Mean Length (bp)",
-        "Median Length (bp)",
-        "Contig N50 (bp)",
-        "Longest Contig (bp)",
-        "Shortest Contig (bp)",
-        "Contig Breakdown by Length (%)",
-        "Length Breakdown by Contig Length (%)",
-        "GC Content (%)",
-        "Mean Depth (x)",
-        "Contig Breakdown by Depth (%)",
-    ]
+    hover_template_dict = {
+        "Total Length (bp)": "<br>".join(
+            [
+                "Sample: <b>%{x}</b>",
+                "Total length: <b>%{y:,} bp</b>",
+                "<extra></extra>" if filtered == False else "",
+            ]
+        ),
+        "Number of Contigs": "<br>".join(
+            [
+                "Sample: <b>%{x}</b>",
+                "Number of contigs: <b>%{y:,}</b>",
+                "<extra></extra>" if filtered == False else "",
+            ]
+        ),
+        "Mean Length (bp)": "<br>".join(
+            [
+                "Sample: <b>%{x}</b>",
+                "Mean contig length: <b>%{y:,} bp</b>",
+                "<extra></extra>" if filtered == False else "",
+            ]
+        ),
+        "Median Length (bp)": (
+            "Sample: <b>%{x}</b><br>" +
+            "Median contig length: <b>%{y:,} bp</b><extra></extra>"
+        ),
+        "Contig N50 (bp)": (
+            "Sample: <b>%{x}</b><br>" +
+            "Contig N50: <b>%{y:,} bp</b><extra></extra>"
+        ),
+        "Longest Contig (bp)": (
+            "Sample: <b>%{x}</b><br>" +
+            "Longest contig length: <b>%{y:,} bp</b><extra></extra>"
+        ),
+        "Shortest Contig (bp)": (
+            "Sample: <b>%{x}</b><br>" +
+            "Shortest contig length: <b>%{y:,} bp</b><extra></extra>"
+        ),
+        "Contig Breakdown<br> by Length (%)": (
+            "Sample: <b>%{x}</b><br>" +
+            "Proportion of contigs: <b>%{y:.2f}%</b>"
+        ),
+        "Length Breakdown<br> by Contig Length (%)": (
+            "Sample: <b>%{x}</b><br>" +
+            "Proportion of length: <b>%{y:.2f}%</b>"
+        ),
+        "GC Content (%)": "<br>".join(
+            [
+                "Sample: <b>%{x}</b>",
+                "GC content: <b>%{y:.2f}%</b>",
+                "<extra></extra>" if filtered == False else "",
+            ]
+        ),
+        "Mean Depth (x)": (
+            "Sample: <b>%{x}</b><br>" +
+            "Mean depth: <b>%{y:.2f}x</b><extra></extra>"
+        ),
+        "Contig Breakdown<br> by Depth (%)": (
+            "Sample: <b>%{x}</b><br>" +
+            "Proportion of contigs: <b>%{y:.2f}%</b>"
+        ),
+    }
 
-    # X axis labels
-    xlab_list = [
-        "Total Length",
-        "Number of Contigs",
-        "Mean Length",
-        "Median Length",
-        "Contig N50",
-        "Longest Contig Length",
-        "Shortest Contig Length",
-        "Proportion of Contigs",
-        "Proportion of Total Length",
-        "GC Content",
-        "Mean Depth",
-        "Proportion of Contigs",
-    ]
+    trace_name_dict = {
+        "n_contigs": "Survived",
+        "filtered_n_contigs": "Removed",
+        "total_length": "Survived",
+        "filtered_total_length": "Removed",
+        "avg_length": "Survived",
+        "filtered_avg_length": "Removed",
+        "GC_content": "Survived",
+        "filtered_gc_content": "Removed",
+    }
 
-    colors = ["#56B4E9", "#009E73", "#E69F00", "#CC79A7"]
+    colors = [
+        "#56B4E9",
+        "#009E73",
+        "#E69F00",
+        "#CC79A7"
+    ]
 
     # Create figure
     fig = go.Figure()
-    df.sort_values(
-        by=var_list[0],
-        ascending=False,
-        inplace=True,
-    )
-
-    for i in range(4):
-        fig.add_trace(
-            go.Bar(
-                x=df[var_list[0]],
-                y=df["sample"],
-                orientation="h",
-                visible=True if i == 0 else False,
-                marker_color=colors[i],
-                marker_line_color="rgb(8,8,8)",
-                hovertemplate="<b>%{y}</b><br>" +
-                              xlab_list[0] + ": <b>%{x:,} bp</b><extra></extra>"
+    for i in range(len(list(var_dict.values())[0])):
+        if var_dict[list(var_dict.keys())[0]][i] is None:
+            fig.add_trace(
+                go.Bar(
+                    marker_color=colors[i],
+                    marker_line_color="rgb(8,8,8)",
+                )
             )
-        )
+        else:
+            fig.add_trace(
+                go.Bar(
+                    x=df["sample"],
+                    y=df[var_dict[list(var_dict.keys())[0]][i]],
+                    name=trace_name_dict[var_dict[list(var_dict.keys())[0]][i]],
+                    marker_color=colors[i],
+                    marker_line_color="rgb(8,8,8)",
+                    hovertemplate=hover_template_dict[list(var_dict.keys())[0]],
+                )
+            )
 
     # Dropdown setting
     buttons = []
-    for j, var in enumerate(var_list):
-        if type(var_list[j]) == list:
-            df["total"] = sum([
-                df[var[0]],
-                df[var[1]],
-                df[var[2]],
-                df[var[3]],
-            ])
-            df.sort_values(
-                by="total",
-                ascending=False,
-                inplace=True,
-            )
-            x = [
-                df[var[0]],
-                df[var[1]],
-                df[var[2]],
-                df[var[3]],
-            ]
-            y = [df["sample"]] * 4
-            name = [re.sub(".*_>=_", "≥ ", name) for name in var_list[j]]
-            visible = [True] * 4
-            hovertemplate = [
-                "<b>%{y}</b><br>" +
-                xlab_list[j] + ": <b>%{x:.2f}%</b>"
-            ]
-        else:
-            df.sort_values(
-                by=var,
-                ascending=False,
-                inplace=True,
-            )
-            x = [df[var], None, None, None]
-            y = [df["sample"], None, None, None]
-            name = []
-            visible = [True, False, False, False]
-            if var == "n_contigs":
-                hovertemplate = [
-                    "<b>%{y}</b><br>" +
-                    xlab_list[j] + ": <b>%{x:,}</b><extra></extra>"
-                ]
-            elif var == "GC_content":
-                hovertemplate = [
-                    "<b>%{y}</b><br>" +
-                    xlab_list[j] + ": <b>%{x:.2f}%</b><extra></extra>"
-                ]
-            elif var == "avg_depth":
-                hovertemplate = [
-                    "<b>%{y}</b><br>" +
-                    xlab_list[j] + ": <b>%{x:.2f}x</b><extra></extra>"
-                ]
+    for key, values in var_dict.items():
+        x_list, y_list, name_list, hovertemplate_list = [], [], [], []
+        for v in values:
+            if v is None:
+                x_list.append(None)
+                y_list.append(None)
+                name_list.append(None)
+                hovertemplate_list.append(None)
             else:
-                hovertemplate = [
-                    "<b>%{y}</b><br>" +
-                    xlab_list[j] + ": <b>%{x:,} bp</b><extra></extra>"
-                ]
-
+                x_list.append(df["sample"])
+                y_list.append(df[v])
+                if v in list(trace_name_dict.keys()):
+                    name_list.append(trace_name_dict[v])
+                else:
+                    name_list.append(re.sub(".*_>=_(\d+)", r"≥\1 ", v))
+                hovertemplate_list.append(hover_template_dict[key])
+        if key in [
+            "Contig Breakdown<br> by Length (%)",
+            "Length Breakdown<br> by Contig Length (%)",
+            "Contig Breakdown<br> by Depth (%)"
+        ]:
+            barmode = "overlay"
+        elif key in [
+            "Mean Length (bp)",
+            "GC Content (%)",
+        ]:
+            barmode = "group"
+        else:
+            barmode = "stack"
         button = dict(
-            label=button_lab_list[j],
-            method="restyle",
+            label=key,
+            method="update",
             args=[
                 dict(
-                    x=x,
-                    y=y,
-                    name=name,
-                    visible=visible,
-                    hovertemplate=hovertemplate
+                    x=x_list,
+                    y=y_list,
+                    name=name_list,
+                    hovertemplate=hovertemplate_list,
                 ),
+                dict(
+                    barmode=barmode,
+                )
             ]
         )
-
         buttons.append(button)
 
     updatemenus = [
         dict(
             buttons=buttons,
             type="dropdown",
-            direction="up",
-            pad={"t": 30, "b": 10},
+            direction="down",
+            pad={"t": 10, "b": 10, "r": 50},
             showactive=True,
-            x=0.5,
-            xanchor="center",
-            y=0,
-            yanchor="top"
+            x=0,
+            xanchor="right",
+            y=0.5,
+            yanchor="middle"
         )
     ]
     # Layout setting
@@ -1830,15 +1974,13 @@ def build_assembly_report(out_dir, asm_stats_tsv):
             + str(asm_stats_tsv.name)
             + ")</sup>"
         ),
-        xaxis=dict(
+        yaxis=dict(
             gridcolor="rgb(64,64,64)",
             ticks="outside",
             zeroline=False,
         ),
-        yaxis=dict(
+        xaxis=dict(
             title="Sample",
-            type="category",
-            autorange="reversed",
             showgrid=False,
             ticks="outside",
         ),
@@ -1846,7 +1988,10 @@ def build_assembly_report(out_dir, asm_stats_tsv):
             font_color="rgb(64,64,64)",
             bordercolor="rgb(64,64,64)",
         ),
-        barmode="overlay",
+        barmode="stack",
+        legend=dict(
+            traceorder="normal",
+        ),
         # height=180 + 15 * len(sample_list),
         updatemenus=updatemenus,
     )
@@ -1900,12 +2045,12 @@ def build_extraction_report(out_dir, ext_stats_tsv):
     )
 
     # Preprocess
-    df_best = df[df["hit"] == 0].reset_index(drop=True).fillna("NaN")
+    df_best = df[df["hit"] == 0].reset_index(drop=True).fillna("NA")
     df_best["hit"] = df.groupby(["sample_name", "marker_type", "locus"], as_index=False).count()["hit"]
     df_best.loc[df_best["ref_type"] == "nucl", "ref_len_unit"] = "bp"
     df_best.loc[df_best["ref_type"] == "prot", "ref_len_unit"] = "aa"
-    df_best.loc[df_best["frameshifts"] == "NaN", "n_frameshifts"] = 0
-    df_best.loc[df_best["frameshifts"] != "NaN", "n_frameshifts"] = df_best["frameshifts"].str.count(",") + 1
+    df_best.loc[df_best["frameshifts"] == "NA", "n_frameshifts"] = 0
+    df_best.loc[df_best["frameshifts"] != "NA", "n_frameshifts"] = df_best["frameshifts"].str.count(",") + 1
     # Define variables
     marker_type = df_best["marker_type"].unique()
     if len(marker_type) > 1:
@@ -2031,9 +2176,13 @@ def build_extraction_report(out_dir, ext_stats_tsv):
             data = df_best
             data["marker_type - locus"] = data["marker_type"] + " - " + data["locus"].astype(str)
             matrix_size = len(data["sample_name"].unique()) * len(data["marker_type - locus"].unique())
+            bar1 = data.groupby("marker_type - locus", as_index=False)["sample_name"].count()
+            bar2 = data.groupby("sample_name", as_index=False)["marker_type - locus"].count()
         else:
             data = df_best[df_best["marker_type"] == marker]
             matrix_size = len(data["sample_name"].unique()) * len(data["locus"].unique())
+            bar1 = data.groupby("locus", as_index=False)["sample_name"].count()
+            bar2 = data.groupby("sample_name", as_index=False)["locus"].count()
         if matrix_size > 500000:
             customdata = None
             hovertemplate = "<br>".join([
@@ -2068,6 +2217,14 @@ def build_extraction_report(out_dir, ext_stats_tsv):
                 "Best hit LG50: <b>%{customdata[20]}</b>",
                 "Best hit LG90: <b>%{customdata[21]}</b><extra></extra>",
             ])
+        hovertemplate_bar1 = "<br>".join([
+            "Locus: <b>%{x}</b>",
+            "Samples recovered: <b>%{y}</b><extra></extra>",
+        ])
+        hovertemplate_bar2 = "<br>".join([
+            "Sample: <b>%{y}</b>",
+            "Loci recovered: <b>%{x}</b><extra></extra>",
+        ])
 
         fig = go.Figure()
         fig.add_trace(
@@ -2089,6 +2246,39 @@ def build_extraction_report(out_dir, ext_stats_tsv):
                 hoverongaps=False,
                 xgap=0.5,
                 ygap=0.5,
+            )
+        )
+        fig.add_trace(
+            go.Bar(
+                x=bar1["marker_type - locus"] if marker == "ALL" else bar1["locus"],
+                y=bar1["sample_name"],
+                yaxis="y2",
+                hovertemplate=hovertemplate_bar1,
+                marker=dict(
+                    color="#56B4E9",
+                    line=dict(
+                        color="rgb(8,8,8)",
+                        width=0.5,
+                    ),
+                ),
+                showlegend=False,
+            )
+        )
+        fig.add_trace(
+            go.Bar(
+                x=bar2["marker_type - locus"] if marker == "ALL" else bar2["locus"],
+                y=bar2["sample_name"],
+                xaxis="x2",
+                hovertemplate=hovertemplate_bar2,
+                marker=dict(
+                    color="#56B4E9",
+                    line=dict(
+                        color="rgb(8,8,8)",
+                        width=0.5,
+                    ),
+                ),
+                orientation="h",
+                showlegend=False,
             )
         )
 
@@ -2204,7 +2394,11 @@ def build_extraction_report(out_dir, ext_stats_tsv):
                         "zmax": zmax,
                         "colorscale": cmap,
                         "colorbar.ticksuffix": None if j > 1 else "%",
-                        "hovertemplate": hovertemplate,
+                        "hovertemplate": [
+                            hovertemplate,
+                            hovertemplate_bar1,
+                            hovertemplate_bar2,
+                        ],
                     }
                 ],
             )
@@ -2217,7 +2411,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
                 direction="down",
                 pad={"t": 10, "b": 10},
                 showactive=True,
-                x=0.5,
+                x=0.475,
                 xanchor="right",
                 y=1,
                 yanchor="bottom",
@@ -2228,7 +2422,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
                 direction="down",
                 pad={"t": 10, "b": 10},
                 showactive=True,
-                x=1,
+                x=0.95,
                 xanchor="right",
                 y=1,
                 yanchor="bottom",
@@ -2238,7 +2432,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
         annotations = [
             dict(
                 text="<b>Variable:</b>",
-                x=0.5,
+                x=0.475,
                 xref="paper",
                 xanchor="right",
                 xshift=-165,
@@ -2251,7 +2445,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
             ),
             dict(
                 text="<b>Sort by Value:</b>",
-                x=1,
+                x=0.95,
                 xref="paper",
                 xanchor="right",
                 xshift=-102,
@@ -2296,20 +2490,42 @@ def build_extraction_report(out_dir, ext_stats_tsv):
             font_family="Arial",
             plot_bgcolor="rgb(8,8,8)",
             title=title,
-            xaxis=dict(
+            xaxis1=dict(
                 title="Marker type - Locus" if marker == "ALL" else "Locus",
                 type="category",
                 categoryorder="category ascending",
                 gridcolor="rgb(64,64,64)",
                 ticks="outside",
+                domain=[0, 0.95],
             ),
-            yaxis=dict(
+            yaxis1=dict(
                 title="Sample",
                 type="category",
                 categoryorder="category descending",
                 gridcolor="rgb(64,64,64)",
                 ticks="outside",
+                domain=[0, 0.925],
             ),
+            xaxis2=dict(
+                title="Loci",
+                gridcolor="rgb(64,64,64)",
+                ticks="outside",
+                zeroline=True,
+                domain=[0.95, 1],
+            ),
+            yaxis2=dict(
+                title="Samples",
+                gridcolor="rgb(64,64,64)",
+                ticks="outside",
+                zeroline=True,
+                domain=[0.925, 1],
+            ),
+            hoverlabel=dict(
+                font_color="#FFFFFF",
+                bordercolor="#FFFFFF",
+                bgcolor="#444444",
+            ),
+            bargap=0,
             annotations=annotations,
             updatemenus=updatemenus
         )
@@ -2357,9 +2573,7 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
     start = time.time()
 
     df = pd.read_table(aln_stats_tsv)
-    df["stage"] = df["trimmed"].astype(str).str.cat([df["paralog_filter"], df["with_refs"].astype(str)], sep="-")
-    df.loc[df["format"] == "AA", "aln_len_unit"] = "aa"
-    df.loc[df["format"] != "AA", "aln_len_unit"] = "bp"
+    df["stage"] = df["trimmed"].astype("str").str.cat([df["paralog_filter"], df["with_refs"].astype("str")], sep="-")
     marker_type_list = df["marker_type"].unique()
 
     color_dict = {
@@ -2389,7 +2603,7 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
     var_dict = {
         "Sequences": "seqs",
         "Samples": "samples",
-        "Sequences per Sample": "avg_copies",
+        "Sequences Per Sample": "avg_copies",
         "Alignment Length": "sites",
         "Informative Sites": "informative",
         "Informativeness (%)": "informativeness",
@@ -2399,6 +2613,10 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
         "Patterns": "patterns",
         "Mean Pairwise Identity (%)": "avg_pid",
         "Missingness (%)": "missingness",
+        "GC Content (%)": "gc",
+        "GC Content at<br>1st Codon Position (%)": "gc_codon_p1",
+        "GC Content at<br>2nd Codon Position (%)": "gc_codon_p2",
+        "GC Content at<br>3rd Codon Position (%)": "gc_codon_p3",
     }
 
     figs = []
@@ -2451,19 +2669,27 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
 
     buttonsX = []
     for lab, var in var_dict.items():
-        x_list = []
+        x_list, hoverinfo_list = [], []
         for j, marker_type in enumerate(marker_type_list):
             data = df[df["marker_type"] == marker_type]
             fmt_list = list(reversed(data["format"].unique()))
             for i, fmt in enumerate(fmt_list):
+                if var == "gc" and fmt == "AA":
+                    hoverinfo = "skip"
+                elif "codon" in var and fmt in ["AA", "GE", "GF", "MA", "MF"]:
+                    hoverinfo = "skip"
+                else:
+                    hoverinfo = "x"
                 x = data[data["format"] == fmt][var]
                 x_list.append(x)
+                hoverinfo_list.append(hoverinfo)
         buttonX = dict(
             label=lab,
             method="restyle",
             args=[
                 dict(
                     x=x_list,
+                    hoverinfo=hoverinfo_list,
                 ),
             ]
         )
@@ -2498,21 +2724,21 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
             )
         )
 
-    annotations = [
-        dict(
-            text="<b>Marker Type:</b>",
-            x=1,
-            xref="paper",
-            xanchor="right",
-            xshift=-70,
-            y=1,
-            yref="paper",
-            yanchor="top",
-            yshift=36,
-            align="right",
-            showarrow=False,
-        ),
-    ]
+        annotations = [
+            dict(
+                text="<b>Marker Type:</b>",
+                x=1,
+                xref="paper",
+                xanchor="right",
+                xshift=-75,
+                y=1,
+                yref="paper",
+                yanchor="top",
+                yshift=36,
+                align="right",
+                showarrow=False,
+            ),
+        ]
 
     fig.update_layout(
         font_family="Arial",
@@ -2570,13 +2796,13 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
         "False-unfiltered-True":  "02_untrimmed/<br>01_unfiltered_w_refs",
     }
 
-    hovertemplate = "<br>".join([
+    hovertemplate_aa = "<br>".join([
             "Locus: <b>%{customdata[6]}</b>",
             "Marker type: <b>%{customdata[4]}</b>",
             "Sequences: <b>%{customdata[7]:,.0f}</b>",
             "Samples: <b>%{customdata[8]:,.0f}</b>",
             "Sequences per sample: <b>%{customdata[9]:.2f}</b>",
-            "Alignment length: <b>%{customdata[10]:,.0f} %{customdata[20]}</b>",
+            "Alignment length: <b>%{customdata[10]:,.0f} aa</b>",
             "Informative sites: <b>%{customdata[11]:,.0f}</b>",
             "Informativeness: <b>%{customdata[12]:.2f}%</b>",
             "Uninformative sites: <b>%{customdata[13]:,.0f}</b>",
@@ -2585,6 +2811,43 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
             "Patterns: <b>%{customdata[16]:,.0f}</b>",
             "Mean pairwise identity: <b>%{customdata[17]:.2f}%</b>",
             "Missingness: <b>%{customdata[18]:.2f}%</b>",
+    ])
+    hovertemplate_nt = "<br>".join([
+            "Locus: <b>%{customdata[6]}</b>",
+            "Marker type: <b>%{customdata[4]}</b>",
+            "Sequences: <b>%{customdata[7]:,.0f}</b>",
+            "Samples: <b>%{customdata[8]:,.0f}</b>",
+            "Sequences per sample: <b>%{customdata[9]:.2f}</b>",
+            "Alignment length: <b>%{customdata[10]:,.0f} bp</b>",
+            "Informative sites: <b>%{customdata[11]:,.0f}</b>",
+            "Informativeness: <b>%{customdata[12]:.2f}%</b>",
+            "Uninformative sites: <b>%{customdata[13]:,.0f}</b>",
+            "Constant sites: <b>%{customdata[14]:,.0f}</b>",
+            "Singleton sites: <b>%{customdata[15]:,.0f}</b>",
+            "Patterns: <b>%{customdata[16]:,.0f}</b>",
+            "Mean pairwise identity: <b>%{customdata[17]:.2f}%</b>",
+            "Missingness: <b>%{customdata[18]:.2f}%</b>",
+            "GC content: <b>%{customdata[19]:.2f}%</b>",
+            "GC content at 1st codon position: <b>%{customdata[20]:.2f}%</b>",
+            "GC content at 2nd codon position: <b>%{customdata[21]:.2f}%</b>",
+            "GC content at 3rd codon position: <b>%{customdata[22]:.2f}%</b>",
+    ])
+    hovertemplate_other = "<br>".join([
+            "Locus: <b>%{customdata[6]}</b>",
+            "Marker type: <b>%{customdata[4]}</b>",
+            "Sequences: <b>%{customdata[7]:,.0f}</b>",
+            "Samples: <b>%{customdata[8]:,.0f}</b>",
+            "Sequences per sample: <b>%{customdata[9]:.2f}</b>",
+            "Alignment length: <b>%{customdata[10]:,.0f} bp</b>",
+            "Informative sites: <b>%{customdata[11]:,.0f}</b>",
+            "Informativeness: <b>%{customdata[12]:.2f}%</b>",
+            "Uninformative sites: <b>%{customdata[13]:,.0f}</b>",
+            "Constant sites: <b>%{customdata[14]:,.0f}</b>",
+            "Singleton sites: <b>%{customdata[15]:,.0f}</b>",
+            "Patterns: <b>%{customdata[16]:,.0f}</b>",
+            "Mean pairwise identity: <b>%{customdata[17]:.2f}%</b>",
+            "Missingness: <b>%{customdata[18]:.2f}%</b>",
+            "GC content: <b>%{customdata[19]:.2f}%</b>",
     ])
 
     for j, marker_type in enumerate(marker_type_list):
@@ -2596,6 +2859,12 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
         for i, stage in enumerate(stage_list):
             for fmt in fmt_list:
                 d = data[(data["stage"] == stage) & (data["format"] == fmt)]
+                if fmt == "AA":
+                    hovertemplate = hovertemplate_aa
+                elif fmt == "NT":
+                    hovertemplate = hovertemplate_nt
+                else:
+                    hovertemplate = hovertemplate_other
                 fig.add_trace(
                     go.Histogram2dContour(
                         x=d[list(var_dict.values())[3]],
@@ -2624,7 +2893,7 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
                         customdata=d,
                         hovertemplate=hovertemplate,
                         marker=dict(
-                            size=8,
+                            size=7 if len(d) < 1000 else 5,
                             color=color_dict[fmt],
                             opacity=0.7,
                             line=dict(
@@ -2640,6 +2909,10 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
                         yaxis="y2",
                         name=fmt,
                         bingroup=stage + "_x",
+                        hovertemplate="<br>".join([
+                            "Bin: <b>%{x}</b>",
+                            "Count: <b>%{y}</b>",
+                        ]),
                         marker=dict(
                             color=color_dict[fmt],
                             opacity=0.5,
@@ -2659,6 +2932,10 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
                         xaxis="x2",
                         name=fmt,
                         bingroup=stage + "_y",
+                        hovertemplate="<br>".join([
+                            "Bin: <b>%{y}</b>",
+                            "Count: <b>%{x}</b>",
+                        ]),
                         marker=dict(
                             color=color_dict[fmt],
                             opacity=0.5,
@@ -2688,44 +2965,74 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
 
         buttonsX, buttonsY = [], []
         for lab, var in var_dict.items():
-            x_list, y_list = [], []
-            for stage in stage_list:
-                for fmt in fmt_list:
-                    d = data[(data["stage"] == stage) & (data["format"] == fmt)]
-                    x = [
-                        d[var],
-                        d[var],
-                        d[var],
-                        None,
+            if marker_type in ["DNA", "CLR"] and "codon" in var:
+                pass
+            else:
+                x_list, y_list = [], []
+                for stage in stage_list:
+                    for fmt in fmt_list:
+                        d = data[(data["stage"] == stage) & (data["format"] == fmt)]
+                        if var == "gc" and fmt == "AA":
+                            x = [
+                                [],
+                                [],
+                                [],
+                                [],
+                            ]
+                            y = [
+                                [],
+                                [],
+                                [],
+                                [],
+                            ]
+                        elif "codon" in var and fmt in ["AA", "GE", "GF", "MA", "MF"]:
+                            x = [
+                                [],
+                                [],
+                                [],
+                                [],
+                            ]
+                            y = [
+                                [],
+                                [],
+                                [],
+                                [],
+                            ]
+                        else:
+                            x = [
+                                d[var],
+                                d[var],
+                                d[var],
+                                None,
+                            ]
+                            y = [
+                                d[var],
+                                d[var],
+                                None,
+                                d[var],
+                            ]
+                        x_list += x
+                        y_list += y
+                buttonX = dict(
+                    label=lab,
+                    method="update",
+                    args=[
+                        dict(
+                            x=x_list,
+                        ),
                     ]
-                    y = [
-                        d[var],
-                        d[var],
-                        None,
-                        d[var],
+                )
+                buttonY = dict(
+                    label=lab,
+                    method="update",
+                    args=[
+                        dict(
+                            y=y_list,
+                        ),
                     ]
-                    x_list += x
-                    y_list += y
-            buttonX = dict(
-                label=lab,
-                method="update",
-                args=[
-                    dict(
-                        x=x_list,
-                    ),
-                ]
-            )
-            buttonY = dict(
-                label=lab,
-                method="update",
-                args=[
-                    dict(
-                        y=y_list,
-                    ),
-                ]
-            )
-            buttonsX.append(buttonX)
-            buttonsY.append(buttonY)
+                )
+                buttonsX.append(buttonX)
+                buttonsY.append(buttonY)
 
         updatemenus = [
             dict(
@@ -2734,7 +3041,7 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
                 direction="down",
                 pad={"t": 10, "b": 10},
                 showactive=True,
-                x=0.9,
+                x=0.95,
                 xanchor="right",
                 y=1,
                 yanchor="bottom"
@@ -2746,7 +3053,7 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
                 pad={"t": 30, "b": 10},
                 active=3,
                 showactive=True,
-                x=0.45,
+                x=0.475,
                 xanchor="center",
                 y=0,
                 yanchor="top"
@@ -2760,7 +3067,7 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
                 showactive=True,
                 x=0,
                 xanchor="right",
-                y=0.425,
+                y=0.4625,
                 yanchor="middle"
             ),
         ]
@@ -2768,10 +3075,10 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
         annotations = [
             dict(
                 text="<b>Processing Step:</b>",
-                x=0.9,
+                x=0.95,
                 xref="paper",
                 xanchor="right",
-                xshift=-175,
+                xshift=-160,
                 y=1,
                 yref="paper",
                 yanchor="top",
@@ -2814,27 +3121,27 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
                 showgrid=True,
                 gridcolor="rgb(64,64,64)",
                 ticks="outside",
-                domain=[0,0.9],
+                domain=[0, 0.95],
             ),
             yaxis=dict(
                 showgrid=True,
                 gridcolor="rgb(64,64,64)",
                 ticks="outside",
-                domain=[0,0.9],
+                domain=[0, 0.925],
             ),
             xaxis2=dict(
                 title="Count",
                 gridcolor="rgb(64,64,64)",
                 ticks="outside",
                 zeroline=True,
-                domain=[0.9,1],
+                domain=[0.95, 1],
             ),
             yaxis2=dict(
                 title="Count",
                 gridcolor="rgb(64,64,64)",
                 ticks="outside",
                 zeroline=True,
-                domain=[0.9,1],
+                domain=[0.925, 1],
             ),
             hoverlabel=dict(
                 font_color="rgb(64,64,64)",
@@ -2853,208 +3160,74 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
         )
         figs.append(fig)
 
-    # HEATMAP OF SAMPLE OCCUPANCY IN THE ALIGNMENTS AT EACH STEP
-    sm = pd.read_table(sam_stats_tsv)
-    # Exclude reference sequences
-    sm = sm[~sm["sample"].str.contains("__ref")]
-    # Exclude stages that contain references in alignments
-    sm = sm[~sm["stage_marker_format"].str.contains("_w_refs")].reset_index()
-    # Calculate percentages
-    sm["cov_gapped"] = sm["len_gapped"] / sm["len_total"] * 100
-    sm["cov_ungapped"] = sm["len_ungapped"] / sm["len_total"] * 100
-    sm["pct_ambig"] = sm["ambigs"] / sm["len_total"] * 100
-    # Summarize statistics by sample and stage_marker_format, data for heatmap
-    data = sm.groupby(["sample", "stage_marker_format"]).agg(
+    df = pd.read_table(sam_stats_tsv)
+    df = df[~df["stage_marker_format"].str.contains("_w_refs")]
+    df["gaps"] = df["len_gapped"] - df["len_ungapped"]
+    df[["stage", "filter", "marker", "format"]] = df["stage_marker_format"].str.split(" / ", expand=True)
+    for var in ["stage", "filter", "marker", "format"]:
+        df[var] = df[var].str[3:]
+
+    df = df.groupby(
+        [
+            "sample",
+            "stage_marker_format",
+            "stage",
+            "filter",
+            "marker",
+            "format",
+        ]
+    ).agg(
         num_loci = ("locus", "nunique"),
-        mean_cov_gapped = ("cov_gapped", np.mean),
-        mean_cov_ungapped = ("cov_ungapped", np.mean),
-        mean_pct_ambig = ("pct_ambig", np.mean),
-        mean_num_copies = ("num_copies", np.mean)
+        mean_len = ("len_ungapped", np.mean),
+        total_len = ("len_ungapped", np.sum),
+        mean_gaps = ("gaps", np.mean),
+        total_gaps = ("gaps", np.sum),
+        mean_ambig = ("ambigs", np.mean),
+        mean_gc = ("gc", np.mean),
+        mean_gc_codon1 = ("gc_codon_p1", np.mean),
+        mean_gc_codon2 = ("gc_codon_p2", np.mean),
+        mean_gc_codon3 = ("gc_codon_p3", np.mean),
+        mean_copies = ("num_copies", np.mean),
     ).reset_index()
 
-    # Individual heatmap elements
-    var_list = [
-        "num_loci",
-        "mean_cov_gapped",
-        "mean_cov_ungapped",
-        "mean_pct_ambig",
-        "mean_num_copies",
-    ]
-    var_lab_list = [
-        "Number of Loci",
-        "Mean Gapped Coverage (%)",
-        "Mean Ungapped Coverage (%)",
-        "Mean Ambiguities (%)",
-        "Mean Number of Copies",
-    ]
-    colorscale = [
-        [0.0, "rgb(94,79,162)"],
-        [0.1, "rgb(50,136,189)"],
-        [0.2, "rgb(102,194,165)"],
-        [0.3, "rgb(171,221,164)"],
-        [0.4, "rgb(230,245,152)"],
-        [0.5, "rgb(255,255,191)"],
-        [0.6, "rgb(254,224,139)"],
-        [0.7, "rgb(253,174,97)"],
-        [0.8, "rgb(244,109,67)"],
-        [0.9, "rgb(213,62,79)"],
-        [1.0, "rgb(158,1,66)"],
-    ]
-    hovertemplate = "<br>".join([
-        "Sample: <b>%{customdata[0]}</b>",
-        "Alignment Category: <b>%{customdata[1]}</b>",
-        "Number of Loci: <b>%{customdata[2]}</b>",
-        "Mean Gapped Coverage (%): <b>%{customdata[3]:.2f}%</b>",
-        "Mean Ungapped Coverage (%): <b>%{customdata[4]:.2f}%</b>",
-        "Mean Ambiguities (%): <b>%{customdata[5]:.4f}%</b>",
-        "Mean Number of Copies: <b>%{customdata[6]:.2f}</b><extra></extra>",
-    ])
+    var_dict = {
+        "num_loci": "Number of Loci",
+        "mean_len": "Mean Ungapped Length",
+        "total_len": "Total Ungapped Length",
+        "mean_gaps": "Mean Gaps",
+        "total_gaps": "Total Gaps",
+        "mean_ambig": "Mean Count of Ambiguities",
+        "mean_gc": "Mean GC Content (%)",
+        "mean_gc_codon1": "Mean GC Content at<br>1st Codon Position (%)",
+        "mean_gc_codon2": "Mean GC Content at<br>2nd Codon Position (%)",
+        "mean_gc_codon3": "Mean GC Content at<br>3rd Codon Position (%)",
+        "mean_copies": "Mean Copies",
+    }
 
-    # Draw heatmap
-    fig = go.Figure()
-    fig.add_trace(
-        go.Heatmap(
-            x=data["stage_marker_format"],
-            y=data["sample"],
-            z=data[var_list[0]],
-            zmin=data[var_list[0]].min(),
-            zmax=data[var_list[0]].max(),
-            colorscale=colorscale,
-            colorbar=dict(
-                ticks="outside",
-                outlinecolor="rgb(8,8,8)",
-                outlinewidth=1,
-            ),
-            customdata=data,
-            hovertemplate=hovertemplate,
-            hoverongaps=False,
-            xgap=0.5,
-            ygap=0.5,
-        )
-    )
+    marker_type_list = df["marker"].unique()
 
-    # Dropdown for variables
-    buttons1 = []
-    for j, var in enumerate(var_list):
-        button = dict(
-            label=var_lab_list[j],
-            method="restyle",
-            args=[{
-                    "z": [data[var]],
-                    "zmin": data[var].min(),
-                    "zmax": data[var].max(),
-                    "colorscale": [colorscale],
-                    "colorbar.ticksuffix": None if j in [0,4] else "%",
-                    "hovertemplate": hovertemplate,
-            }],
-        )
-        buttons1.append(button)
+    color_dict = {
+        "01_AA": "#CC79A7",
+        "02_NT": "#56B4E9",
+        "03_genes": "#E69F00",
+        "04_genes_flanked": "#009E73",
+        "01_matches": "#CC79A7",
+        "02_matches_flanked": "#009E73",
+    }
 
-    # Dropdown for sorting
-    buttons2 = [
-        dict(
-            label="None",
-            method="relayout",
-            args=[{
-                "xaxis.categoryorder": "category ascending",
-                "yaxis.categoryorder": "category descending",
-            }],
-        ),
-        dict(
-            label="Mean X",
-            method="relayout",
-            args=[{
-                "xaxis.categoryorder": "mean descending",
-                "yaxis.categoryorder": "category descending",
-            }],
-        ),
-        dict(
-            label="Mean Y",
-            method="relayout",
-            args=[{
-                "xaxis.categoryorder": "category ascending",
-                "yaxis.categoryorder": "mean ascending",
-            }],
-        ),
-        dict(
-            label="Mean Both",
-            method="relayout",
-            args=[{
-                "xaxis.categoryorder": "mean descending",
-                "yaxis.categoryorder": "mean ascending",
-            }],
-        ),
-        dict(
-            label="Total X",
-            method="relayout",
-            args=[{
-                "xaxis.categoryorder": "total descending",
-                "yaxis.categoryorder": "category descending",
-            }],
-        ),
-        dict(
-            label="Total Y",
-            method="relayout",
-            args=[{
-                "xaxis.categoryorder": "category ascending",
-                "yaxis.categoryorder": "total ascending",
-            }],
-        ),
-        dict(
-            label="Total Both",
-            method="relayout",
-            args=[{
-                "xaxis.categoryorder": "total descending",
-                "yaxis.categoryorder": "total ascending",
-            }],
-        ),
-    ]
-
-    updatemenus=[
-        dict(
-            buttons=buttons1,
-            type="dropdown",
-            direction="down",
-            pad={"t": 10, "b": 10},
-            showactive=True,
-            x=0.5,
-            xanchor="right",
-            y=1,
-            yanchor="bottom",
-        ),
-        dict(
-            buttons=buttons2,
-            type="dropdown",
-            direction="down",
-            pad={"t": 10, "b": 10},
-            showactive=True,
-            x=1,
-            xanchor="right",
-            y=1,
-            yanchor="bottom",
-        ),
-    ]
+    shape_dict = {
+        "04_unfiltered": "circle",
+        "05_naive": "star-triangle-up",
+        "06_informed": "star-square",
+    }
 
     annotations = [
         dict(
-            text="<b>Variable:</b>",
-            x=0.5,
-            xref="paper",
-            xanchor="right",
-            xshift=-210,
-            y=1,
-            yref="paper",
-            yanchor="top",
-            yshift=36,
-            align="right",
-            showarrow=False,
-        ),
-        dict(
-            text="<b>Sort by Value:</b>",
+            text="<b>Sort Samples by:</b>",
             x=1,
             xref="paper",
             xanchor="right",
-            xshift=-102,
+            xshift=-80,
             y=1,
             yref="paper",
             yanchor="top",
@@ -3063,35 +3236,203 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
             showarrow=False,
         ),
     ]
-
-    # Layout setting
-    fig.update_layout(
-        font_family="Arial",
-        plot_bgcolor="rgb(8,8,8)",
-        title=(
-            "<b>3. Sample Occupancy at each Processing Step"
-            + "</b><br><sup>(Source: "
-            + str(sam_stats_tsv.name)
-            + ")</sup>"
+    buttons_sort = [
+        dict(
+            label="Name",
+            method="relayout",
+            args=[{
+                "xaxis.categoryorder": "category ascending",
+            }],
         ),
-        xaxis=dict(
-            title="Trimming / Filtering / Marker Type / Format",
-            type="category",
+        dict(
+            label="Value",
+            method="relayout",
+            args=[{
+                "xaxis.categoryorder": "mean descending",
+            }],
+        ),
+    ]
+    hovertemplate_aa = "<br>".join([
+        "Sample: <b>%{customdata[0]}</b>",
+        "Trimming: <b>%{customdata[2]}</b>",
+        "Paralog filter: <b>%{customdata[3]}</b>",
+        "Marker type: <b>%{customdata[4]}</b>",
+        "Format: <b>%{customdata[5]}</b>",
+        "Number of loci: <b>%{customdata[6]}</b>",
+        "Mean ungapped length: <b>%{customdata[7]:,.0f} aa</b>",
+        "Total ungapped length: <b>%{customdata[8]:,.0f} aa</b>",
+        "Mean gaps: <b>%{customdata[9]:,.0f} aa</b>",
+        "Total gaps: <b>%{customdata[10]:,.0f} aa</b>",
+        "Mean count of ambiguities: <b>%{customdata[11]:,.2f}</b>",
+        "Mean copies: <b>%{customdata[16]:,.2f}</b><extra></extra>",
+    ])
+    hovertemplate_nt = "<br>".join([
+        "Sample: <b>%{customdata[0]}</b>",
+        "Trimming: <b>%{customdata[2]}</b>",
+        "Paralog filter: <b>%{customdata[3]}</b>",
+        "Marker type: <b>%{customdata[4]}</b>",
+        "Format: <b>%{customdata[5]}</b>",
+        "Number of loci: <b>%{customdata[6]}</b>",
+        "Mean ungapped length: <b>%{customdata[7]:,.0f} bp</b>",
+        "Total ungapped length: <b>%{customdata[8]:,.0f} bp</b>",
+        "Mean gaps: <b>%{customdata[9]:,.0f} bp</b>",
+        "Total gaps: <b>%{customdata[10]:,.0f} bp</b>",
+        "Mean count of ambiguities: <b>%{customdata[11]:,.2f}</b>",
+        "Mean GC content: <b>%{customdata[12]:.2f}%</b>",
+        "Mean GC content (1st codon pos.): <b>%{customdata[13]:.2f}%</b>",
+        "Mean GC content (2nd codon pos.): <b>%{customdata[14]:.2f}%</b>",
+        "Mean GC content (3rd codon pos.): <b>%{customdata[15]:.2f}%</b>",
+        "Mean copies: <b>%{customdata[16]:,.2f}</b><extra></extra>",
+    ])
+    hovertemplate_other = "<br>".join([
+        "Sample: <b>%{customdata[0]}</b>",
+        "Trimming: <b>%{customdata[2]}</b>",
+        "Paralog filter: <b>%{customdata[3]}</b>",
+        "Marker type: <b>%{customdata[4]}</b>",
+        "Format: <b>%{customdata[5]}</b>",
+        "Number of loci: <b>%{customdata[6]}</b>",
+        "Mean ungapped length: <b>%{customdata[7]:,.0f} bp</b>",
+        "Total ungapped length: <b>%{customdata[8]:,.0f} bp</b>",
+        "Mean gaps: <b>%{customdata[9]:,.0f} bp</b>",
+        "Total gaps: <b>%{customdata[10]:,.0f} bp</b>",
+        "Mean count of ambiguities: <b>%{customdata[11]:,.2f}</b>",
+        "Mean GC content: <b>%{customdata[12]:.2f}%</b>",
+        "Mean copies: <b>%{customdata[16]:,.2f}</b><extra></extra>",
+    ])
+
+    for i, marker_type in enumerate(marker_type_list):
+        fig = go.Figure()
+        d = df[df["marker"] == marker_type]
+        for stage_marker_format in d["stage_marker_format"].unique():
+            stage, filter, marker, format = stage_marker_format.split(" / ")
+            if format == "01_AA":
+                hovertemplate = hovertemplate_aa
+            elif format == "02_NT":
+                hovertemplate = hovertemplate_nt
+            else:
+                hovertemplate = hovertemplate_other
+            fig.add_trace(
+                go.Scatter(
+                    x=d[d["stage_marker_format"] == stage_marker_format]["sample"],
+                    y=d[d["stage_marker_format"] == stage_marker_format][list(var_dict.keys())[0]],
+                    mode="markers",
+                    # visible=True if stage == "03_trimmed" else "legendonly",
+                    name=stage_marker_format,
+                    legendgroup=format,
+                    # legendgrouptitle_text="<b>" + format + "</b>",
+                    customdata=d[d["stage_marker_format"] == stage_marker_format],
+                    hovertemplate=hovertemplate,
+                    marker=dict(
+                        size=7 if len(d[d["stage_marker_format"] == stage_marker_format]) < 500 else 5,
+                        symbol=shape_dict[filter] if stage == "03_trimmed" else shape_dict[filter] + "-open-dot",
+                        color=color_dict[format],
+                        opacity=0.7 if stage == "03_trimmed" else 1,
+                        line_width=1,
+                    ),
+                )
+            )
+
+        buttonsY = []
+        for var in var_dict.keys():
+            if marker_type in ["misc_DNA", "clusters"] and "codon" in var:
+                pass
+            else:
+                y_list = []
+                for stage in d["stage_marker_format"].unique():
+                    if var == "mean_gc" and "01_AA" in stage:
+                        y = []
+                    elif "codon" in var and "02_NT" not in stage:
+                        y = []
+                    else:
+                        y = d[d["stage_marker_format"] == stage][var]
+                    y_list.append(y)
+                buttonY = dict(
+                    label=var_dict[var],
+                    method="update",
+                    args=[
+                        dict(
+                            y=y_list,
+                        ),
+                    ]
+                )
+                buttonsY.append(buttonY)
+
+        updatemenus = [
+            dict(
+                buttons=buttonsY,
+                type="dropdown",
+                direction="down",
+                pad={"t": 10, "b": 10, "r": 40},
+                showactive=True,
+                x=0,
+                xanchor="right",
+                y=0.5,
+                yanchor="middle",
+            ),
+            dict(
+                buttons=buttons_sort,
+                type="dropdown",
+                direction="down",
+                pad={"t": 10, "b": 10},
+                showactive=True,
+                x=1,
+                xanchor="right",
+                y=1,
+                yanchor="bottom",
+            ),
+        ]
+
+        fig.update_xaxes(
+            title="Sample",
+            ticks="outside",
             categoryorder="category ascending",
             gridcolor="rgb(64,64,64)",
+        )
+        fig.update_yaxes(
             ticks="outside",
-        ),
-        yaxis=dict(
-            title="Sample",
-            type="category",
-            categoryorder="category descending",
             gridcolor="rgb(64,64,64)",
-            ticks="outside",
-        ),
-        annotations=annotations,
-        updatemenus=updatemenus
-    )
-    figs.append(fig)
+            zeroline=False,
+        )
+        if i == 0:
+            if len(marker_type_list) == 1:
+                title = (
+                    "<b>3. Stats Per Sample</b><br>"
+                    + "<sup>(Source: "
+                    + str(sam_stats_tsv.name)
+                    + ")</sup>"
+                )
+            else:
+                title = (
+                    "<b>3. Stats Per Sample<br>"
+                    + "Marker Type: "
+                    + marker_type
+                    + "</b><br><sup>(Source: "
+                    + str(sam_stats_tsv.name)
+                    + ")</sup>"
+                )
+        else:
+            title = (
+                "<b>Marker Type: "
+                + marker_type
+                + "</b><br><sup>(Source: "
+                + str(sam_stats_tsv.name)
+                + ")</sup>"
+            )
+        fig.update_layout(
+            title_text=title,
+            font_family="Arial",
+            plot_bgcolor="rgb(8,8,8)",
+            legend=dict(
+                title="<b>Trimming / Paralog Filter / Marker Type / Format",
+            ),
+            hoverlabel=dict(
+                font_color="rgb(64,64,64)",
+                bordercolor="rgb(64,64,64)",
+            ),
+            annotations=annotations,
+            updatemenus=updatemenus,
+        )
+        figs.append(fig)
 
     # Save plot in html
     aln_html_report = Path(out_dir, "captus-assembly_align.report.html")
@@ -3102,7 +3443,7 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
                     full_html=False,
                     include_plotlyjs="cdn",
                     config=dict(
-                        scrollZoom=True if i == 1 else False,
+                        scrollZoom=False if i == 0 else True,
                         toImageButtonOptions=dict(
                             format="svg",
                         ),
