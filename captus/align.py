@@ -749,7 +749,7 @@ def select_filtering_refs(refs_paths, markers, formats, method):
     filtering_refs = {}
     markers = markers.upper().split(",")
     formats = formats.upper().split(",")
-    if method.lower() in ["careful", "both"]:
+    if method.lower() in ["informed", "both"]:
         if "NT" in formats:
             for marker in markers:
                 if (marker in ["NUC", "PTD", "MIT"]
@@ -1320,12 +1320,13 @@ def filter_paralogs_informed(
 
         refs = {}
         for seq in aln:
-            if "query=" in aln[seq]["description"] and "hit=00" in aln[seq]["description"]:
-                ref = aln[seq]["description"].split("query=")[1].split("]")[0]
-                if ref in refs:
-                    refs[ref] += 1
-                else:
-                    refs[ref] = 1
+            if not seq.endswith(f"{settings.SEQ_NAME_SEP}ref"):
+                if "query=" in aln[seq]["description"] and "hit=00" in aln[seq]["description"]:
+                    ref = aln[seq]["description"].split("query=")[1].split("]")[0]
+                    if ref in refs:
+                        refs[ref] += 1
+                    else:
+                        refs[ref] = 1
         best_ref_full_name = max(refs, key=refs.get)
         s = settings.REFERENCE_CLUSTER_SEPARATOR
         best_ref = s.join(best_ref_full_name.split(s)[:-1])
@@ -1643,7 +1644,7 @@ def compute_stats(shared_seq_names, shared_sam_stats, shared_aln_stats, fasta_pa
         ])
     shared_sam_stats += ["\t".join(row)+"\n" for row in sam_tsv]
 
-    shared_seq_names += list(fasta_dict.keys())
+    shared_seq_names += [k for k in fasta_dict.keys() if k not in shared_seq_names]
 
     message = f"'{short_path}': stats computed [{elapsed_time(time.time() - start)}]"
 
