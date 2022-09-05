@@ -1540,16 +1540,16 @@ def build_assembly_report(out_dir, asm_stats_tsv):
         df.rename(
             columns={
                 "sample": "Sample",
-                "total_length": "Total Length Survived (bp)",
+                "total_length": "Total Length Passed (bp)",
                 "filtered_total_length": "Total Length Removed (bp)",
-                "n_contigs": "Number of Contigs Survived",
+                "n_contigs": "Number of Contigs Passed",
                 "filtered_n_contigs": "Number of Contigs Removed",
                 "avg_length": "Mean Length (bp)",
                 "N50": "Contig N50 (bp)",
                 "longest_contig": "Longest Contig (bp)",
                 "shortest_contig": "Shortest Contig (bp)",
                 "pct_contigs_>=_1kbp": "≥1 kbp Contigs (%)",
-                "GC_content": "GC Content Survived (%)",
+                "GC_content": "GC Content Passed (%)",
                 "filtered_gc_content": "GC Content Removed (%)",
                 "avg_depth": "Mean Depth (x)",
             },
@@ -1864,13 +1864,13 @@ def build_assembly_report(out_dir, asm_stats_tsv):
     }
 
     trace_name_dict = {
-        "n_contigs": "Survived",
+        "n_contigs": "Passed",
         "filtered_n_contigs": "Removed",
-        "total_length": "Survived",
+        "total_length": "Passed",
         "filtered_total_length": "Removed",
-        "avg_length": "Survived",
+        "avg_length": "Passed",
         "filtered_avg_length": "Removed",
-        "GC_content": "Survived",
+        "GC_content": "Passed",
         "filtered_gc_content": "Removed",
     }
 
@@ -3424,6 +3424,7 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
             plot_bgcolor="rgb(8,8,8)",
             legend=dict(
                 title="<b>Trimming / Paralog Filter / Marker Type / Format",
+                groupclick="toggleitem",
             ),
             hoverlabel=dict(
                 font_color="rgb(64,64,64)",

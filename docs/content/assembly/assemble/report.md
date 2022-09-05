@@ -12,11 +12,11 @@ plotly = true
 Therefore, it is advisable to control your impatience and carefully evaluate your assembly results before moving on to the next step.
 (Even though `Captus` provides some presets for different data types, it would be the most prudent way to repeat this step several times with different parameter combinations and find optimal assembler settings for your dataset.)
 A HTML report, `captus-assembly_assemble.report.html` can help you with that.
-Just open this file in your browser (Microsoft Edge, Google Chrome, Mozilla Firefox, Safari, etc., internet connection required) and you can compare general assembly statistics across all your samples!
-{{% notice info %}}
+Just open this file in your browser (e.g., Microsoft Edge, Google Chrome, Mozilla Firefox, Safari, etc.; internet connection required) and you can compare general assembly statistics across all your samples!
+{{% notice style="tip" title="Tips" %}}
 
 - All original data for the report is stored in `captus-assembly_assemble.stats.tsv`.
-- Since all tables and plots in the report are created using [`Plotly`](https://plotly.com/python), you can use some interactive functions such as zoom in/out, pan, hover, and download plot as a SVG.
+- Since all tables and plots in the report are created using [`Plotly`](https://plotly.com/python), you can use some useful functions such as zoom in/out, pan, hover, and download plot as an image (SVG format).
 For more information, please visit the following sites:
 
   - <https://plotly.com/chart-studio-help/zoom-pan-hover-controls>
@@ -33,22 +33,25 @@ This table shows the general assembly statistics for each sample.
 
 ##### Features:
 
-- The cells are colored according to their relative value within each column (green = high; pink = low).
-- By switching `Sort by` dropdown, you can re-sort the table in descending order according to the values in each column (by default, the table is sorted alpha-numerically by sample name).
+- The cells are color-coded according to their relative value within each column (green = high; pink = low).
+- By switching `Sort by` dropdown, you can re-sort the table in descending order according to the values in each column (by default, the table is sorted by sample name).
 
 {{< plotly json="/plotly/assemble_report_summary_table.json" height="250px" >}}
 {{% expand "Description of each column" %}}
 |Column|Description|
 |-|-|
 |**Sample**|Sample name|
-|**Total Length (bp)**|Total length of all contigs|
-|**Number of Contigs**|Total number of contigs|
+|**Total Length Passed (bp)**|Total length of all contigs|
+|**Total Length Removed (bp)**||
+|**Number of Contigs Passed**|Total number of contigs|
+|**Number of Contigs Removed**||
 |**Mean Length (bp)**|Mean contig length|
 |**Contig N50 (bp)**|Weighted average of contig length such that 50% of total assembly length is represented by contigs equal to or longer than this value|
 |**Longest Contig (bp)**|Longest contig length|
 |**Shortest Contig (bp)**|Shortest contig length|
-|**≥1kbp Contig (%)**|Percentage of contigs ≥ 1 kbp in total number of contigs|
-|**GC Content (%)**|Mean GC content of all contigs|
+|**≥1 kbp Contigs (%)**|Percentage of contigs ≥ 1 kbp in total number of contigs|
+|**GC Content Passed (%)**|Mean GC content of all contigs|
+|**GC Content Removed (%)**||
 |**Mean Depth (x)**|Mean depth of all contigs|
 {{% /expand %}}
 
@@ -58,11 +61,12 @@ This table shows the general assembly statistics for each sample.
 
 In addition to the above statistics, this plot shows some more detailed statistics as a simple or stacked bar plot.
 
-##### Feature:
+##### Features:
 
-- By switching the dropdown at the X-axis, you can change the variable to show.
+- By switching the dropdown at the *y*-axis, you can change the variable to show.
 - Samples are sorted in descending order by each variable.
-{{< plotly json="/plotly/assemble_report_visual_stats.json" height="260px" >}}
+{{< plotly json="/plotly/assemble_report_visual_stats.json" height="500px" >}}
+<!-- {{< plotly json="/plotly/assemble_report_visual_stats.json" height="260px" >}} -->
 
 {{% expand "Description of each variable" %}}
 |Variable|Description|
@@ -83,4 +87,4 @@ In addition to the above statistics, this plot shows some more detailed statisti
 
 ---
 Created by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (11.08.2021)  
-Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (31.05.2022)
+Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (02.09.2022)

@@ -8,6 +8,7 @@ summary = "analysis of target-capture sequence data."
 
 This basic tutorial takes you through
 In this basic tutorial, you will master the most common and minimal usage of the `Captus` assembly pipeline through analyzing four sample data.
+The goal of this tutorial is 
 
 ## Preparation
 
