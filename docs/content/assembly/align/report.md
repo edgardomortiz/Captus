@@ -14,31 +14,66 @@ This little hassle allows to obtain **more accurate phylogenetic inference with 
 In addition, since `Captus` generates several versions of alignments with different formats, trimming conditions, paralog filtering conditions, and so on, you may be wondering which version to use for phylogenetic inference.
 
 Open the report, `captus-assembly_align.report.html` in your browser (Microsoft Edge, Google Chrome, Mozilla Firefox, Safari, etc., internet connection required) to see which alignments should be filtered out, and to compare general statistics for each version of alignments!
-{{% notice info %}}
+{{% notice style="tip" title="Tips" %}}
 
 - All original data for the report is stored in `captus-assembly_align.stats.tsv`.
-- Since all tables in the report are created using [`Plotly`](https://plotly.com/python), you can use some useful functions such as rearrange the column order by dragging and download plot as a PNG.
+- Since all plots in the report are created using [`Plotly`](https://plotly.com/python), you can use some useful functions such as rearrange the column order by dragging and download plot as a PNG.
 For more information, please visit the following site:
 
+  - <https://plotly.com/chart-studio-help/zoom-pan-hover-controls>
   - <https://plotly.com/chart-studio-help/getting-to-know-the-plotly-modebar>
 {{% /notice %}}
 
-## Example
+## Contents
 
 ---
-Here is an example of the report for the [`Angiosperms353`](https://github.com/mossmatters/Angiosperms353) loci extracted from four hybridization-capture samples.  
-This table shows the general statistics of the different versions of alignment for each locus.  
-Each version of the alignments differs in the combination of whether it is trimmed or untrimmed, which paralog filter was applied, and whether it was aligned with the reference sequences or not.
 
-{{< plotly json="/plotly/alignment_report.json" height="500px" >}}
+### 1. Stats Comparison at Each Processing Step
 
-{{% notice note %}}
-- If your results contain multiple marker types, the report will include a separete table for each marker type as well as a global table for all marker types.
-- The cells are colored according to their relative value within each row (green = high; pink = low).
-- The table rows are sorted in descending order by the mean value of each row.
-{{% /notice %}}
+This plot shows the general statistics of the different processing steps of alignment.  
+Each processing step of the alignments differs in the combination of whether it is trimmed or untrimmed, which paralog filter was applied, and whether it was aligned with the reference sequences or not.
 
-{{% expand "Description of each column" %}}
+##### Features:
+
+- `Marker Type` dropdown (if your data has only one marker type, this dropdown will not show up)
+- dropdown on the X-axis
+- By clicking on the legend, you can toggle between showing and hiding each format
+
+{{< plotly json="/plotly/alignment_report_ridgeline.json" height="700px" >}}
+{{% expand "Description of each processing step" %}}
+depends on `--filter_method`, You will have up to 12 processing steps as follows:
+|Processing step (Path to alignments)|Trimmed|Paralog filter|With reference|
+|-|-|-|-|
+|**`02_untrimmed/01_unfiltered`**|No|None|**Yes**|
+|`02_untrimmed/02_fast`|No|**Fast**|**Yes**|
+|`02_untrimmed/03_careful`|No|**Careful**|**Yes**|
+|`02_untrimmed/01_unfiltered_no_refs`|No|None|No|
+|`02_untrimmed/02_fast_no_refs`|No|**Fast**|No|
+|`02_untrimmed/03_careful_no_refs`|No|**Careful**|No|
+|`03_trimmed/01_unfiltered`|**Yes**|None|**Yes**|
+|`03_trimmed/02_fast`|**Yes**|**Fast**|**Yes**|
+|`03_trimmed/03_careful`|**Yes**|**Careful**|**Yes**|
+|`03_trimmed/01_unfiltered_no_refs`|**Yes**|None|No|
+|`03_trimmed/02_fast_no_refs`|**Yes**|**Fast**|No|
+|`03_trimmed/03_careful_no_refs`|**Yes**|**Careful**|No|
+{{% /expand %}}
+
+---
+
+### 2. Bivariate Relationships and Distributions
+
+description
+
+##### Features:
+
+- `Processing Step` dropdown
+- change variables to plot on each axis.
+- By clicking on the legend, you can toggle between showing and hiding each format
+- If your results contain multiple marker types, the report will include a separete plot for each marker type.
+
+{{< plotly json="/plotly/alignment_report_scatter_loci.json" height="700px" >}}
+
+{{% expand "Description of each variable" %}}
 |Column|Description|
 |-|-|
 |**Marker type**|Marker type (This column only appears on a global table for all marker types)<br>For a description of each format, see [`-k, --markers`]({{< relref "assembly/align/options#-k---markers" >}}) option|
@@ -61,10 +96,12 @@ You will have up to 12 columns as follows:
 |**03_aligned_trimmed<br>└01_unfiltered**|**Yes**|No|No|`03_aligned_trimmed/01_unfiltered`|
 |**03_aligned_trimmed<br>└02_naive**|**Yes**|**Naive**|No|`03_aligned_trimmed/02_naive`|
 |**03_aligned_trimmed<br>└03_informed**|**Yes**|**Informed**|No|`03_aligned_trimmed/03_informed`|
+The subsequent columns correspond to the different processing steps of the alignments in your results.  
+You will have up to 12 processing steps as follows:
 
 {{% /expand %}}
 
-### Features
+#### Features
 
 ---
 
@@ -87,17 +124,25 @@ This dropdown allows you to switch the variable to be shown.
 There are eight options:
 |Variable|Description|
 |-|-|
-|**Number of sequences** (default)|Number of sequences in the alignment|
-|**Alignment length**|Length of the alignment in base pairs (for `NT`, `GE`, `GF`, `MA`, `MF` formats) or amino acids (for `AA` format)|
-|**Informaive sites**|Number of parsimony-informative sites that have at least two different (unambiguous) characters and of those at least two should occur in at least two samples|
-|**Constant sites**|Number of constant sites that have only a single character over all sequences, or sites having only one unambiguous character plus ambiguous characters which include that unambiguous character|
-|**Singleton sites**|Number of singleton sites that have at least two types of characters with at most one unambiguous character occuring multiple times while all other characters occur only once|
+|**Sequences**|Number of sequences in the alignment|
+|**Samples**|Number of samples in the alignment|
+|**Sequences/Samples**|Number of sequences / number of samples (i.e. mean number of copies per sample)|
+|**Alignment Length** (default)|Length of the alignment in base pairs (for `NT`, `GE`, `GF`, `MA`, `MF` formats) or amino acids (for `AA` format)|
+|**Informaive Sites**|Number of parsimony-informative sites that have at least two different (unambiguous) characters and of those at least two should occur in at least two samples|
+|**Informativeness (%)**|Percentage of informative site|
+|**Uninformative Sites**|Alignment length - Informative sites|
+|**Constant Sites**|Number of constant sites that have only a single character over all sequences, or sites having only one unambiguous character plus ambiguous characters which include that unambiguous character|
+|**Singleton Sites**|Number of singleton sites that have at least two types of characters with at most one unambiguous character occuring multiple times while all other characters occur only once|
 |**Patterns**|Number of sites that have different patterns of characters|
-|**Mean pairwise identity (%)**|Percentage of pairwise characters that are identical in the alignment (including gap versus non-gap residues, but excluding gap versus gap residues)|
+|**Mean Pairwise Identity (%)**|Percentage of pairwise characters that are identical in the alignment (including gap versus non-gap residues, but excluding gap versus gap residues)|
 |**Missingness (%)**|Percentage of gaps and Ns or Xs in the alignment|
 
-For more information about sites and patterns, read [<i class="fab fa-readme"></i> IQ-TREE documentation](http://www.iqtree.org/doc/Frequently-Asked-Questions#how-does-iq-tree-treat-identical-sequences)
+For more explanations about sites and patterns, see [<i class="fab fa-readme"></i> IQ-TREE documentation](http://www.iqtree.org/doc/Frequently-Asked-Questions#how-does-iq-tree-treat-identical-sequences)
+
+### 3. Stats Per Sample
+
+{{< plotly json="/plotly/alignment_report_scatter_samples.json" height="700px" >}}
 
 ---
 Created by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (11.08.2021)  
-Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (27.05.2021)
+Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (02.09.2021)

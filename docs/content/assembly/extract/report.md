@@ -13,10 +13,10 @@ However, it is not easy to collect, organize, and visualize such important infor
 Don't worry, `Captus` will automatically generate an informative report, `captus-assembly_extract.report.html`.
 Please take a look just by opening it in your browser (Microsoft Edge, Google Chrome, Mozilla Firefox, Safari, etc., internet connection required).
 Interactive heatmaps allow you to explore results at various scales, from the comprehensive level to the single sample or single locus/marker level!
-{{% notice info %}}
+{{% notice style="tip" title="Tips" %}}
 
 - All original data for the report is stored in `captus-assembly_extract.stats.tsv`.
-- Since all plots in the report are created using [`Plotly`](https://plotly.com/python), you can use some interactive functions such as zoom in/out, pan, hover, and download plot as a SVG.
+- Since all plots in the report are created using [`Plotly`](https://plotly.com/python), you can use some interactive functions such as zoom in/out, pan, hover, and download plot as an image (SVG format).
 For more information, please visit the following sites:
 
   - <https://plotly.com/chart-studio-help/zoom-pan-hover-controls>
@@ -29,11 +29,11 @@ For more information, please visit the following sites:
 ---
 Here is a small example of the report you can play with.  
 This heatmap shows a extraction result of the [`Angiosperms353`](https://github.com/mossmatters/Angiosperms353) loci from four hybridization-capture samples.
-{{< plotly json="/plotly/extraction_report.json" height="400px" >}}
+{{< plotly json="/plotly/extraction_report.json" height="500px" >}}
 {{% notice note %}}
 
 - If your result contains more than one marker type, the report will include a separate heatmap for each marker type as well as a global heatmap for all marker types.
-- If there are multiple hits, only the information about the best hit (the hit with the highest `Length-weighted score`) will be shown, except for the `Total Hits (Copies)`.
+- If there are multiple hits, only the information about the best hit (the hit with the highest `Weighted score`) will be shown, except for the `Total Hits (Copies)`.
 - Information about loci/markers that were not recovered in all samples, or samples where not all loci/markers were recovered, will not appear in the report.
 {{% /notice %}}
 
@@ -111,4 +111,4 @@ This dropdown allows you to change the sorting manner of each axis as follows:
 
 ---
 Created by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (11.08.2021)  
-Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (03.06.2022)
+Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (02.09.2022)
