@@ -117,6 +117,10 @@ A tab-separated-values table recording alignment statistics for each of the alig
 |**paterns**|Number of unique columns, for a detailed explanation see IQ-TREE's F.A.Q.: [What are the differences between alignment columns/sites and patterns?](http://www.iqtree.org/doc/Frequently-Asked-Questions).|
 |**avg_pid**|Average pairwise identity between sequences in the alignment.|
 |**missingness**|Proportion of missing data (`-`, `N`, `X`, `?`, `.`, `~`) in the alignment.|
+|**gc**||
+|**gc_codon_p1**||
+|**gc_codon_p2**||
+|**gc_codon_p3**||
 {{% /expand %}}
 ___
 ### 18. **`captus-assembly_align.samples.tsv`**
@@ -128,9 +132,17 @@ A tab-separated-values table recording sample statistics across the different fi
 |**sample**|Sample name.|
 |**stage_marker_format**|Trimming stage / Filtering strategy / Marker type / Format.|
 |**locus**|Name of the locus.|
+|**len_total**||
+|**len_gapped**||
+|**len_ungapped**||
 |**cov_gapped**|Coverage of the sequence relative to alignment length, including internal gaps.|
 |**cov_ungapped**|Coverage of the sequence relative to alignment length, excluding internal gaps.|
+|**ambigs**||
 |**pct_ambig**|Percentage of ambiguities in the sequence, excluding gaps.|
+|**gc**||
+|**gc_codon_p1**||
+|**gc_codon_p2**||
+|**gc_codon_p3**||
 |**num_copies**|Number of copies in the alignment.|
 {{% /expand %}}
 ___

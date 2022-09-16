@@ -3196,7 +3196,7 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
         "total_len": "Total Ungapped Length",
         "mean_gaps": "Mean Gaps",
         "total_gaps": "Total Gaps",
-        "mean_ambig": "Mean Count of Ambiguities",
+        "mean_ambig": "Mean Ambiguities",
         "mean_gc": "Mean GC Content (%)",
         "mean_gc_codon1": "Mean GC Content at<br>1st Codon Position (%)",
         "mean_gc_codon2": "Mean GC Content at<br>2nd Codon Position (%)",
@@ -3263,7 +3263,7 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
         "Total ungapped length: <b>%{customdata[8]:,.0f} aa</b>",
         "Mean gaps: <b>%{customdata[9]:,.0f} aa</b>",
         "Total gaps: <b>%{customdata[10]:,.0f} aa</b>",
-        "Mean count of ambiguities: <b>%{customdata[11]:,.2f}</b>",
+        "Mean ambiguities: <b>%{customdata[11]:,.2f}</b>",
         "Mean copies: <b>%{customdata[16]:,.2f}</b><extra></extra>",
     ])
     hovertemplate_nt = "<br>".join([
@@ -3277,7 +3277,7 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
         "Total ungapped length: <b>%{customdata[8]:,.0f} bp</b>",
         "Mean gaps: <b>%{customdata[9]:,.0f} bp</b>",
         "Total gaps: <b>%{customdata[10]:,.0f} bp</b>",
-        "Mean count of ambiguities: <b>%{customdata[11]:,.2f}</b>",
+        "Mean ambiguities: <b>%{customdata[11]:,.2f}</b>",
         "Mean GC content: <b>%{customdata[12]:.2f}%</b>",
         "Mean GC content (1st codon pos.): <b>%{customdata[13]:.2f}%</b>",
         "Mean GC content (2nd codon pos.): <b>%{customdata[14]:.2f}%</b>",
@@ -3295,7 +3295,7 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
         "Total ungapped length: <b>%{customdata[8]:,.0f} bp</b>",
         "Mean gaps: <b>%{customdata[9]:,.0f} bp</b>",
         "Total gaps: <b>%{customdata[10]:,.0f} bp</b>",
-        "Mean count of ambiguities: <b>%{customdata[11]:,.2f}</b>",
+        "Mean ambiguities: <b>%{customdata[11]:,.2f}</b>",
         "Mean GC content: <b>%{customdata[12]:.2f}%</b>",
         "Mean copies: <b>%{customdata[16]:,.2f}</b><extra></extra>",
     ])

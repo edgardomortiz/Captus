@@ -172,6 +172,10 @@ Statistics tab-separated-values table compiled across all assembled samples.
 |**pct_contigs_>=_2x**|Percentage of contigs over 2x depth|
 |**pct_contigs_>=_5x**|Percentage of contigs over 5x depth|
 |**pct_contigs_>=_10x**|Percentage of contigs over 10x depth|
+|**filtered_n_contigs**||
+|**filtered_total_length**||
+|**filtered_avg_length**||
+|**filtered_gc_content**||
 {{% /expand %}}
 ___
 ### 10. **`captus-assembly_assemble.report.html`**
