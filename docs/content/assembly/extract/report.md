@@ -8,100 +8,99 @@ plotly = true
 ## Concept
 
 ---
-In the `Captus` workflow, the results of this step, such as **how many loci/markers were recovered, in how many samples, and to what extent, would be the most direct indication of whether your analysis was successful or not**, and thus would be the most interesting for many users.
-However, it is not easy to collect, organize, and visualize such important information, especially in a phylo"genomic" project which typically employs hundreds or thousands of samples and loci/markers.
-Don't worry, `Captus` will automatically generate an informative report, `captus-assembly_extract.report.html`.
-Please take a look just by opening it in your browser (Microsoft Edge, Google Chrome, Mozilla Firefox, Safari, etc., internet connection required).
-Interactive heatmaps allow you to explore results at various scales, from the comprehensive level to the single sample or single locus/marker level!
-{{% notice style="tip" title="Tips" %}}
+The output from this `extract` module, such as **how many loci are recovered, in how many samples, and to what extent, would be the most direct indication of whether your analysis is successful or not**, and thus would be of most interest to many users.
+However, collecting, summarizing, and visualizing such important information can be backbreaking, especially in a phylo"genomic" project which typically employs hundreds or even thousands of samples and loci.  
 
-- All original data for the report is stored in `captus-assembly_extract.stats.tsv`.
-- Since all plots in the report are created using [`Plotly`](https://plotly.com/python), you can use some interactive functions such as zoom in/out, pan, hover, and download plot as an image (SVG format).
-For more information, please visit the following sites:
+Don't worry, `Captus` automatically generates an informative report!
+Open `captus-assembly_extract.report.html` with your browser (internet connection required) to explore your extraction result at various scales, from the global level to the single sample or single locus level.
+{{% notice tip %}}
 
-  - <https://plotly.com/chart-studio-help/zoom-pan-hover-controls>
+- The entire report is based on data stored in [`captus-assembly_extract.stats.tsv`]({{< relref "assembly/extract/output#26-captus-assembly_extractstatstsv" >}}).
+- All tables and plots in the report are interactive powered by [`Plotly`](https://plotly.com/python).  
+Visit the following sites once to take full advantage of its interactivity:
+
   - <https://plotly.com/chart-studio-help/getting-to-know-the-plotly-modebar>
-
+  - <https://plotly.com/chart-studio-help/zoom-pan-hover-controls>
 {{% /notice %}}
 
 ## Example
 
 ---
-Here is a small example of the report you can play with.  
-This heatmap shows a extraction result of the [`Angiosperms353`](https://github.com/mossmatters/Angiosperms353) loci from four hybridization-capture samples.
+Here is a small example of the report you can play with!  
+The heatmap shows a extraction result of the `Angiosperms353` ([Johnson *et al*., 2019](https://doi.org/10.1093/sysbio/syy086)) loci from targeted-capture data of four plant species.
+The blue bars along with *x*- and *y*-axes indicate how many loci are recovered in each sample and how many samples each locus is recovered in, respectively.  
 {{< plotly json="/plotly/extraction_report.json" height="500px" >}}
 {{% notice note %}}
 
-- If your result contains more than one marker type, the report will include a separate heatmap for each marker type as well as a global heatmap for all marker types.
-- If there are multiple hits, only the information about the best hit (the hit with the highest `Weighted score`) will be shown, except for the `Total Hits (Copies)`.
-- Information about loci/markers that were not recovered in all samples, or samples where not all loci/markers were recovered, will not appear in the report.
+- When your result contains more than one marker type, the report will include separate plots for each marker type.
+- For loci with more than one copy found in a sample, information on best hit (hit with the highest `weighted score`) will be shown.
+- Information on loci with no samples recovered and samples with no loci recovered will not be shown.
 {{% /notice %}}
 
-### Features
+## Features
 
 ---
 
-#### Hover information
+### 1. Hover information
 
-By hovering the mouse cursor over the heatmap, you can check detailed information as well as exact value of each single data point.  
+Hover mouse cursor over the heatmap to see detailed information about each single data point.  
 {{% expand "List of the information to be shown" %}}
-|Field|Description|
-|-|-|
-|**Sample**|Sample name|
-|**Marker type**|Marker type (`NUC` = Nuclear proteins \| `PTD` = Plastidial proteins \| `MIT` = Mitochondrial proteins \| `DNA` = Miscellaneous DNA markers \| `CLR` = Cluster-derived DNA markers)|
-|**Locus**|Locus/marker name|
-|***Ref name**|Reference sequence name (If your reference dataset only contains single sequence per locus, this field will be identical to the `Locus` field)|
-|***Ref coords**|Coordinates of the matched parts in the reference sequence (Consecutive coordinates separated by `,` (commas) indicate multiple partial hits on a single contig, whereas coordinates separated by `;` (semicolons) indicate hits on different contigs)|
-|***Ref type**|Reference sequence format (`nucl` = nucleotides \| `prot` = amino acids)|
-|***Ref len matched**|Total length of the matched parts in the reference sequence|
-|**Total hits (copies)**|Number of hits found (Values greater than 1 imply the existence of paralogs)|
-|**Recovered length**|Percentage of recovered length in the reference sequence length, calcurated as `Ref len matched` / Reference sequence length * 100|
-|**Identity**|Sequence identity between the recovered sequence and the reference sequence|
-|**Score**|`Scipio` score, calculated as (Number of matched residues - Number of mismatched residues) / Reference sequence length|
-|**Length-weighted score**|Modified `Scipio` score to take account into the proportion recovered, calculated as (Number of matched residues - Number of mismatched residues) / Reference sequence length * Proportion recovered|
-|***Hit length**|Total length of the contigs where the hit was found (This value should be equal to the sum of subsequent three fields)|
-|***CDS length**|Total length of recovered coding sequences (CDS)|
-|***Intron length**|Total length of recovered introns|
-|***Flanking length**|Total length of recovered flanking sequences|
-|***Frameshift**|Positions of additonal or missing bases have been found that would lead to frameshifts during translation (These are most probable due to sequencing/assembly errors, but might also hint to the existance of pseudogenes)|
-|**Contigs in best hit**|Number of contigs used to assemble the best hit|
-|**Best hit L50**|Least number of contigs in best hit that contain 50% of the best hit's recovered length|
-|**Best hit L90**|Least number of contigs in best hit that contain 90% of the best hit's recovered length|
-|**Best hit LG50**|Least number of contigs in best hit that contain 50% of the reference locus length|
-|**Best hit LG90**|Least number of contigs in best hit that contain 90% of the reference locus length|
+|Field|Description|Unit|
+|-|-|-|
+|**Sample**|Sample name|-|
+|**Marker type**|Marker type (`NUC` = Nuclear proteins; `PTD` = Plastidial proteins; `MIT` = Mitochondrial proteins; `DNA` = Miscellaneous DNA markers; `CLR` = Cluster-derived DNA markers)|-|
+|**Locus**|Locus name|-|
+|**Ref name**|Reference sequence name selected|-|
+|**Ref coords**|Matched coordinates with respect to the reference sequence (Consecutive coordinates separated by `,` indicate partial hits on the same contig; coordinates separated by `;` indicate hits on different contigs)|-|
+|**Ref type**|Reference sequence format (`nucl` = nucleotides; `prot` = amino acids)|-|
+|**Ref len matched**|Total length of `Ref coords`|aa/bp|
+|**Total hits (copies)**|Number of hits found (Values greater than 1 imply the presence of paralogs)|-|
+|**Recovered length**|Percentage of reference sequence length recovered, calcurated as (`Ref len matched` / Reference sequence length) * 100|%|
+|**Identity**|Sequence identity of the recovered sequence to the reference sequence|%|
+|**Score**|Score inspired by [`Scipio`](https://www.webscipio.org/help/webscipio#setting), calculated as (matches - mismatches) / reference sequence length|-|
+|**Weighted score**|Weighted `score` to address multiple reference sequences per locus<br>(for details, read [<i class="fab fa-readme"></i> Information included in the table]({{< relref "assembly/extract/output#26-captus-assembly_extractstatstsv" >}}))|-|
+|**Hit length**|Length of sequence recovered|bp|
+|**CDS length**|Total length of coding sequences (CDS) recovered (always `NA` when the `ref_type` is `nucl`)|bp|
+|**Intron length**|Total length of introns recovered (always `NA` when the `ref_type` is `nucl`)|bp|
+|**Flanking length**|Total length of flanking sequences recovered|bp|
+|**Number of frameshifts**|Number of corrected frameshifts in the extracted sequence<br>(always `0` when `ref_type` is `nucl`)|-|
+|**Position of frameshifts**|Positions of corrected frameshifts in the extracted sequence<br>(`NA` when no frameshift is detected or `ref_type` is `nucl`)|-|
+|**Contigs in best hit**|Number of contigs used to assemble the best hit|-|
+|**Best hit L50**|Least number of contigs in best hit that contain 50% of the best hit's recovered length|-|
+|**Best hit L90**|Least number of contigs in best hit that contain 90% of the best hit's recovered length|-|
+|**Best hit LG50**|Least number of contigs in best hit that contain 50% of the reference locus length|-|
+|**Best hit LG90**|Least number of contigs in best hit that contain 90% of the reference locus length|-|
 
-If your data is huge (number of samples * number of loci/markers > 500000), the fields marked with `*` will not be shown.
+\* When your data is huge (number of samples * number of loci > 500k), only `Sample`, `Locus`, and the variable selected in the `Variable` dropdown will be shown.
 {{% /expand %}}
 
 ---
 
-#### Variable dropdown
+### 2. `Variable` dropdown
 
-By default, the heatmaps show the `Recovered length (%)` of each sample and each locus/marker.  
-This dropdown allows you to switch the variable to be shown as a heatmap.  
-There are ten options:
-|Variable|Description|
-|-|-|
-|**Recovered Length (%)** (default)|Percentage of recovered length in the reference sequence length|
-|**Identity (%)**|Sequence identity between the recovered sequence and the reference sequence|
-|**Total Hits (Copies)**|Number of hits found (Values greater than 1 imply the existence of paralogs)|
-|**Score**|`Scipio` score, calculated as (Number of matched residues - Number of mismatched residues) / Reference sequence length|
-|**Length-weighted Score**|Modified `Scipio` score to take account into the proportion recovered, calculated as (Number of matched residues - Number of mismatched residues) / Reference sequence length * Proportion recovered|
-|**Contigs in best hit**|Number of contigs used to assemble the best hit|
-|**Best hit L50**|Least number of contigs in best hit that contain 50% of the best hit's recovered length|
-|**Best hit L90**|Least number of contigs in best hit that contain 90% of the best hit's recovered length|
-|**Best hit LG50**|Least number of contigs in best hit that contain 50% of the reference locus length|
-|**Best hit LG90**|Least number of contigs in best hit that contain 90% of the reference locus length|
+Switch this dropdown to change the variable to be shown as a heatmap among the following options:  
+|Variable|Description|Unit|
+|-|-|-|
+|**Recovered Length**|Percentage of reference sequence length recovered|%|
+|**Identity**|Sequence identity of the recovered sequence to the reference sequence|%|
+|**Total Hits (Copies)**|Number of hits found (Values greater than 1 imply the presence of paralogs)|-|
+|**Score**|Score inspired by [`Scipio`](https://www.webscipio.org/help/webscipio#setting), calculated as (matches - mismatches) / reference sequence length|-|
+|**Weighted Score**|Weighted `score` to address multiple reference sequences per locus<br>(for details, read [<i class="fab fa-readme"></i> Information included in the table]({{< relref "assembly/extract/output#26-captus-assembly_extractstatstsv" >}}))|-|
+|**Number of Frameshifts**|Number of corrected frameshifts in the extracted sequence<br>(always `0` if the reference sequence is in nucleotide)|-|
+|**Contigs in Best Hit**|Number of contigs used to assemble the best hit|-|
+|**Best Hit L50**|Least number of contigs in best hit that contain 50% of the best hit's recovered length|-|
+|**Best Hit L90**|Least number of contigs in best hit that contain 90% of the best hit's recovered length|-|
+|**Best Hit LG50**|Least number of contigs in best hit that contain 50% of the reference locus length|-|
+|**Best Hit LG90**|Least number of contigs in best hit that contain 90% of the reference locus length|-|
 
 ---
 
-#### Sort by Value dropdown
+### 3. `Sort by Value` dropdown
 
-By default, the X and Y axes are sorted alpha-numerically by locus/marker name and sample name, respectively.  
-This dropdown allows you to change the sorting manner of each axis as follows:
-|Label|X axis (Loci/Markers)|Y axis (Samples)|
+Switch this dropdown to change the sorting manner of each axis as follow:
+|Label|Locus (*x*-axis)|Sample (*y*-axis)|
 |-|-|-|
-|**None** (default)|Sort by name|Sort by name|
+|**None**|Sort by name|Sort by name|
 |**Mean X**|Sort by **mean** value|Sort by name|
 |**Mean Y**|Sort by name|Sort by **mean** value|
 |**Mean Both**|Sort by **mean** value|Sort by **mean** value|
@@ -111,4 +110,4 @@ This dropdown allows you to change the sorting manner of each axis as follows:
 
 ---
 Created by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (11.08.2021)  
-Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (02.09.2022)
+Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (16.09.2022)
