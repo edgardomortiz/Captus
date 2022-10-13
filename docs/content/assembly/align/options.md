@@ -136,7 +136,7 @@ Select [ClipKIT's trimming mode](https://jlsteenwyk.com/ClipKIT/advanced/index.h
 This argument is optional, the default is **gappy**.
 ___
 ### **`--clipkit_gaps`**
-Gappynes threshold per position. Accepted values between 0 and 1. This argument is ignored when using the `kpi` and `kpic` algorithms or intermediate steps that use `smart-gap`.
+Gappyness threshold per position. Accepted values between 0 and 1. This argument is ignored when using the `kpi` and `kpic` algorithms or intermediate steps that use `smart-gap`.
 
 This argument is optional, the default is **0.9**.
 ___
