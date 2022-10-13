@@ -5,7 +5,7 @@ pre = '<i class="fas fa-clipboard-check"></i> '
 +++
 
 {{% notice note %}}
-Before starting your analysis, a <i class="fas fa-exclamation-triangle"></i> **VERY IMPORTANT** step is to rename you FASTQ files so they clearly identify your samples throughout the entire analysis.
+Before starting your analysis, a <i class="fas fa-exclamation-triangle"></i> **VERY IMPORTANT** step is to rename your FASTQ files so they clearly identify your samples throughout the entire analysis.
 {{% /notice %}}
 
 In general, a good tip for renaming your samples is to think on how you want the names in your final phylogenetic tree.
