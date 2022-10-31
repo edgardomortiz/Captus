@@ -1,0 +1,1 @@
+docs/content/tutorials/assembly/basic.files/00_raw_reads.tar.gz filter=lfs diff=lfs merge=lfs -text
