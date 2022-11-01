@@ -1,11 +1,12 @@
 +++
-title = "Advanced"
+title = "Advanced Tutorial"
+menuTitle = "Advenced"
 weight = 2
 pre = '<i class="fas fa-graduation-cap"></i> '
-summary = "combine different data types target-capture, transcriptome, and whole genome sequencing."
 +++
 
-In this advanced tutorial, different data types
+Under construction...
+<!-- In this advanced tutorial, different data types
 this tutorial will walk you through 
 
 ### Preparation
@@ -111,8 +112,8 @@ For descriptions of the other output files, see [here]({{< ref "assembly/align/o
 
 ```shell
 iqtree
-```
+``` -->
 
 ---
 Created by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (01.10.2021)  
-Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (29.05.2022)
+Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (31.10.2022)

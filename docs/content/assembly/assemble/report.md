@@ -8,10 +8,10 @@ plotly = true
 ## Concept
 
 ---
-**No successful marker extractions can be achieved without successful assemblies**. Even though `Captus` offers presets tuned for different data types, it is recommendable to run this step some times with different parameters to find optimal settings for your own data.
+**No successful marker extractions can be achieved without successful assemblies**. Even though this `assemble` module offers presets tuned for different data types, it is recommendable to repeat this step some times with different parameters to find optimal settings for your own data.
 
-`Captus` assists in this tedious process by automatically generating a report that is useful for evaluating assemblies.
-Just open `captus-assembly_assemble.report.html` with your browser (internet connection required) to compare general assembly statistics across all your samples!
+`Captus` assists you in this tedious process by automatically generating a useful report for assembly evaluation.  
+Just open `captus-assembly_assemble.report.html` with your browser (internet connection required) to get general assembly statistics across all your samples!
 {{% notice tip %}}
 
 - The entire report is based on data stored in [`captus-assembly_assemble.stats.tsv`]({{< relref "assembly/assemble/output#9-captus-assembly_assemblestatstsv" >}}).
@@ -89,4 +89,4 @@ Features:
 
 ---
 Created by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (11.08.2021)  
-Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (16.09.2022)
+Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (17.10.2022)
