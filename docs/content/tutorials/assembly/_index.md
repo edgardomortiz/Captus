@@ -5,5 +5,5 @@ draft = true
 weight = 10
 +++
 
-Two tutorials:
-{{% children description = "true" %}}
+- [Basic Tutorial]({{< ref "tutorials/assembly/basic">}}) - *The least things you should know*
+- [Advanced Tutorial]({{< ref "tutorials/assembly/advanced">}}) - *Many more things you can do*
