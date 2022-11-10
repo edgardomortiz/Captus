@@ -518,6 +518,7 @@ def bbduk_trim_adaptors(
         f"mink={settings.BBDUK_ADAPTOR_ROUND1_MINK}",
         f"hdist={settings.BBDUK_ADAPTOR_ROUND1_HDIST}",
         f"stats={Path(out_dir, f'{sample_name}.round1.stats.txt')}",
+        f"tossbrokenreads=t",
         f"2>{round_1_stdout_file}",
     ]
 
