@@ -6,10 +6,18 @@ pre = '<i class="fas fa-graduation-cap"></i> '
 +++
 
 Under construction...
-<!-- In this advanced tutorial, different data types
-this tutorial will walk you through 
 
-### Preparation
+1. Handling different data types
+2. Assembling reads cleaned outside Captus
+3. Combining all assembled data types
+4. Importing pre-assembled sample (e.g., GenBank ref genome)
+5. Extracting all marker types simultaneously
+6. Discovering new markers by clustering in capture data
+7. Adding new markers by clustering unused contigs (capture data)
+8. Phylogenetic tree reconstruction using palalogs - ASTRAL-Pro
+
+
+<!--### Preparation
 
 ---
 
