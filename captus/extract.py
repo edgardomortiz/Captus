@@ -596,9 +596,9 @@ def extract(full_command, args):
                 clust_query_info = reference_info(clust_query)
                 clust_ref_size = max(clust_ref_size, clust_query_info["total_size"])
                 clust_concurrent, clust_ram_B_per_extract = adjust_concurrency(args.concurrent,
-                                                                                threads_max,
-                                                                                clust_ref_size,
-                                                                                ram_B)
+                                                                               threads_max,
+                                                                               clust_ref_size,
+                                                                               ram_B)
                 log.log(f'{"Concurrent extractions":>{mar}}: {bold(clust_concurrent)}')
                 log.log(f'{"RAM per extraction":>{mar}}:'
                         f' {bold(f"{clust_ram_B_per_extract / 1024 ** 3:.1f}GB")}')

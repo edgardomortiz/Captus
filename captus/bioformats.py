@@ -2807,7 +2807,7 @@ def blat_misc_dna_psl_to_dict(
                     "coverage":   coverage,
                     "identity":   identity,
                     "score":      score,
-                    "wscore":    wscore,
+                    "wscore":     wscore,
                     "region":     region,
                     "gapped":     gapped,
                 }
