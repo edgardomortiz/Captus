@@ -14,7 +14,7 @@ The only special characters that are safe to use in the sample name are `-`, and
 
 Also, please use this naming convention for your FASTQ files:
 
-![Naming convention for FASTQ files](/images/fastq.png?width=600)
+![Naming convention for FASTQ files](/captus.docs/images/fastq.png?width=600)
 
 - **IMPORTANT:** Even though underscores (`_`) are allowed in sample names, please **DO NOT** use more than **ONE** consecutive `_` in any case. We use double underscores (`__`) internally to separate several pieces of information during the processing and for the output (see for example [the FASTA headers of extracted markers]({{< relref "assembly/extract/output#fasta-headers-explanation" >}})).
 - Any text found before the **_R#** pattern and the **extension** will become your **sample name** (`Pouteria_lucuma_EO9854` in this case).

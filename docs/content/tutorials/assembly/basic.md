@@ -45,7 +45,7 @@ tar -zxvf 00_raw_reads.tar.gz && rm 00_raw_reads.tar.gz
 ```
 
 Now you should have `00_raw_reads` directory containing eight compressed FASTQ files:
-![raw_reads](/images/tutorial_basic_preparation.png?width=640&classes=shadow)
+![raw_reads](/captus.docs/images/tutorial_basic_preparation.png?width=640&classes=shadow)
 Those files are paired-end reads (`R1` and `R2`) obtained from four plant species (`GenusA_speciesA`, `GenusB_speciesB`, `GenusC_speciesC`, `GenusD_speciesD`) by targeted-capture sequencing (`CAP`) of 353 loci highly conserved across angiosperms using the `Angiosperms353` probe set ([Johnson *et al*., 2018](https://academic.oup.com/sysbio/article/68/4/594/5237557)).
 
 ## 1. Cleaning Reads
@@ -70,7 +70,7 @@ If you want to customize the cleaning criteria, see [<i class="fab fa-readme"></
 
 This command will creat `01_clean_reads` directory with the following structure:
 
-![clean_reads](/images/tutorial_basic_clean.png?width=640&classes=shadow)
+![clean_reads](/captus.docs/images/tutorial_basic_clean.png?width=640&classes=shadow)
 
 Of these, the compressed FASTQ files (highlighted in the image above) are the cleaned reads and will be used in the next step.  
 For descriptions of the other output files, see [<i class="fab fa-readme"></i> Output Files]({{< ref "assembly/clean/output">}}) and [<i class="fab fa-readme"></i> HTML Report]({{< ref "assembly/clean/report">}}).
@@ -92,7 +92,7 @@ If you are worried about contaminations, consider to use the [`--max_contig_gc`]
 
 The command will create a directory, `02_assemblies` with the following structure:
 
-![assemblies](/images/tutorial_basic_assemble.png?width=640&classes=shadow)
+![assemblies](/captus.docs/images/tutorial_basic_assemble.png?width=640&classes=shadow)
 
 Of these, `assembly.fasta` in each directory (highlighted in the image above) is the assembled contigs.  
 For descriptions of the other output files, see [<i class="fab fa-readme"></i> Output Files]({{< ref "assembly/assemble/output">}}) and [<i class="fab fa-readme"></i> HTML Report]({{< ref "assembly/assemble/report">}}).
@@ -130,7 +130,7 @@ Nuclear proteins:
 
 The command will creat `03_extractions` directory with the following structure:
 
-![extractions](/images/tutorial_basic_extract.png?width=640&classes=shadow)
+![extractions](/captus.docs/images/tutorial_basic_extract.png?width=640&classes=shadow)
 
 Of these, the FASTA files (`*.faa` and `*.fna`; highlighted in the image above) in each directory store the extracted sequences in each [formats <i class="fas fa-question-circle fa-sm"></i>]({{< relref "assembly/align/options#-f---formats" >}}).  
 For descriptions of the other output files, see [<i class="fab fa-readme"></i> Output Files]({{< ref "assembly/extract/output">}}) and [<i class="fab fa-readme"></i> HTML Report]({{< ref "assembly/extract/report">}}).
@@ -150,7 +150,7 @@ captus_assembly align -e 03_extractions
 For descriptions of the other available options, see [<i class="fab fa-readme"></i> Options]({{< ref "assembly/align/options">}}).  
 
 The command will create `04_alignments` directory with the following structure:
-![alignments](/images/tutorial_basic_align.png?width=640&classes=shadow)
+![alignments](/captus.docs/images/tutorial_basic_align.png?width=640&classes=shadow)
 Of these, `02_aligned_untrimmed` and `03_aligned_trimmed` directories (highlighted in the image above) store a series of untrimmed and trimmed alignments in multi-FASTA format, respectively.  
 Since the structure of the output directory is a bit complicated, we recommend that you take a look at [<i class="fab fa-readme"></i> Output Files]({{< ref "assembly/align/output">}}) and [<i class="fab fa-readme"></i> HTML Report]({{< ref "assembly/align/report">}}).
 
@@ -173,12 +173,12 @@ iqtree -p ../04_alignments/03_trimmed/06_informed/01_coding_NUC/02_NT -pre conca
 For more practical uses of `IQ-TREE`, see [<i class="fab fa-readme"></i> IQ-TREE documentation](http://www.iqtree.org/doc).
 
 The command will create the following files:
-![iqtree](/images/tutorial_basic_iqtree.png?width=640&classes=shadow)
+![iqtree](/captus.docs/images/tutorial_basic_iqtree.png?width=640&classes=shadow)
 Of these, `concat.treefile` is the file storing the maximum-likelihood tree in Newick format.  
 You can visualize this tree with a phylogenetic tree viewer such as [`FigTree`](http://tree.bio.ed.ac.uk/software/figtree) or [`Dendroscope`](https://uni-tuebingen.de/en/fakultaeten/mathematisch-naturwissenschaftliche-fakultaet/fachbereiche/informatik/lehrstuehle/algorithms-in-bioinformatics/software/dendroscope).
 
 The maximum-likelihood tree opened in FigTree and rerooted on `GenusC_speciesC_CAP` should look like below:
-![figtree](/images/tutorial_basic_figtree.png?width=700)
+![figtree](/captus.docs/images/tutorial_basic_figtree.png?width=700)
 That's all for the basic tutorial, but remember that this is a **minimal** usage of the `captus_assembly` pipeline.  
 To get the most out of this pipeline, such as integrating different data types at different processing steps or discovering new markers by clustering contigs, check out the [<i class="fab fa-readme"></i> Advanced Tutorial]({{< ref "tutorials/assembly/advanced">}}) (currently under construction).
 

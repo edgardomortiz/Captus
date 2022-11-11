@@ -45,10 +45,10 @@ For each marker type, `Captus` creates several different formats. You can provid
 This argument is optional, the default is **AA,NT,GE,MA**
 
 {{% expand "Formats for protein markers" "true" %}}
-![Formats for protein markers](/images/protein_extraction.png?width=600&classes=shadow)
+![Formats for protein markers](/captus.docs/images/protein_extraction.png?width=600&classes=shadow)
 {{% /expand %}}
 {{% expand "Formats for miscellaneous DNA markers" "true" %}}
-![Format s for miscellaneous DNA markers](/images/misc_dna_extraction.png?width=600&classes=shadow)
+![Format s for miscellaneous DNA markers](/captus.docs/images/misc_dna_extraction.png?width=600&classes=shadow)
 {{% /expand %}}
 
 

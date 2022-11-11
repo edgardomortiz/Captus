@@ -12,10 +12,10 @@ captus_assembly align align -e 03_extractions_CAP/ -o 04_alignments_CAP -k ALL -
 
 After the run is finished we should see a new directory called `04_alignments` with the following structure and files:
 
-![Alignments](/images/alignments.png?width=640&classes=shadow)
+![Alignments](/captus.docs/images/alignments.png?width=640&classes=shadow)
 ___
 {{% expand "Complete structure of the alignment output directory" %}}
-![Alignment directory](/images/alignment_stages.png?width=1200&classes=shadow)
+![Alignment directory](/captus.docs/images/alignment_stages.png?width=1200&classes=shadow)
 {{% /expand %}}
 ___
 ### 1. **`01_unaligned`**
@@ -23,22 +23,22 @@ This directory contains the unaligned FASTA files corresponding to each marker t
 ___
 ### 2. **`02_untrimmed`**
 This directory contains the aligned FASTA files corresponding to each file in the `01_unaligned` directory. The files are organized in subdirectories, first by filtering strategy, then by [marker type]({{< relref "assembly/align/options#-m---markers" >}}), and finally by [format]({{< relref "assembly/align/options#-f---formats" >}}). The subdirectory structure is identical to the one inside the `03_trimmed` directory (see **4** to **15** below).
-![Untrimmed alignments](/images/alignment_untrimmed_stages.png?width=1200&classes=shadow)
+![Untrimmed alignments](/captus.docs/images/alignment_untrimmed_stages.png?width=1200&classes=shadow)
 ___
 ### 3. **`03_trimmed`**
 All the files present in the `02_untrimmed` directory are trimmed using `ClipKIT` which removes columns that are mostly empty (see options [`--clipkit_algorithm`]({{< relref "assembly/align/options#--clipkit_algorithm" >}}), [`--clipkit_gaps`]({{< relref "assembly/align/options#--clipkit_gaps" >}})), then `Captus` removes sequences that are too short after trimming ([`--min_coverage`]({{< relref "assembly/align/options#--min_coverage" >}})). The files are organized in subdirectories, first by filtering strategy, then by [marker type]({{< relref "assembly/align/options#-m---markers" >}}), and finally by [format]({{< relref "assembly/align/options#-f---formats" >}}). The subdirectory structure is identical to the one inside the `02_untrimmed` directory (see **4** to **15** below).
-![Trimmed alignments](/images/alignment_trimmed_stages.png?width=1200&classes=shadow)
+![Trimmed alignments](/captus.docs/images/alignment_trimmed_stages.png?width=1200&classes=shadow)
 ___
 ### 4. **`01_unfiltered_w_refs`**
 This directory contains the alignments before performing any filtering. All the reference sequences selected by at least a sample will be present as well as all the paralogs per sample. The files are organized in subdirectories, first by [marker type]({{< relref "assembly/align/options#-m---markers" >}}) and then by [format]({{< relref "assembly/align/options#-f---formats" >}}).
 ___
 ### 5. **`02_naive_w_refs`**
 This directory contains the alignments where paralogs have been filtered by the `naive` method, which consists in simply keeping the best hit per sample (hit ranked as `00`). All the reference sequences selected by at least a sample will still be present. The files are organized in subdirectories, first by [marker type]({{< relref "assembly/align/options#-m---markers" >}}) and then by [format]({{< relref "assembly/align/options#-f---formats" >}}).
-![Naive paralog filter](/images/paralog_filter_naive.png?width=1200&classes=shadow)
+![Naive paralog filter](/captus.docs/images/paralog_filter_naive.png?width=1200&classes=shadow)
 ___
 ### 6. **`03_informed_w_refs`**
 This directory contains the alignments where paralogs have been filtered by the `informed` method. Under this strategy, `Captus` compares every copy to the most commonly used reference sequence (sequence `ABCD-3400` in the figure) and retains the copy with the highest similarity to that reference, regardless of its paralog ranking (in the figure, `Sample1` and `Sample4` whose selected copies had paralog rankings of `01` and `02` respectively). All the reference sequences selected by at least a sample will still be present. The files are organized in subdirectories, first by [marker type]({{< relref "assembly/align/options#-m---markers" >}}) and then by [format]({{< relref "assembly/align/options#-f---formats" >}}).
-![Informed paralog filter](/images/paralog_filter_informed.png?width=1200&classes=shadow)
+![Informed paralog filter](/captus.docs/images/paralog_filter_informed.png?width=1200&classes=shadow)
 ___
 ### 7. **`04_unfiltered`**, **`05_naive`**, **`06_informed`**
 These contain equivalent alignments to directories `01_unfiltered_w_refs`, `02_naive_w_refs`, and `03_informed_w_refs` respectively, but excluding the reference sequences. *In most cases you will estimate phylogenies from the trimmed versions of these alignments.*
@@ -47,7 +47,7 @@ ___
 These directories contain the aligned **coding** markers from the **NUC**lear, **P**las**T**i**D**ial, and **MIT**ochondrial genomes respectively.  
 The alignments are presented in four formats: protein sequence (**coding_AA**), coding sequence in nucleotide (**coding_NT**), exons and introns concatenated (**genes**), and the concatenation of exons and introns flanked by a fixed length of sequence (**genes_flanked**):
 
-![Protein extraction formats](/images/protein_extraction.png?width=600&classes=shadow)
+![Protein extraction formats](/captus.docs/images/protein_extraction.png?width=600&classes=shadow)
 ___
 ### 9. **`01_AA`**
 This directory contains the protein alignments (`AA` in the figure above) of the extracted markers gathered across samples. One FASTA file per marker, with extension `.faa`.
@@ -65,7 +65,7 @@ ___
 These directories contain the aligned **miscellaneous DNA** markers, either from a **DNA** custom set of references or from the **CL**uste**R**ing resulting from using the option `--cluster_leftovers` during the extraction step.  
 The alignments are presented in two formats: matching DNA segments (**matches**), and the matched segments including flanks and other intervening segments not present in the reference (**matches_flanked**).
 
-![Miscellaneous DNA extraction formats](/images/misc_dna_extraction.png?width=600&classes=shadow)
+![Miscellaneous DNA extraction formats](/captus.docs/images/misc_dna_extraction.png?width=600&classes=shadow)
 ___
 ### 14. **`01_matches`**
 This directory contains the alignments of DNA sequence matches (`MA` in the figure above) for the extracted markers gathered across samples. One FASTA file per marker, with extension `.fna`.
