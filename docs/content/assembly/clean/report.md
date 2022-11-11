@@ -56,7 +56,7 @@ Features:
 
 {{< tabs groupId="Summary Table" >}}
 {{% tab name="Captus" %}}
-{{< plotly json="/plotly/cleaning_report_summary_table.json" height="230px" >}}
+{{< plotly json="/captus.docs/plotly/cleaning_report_summary_table.json" height="230px" >}}
 {{% /tab %}}
 {{% tab name="FastQC" %}}
 ![fastqc_basic_statistics](/captus.docs/images/fastqc_basic_statistics.png?height=200px)
@@ -95,7 +95,7 @@ Features:
 
 {{< tabs groupId="Stats on Reads/Bases" >}}
 {{% tab name="Captus" %}}
-{{< plotly json="/plotly/cleaning_report_stats_on_reads_bases.json" height="240px" >}}
+{{< plotly json="/captus.docs/plotly/cleaning_report_stats_on_reads_bases.json" height="240px" >}}
 {{% /tab %}}
 {{% tab name="FastQC" %}}
 There is no corresponding plot.
@@ -115,7 +115,7 @@ Feature:
 
 {{< tabs groupId="Per Base Quality" >}}
 {{% tab name="Captus" %}}
-{{< plotly json="/plotly/cleaning_report_per_base_quality.json" height="300px" >}}
+{{< plotly json="/captus.docs/plotly/cleaning_report_per_base_quality.json" height="300px" >}}
 {{% /tab %}}
 {{% tab name="FastQC" %}}
 ![fastqc_per_base_quality](/captus.docs/images/fastqc_per_base_quality.png?height=300px)
@@ -130,7 +130,7 @@ This plot shows the distribution of mean Phred quality score for each read befor
 For more details, read [<i class="fab fa-readme"></i> FastQC documentation](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/3%20Analysis%20Modules/3%20Per%20Sequence%20Quality%20Scores.html).
 {{< tabs groupId="Per Read Quality" >}}
 {{% tab name="Captus" %}}
-{{< plotly json="/plotly/cleaning_report_per_read_quality.json" height="300px" >}}
+{{< plotly json="/captus.docs/plotly/cleaning_report_per_read_quality.json" height="300px" >}}
 {{% /tab %}}
 {{% tab name="FastQC" %}}
 ![fastqc_per_sequence_quality](/captus.docs/images/fastqc_per_sequence_quality.png?height=300px)
@@ -145,7 +145,7 @@ This plot shows the distribution of read lengths before and after cleaning.
 For more details, read [<i class="fab fa-readme"></i> FastQC documentation](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/3%20Analysis%20Modules/7%20Sequence%20Length%20Distribution.html).
 {{< tabs groupId="Read Length Distribution" >}}
 {{% tab name="Captus" %}}
-{{< plotly json="/plotly/cleaning_report_seq_len_dist.json" height="300px" >}}
+{{< plotly json="/captus.docs/plotly/cleaning_report_seq_len_dist.json" height="300px" >}}
 {{% /tab %}}
 {{% tab name="FastQC" %}}
 ![fastqc_sequence_length_distribution](/captus.docs/images/fastqc_sequence_length_distribution.png?height=300px)
@@ -160,7 +160,7 @@ This plot shows the composition of each nucleotide (A, T, G, C) at each position
 For more details, read [<i class="fab fa-readme"></i> FastQC documentation](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/3%20Analysis%20Modules/4%20Per%20Base%20Sequence%20Content.html).
 {{< tabs groupId="Per Base Nucleotide Content" >}}
 {{% tab name="Captus" %}}
-{{< plotly json="/plotly/cleaning_report_per_base_seq_content.json" height="750px" >}}
+{{< plotly json="/captus.docs/plotly/cleaning_report_per_base_seq_content.json" height="750px" >}}
 {{% /tab %}}
 {{% tab name="FastQC" %}}
 ![fastqc_per_base_sequence_content](/captus.docs/images/fastqc_per_base_sequence_content.png?height=300px)
@@ -176,7 +176,7 @@ Broader or bimodal peaks may indicate contamination with DNA from different orga
 For more details, read [<i class="fab fa-readme"></i> FastQC documentation](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/3%20Analysis%20Modules/5%20Per%20Sequence%20GC%20Content.html).
 {{< tabs groupId="Per Read GC Content" >}}
 {{% tab name="Captus" %}}
-{{< plotly json="/plotly/cleaning_report_per_seq_gc_content.json" height="300px" >}}
+{{< plotly json="/captus.docs/plotly/cleaning_report_per_seq_gc_content.json" height="300px" >}}
 {{% /tab %}}
 {{% tab name="FastQC" %}}
 ![fastqc_per_sequence_gc_content](/captus.docs/images/fastqc_per_sequence_gc_content.png?height=300px)
@@ -196,7 +196,7 @@ Feature:
 
 {{< tabs groupId="Sequence Duplication Level" >}}
 {{% tab name="Captus" %}}
-{{< plotly json="/plotly/cleaning_report_seq_dup_level.json" height="300px" >}}
+{{< plotly json="/captus.docs/plotly/cleaning_report_seq_dup_level.json" height="300px" >}}
 {{% /tab %}}
 {{% tab name="FastQC" %}}
 ![fastqc_duplication_levels](/captus.docs/images/fastqc_duplication_levels.png?height=300px)
@@ -211,7 +211,7 @@ This plot shows the cumulative adaptor content at each position in the reads bef
 For more details, read [<i class="fab fa-readme"></i> FastQC documentation](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/3%20Analysis%20Modules/10%20Adapter%20Content.html).
 {{< tabs groupId="Adaptor Content" >}}
 {{% tab name="Captus" %}}
-{{< plotly json="/plotly/cleaning_report_adaptor_content.json" height="300px" >}}
+{{< plotly json="/captus.docs/plotly/cleaning_report_adaptor_content.json" height="300px" >}}
 {{% /tab %}}
 {{% tab name="FastQC" %}}
 ![fastqc_adaptor_content](/captus.docs/images/fastqc_adaptor_content.png?height=300px)
