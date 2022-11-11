@@ -35,7 +35,7 @@ Features:
 - Switch the `Sort by` dropdown to re-sort the table by any column value.
 - Cells are color-coded according to value (high = green; low = pink).
 
-{{< plotly json="/plotly/assemble_report_summary_table.json" height="250px" >}}
+{{< plotly json="/captus.docs/plotly/assemble_report_summary_table.json" height="250px" >}}
 {{% expand "Description of each column" %}}
 |Column<sup>a</sup>|Description|Unit|
 |-|-|-|
@@ -66,7 +66,7 @@ Features:
 
 - Switch the dropdown at the *y*-axis to switch the variable to show.
 - Click on the legend to toggle hide/show of each data series.
-{{< plotly json="/plotly/assemble_report_visual_stats.json" height="500px" >}}
+{{< plotly json="/captus.docs/plotly/assemble_report_visual_stats.json" height="500px" >}}
 
 {{% expand "Description of each variable" %}}
 |Variable<sup>a</sup>|Description|Unit|

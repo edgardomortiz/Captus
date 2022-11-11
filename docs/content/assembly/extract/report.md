@@ -29,7 +29,7 @@ Visit the following sites once to take full advantage of its interactivity:
 Here is a small example of the report you can play with!  
 The heatmap shows a extraction result of the `Angiosperms353` ([Johnson *et al*., 2019](https://doi.org/10.1093/sysbio/syy086)) loci from targeted-capture data of four plant species.
 The blue bars along with *x*- and *y*-axes indicate how many loci are recovered in each sample and how many samples each locus is recovered in, respectively.  
-{{< plotly json="/plotly/extraction_report.json" height="500px" >}}
+{{< plotly json="/captus.docs/plotly/extraction_report.json" height="500px" >}}
 {{% notice note %}}
 
 - When your result contains more than one marker type, the report will include separate plots for each marker type.

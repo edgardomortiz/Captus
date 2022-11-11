@@ -39,7 +39,7 @@ Features:
 - Switch the dropdown on the *x*-axis to change the variable to show.
 - Click on the legend to toggle hide/show of each format.
 
-{{< plotly json="/plotly/alignment_report_ridgeline.json" height="700px" >}}
+{{< plotly json="/captus.docs/plotly/alignment_report_ridgeline.json" height="700px" >}}
 {{% expand "Description of each processing step" %}}
 Depending on [`--filter_method`]({{< relref "assembly/align/options#--filter_method" >}}) argument, you will have up to 12 processing steps as follows:
 |Processing step (Path to alignments)|Trimmed|Paralog filter|With references|
@@ -95,7 +95,7 @@ Features:
 - Switch the dropdowns on the *x*- and *y*- axes to change variables to plot on each axis.
 - Click on the legend to toggle hide/show of each format.
 
-{{< plotly json="/plotly/alignment_report_scatter_loci.json" height="700px" >}}
+{{< plotly json="/captus.docs/plotly/alignment_report_scatter_loci.json" height="700px" >}}
 {{% expand "Description of each processing step" %}}
 Depending on [`--filter_method`]({{< relref "assembly/align/options#--filter_method" >}}) argument, you will have up to 12 processing steps as follows:
 |Processing step (Path to alignments)|Trimmed|Paralog filter|With references|
@@ -151,7 +151,7 @@ Features:
 - Switch the dropdown on the *y*-axis to change the variable to show.
 - Click on the legend to toggle hide/show of each data series.
 
-{{< plotly json="/plotly/alignment_report_scatter_samples.json" height="700px" >}}
+{{< plotly json="/captus.docs/plotly/alignment_report_scatter_samples.json" height="700px" >}}
 {{% expand "Description of each variable" %}}
 |Variable|Description|Unit|
 |-|-|-|
