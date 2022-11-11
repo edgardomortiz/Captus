@@ -1,4 +1,4 @@
-baseURL = "https://captus.github.io/"
+baseURL = "https://edgardomortiz.github.io/captus.docs"
 languageCode = "en-us"
 title = "Captus documentation"
 theme = "hugo-theme-relearn"

@@ -6,7 +6,7 @@ pre = '<i class="fas fa-dna"></i> '
 
 Imagine we start with a directory called `00_raw_reads` with the following content:
 
-![Raw reads](/images/raw_reads.png?width=640&classes=shadow)
+![Raw reads](/captus.docs/images/raw_reads.png?width=640&classes=shadow)
 
 We have a samples with different data types, to distinguish them we added `_CAP` to the samples where hybridization-capture was used, `_WGS` for high-coverage whole genome sequencing, `_RNA` for RNA-Seq reads, and `_GSK` for genome skimming data (notice also the difference in file sizes). For this example, we only want to clean the samples in red rectangles corresponding to capture data. We run the following `Captus` command:
 
@@ -16,13 +16,13 @@ captus_assembly clean --reads ./00_raw_reads/*_CAP_R?.fq.gz
 
 Notice we are using default settings, the only required argument is the location of the raw reads. The output was written to a new directory called `01_clean_reads`. Let's take a look at the contents:
 
-![Clean reads](/images/clean_reads.png?width=640&classes=shadow)
+![Clean reads](/captus.docs/images/clean_reads.png?width=640&classes=shadow)
 
 ### 1. **`[sample]_R1.fq.gz`**, **`[sample]_R2.fq.gz`**
 In case of paired-end input we will have a pair of files like in the image, the forward reads are indicated by **_R1** and the reverse reads by **_R2**. Single-end input will only return forward reads. [Wikipedia](https://en.wikipedia.org/wiki/FASTQ_format)'s entry for the format describes it in more detail.
 
 {{% expand "Example" %}}
-![FASTQ format](/images/fastq_format.png?width=1000&classes=shadow)
+![FASTQ format](/captus.docs/images/fastq_format.png?width=1000&classes=shadow)
 {{% /expand %}}
 ___
 ### 2. **`[sample].cleaning.log`**

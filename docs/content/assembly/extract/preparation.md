@@ -18,7 +18,7 @@ The only special characters that are safe to use in the sample name are `-`, and
 
 Also, please use this naming convention for your FASTA files:
 
-![Naming convention for FASTA files](/images/fasta.png?width=600)
+![Naming convention for FASTA files](/captus.docs/images/fasta.png?width=600)
 
 - **IMPORTANT:** Even though `_` is allowed for sample names, please **DO NOT** use more than **ONE** consecutive `_` in any case. We use internally `__` to separate several pieces of information during the processing.
 - Any text before the **extension** will become your **sample name** (`Mus_musculus_GRCm39` in this case).
@@ -69,7 +69,7 @@ MAKKKAFISLIYLASIVFLPWWLSFTFNKSMESWVKNCWNTGPSENFLNDIEEKIIIKKFIELEELSLFDEILKDYTQD*
 
 Let's take a look at how the sequence names are formatted:
 
-![Naming convention for reference sequences](/images/multi_seq_per_locus.png?width=600)
+![Naming convention for reference sequences](/captus.docs/images/multi_seq_per_locus.png?width=600)
 
 - The **sequence name** (any text found before the first space) can contain multiple **`-`** characters, but only the *last one* will become the **separator**.
 - Any text found before the **separator** will be considered as **sequence ID**.

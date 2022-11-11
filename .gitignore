@@ -16,6 +16,8 @@ dist/
 
 # Docs for now
 docs/.hugo_build.lock
+docs/assets/jsconfig.json
 docs/public
+docs/resources/_gen/
 docs/themes
 docs/server

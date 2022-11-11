@@ -59,7 +59,7 @@ Features:
 {{< plotly json="/plotly/cleaning_report_summary_table.json" height="230px" >}}
 {{% /tab %}}
 {{% tab name="FastQC" %}}
-![fastqc_basic_statistics](/images/fastqc_basic_statistics.png?height=200px)
+![fastqc_basic_statistics](/captus.docs/images/fastqc_basic_statistics.png?height=200px)
 {{% /tab %}}
 {{< /tabs >}}
 
@@ -118,7 +118,7 @@ Feature:
 {{< plotly json="/plotly/cleaning_report_per_base_quality.json" height="300px" >}}
 {{% /tab %}}
 {{% tab name="FastQC" %}}
-![fastqc_per_base_quality](/images/fastqc_per_base_quality.png?height=300px)
+![fastqc_per_base_quality](/captus.docs/images/fastqc_per_base_quality.png?height=300px)
 {{% /tab %}}
 {{< /tabs >}}
 
@@ -133,7 +133,7 @@ For more details, read [<i class="fab fa-readme"></i> FastQC documentation](http
 {{< plotly json="/plotly/cleaning_report_per_read_quality.json" height="300px" >}}
 {{% /tab %}}
 {{% tab name="FastQC" %}}
-![fastqc_per_sequence_quality](/images/fastqc_per_sequence_quality.png?height=300px)
+![fastqc_per_sequence_quality](/captus.docs/images/fastqc_per_sequence_quality.png?height=300px)
 {{% /tab %}}
 {{< /tabs >}}
 
@@ -148,7 +148,7 @@ For more details, read [<i class="fab fa-readme"></i> FastQC documentation](http
 {{< plotly json="/plotly/cleaning_report_seq_len_dist.json" height="300px" >}}
 {{% /tab %}}
 {{% tab name="FastQC" %}}
-![fastqc_sequence_length_distribution](/images/fastqc_sequence_length_distribution.png?height=300px)
+![fastqc_sequence_length_distribution](/captus.docs/images/fastqc_sequence_length_distribution.png?height=300px)
 {{% /tab %}}
 {{< /tabs >}}
 
@@ -163,7 +163,7 @@ For more details, read [<i class="fab fa-readme"></i> FastQC documentation](http
 {{< plotly json="/plotly/cleaning_report_per_base_seq_content.json" height="750px" >}}
 {{% /tab %}}
 {{% tab name="FastQC" %}}
-![fastqc_per_base_sequence_content](/images/fastqc_per_base_sequence_content.png?height=300px)
+![fastqc_per_base_sequence_content](/captus.docs/images/fastqc_per_base_sequence_content.png?height=300px)
 {{% /tab %}}
 {{< /tabs >}}
 
@@ -179,7 +179,7 @@ For more details, read [<i class="fab fa-readme"></i> FastQC documentation](http
 {{< plotly json="/plotly/cleaning_report_per_seq_gc_content.json" height="300px" >}}
 {{% /tab %}}
 {{% tab name="FastQC" %}}
-![fastqc_per_sequence_gc_content](/images/fastqc_per_sequence_gc_content.png?height=300px)
+![fastqc_per_sequence_gc_content](/captus.docs/images/fastqc_per_sequence_gc_content.png?height=300px)
 {{% /tab %}}
 {{< /tabs >}}
 
@@ -199,7 +199,7 @@ Feature:
 {{< plotly json="/plotly/cleaning_report_seq_dup_level.json" height="300px" >}}
 {{% /tab %}}
 {{% tab name="FastQC" %}}
-![fastqc_duplication_levels](/images/fastqc_duplication_levels.png?height=300px)
+![fastqc_duplication_levels](/captus.docs/images/fastqc_duplication_levels.png?height=300px)
 {{% /tab %}}
 {{< /tabs >}}
 
@@ -214,7 +214,7 @@ For more details, read [<i class="fab fa-readme"></i> FastQC documentation](http
 {{< plotly json="/plotly/cleaning_report_adaptor_content.json" height="300px" >}}
 {{% /tab %}}
 {{% tab name="FastQC" %}}
-![fastqc_adaptor_content](/images/fastqc_adaptor_content.png?height=300px)
+![fastqc_adaptor_content](/captus.docs/images/fastqc_adaptor_content.png?height=300px)
 {{% /tab %}}
 {{< /tabs >}}
 

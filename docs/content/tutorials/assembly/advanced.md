@@ -1,6 +1,6 @@
 +++
 title = "Advanced Tutorial"
-menuTitle = "Advenced"
+menuTitle = "Advanced"
 weight = 2
 pre = '<i class="fas fa-graduation-cap"></i> '
 +++

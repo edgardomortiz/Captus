@@ -14,7 +14,7 @@ We are including the option [`--sample_reads_target 1000000`]({{< ref "assembly/
 
 After the run is finished we should see a new directory called `02_assemblies` with the following structure and files:
 
-![Assemblies](/images/assemblies.png?width=640&classes=shadow)
+![Assemblies](/captus.docs/images/assemblies.png?width=640&classes=shadow)
 
 ### 1. **`[sample]__captus-asm`**
 A subdirectory ending in `__captus-asm` is created to contain the assembly of each sample separately (**S1**, **S2**, **S3**, and **S4** in the image).
@@ -23,7 +23,7 @@ ___
 This directory is **only** created when the option `--sample_reads_target` is used. It contains the subsampled reads in FASTQ format that were used for the assembly.
 
 {{% expand "Example" %}}
-![FASTQ format](/images/fastq_format.png?width=1000&classes=shadow)
+![FASTQ format](/captus.docs/images/fastq_format.png?width=1000&classes=shadow)
 {{% /expand %}}
 ___
 ### 3. **`01_assembly`**
@@ -33,14 +33,14 @@ ___
 The main assembly file in FASTA format, this file contains the contigs assembled by `MEGAHIT`. The sequence headers are modified by `Captus` to resemble the headers produced by the assembler `Spades`.
 
 {{% expand "Example" %}}
-![FASTA format](/images/fasta_format.png?width=1000&classes=shadow)
+![FASTA format](/captus.docs/images/fasta_format.png?width=1000&classes=shadow)
 {{% /expand %}}
 ___
 ### 5. **`assembly_graph.fastg`**
 The assembly graph in [FASTG format](http://fastg.sourceforge.net/FASTG_Spec_v1.00.pdf). This file can be explored in [Bandage](https://rrwick.github.io/Bandage/) or similar software which are able to plot the connections between contigs, loops, circular segments, etc.
 
 {{% expand "Example" %}}
-![FASTG in Bandage](/images/fastg_in_bandage.png?width=1000&classes=shadow)
+![FASTG in Bandage](/captus.docs/images/fastg_in_bandage.png?width=1000&classes=shadow)
 {{% /expand %}}
 ___
 ### 6. **`filtered_contigs.fasta`**

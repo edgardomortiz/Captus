@@ -23,7 +23,7 @@ You can read more about the option here: [**--max_loci_files**]({{< relref "asse
 
 After the run is finished we should see a new directory called `03_extractions` with the following structure and files:
 
-![Extractions](/images/extractions.png?width=640&classes=shadow)
+![Extractions](/captus.docs/images/extractions.png?width=640&classes=shadow)
 
 ### 1. **`[SAMPLE_NAME]__captus-ext`**
 A subdirectory ending in `__captus-ext` is created to contain the extracted markers of each sample separately (**S1**, **S2**, **S3**, and **S4** in the image).
@@ -32,34 +32,34 @@ ___
 These directories contain the extracted **coding** markers from the **NUC**lear, **P**las**T**i**D**ial, and **MIT**ochondrial genomes respectively.  
 The markers are presented in four formats: protein sequence (**coding_AA**), coding sequence in nucleotide (**coding_NT**), exons and introns concatenated (**genes**), and the concatenation of exons and introns flanked by a fixed length of sequence (**genes_flanked**):
 
-![Protein extraction formats](/images/protein_extraction.png?width=600&classes=shadow)
+![Protein extraction formats](/captus.docs/images/protein_extraction.png?width=600&classes=shadow)
 ___
 ### 3. **`[MARKER_TYPE]_coding_AA.faa`**, **`01_AA`**
 Coding sequence in **aminoacids**. Prefixes can be `NUC`, `PTD`, or `MIT`. For details on sequence headers see [FASTA headers explanation]({{< relref "assembly/extract/output#fasta-headers-explanation" >}}).
 
 {{% expand "Example" %}}
-![AA format](/images/coding_AA.png?width=1000&classes=shadow)
+![AA format](/captus.docs/images/coding_AA.png?width=1000&classes=shadow)
 {{% /expand %}}
 ___
 ### 4. **`[MARKER_TYPE]_coding_NT.fna`**, **`02_NT`**
 Coding sequence in **nucleotides**. Prefixes can be `NUC`, `PTD`, or `MIT`. For details on sequence headers see [FASTA headers explanation]({{< relref "assembly/extract/output#fasta-headers-explanation" >}}).
 
 {{% expand "Example" %}}
-![NT format](/images/coding_NT.png?width=1000&classes=shadow)
+![NT format](/captus.docs/images/coding_NT.png?width=1000&classes=shadow)
 {{% /expand %}}
 ___
 ### 5. **`[MARKER_TYPE]_genes.fna`**, **`03_genes`**
 Gene sequence (exons in capital letters + introns in lowercase letters) in **nucleotides**. A contig connector of 50 `n` characters is included when the protein match spans more than a single contig. Prefixes can be `NUC`, `PTD`, or `MIT`. For details on sequence headers see [FASTA headers explanation]({{< relref "assembly/extract/output#fasta-headers-explanation" >}}).
 
 {{% expand "Example" %}}
-![GE format](/images/genes.png?width=1000&classes=shadow)
+![GE format](/captus.docs/images/genes.png?width=1000&classes=shadow)
 {{% /expand %}}
 ___
 ### 6. **`[MARKER_TYPE]_genes_flanked.fna`**, **`04_genes_flanked`**
 Gene sequence (exons in capital letters + introns in lowercase letters) plus additional flanking sequence in lowercase **nucleotides**. A contig connector of 50 `n` characters is included when the protein match spans more than a single contig. Prefixes can be `NUC`, `PTD`, or `MIT`. For details on sequence headers see [FASTA headers explanation]({{< relref "assembly/extract/output#fasta-headers-explanation" >}}).
 
 {{% expand "Example" %}}
-![GF format](/images/genes_flanked.png?width=1000&classes=shadow)
+![GF format](/captus.docs/images/genes_flanked.png?width=1000&classes=shadow)
 {{% /expand %}}
 ___
 ### 7. **`[MARKER_TYPE]_contigs_list.txt`**
@@ -110,20 +110,20 @@ ___
 These directories contain the extracted **miscellaneous DNA** markers, either from a **DNA** custom set of references or from the **CL**uste**R**ing resulting from using the option `--cluster_leftovers`.  
 The markers are presented in two formats: matching DNA segments (**matches**), and the matched segments including flanks and other intervening segments not present in the reference (**matches_flanked**).
 
-![Miscellaneous DNA extraction formats](/images/misc_dna_extraction.png?width=600&classes=shadow)
+![Miscellaneous DNA extraction formats](/captus.docs/images/misc_dna_extraction.png?width=600&classes=shadow)
 ___
 ### 13. **`[MARKER_TYPE]_matches.fna`**, **`01_matches`**
 Matches per miscellaneous DNA marker in **nucleotides**. Prefixes can be `DNA` or `CLR`. For details on sequence headers see [FASTA headers explanation]({{< relref "assembly/extract/output#fasta-headers-explanation" >}}).
 
 {{% expand "Example" %}}
-![MA format](/images/matches.png?width=1000&classes=shadow)
+![MA format](/captus.docs/images/matches.png?width=1000&classes=shadow)
 {{% /expand %}}
 ___
 ### 14. **`[MARKER_TYPE]_matches_flanked.fna`**, **`02_matches_flanked`**
 Matches plus additional flanking sequence per miscellaneous DNA marker in **nucleotides**. Prefixes can be `DNA` or `CLR`. For details on sequence headers see [FASTA headers explanation]({{< relref "assembly/extract/output#fasta-headers-explanation" >}}).
 
 {{% expand "Example" %}}
-![MF format](/images/matches_flanked.png?width=1000&classes=shadow)
+![MF format](/captus.docs/images/matches_flanked.png?width=1000&classes=shadow)
 {{% /expand %}}
 ___
 ### 15. **`[MARKER_TYPE]_contigs_list.txt`**
@@ -156,13 +156,13 @@ Log of BLAT's run. Prefixes can be `DNA` or `CLR`.
 ___
 ### 19. **`06_assembly_annotated`**
 The main outputs of this directory are a FASTA file containing all the contigs that had hits to the reference markers called `[SAMPLE_NAME]_hit_contigs.fasta` as well as an annotation track for those markers called `[SAMPLE_NAME]_hit_contigs.gff`. You can visualize the annotations in `Geneious`, for example, by importing the FASTA file and then dropping the GFF file on top:
-![Assembly annotated](/images/assembly_annotated.png?width=1280&classes=shadow)
+![Assembly annotated](/captus.docs/images/assembly_annotated.png?width=1280&classes=shadow)
 ___
 ### 20. **`[SAMPLE_NAME]_hit_contigs.fasta`**
 This file contains the subset of the contigs assembled by `MEGAHIT` that had hit to the reference markers. See the red rectangles in [19. 06_assembly_annotated]({{< relref "assembly/extract/output#19-06_assembly_annotated" >}}).
 
 {{% expand "Example" %}}
-![FASTA format](/images/fasta_format.png?width=1000&classes=shadow)
+![FASTA format](/captus.docs/images/fasta_format.png?width=1000&classes=shadow)
 {{% /expand %}}
 ___
 ### 21. **`[SAMPLE_NAME]_hit_contigs.gff`**
@@ -274,7 +274,7 @@ ___
 ### FASTA headers explanation
 {{% notice info %}}
 All the FASTA files produced by `Captus` containing extracted markers follow the same header style:
-![FASTA header](/images/fasta_headers.png?width=1200&classes=shadow)
+![FASTA header](/captus.docs/images/fasta_headers.png?width=1200&classes=shadow)
 Paralogs are ranked according to their `wscore` which, in turn, is calculated from the percent identity (`ident`) as well as the percent coverage (`cover`) with respect to the selected reference sequence (`query`). The best hit is always ranked `00` and secondary hits start at `01`. When a single hit is found for a marker (like in locus `5859` in the image) the ranking `00` is not included in the sequence name, only when multiple hits are found for a marker (like in locus `5865` in the image) the ranking `00` or `01` is included in the sequence name to make them unique. The description field `frameshifts` is only present when the output sequence has corrected frameshifts and the numbers indicate their position in the output sequence.  
 As you can see, **Sample name**, **Locus name**, and **Paralog ranking** are separated by double underscores (`__`). This is the reason why we don't recommend using `__` inside your sample names (see [sample naming convention]({{< ref "/assembly/clean/preparation">}}))
 {{% /notice %}}
