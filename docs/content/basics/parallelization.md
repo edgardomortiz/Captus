@@ -26,8 +26,8 @@ ___
 This flag enables the debugging mode, this _**disables parallelization**_ so errors can be logged to screen. If you are seeing some samples failing steps or some other unexpected behavior you can enable `--debug` and submit the error shown to the `Issues` (https://github.com/edgardomortiz/Captus/issues) section in our GitHub repository.
 ___
 ### **`--show_less`**
-This flags produces less verbose screen printout. Essentially, information about each sample will not be shown (but still logged) during the run.
+This flag produces less verbose screen printout. Essentially, information about each sample will not be shown (but still logged) during the run.
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (29.05.2022)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (11.11.2022)
