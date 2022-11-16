@@ -1,5 +1,7 @@
 # **Captus**
 ### *Assembly of Phylogenomic Datasets from High-Throughput Sequencing data*
+[https://edgardomortiz.github.io/captus.docs/](https://edgardomortiz.github.io/captus.docs/)  
+
 [![Install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](http://bioconda.github.io/recipes/captus/README.html) [![Bioconda downloads](https://anaconda.org/bioconda/captus/badges/downloads.svg)](https://anaconda.org/bioconda/captus) [![Version in Bioconda](https://anaconda.org/bioconda/captus/badges/version.svg)](https://anaconda.org/bioconda/captus) [![Last updated](https://anaconda.org/bioconda/captus/badges/latest_release_date.svg)](https://github.com/edgardomortiz/Captus/releases)
 ___
 ## Installation
