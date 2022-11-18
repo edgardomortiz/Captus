@@ -18,6 +18,7 @@ import time
 from pathlib import Path
 
 import numpy as np
+import itertools
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.colors import sample_colorscale
@@ -755,35 +756,51 @@ def build_qc_report(out_dir, qc_extras_dir):
 
     ### Read Length Distribution ###
     df = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["SLEN"]))
-    df["stage"] = df["stage"].str.capitalize()
-    df_pivot = df.pivot(
-        index=["sample_name", "stage", "read"], columns="length", values="count"
+    stage_list = df["stage"].unique()
+    read_list = df["read"].unique()
+    length_range = range(
+        df["length"].min(),
+        df["length"].max() + 1,
     )
-    # col = 0
-    # while df_pivot.iloc[:,col].isnull().any() == True:
-    #     df_pivot.iloc[:,col].fillna(0, inplace=True)
-    #     col += 1
-
-    df = df_pivot.reset_index().melt(
-        id_vars=["sample_name", "read", "stage"],
-        value_name="count"
+    df_skeleton = pd.DataFrame(
+        list(
+            itertools.product(
+                sample_list,
+                stage_list,
+                read_list,
+                length_range,
+            )
+        ),
+        columns=[
+            "sample_name",
+            "stage",
+            "read",
+            "length",
+        ]
     )
-    df_grouped = df.groupby(["sample_name", "stage", "read"], as_index=False)["count"].sum()
+    df = pd.merge(
+        df_skeleton,
+        df,
+        on=[
+            "sample_name",
+            "stage",
+            "read",
+            "length",
+        ],
+        how="left"
+    )
+    df_grouped = df.groupby(
+        [
+            "sample_name",
+            "stage",
+            "read"
+        ],
+        as_index=False
+    ).agg(total = ("count", np.sum))
     df_merged = pd.merge(df, df_grouped, on=["sample_name", "stage", "read"], how="outer")
-    df_merged["freq"] = df_merged["count_x"] / df_merged["count_y"] * 100
-    df_pivot = df_merged.pivot_table(
-        index=["sample_name", "stage"],
-        columns=["read", "length"],
-    )
-    df = df_pivot.stack(
-        level=["read", "length"],
-        dropna=False,
-    ).reset_index()
-    df.sort_values(
-            by=["sample_name", "stage"],
-            ascending=[True, False],
-            inplace=True,
-    )
+    df_merged["freq"] = df_merged["count"] / df_merged["total"] * 100
+    df = df_merged
+    df["stage"] = df["stage"].str.capitalize()
 
     colorscale = [
         [0,     "#5E4FA2"],
