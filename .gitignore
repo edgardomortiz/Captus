@@ -13,6 +13,7 @@ __pycache__/
 *.egg-info/
 build/
 dist/
+captus.zip
 
 # Docs for now
 docs/.hugo_build.lock

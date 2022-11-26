@@ -71,31 +71,33 @@ With this option you can redirect the output directory to a path of your choice,
 This argument is optional, the default is **./04_alignments/**
 ___
 ### **`--keep_all`**
-Many intermediate log files are created by `MAFFT` and `ClipKIT` during assembly, `Captus` deletes all the unnecesary intermediate files unless you enable this flag.
+Many intermediate log files are created by `MAFFT`/`MUSCLE` and `ClipKIT` during assembly, `Captus` deletes all the unnecesary intermediate files unless you enable this flag.
 ___
 ### **`--overwrite`**
 Use this flag with caution, this will replace any previous result within the output directory (for the sample names that match).
 ___
-## *Alignment (MAFFT)*
+## *Alignment*
 ___
-### **`--mafft_method`**
-Select [MAFFT's alignment algorithm](https://mafft.cbrc.jp/alignment/software/algorithms/algorithms.html). Valid algorithm names are:
-- `auto` = Automatic selection by `MAFFT` based on amount of data
-- `genafpair` = E-INS-i
-- `localpair` = L-INS-i
-- `globalpair` = G-INS-i
-- `retree1` = FFT-NS-1
-- `retree2` = FFT-NS-2
+### **`--align_method`**
+Select the alignment algorithm for [MAFFT](https://mafft.cbrc.jp/alignment/software/algorithms/algorithms.html) or [MUSCLE 5](https://drive5.com/muscle5/manual/commands.html). Valid algorithm names are:
+- `mafft_auto` = MAFFT's automatic selection based on amount of data
+- `mafft_genafpair` = MAFFT's E-INS-i (very slow, multiple conserved domains and long gaps)
+- `mafft_localpair` = MAFFT's L-INS-i (very slow, one conserved domain and long gaps)
+- `mafft_globalpair` = MAFFT's G-INS-i (very slow, global homology)
+- `mafft_retree1` = MAFFT's FFT-NS-1 (fast, progressive method)
+- `mafft_retree2` = MAFFT's FFT-NS-2 (very fast, progressive method)
+- `muscle_align` = MUSCLE 5's default PPP algorithm (very slow)
+- `muscle_super5` = MUSCLE 5's Super 5 algorithm (slow)
 
-This argument is optional, the default is **auto**.
+This argument is optional, the default is **mafft_auto**.
 ___
-### **`--mafft_timeout`**
-Modify the waiting time in seconds for an individual alignment to complete. When using more exhaustive MAFFT algorithm (e.g., `genafpair`), alignment can take very long (up to hours depending on sample number an length of the sequences).
+### **`--timeout`**
+Modify the waiting time in seconds for an individual alignment to complete. When using more exhaustive MAFFT algorithm (e.g., `genafpair`) or especially MUSCLE (considerably slower than MAFFT in general), alignment can take very long (up to hours depending on sample number an length of the sequences).
 
 This argument is optional, the default is **21600** (= 6 hours).
 ___
 ### **`--disable_codon_align`**
-When `AA`s and their corresponding `NT`s are aligned in the same run, `Captus` uses the `AA` alignment as template for aligning the `NT` format, thus obtaining a codon-aware alignment for the coding sequences in nucleotides. Use this flag to disable this method and use the regular `MAFFT` nucleotide alignment.
+When `AA`s and their corresponding `NT`s are aligned in the same run, `Captus` uses the `AA` alignment as template for aligning the `NT` format, thus obtaining a codon-aware alignment for the coding sequences in nucleotides. Use this flag to disable this method and use the regular `MAFFT`/`MUSCLE` nucleotide alignment.
 ___
 ### **`--outgroup`**
 Outgroup sample names, separated by commas, no spaces. `Captus` will place these samples whenever possible at the beginning of the alignments, since many phylogenetic programs root the resulting phylogeny at the first sample in the alignment your trees will be automatically rooted.  
@@ -156,8 +158,8 @@ You can repeat the analysis without undoing all the steps. These are the points 
 
 This argument is optional and has no default.
 ___
-### **`--mafft_path`**, **`--clipkit_path`**
-If you have installed your own copies of `MAFFT` or `ClipKIT` you can provide the full path to those copies.
+### **`--mafft_path`**, **`--muscle_path`**, **`--clipkit_path`**
+If you have installed your own copies of `MAFFT`, `MUSCLE` or `ClipKIT` you can provide the full path to those copies.
 
 These arguments are optional, the defaults are **mafft** and **clipkit** respectively.
 ___
@@ -169,4 +171,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (31.05.2022)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (23.11.2022)

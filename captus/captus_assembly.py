@@ -58,9 +58,9 @@ class CaptusAssembly(object):
                  "extract = Recover targeted markers with BLAT and Scipio: Extracting markers"
                  " from the assembly obtained with the 'assemble' command is recommended, but any"
                  " other assemblies in FASTA format are also allowed.\n"
-                 "align = Align extracted markers across samples with MAFFT: Marker alignment"
-                 " depends on the directory structure created by the 'extract' command. This step"
-                 " also performs paralog filtering and alignment trimming using ClipKIT"
+                 "align = Align extracted markers across samples with MAFFT or MUSCLE: Marker"
+                 " alignment depends on the directory structure created by the 'extract' command."
+                 " This step also performs paralog filtering and alignment trimming using ClipKIT"
         )
 
         help_group = parser.add_argument_group("Help")
@@ -1146,39 +1146,43 @@ class CaptusAssembly(object):
             help="Overwrite previous results"
         )
 
-        mafft_group = parser.add_argument_group("MAFFT")
-        mafft_group.add_argument(
-            "--mafft_method",
+        align_group = parser.add_argument_group("Alignment")
+        align_group.add_argument(
+            "--align_method",
             action="store",
             choices=[
-                "auto",
-                "genafpair",
-                "localpair",
-                "globalpair",
-                "retree1",
-                "retree2",
+                "mafft_auto",
+                "mafft_genafpair",
+                "mafft_localpair",
+                "mafft_globalpair",
+                "mafft_retree1",
+                "mafft_retree2",
+                "muscle_align",
+                "muscle_super5",
             ],
-            default="auto",
+            default="mafft_auto",
             type=str,
-            dest="mafft_method",
-            help="MAFFT's algorithm, see"
+            dest="align_method",
+            help="For MAFFT's algorithms see:"
                  " https://mafft.cbrc.jp/alignment/software/algorithms/algorithms.html"
+                 " For MUSCLE's algorithms see:"
+                 " https://drive5.com/muscle5/manual/commands.html"
         )
-        mafft_group.add_argument(
-            "--mafft_timeout",
+        align_group.add_argument(
+            "--timeout",
             action="store",
             default=21600,
             type=int,
-            dest="mafft_timeout",
+            dest="timeout",
             help="Maximum allowed time in seconds for a single alignment"
         )
-        mafft_group.add_argument(
+        align_group.add_argument(
             "--disable_codon_align",
             action="store_true",
             dest="disable_codon_align",
             help="Do not align nucleotide coding sequences based on their protein alignment"
         )
-        mafft_group.add_argument(
+        align_group.add_argument(
             "--outgroup",
             action="store",
             default=None,
@@ -1287,6 +1291,14 @@ class CaptusAssembly(object):
             help="Path to MAFFT (default: mafft/mafft.bat)"
         )
         other_group.add_argument(
+            "--muscle_path",
+            action="store",
+            default="muscle",
+            type=str,
+            dest="muscle_path",
+            help="Path to MUSCLE (default: muscle)"
+        )
+        other_group.add_argument(
             "--clipkit_path",
             action="store",
             default="clipkit",
@@ -1320,7 +1332,7 @@ class CaptusAssembly(object):
             help="Captus will attempt to execute this many alignments concurrently. CPUs will be"
                  " divided by this value for each individual process. If set to 'auto', Captus will"
                  " set as many processes as to at least have 2 threads available for each MAFFT"
-                 " process"
+                 " or MUSCLE process"
         )
         other_group.add_argument(
             "--debug",

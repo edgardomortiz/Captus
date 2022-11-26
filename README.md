@@ -27,7 +27,7 @@ And if the program was correctly installed you will see the main help page of Ca
 ```text
 usage: captus_assembly command [options]
 
-Captus 0.9.88: Assembly of Phylogenomic Datasets from High-Throughput Sequencing data
+Captus 0.9.89: Assembly of Phylogenomic Datasets from High-Throughput Sequencing data
 
 Captus-assembly commands:
   command     Program commands (in typical order of execution)
@@ -40,10 +40,10 @@ Captus-assembly commands:
                           markers from the assembly obtained with the 'assemble'
                           command is recommended, but any other assemblies in FASTA
                           format are also allowed.
-                align = Align extracted markers across samples with MAFFT: Marker
-                        alignment depends on the directory structure created by the
-                        'extract' command. This step also performs paralog filtering
-                        and alignment trimming using ClipKIT
+                align = Align extracted markers across samples with MAFFT or MUSCLE:
+                        Marker alignment depends on the directory structure created
+                        by the 'extract' command. This step also performs paralog
+                        filtering and alignment trimming using ClipKIT
 
 Help:
   -h, --help  Show this help message and exit

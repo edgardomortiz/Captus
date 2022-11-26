@@ -410,6 +410,20 @@ def mafft_path_version(mafft_path):
     version = process.communicate()[0].decode().strip("\n").split()[0][1:]
     return found_mafft_path, version, "OK"
 
+def muscle_path_version(muscle_path):
+    # Try "muscle" as default
+    if muscle_path == "muscle":
+        found_muscle_path = shutil.which(muscle_path)
+        if found_muscle_path is None:
+            return muscle_path, "", "not found"
+    else:
+        found_muscle_path = shutil.which(muscle_path)
+        if found_muscle_path is None:
+            return muscle_path, "", "not found"
+    command = [found_muscle_path, "--version"]
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    version = process.communicate()[0].decode().strip("\n").split()[1]
+    return found_muscle_path, version, "OK"
 
 def falco_path_version(falco_path):
     found_falco_path = shutil.which(falco_path)
