@@ -514,31 +514,39 @@ ALN_DIRS = {
     "INFO": "06_informed",
 }
 
-# MAFFT algorithms choices to real MAFFT syntax translation
-MAFFT_ALGORITHMS = {
-    "auto": {
+# MAFFT/MUSCLE algorithms choices to real MAFFT/MUSCLE syntax translation
+ALIGN_ALGORITHMS = {
+    "mafft_auto": {
         "arg": "--auto",
-        "aka": "(a.k.a. Automatic)"
+        "aka": "(a.k.a. MAFFT's Automatic)"
     },
-    "genafpair": {
+    "mafft_genafpair": {
         "arg": "--genafpair",
-        "aka": "(a.k.a. E-INS-i)"
+        "aka": "(a.k.a. MAFFT's E-INS-i)"
     },
-    "localpair": {
+    "mafft_localpair": {
         "arg": "--localpair",
-        "aka": "(a.k.a. L-INS-i)"
+        "aka": "(a.k.a. MAFFT's L-INS-i)"
     },
-    "globalpair": {
+    "mafft_globalpair": {
         "arg": "--globalpair",
-        "aka": "(a.k.a. G-INS-i)"
+        "aka": "(a.k.a. MAFFT's G-INS-i)"
     },
-    "retree1": {
+    "mafft_retree1": {
         "arg": "--retree 1",
-        "aka": "(a.k.a. FFT-NS-1)"
+        "aka": "(a.k.a. MAFFT's FFT-NS-1)"
     },
-    "retree2": {
+    "mafft_retree2": {
         "arg": "--retree 2",
-        "aka": "(a.k.a. FFT-NS-2)"
+        "aka": "(a.k.a. MAFFT's FFT-NS-2)"
+    },
+    "muscle_align": {
+        "arg": "-align",
+        "aka": "(a.k.a. MUSCLE 5's PPP)"
+    },
+    "muscle_super5": {
+        "arg": "-super5",
+        "aka": "(a.k.a. MUSCLE 5's Super5)"
     },
 }
 

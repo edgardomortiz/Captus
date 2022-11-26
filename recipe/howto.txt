@@ -6,9 +6,9 @@
 cd path_to_bioconda-recipes
 git checkout -b fix_captus_recipe
 
-3. Open VSCode to make dits, verify in the bottom that you are working on the new branch
+3. Open VSCode to make edits, verify in the bottom that you are working on the new branch
 
-4. Save changes, commint with GitHub desktop, also creates pull request
+4. Save changes, commit with GitHub desktop, also creates pull request
 If it is only a change in recipe, not new captus version, increse build number +1
 
 5. BiocondaBot will start testing the new recipe, when tests are passed write in the pull request

@@ -27,9 +27,9 @@ from . import settings_assembly as settings
 from .bioformats import (alignment_stats, dict_to_fasta, fasta_to_dict, fasta_type,
                          pairwise_identity, sample_stats)
 from .misc import (bold, clipkit_path_version, dim, dir_is_empty, elapsed_time, file_is_empty,
-                   format_dep_msg, mafft_path_version, make_output_dir, python_library_check,
-                   quit_with_error, red, set_ram, set_threads, successful_exit,
-                   tqdm_parallel_async_run, tqdm_serial_run)
+                   format_dep_msg, mafft_path_version, make_output_dir, muscle_path_version,
+                   python_library_check, quit_with_error, red, set_ram, set_threads,
+                   successful_exit, tqdm_parallel_async_run, tqdm_serial_run)
 from .version import __version__
 
 
@@ -39,7 +39,7 @@ def align(full_command, args):
     out_dir, out_dir_msg = make_output_dir(args.out)
     log.logger = log.Log(Path(args.out, "captus-assembly_align.log"), stdout_verbosity_level=1)
 
-    mar = 25  # Margin for aligning parameters and values
+    mar = 26  # Margin for aligning parameters and values
 
     ################################################################################################
     ############################################################################### STARTING SECTION
@@ -47,8 +47,9 @@ def align(full_command, args):
     log.log_explanation(
         "Welcome to the alignment step of Captus-assembly. In this step, Captus will collect all the"
         f" extracted markers across all samples in '{args.captus_extractions_dir}' and group them by"
-        " marker. Then Captus will align each marker using MAFFT. If given, the reference loci are"
-        " also included as alignment guides and removed after alignment", extra_empty_lines_after=0
+        " marker. Then Captus will align each marker using MAFFT or MUSCLE. If given, the reference"
+        " loci are also included as alignment guides and removed after alignment",
+        extra_empty_lines_after=0
     )
     log.log_explanation("For more information, please see https://github.com/edgardomortiz/Captus")
 
@@ -62,7 +63,13 @@ def align(full_command, args):
 
     log.log(f'{"Dependencies":>{mar}}:')
     mafft_path, mafft_version, mafft_status = mafft_path_version(args.mafft_path)
-    log.log(format_dep_msg(f'{"MAFFT":>{mar}}: ', mafft_version, mafft_status))
+    muscle_path, muscle_version, muscle_status = muscle_path_version(args.muscle_path)
+    if args.align_method.startswith("mafft"):
+        log.log(format_dep_msg(f'{"MAFFT":>{mar}}: ', mafft_version, mafft_status))
+        log.log(format_dep_msg(f'{"MUSCLE":>{mar}}: ', "", "not used"))
+    if args.align_method.startswith("muscle"):
+        log.log(format_dep_msg(f'{"MAFFT":>{mar}}: ', "", "not used"))
+        log.log(format_dep_msg(f'{"MUSCLE":>{mar}}: ', muscle_version, muscle_status))
     clipkit_path, clipkit_version, clipkit_status = clipkit_path_version(args.clipkit_path)
     log.log(format_dep_msg(f'{"ClipKIT":>{mar}}: ', clipkit_version, clipkit_status))
     log.log("")
@@ -108,6 +115,12 @@ def align(full_command, args):
             f"{bold('WARNING:')} MAFFT could not be found, the markers will be collected from"
             f" '{args.captus_extractions_dir}' but they will not be aligned. Please verify you have"
             " it installed or provide the full path to the program with '--mafft_path'"
+        )
+    if muscle_status == "not found":
+        log.log(
+            f"{bold('WARNING:')} MUSCLE could not be found, the markers will be collected from"
+            f" '{args.captus_extractions_dir}' but they will not be aligned. Please verify you have"
+            " it installed or provide the full path to the program with '--muscle_path'"
         )
     if clipkit_status == "not found":
         log.log(
@@ -159,32 +172,38 @@ def align(full_command, args):
 
     ################################################################################################
     ############################################################################## ALIGNMENT SECTION
-    log.log_section_header("Marker alignment with MAFFT")
+    log.log_section_header("Marker alignment with MAFFT or MUSCLE")
     log.log_explanation(
-        "Now Captus will align all collected markers using MAFFT. If you added the references to be"
-        " used as alignment guides Captus will produce a directory with alignments including the"
-        " references and a separate one with the references removed. "
+        "Now Captus will align all collected markers using MAFFT or MUSCLE. If you added the"
+        " references to be used as alignment guides Captus will produce a directory with alignments"
+        " including the references and a separate one with the references removed. "
     )
     if skip_alignment:
         log.log(red(
             f"Skipping the marker alignment step because you used '--redo_from {args.redo_from}'"
         ))
         log.log("")
-    elif mafft_status == "not found":
+    elif args.align_method.startswith("mafft") and mafft_status == "not found":
         quit_with_error(
             "MAFFT could not be found, markers were collected across samples but they will not be"
             " aligned. Verify you have MAFFT installed or provide the full path to the program with"
             " '--mafft_path'"
         )
+    elif args.align_method.startswith("muscle") and muscle_status == "not found":
+        quit_with_error(
+            "MUSCLE could not be found, markers were collected across samples but they will not be"
+            " aligned. Verify you have MUSCLE installed or provide the full path to the program with"
+            " '--muscle_path'"
+        )
     else:
-        concurrent, threads_per_alignment = adjust_mafft_concurrency(args.concurrent, threads_max)
+        concurrent, threads_per_alignment = adjust_align_concurrency(args.concurrent, threads_max)
         log.log(f'{"Concurrent alignments":>{mar}}: {bold(concurrent)}')
         log.log(f'{"Threads per alignment":>{mar}}: {bold(threads_per_alignment)}')
         log.log("")
-        log.log(f'{"Algorithm":>{mar}}: {bold(args.mafft_method)}'
-                f' {dim(settings.MAFFT_ALGORITHMS[args.mafft_method]["aka"])}')
-        log.log(f'{"Timeout":>{mar}}: {bold(args.mafft_timeout)}'
-                f' {dim(f"[{elapsed_time(args.mafft_timeout)}]")}')
+        log.log(f'{"Algorithm":>{mar}}: {bold(args.align_method)}'
+                f' {dim(settings.ALIGN_ALGORITHMS[args.align_method]["aka"])}')
+        log.log(f'{"Timeout":>{mar}}: {bold(args.timeout)}'
+                f' {dim(f"[{elapsed_time(args.timeout)}]")}')
         log.log(f'{"Codon-align CDS":>{mar}}: {bold(not(args.disable_codon_align))}')
         log.log(f'{"Outgroup":>{mar}}: {bold(args.outgroup)}')
         log.log("")
@@ -223,15 +242,16 @@ def align(full_command, args):
                 other_origs.append(fasta_orig)
                 other_dests.append(fastas_to_align[fasta_orig])
 
-        mafft_params = []
+        align_params = []
         for aa_orig, aa_dest, nt_orig, nt_dest in zip(aa_origs, aa_dests, nt_origs, nt_dests):
             fasta_origs = list(filter(None, [aa_orig, nt_orig]))
             fasta_dests = list(filter(None, [aa_dest, nt_dest]))
-            mafft_params.append((
+            align_params.append((
                 mafft_path,
-                args.mafft_method,
+                muscle_path,
+                args.align_method,
                 threads_per_alignment,
-                args.mafft_timeout,
+                args.timeout,
                 args.outgroup,
                 fasta_origs,
                 fasta_dests,
@@ -239,11 +259,12 @@ def align(full_command, args):
                 args.overwrite,
             ))
         for fasta_orig, fasta_dest in zip(other_origs, other_dests):
-            mafft_params.append((
+            align_params.append((
                 mafft_path,
-                args.mafft_method,
+                muscle_path,
+                args.align_method,
                 threads_per_alignment,
-                args.mafft_timeout,
+                args.timeout,
                 args.outgroup,
                 [fasta_orig],
                 [fasta_dest],
@@ -251,13 +272,15 @@ def align(full_command, args):
                 args.overwrite,
             ))
 
+        aligner = "MAFFT" if args.align_method.startswith("mafft") else "MUSCLE"
+
         if args.debug:
-            tqdm_serial_run(mafft, mafft_params,
-                            "Aligning with MAFFT", "MAFFT alignment completed",
+            tqdm_serial_run(msa, align_params,
+                            f"Aligning with {aligner}", f"{aligner} alignment completed",
                             "alignment", show_less)
         else:
-            tqdm_parallel_async_run(mafft, mafft_params,
-                                    "Aligning with MAFFT", "MAFFT alignment completed",
+            tqdm_parallel_async_run(msa, align_params,
+                                    f"Aligning with {aligner}", f"{aligner} alignment completed",
                                     "alignment", concurrent, show_less)
         log.log("")
 
@@ -366,14 +389,15 @@ def align(full_command, args):
             remove_references = False
 
         if remove_references:
+            log.log("Creating output directories:")
+            fastas_to_rem_refs = {}
             if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFR"]).exists():
-                fastas_to_rem_refs = fastas_origs_dests(
+                fastas_partial = fastas_origs_dests(
                     out_dir,
                     Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFR"]),
                     Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"])
                 )
-                log.log("")
-                log.log(f'{"FASTA files to process":>{mar}}: {bold(len(fastas_to_rem_refs))}')
+                fastas_to_rem_refs = {**fastas_to_rem_refs, **fastas_partial}
                 log.log(make_output_dirtree(markers,
                                             formats,
                                             out_dir,
@@ -381,18 +405,14 @@ def align(full_command, args):
                                                  settings.ALN_DIRS["UNFI"]),
                                             mar))
                 log.log("")
-                rem_refs(refs_paths, fastas_to_rem_refs, args.min_samples,
-                         args.overwrite, concurrent, args.debug, show_less)
-                log.log("")
 
             if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIR"]).exists():
-                fastas_to_rem_refs = fastas_origs_dests(
+                fastas_partial = fastas_origs_dests(
                     out_dir,
                     Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIR"]),
                     Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIV"])
                 )
-                log.log("")
-                log.log(f'{"FASTA files to process":>{mar}}: {bold(len(fastas_to_rem_refs))}')
+                fastas_to_rem_refs = {**fastas_to_rem_refs, **fastas_partial}
                 log.log(make_output_dirtree(markers,
                                             formats,
                                             out_dir,
@@ -400,18 +420,14 @@ def align(full_command, args):
                                                  settings.ALN_DIRS["NAIV"]),
                                             mar))
                 log.log("")
-                rem_refs(refs_paths, fastas_to_rem_refs, args.min_samples,
-                         args.overwrite, concurrent, args.debug, show_less)
-                log.log("")
 
             if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["INFR"]).exists():
-                fastas_to_rem_refs = fastas_origs_dests(
+                fastas_partial = fastas_origs_dests(
                     out_dir,
                     Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["INFR"]),
                     Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["INFO"])
                 )
-                log.log("")
-                log.log(f'{"FASTA files to process":>{mar}}: {bold(len(fastas_to_rem_refs))}')
+                fastas_to_rem_refs = {**fastas_to_rem_refs, **fastas_partial}
                 log.log(make_output_dirtree(markers,
                                             formats,
                                             out_dir,
@@ -419,9 +435,11 @@ def align(full_command, args):
                                                  settings.ALN_DIRS["INFO"]),
                                             mar))
                 log.log("")
-                rem_refs(refs_paths, fastas_to_rem_refs, args.min_samples,
-                         args.overwrite, concurrent, args.debug, show_less)
-                log.log("")
+            log.log(f'{"FASTA files to process":>{mar}}: {bold(len(fastas_to_rem_refs))}')
+            log.log("")
+            rem_refs(refs_paths, fastas_to_rem_refs, args.min_samples,
+                     args.overwrite, concurrent, args.debug, show_less)
+            log.log("")
 
 
     ################################################################################################
@@ -600,6 +618,7 @@ def align(full_command, args):
         )
         reclaimed_bytes = 0
         files_to_delete = list(out_dir.resolve().rglob("*.mafft.log"))
+        files_to_delete = list(out_dir.resolve().rglob("*.muscle.log"))
         files_to_delete += list(out_dir.resolve().rglob("*.clipkit.log"))
         for del_file in files_to_delete:
             reclaimed_bytes += del_file.stat().st_size
@@ -1006,7 +1025,7 @@ def num_samples(fasta_dict):
     return len(set(samples))
 
 
-def adjust_mafft_concurrency(concurrent, threads_max):
+def adjust_align_concurrency(concurrent, threads_max):
     if concurrent == "auto":
         concurrent = max(threads_max // 2, 1)
     else:
@@ -1042,7 +1061,7 @@ def fastas_origs_dests(dir_path: Path, orig_base_dir: str, dest_base_dir: str):
     return fastas_to_process
 
 
-def rehead_root_mafft_alignment(fasta_in: Path, fasta_out: Path, outgroup: list):
+def rehead_root_msa(fasta_in: Path, fasta_out: Path, outgroup: list):
     if outgroup:
         outgroup = outgroup.split(",")
     else:
@@ -1067,8 +1086,8 @@ def rehead_root_mafft_alignment(fasta_in: Path, fasta_out: Path, outgroup: list)
     return
 
 
-def mafft(
-    mafft_path, mafft_method, threads, mafft_timeout, outgroup,
+def msa(
+    mafft_path, muscle_path, align_method, threads, timeout, outgroup,
     fastas_in: list, fastas_out: list, min_samples, overwrite
 ):
 
@@ -1091,56 +1110,99 @@ def mafft(
         if len(fasta_to_dict(fasta_out)) == 0:
             fasta_out.unlink()
     if overwrite is True or not fasta_out.exists():
-        if f"{fasta_in}".lower().endswith(".faa"):
-            mafft_cmd = [
-                mafft_path,
-                settings.MAFFT_ALGORITHMS[mafft_method]["arg"],
-                "--amino",
-                "--maxiterate", "1000",
-                "--reorder",
-                "--thread", f"{threads}",
-                f"{fasta_in}",
-            ]
-        else:
-            mafft_cmd = [
-                mafft_path,
-                settings.MAFFT_ALGORITHMS[mafft_method]["arg"],
-                "--nuc",
-                "--maxiterate", "1000",
-                "--reorder",
-                "--thread", f"{threads}",
-                f"{fasta_in}",
-            ]
-        mafft_log_file = Path(fasta_out.parent, f"{fasta_out.stem}.mafft.log")
-        with open(fasta_out, "w") as mafft_out:
-            with open(mafft_log_file, "w") as mafft_log:
-                mafft_log.write(f"Captus' MAFFT Command:\n  {' '.join(mafft_cmd)}\n\n\n")
-            with open(mafft_log_file, "a") as mafft_log:
+        if align_method.startswith("mafft"):
+            if f"{fasta_in}".lower().endswith(".faa"):
+                mafft_cmd = [
+                    mafft_path,
+                    settings.ALIGN_ALGORITHMS[align_method]["arg"],
+                    "--amino",
+                    "--maxiterate", "1000",
+                    "--reorder",
+                    "--thread", f"{threads}",
+                    f"{fasta_in}",
+                ]
+            else:
+                mafft_cmd = [
+                    mafft_path,
+                    settings.ALIGN_ALGORITHMS[align_method]["arg"],
+                    "--nuc",
+                    "--maxiterate", "1000",
+                    "--reorder",
+                    "--thread", f"{threads}",
+                    f"{fasta_in}",
+                ]
+            mafft_log_file = Path(fasta_out.parent, f"{fasta_out.stem}.mafft.log")
+            with open(fasta_out, "w") as mafft_out:
+                with open(mafft_log_file, "w") as mafft_log:
+                    mafft_log.write(f"Captus' MAFFT Command:\n  {' '.join(mafft_cmd)}\n\n\n")
+                with open(mafft_log_file, "a") as mafft_log:
+                    try:
+                        subprocess.run(mafft_cmd, stdout=mafft_out, stderr=mafft_log,
+                                    timeout=timeout)
+                        if file_is_empty(fasta_out):
+                            message = red(f"'{fasta_out_short}': FAILED alignment, empty output file")
+                            fasta_out.unlink()
+                        else:
+                            rehead_root_msa(fasta_in, fasta_out, outgroup)
+                            message = f"'{fasta_out_short}': aligned [{elapsed_time(time.time() - start)}]"
+                    except subprocess.TimeoutExpired:
+                        message = (
+                            f"'{red(fasta_out_short)}': '--timeout' exceeded"
+                            f" [{elapsed_time(time.time() - start)}]"
+                        )
+                        fasta_out.unlink()
+                        mafft_log.write(
+                            "\n\nERROR: The alignment took too long to complete, increase"
+                            " '--timeout' or switch to a faster '--align_method' like 'mafft_retree1'"
+                            " or 'retree2'\n"
+                        )
+        elif align_method.startswith("muscle"):
+            if f"{fasta_in}".lower().endswith(".faa"):
+                muscle_cmd = [
+                    muscle_path,
+                    "-amino",
+                    "-threads", f"{threads}",
+                    settings.ALIGN_ALGORITHMS[align_method]["arg"], f"{fasta_in}",
+                    "-output", f"{fasta_out}"
+                ]
+            else:
+                muscle_cmd = [
+                    muscle_path,
+                    "-nt",
+                    "-threads", f"{threads}",
+                    settings.ALIGN_ALGORITHMS[align_method]["arg"], f"{fasta_in}",
+                    "-output", f"{fasta_out}"
+                ]
+            muscle_log_file = Path(fasta_out.parent, f"{fasta_out.stem}.muscle.log")
+            with open(muscle_log_file, "w") as muscle_log:
+                muscle_log.write(f"Captus' MUSCLE Command:\n  {' '.join(muscle_cmd)}\n\n\n")
+            with open(muscle_log_file, "a") as muscle_log:
                 try:
-                    subprocess.run(mafft_cmd, stdout=mafft_out, stderr=mafft_log,
-                                timeout=mafft_timeout)
+                    subprocess.run(muscle_cmd, stdout=muscle_log, stderr=muscle_log,
+                                timeout=timeout)
                     if file_is_empty(fasta_out):
                         message = red(f"'{fasta_out_short}': FAILED alignment, empty output file")
                         fasta_out.unlink()
                     else:
-                        rehead_root_mafft_alignment(fasta_in, fasta_out, outgroup)
+                        rehead_root_msa(fasta_in, fasta_out, outgroup)
                         message = f"'{fasta_out_short}': aligned [{elapsed_time(time.time() - start)}]"
                 except subprocess.TimeoutExpired:
                     message = (
-                        f"'{red(fasta_out_short)}': '--max_time' exceeded"
+                        f"'{red(fasta_out_short)}': '--timeout' exceeded"
                         f" [{elapsed_time(time.time() - start)}]"
                     )
                     fasta_out.unlink()
                     mafft_log.write(
                         "\n\nERROR: The alignment took too long to complete, increase"
-                        " '--mafft_timeout' or switch to a faster '--mafft_method' like 'retree1'"
-                        " or 'retree2'\n"
+                        " '--timeout' or switch to a faster '--align_method' like 'muscle_super5'\n"
                     )
+
         if len(fastas_in) == 2:
             codon_message = codon_align(mafft_path,
-                                        mafft_method,
+                                        muscle_path,
+                                        align_method,
                                         threads,
-                                        mafft_timeout,
+                                        timeout,
                                         outgroup,
                                         fasta_out,
                                         fastas_in[1],
@@ -1156,12 +1218,12 @@ def mafft(
 
 
 def codon_align(
-    mafft_path, mafft_method, threads, mafft_timeout, outgroup,
+    mafft_path, muscle_path, align_method, threads, timeout, outgroup,
     aa_aligned: Path, nt_orig: Path, nt_dest: Path, min_samples, overwrite
 ):
     if not aa_aligned.exists() or file_is_empty(aa_aligned):
-        return mafft(mafft_path, mafft_method, threads, mafft_timeout, outgroup,
-                     [nt_orig], [nt_dest], min_samples, overwrite)
+        return msa(mafft_path, muscle_path, align_method, threads, timeout,
+                   outgroup, [nt_orig], [nt_dest], min_samples, overwrite)
     else:
         start = time.time()
         fasta_out_short = Path(*nt_dest.parts[-3:])
