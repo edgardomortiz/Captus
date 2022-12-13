@@ -963,6 +963,7 @@ def alignment_stats(fasta_dict, aln_type, coding: bool):
                 length = len(fasta_dict[seq]["sequence"])
             else:
                 if len(fasta_dict[seq]["sequence"]) != length:
+                    print(seq, fasta_dict[seq])
                     return False
         if length > 0:
             return length
@@ -1093,7 +1094,7 @@ def alignment_stats(fasta_dict, aln_type, coding: bool):
 
     stats["sequences"] = len(fasta_dict)
     stats["samples"] = num_samples(fasta_dict)
-    stats["avg_copies"] = stats["sequences"] / stats["samples"]
+    stats["avg_copies"] = round(stats["sequences"] / stats["samples"], 2)
 
     num_sites = aligned_length(fasta_dict)
     if not num_sites: return stats
@@ -1107,19 +1108,19 @@ def alignment_stats(fasta_dict, aln_type, coding: bool):
     for idc in ids_combos:
         identities += idc[0] * idc[1]
         combos += idc[1]
-    stats["avg_pid"] = identities / combos
+    stats["avg_pid"] = round(identities / combos, 2)
 
     sites = clean_patterns(sites, aln_type)
     for site in sites:
         stats[pattern_type(site, aln_type)] += 1
-    stats["informativeness"] = stats["informative"] / stats["sites"] * 100
+    stats["informativeness"] = round(stats["informative"] / stats["sites"] * 100, 2)
     stats["uninformative"] = stats["constant"] + stats["singleton"]
 
     stats["patterns"] = len(set(sites))
 
     sites_concat = "".join(sites)
     if len(sites_concat):
-        stats["missingness"] = sites_concat.count("-") / len(sites_concat) * 100
+        stats["missingness"] = round(sites_concat.count("-") / len(sites_concat) * 100, 2)
 
     gc_total, gc_codon_p1, gc_codon_p2, gc_codon_p3 = gc_content(fasta_dict, aln_type, coding)
     stats["gc"] = gc_total
@@ -2257,94 +2258,101 @@ def scipio_yaml_to_dict(
 
     gencode = genetic_code(transtable)
     yaml = load_scipio_yaml(yaml_path)
-    unfiltered_models = {}
-    for protein in yaml: # prot = protein (reference protein)
-        for yaml_model in yaml[protein]: # yaml_mod = gene model (hit, or paralog)
-            model = parse_model(yaml[protein][yaml_model],
-                                protein,
+    unfilter_models = {}
+    for prot in yaml: # prot = protein (reference protein)
+        for yaml_model in yaml[prot]: # yaml_mod = gene model (hit, or paralog)
+            model = parse_model(yaml[prot][yaml_model],
+                                prot,
                                 marker_type,
                                 gencode,
                                 predict,
                                 min_identity)
             if model:
-                if protein in unfiltered_models:
-                    unfiltered_models[protein][yaml_model] = model
+                if prot in unfilter_models:
+                    unfilter_models[prot][yaml_model] = model
                 else:
-                    unfiltered_models[protein] = {yaml_model: model}
+                    unfilter_models[prot] = {yaml_model: model}
 
     # Separate reference protein names formatted like in the Angiosperms353.FAA file to get
     # the name of the protein cluster only when EVERY reference protein has the
     # 'set_a.REFERENCE_CLUSTER_SEPARATOR'
     refs_have_separators = True
-    for protein in unfiltered_models:
-        if set_a.REFERENCE_CLUSTER_SEPARATOR not in protein:
+    for prot in unfilter_models:
+        if set_a.REFERENCE_CLUSTER_SEPARATOR not in prot:
             refs_have_separators = False
             break
 
     # Keep track of longest recovered AA length per locus
     max_len_aa_recov = {}
-    for protein in unfiltered_models:
-        for model in unfiltered_models[protein]:
+    for prot in unfilter_models:
+        for model in unfilter_models[prot]:
             if refs_have_separators:
-                prot_cluster = protein.split(set_a.REFERENCE_CLUSTER_SEPARATOR)[-1]
+                ref_cluster = prot.split(set_a.REFERENCE_CLUSTER_SEPARATOR)[-1]
             else:
-                prot_cluster = protein
-            if prot_cluster in max_len_aa_recov:
-                if unfiltered_models[protein][model]["match_len"] > max_len_aa_recov[prot_cluster]:
-                    max_len_aa_recov[prot_cluster] = unfiltered_models[protein][model]["match_len"]
+                ref_cluster = prot
+            if ref_cluster in max_len_aa_recov:
+                if unfilter_models[prot][model]["match_len"] > max_len_aa_recov[ref_cluster]:
+                    max_len_aa_recov[ref_cluster] = unfilter_models[prot][model]["match_len"]
             else:
-                max_len_aa_recov[prot_cluster] = unfiltered_models[protein][model]["match_len"]
+                max_len_aa_recov[ref_cluster] = unfilter_models[prot][model]["match_len"]
 
     # Filter models by 'min_score', 'min_identity', and 'min_coverage', calculate 'wscore'
     # penalize 'wscore' by number of frameshifts
-    filtered_models = {}
-    for protein in unfiltered_models:
+    filter_models = {}
+    for prot in unfilter_models:
         accepted_models = []
-        for model in unfiltered_models[protein]:
+        for model in unfilter_models[prot]:
             if refs_have_separators:
-                prot_cluster = protein.split(set_a.REFERENCE_CLUSTER_SEPARATOR)[-1]
+                ref_cluster = prot.split(set_a.REFERENCE_CLUSTER_SEPARATOR)[-1]
             else:
-                prot_cluster = protein
+                ref_cluster = prot
             frameshifts = len(set(
                 [math.ceil((p+1)/3)
-                 for p in range(len(unfiltered_models[protein][model]["seq_nt"]))
-                 if unfiltered_models[protein][model]["seq_nt"][p] == "N"]
+                 for p in range(len(unfilter_models[prot][model]["seq_nt"]))
+                 if unfilter_models[prot][model]["seq_nt"][p] == "N"]
             ))
-            contigs = len(unfiltered_models[protein][model]["hit_contigs"].split("\n"))
-            unfiltered_models[protein][model]["wscore"] = (
-                (unfiltered_models[protein][model]["score"]
-                 * (unfiltered_models[protein][model]["match_len"]
-                   / max_len_aa_recov[prot_cluster]))
+            contigs = len(unfilter_models[prot][model]["hit_contigs"].split("\n"))
+            unfilter_models[prot][model]["wscore"] = (
+                (unfilter_models[prot][model]["score"]
+                 * (unfilter_models[prot][model]["match_len"]
+                   / max_len_aa_recov[ref_cluster]))
                 * (set_a.SCIPIO_FRAMESHIFT_PENALTY ** frameshifts)
                 * (set_a.EXTRA_CONTIG_PENALTY ** (contigs-1))
             )
-            if (unfiltered_models[protein][model]["score"] >= min_score
-                and unfiltered_models[protein][model]["identity"] >= min_identity
-                and unfiltered_models[protein][model]["coverage"] >= min_coverage):
-                accepted_models.append(unfiltered_models[protein][model])
+            if (unfilter_models[prot][model]["score"] >= min_score
+                and unfilter_models[prot][model]["identity"] >= min_identity
+                and unfilter_models[prot][model]["coverage"] >= min_coverage):
+                accepted_models.append(unfilter_models[prot][model])
         if accepted_models:
             accepted_models = sorted(accepted_models, key=lambda i: i["wscore"], reverse=True)
             if max_paralogs > -1:
                 accepted_models = accepted_models[:max_paralogs+1]
-            filtered_models[protein] = accepted_models
-    unfiltered_models = None
+            filter_models[prot] = accepted_models
+    unfilter_models = None
 
     # Keep only the best hit 'models[protein][0]' with highest score and its paralogs for each
     # protein cluster. Check 'settings_assembly.py' for a more detailed description of how to
     # format your protein reference files under 'REFERENCE_CLUSTER_SEPARATOR'
-    if filtered_models:
+    if filter_models:
         best_models = {}
-        for protein in filtered_models:
+        for prot in filter_models:
             if refs_have_separators:
-                protein_cluster = protein.split(set_a.REFERENCE_CLUSTER_SEPARATOR)[-1]
+                ref_cluster = prot.split(set_a.REFERENCE_CLUSTER_SEPARATOR)[-1]
             else:
-                protein_cluster = protein
-            if protein_cluster not in best_models:
-                best_models[protein_cluster] = filtered_models[protein]
+                ref_cluster = prot
+            if ref_cluster not in best_models:
+                best_models[ref_cluster] = filter_models[prot]
             else:
-                if filtered_models[protein][0]["wscore"] > best_models[protein_cluster][0]["wscore"]:
-                    best_models[protein_cluster] = filtered_models[protein]
-        filtered_models = None
+                if filter_models[prot][0]["wscore"] > best_models[ref_cluster][0]["wscore"]:
+                    best_models[ref_cluster] = filter_models[prot]
+                elif filter_models[prot][0]["wscore"] == best_models[ref_cluster][0]["wscore"]:
+                    top_so_far = statistics.mean([best_models[ref_cluster][i]["wscore"]
+                                                  for i in range(len(best_models[ref_cluster]))])
+                    tied = statistics.mean([filter_models[prot][i]["wscore"]
+                                            for i in range(len(filter_models[prot]))])
+                    if tied > top_so_far:
+                        best_models[ref_cluster] = filter_models[prot]
+        filter_models = None
         return best_models
     else:
         return None
@@ -2848,44 +2856,52 @@ def blat_misc_dna_psl_to_dict(
         max_len_nt_recov = {}
         for dna_ref in dna_hits:
             if refs_have_separators:
-                dna_ref_cluster = dna_ref.split(set_a.REFERENCE_CLUSTER_SEPARATOR)[-1]
+                ref_cluster = dna_ref.split(set_a.REFERENCE_CLUSTER_SEPARATOR)[-1]
             else:
-                dna_ref_cluster = dna_ref
+                ref_cluster = dna_ref
             for hit in dna_hits[dna_ref]:
-                if dna_ref_cluster not in max_len_nt_recov:
-                    max_len_nt_recov[dna_ref_cluster] = hit["match_len"]
+                if ref_cluster not in max_len_nt_recov:
+                    max_len_nt_recov[ref_cluster] = hit["match_len"]
                 else:
-                    if hit["match_len"] > max_len_nt_recov[dna_ref_cluster]:
-                        max_len_nt_recov[dna_ref_cluster] = hit["match_len"]
+                    if hit["match_len"] > max_len_nt_recov[ref_cluster]:
+                        max_len_nt_recov[ref_cluster] = hit["match_len"]
 
         # Loop the object again to calculate the actual wscore
         for dna_ref in dna_hits:
             if refs_have_separators:
-                dna_ref_cluster = dna_ref.split(set_a.REFERENCE_CLUSTER_SEPARATOR)[-1]
+                ref_cluster = dna_ref.split(set_a.REFERENCE_CLUSTER_SEPARATOR)[-1]
             else:
-                dna_ref_cluster = dna_ref
+                ref_cluster = dna_ref
             for hit in dna_hits[dna_ref]:
                 contigs = len(hit["hit_contigs"].split("\n"))
                 hit["wscore"] = (
-                    hit["score"] * (hit["match_len"] / max_len_nt_recov[dna_ref_cluster])
+                    hit["score"] * (hit["match_len"] / max_len_nt_recov[ref_cluster])
                     * (set_a.EXTRA_CONTIG_PENALTY ** (contigs-1))
                 )
             # Sort hits from largest to smallest 'wscore'
             dna_hits[dna_ref] = sorted(dna_hits[dna_ref], key=lambda i: i["wscore"], reverse=True)
 
         # If multiple references of the same kind exist in the reference, then choose the one with
-        # the best hit that has the highest 'wscore'
+        # the best hit that has the highest 'wscore', break ties by averaging the 'wscore' of all
+        # secondary hits
         best_dna_hits = {}
         for dna_ref in dna_hits:
             if refs_have_separators:
-                dna_ref_cluster = dna_ref.split(set_a.REFERENCE_CLUSTER_SEPARATOR)[-1]
+                ref_cluster = dna_ref.split(set_a.REFERENCE_CLUSTER_SEPARATOR)[-1]
             else:
-                dna_ref_cluster = dna_ref
-            if dna_ref_cluster not in best_dna_hits:
-                best_dna_hits[dna_ref_cluster] = dna_hits[dna_ref]
+                ref_cluster = dna_ref
+            if ref_cluster not in best_dna_hits:
+                best_dna_hits[ref_cluster] = dna_hits[dna_ref]
             else:
-                if dna_hits[dna_ref][0]["wscore"] > best_dna_hits[dna_ref_cluster][0]["wscore"]:
-                    best_dna_hits[dna_ref_cluster] = dna_hits[dna_ref]
+                if dna_hits[dna_ref][0]["wscore"] > best_dna_hits[ref_cluster][0]["wscore"]:
+                    best_dna_hits[ref_cluster] = dna_hits[dna_ref]
+                elif dna_hits[dna_ref][0]["wscore"] == best_dna_hits[ref_cluster][0]["wscore"]:
+                    top_so_far = statistics.mean([best_dna_hits[ref_cluster][i]["wscore"]
+                                                  for i in range(len(best_dna_hits[ref_cluster]))])
+                    tied = statistics.mean([dna_hits[dna_ref][i]["wscore"]
+                                            for i in range(len(dna_hits[dna_ref]))])
+                    if tied > top_so_far:
+                        best_dna_hits[ref_cluster] = dna_hits[dna_ref]
         dna_hits = None
         return best_dna_hits
     else:
@@ -2946,7 +2962,7 @@ def write_gff3(hits, marker_type, out_gff_path):
             hit_coords = split_coords(hits[ref][h]["hit_coords"])
             strands = hits[ref][h]["strand"].split("\n")
             score = f'{hits[ref][h]["score"]:.3f}'
-            wscore = f"""LWScore={urllib.parse.quote(f'{hits[ref][h]["wscore"]:.3f}')}"""
+            wscore = f"""WScore={urllib.parse.quote(f'{hits[ref][h]["wscore"]:.3f}')}"""
             cover_pct = f"""Coverage={urllib.parse.quote(f'{hits[ref][h]["coverage"]:.2f}')}"""
             ident_pct = f"""Identity={urllib.parse.quote(f'{hits[ref][h]["identity"]:.2f}')}"""
             color = f"Color={urllib.parse.quote(set_a.GFF_COLORS[marker_type])}"

@@ -17,6 +17,9 @@ not, see <http://www.gnu.org/licenses/>.
 import platform
 from pathlib import Path
 
+# Seed for randomization
+RANDOM_SEED = 142857
+
 # The default recursion limit in Python is 1000, but the complexity of the Needleman-Wunsch
 # and Smith-Waterman alignment algorithms is len(seq1) * len(seq2), considering that we used these
 # ony to align segments of unmatched proteins, a protein fragment length of 2000 is much more than
@@ -276,6 +279,12 @@ elif os_type == "Linux":
 else:
     BUNDLED_BLAT = "unknown system"
 
+# Temporary directory for split references
+REFS_SPLIT_DIR = "00_refs_split"
+
+# Create groups of roughly this amount of sequences when splitting the reference file
+REFS_SPLIT_CHUNK_SIZE = 1000
+
 # Extraction directories per marker type
 MARKER_DIRS = {
     "NUC": "01_coding_NUC",         # Nuclear protein markers
@@ -436,7 +445,7 @@ DNA_UP_DOWN_STREAM_BP = 1000
 
 # Maximum number of FASTA files to rehead and write simultaneously. Too many may hurt performance
 # if HDD, it may improve with SSDs
-MAX_HDD_WRITE_INSTANCES = 16
+MAX_HDD_WRITE_INSTANCES = 24
 
 # Clustering identity percentage, if '--cl_min_identity' is left as 'auto' it becomes 99% of the
 # '--dna_min_identity' value
@@ -481,6 +490,13 @@ MMSEQS2_SENSITIVITY = 4.0
 # reference
 CLR_MIN_SAMPLE_PROP = 0.3
 
+# Minimum proportion of longest cluster representative to be retained for secondary cluster
+# representatives
+CLR_REP_MIN_LEN_PROP = 0.8
+
+# Minimum proportion of total samples allowed in a secondary cluster representative
+CLR_REP_MIN_SAMPLE_PROP = 0.01
+
 # Extraction statistics table header
 EXT_STATS_HEADER = [
     "sample_name", "marker_type", "locus",
@@ -490,7 +506,6 @@ EXT_STATS_HEADER = [
     "hit_contigs", "hit_l50", "hit_l90", "hit_lg50", "hit_lg90",
     "ctg_names", "ctg_strands", "ctg_coords",
 ]
-
 
 # GFF feature colors, Okabe & Ito palette
 GFF_COLORS = {
