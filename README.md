@@ -6,22 +6,36 @@
 ___
 ## Installation
 
-The simplest way to install `Captus` is to create an isolated software environment using `conda`,
-if you don't have `conda` we recommend to install [`miniconda`](https://docs.conda.io/en/latest/miniconda.html). Once you have `conda` installed in your system you can run:
-
+The simplest way to install `Captus` is to create an isolated software environment using `conda`, if you don't have `conda` we recommend to install `miniconda` from [https://docs.conda.io/en/latest/miniconda.html](https://docs.conda.io/en/latest/miniconda.html). Once you have `conda` installed in your system you need to configure your channels:
 ```bash
-conda create -n captus -c bioconda -c conda-forge captus
+conda config --prepend channels bioconda
+conda config --prepend channels conda-forge
+conda config --show channels
 ```
-Then activate the `conda` environment you created:
 
+The last command should show your current channels, the order matters:
 ```bash
-conda activate captus
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
 ```
+
+`conda` sometimes takes too long to find and configure dependencies, we recommend installing `mamba` first:
+```bash
+conda install mamba
+```
+
+Now we are ready to create a separate environment for Captus:
+```bash
+mamba create -n captus -c bioconda captus
+```
+
 Finally, test that `Captus` was correctly installed:
 ```bash
+conda activate captus
 captus_assembly
 ```
-
 
 And if the program was correctly installed you will see the main help page of Captus:
 ```text

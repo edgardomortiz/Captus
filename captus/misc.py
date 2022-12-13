@@ -15,7 +15,6 @@ not, see <http://www.gnu.org/licenses/>.
 
 import argparse
 import importlib
-import multiprocessing
 import os
 import platform
 import re
@@ -24,6 +23,7 @@ import subprocess
 import sys
 import threading
 import time
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from importlib import util
 from pathlib import Path
 
@@ -86,7 +86,7 @@ def set_threads(threads):
     """
     Parse the string given by '--threads' to return maximum threads to use
     """
-    threads_total = multiprocessing.cpu_count()
+    threads_total = os.cpu_count()
     threads_max = threads_total if threads == "auto" else min(int(threads), threads_total)
     return threads_max, threads_total
 
@@ -118,21 +118,19 @@ def tqdm_parallel_async_run(
     Run a function in parallel asynchronous mode updating a tqdm progress bar
     Keep in mind that the function referred as 'function_name' cannot be nested within another
     """
-    def update(function_message):
-        log.log(function_message, print_to_screen=False)
-        if not show_less:
-            tqdm.write(function_message)
-        pbar.update()
-
     start = time.time()
     log.log(bold(f"{description_msg}:"))
-    process = multiprocessing.Pool(threads)
     tqdm_cols = min(shutil.get_terminal_size().columns, 120)
     pbar = tqdm(total=len(params_list), ncols=tqdm_cols, unit=unit)
-    for i in range(pbar.total):
-        process.apply_async(function, params_list[i], callback=update)
-    process.close()
-    process.join()
+    executor = ProcessPoolExecutor(max_workers=threads)
+    futures = [executor.submit(function, *params) for params in params_list]
+    for future in as_completed(futures):
+        result = future.result()
+        log.log(result, print_to_screen=False)
+        if not show_less:
+            tqdm.write(result)
+        pbar.update()
+    executor.shutdown()
     pbar.close()
     log.log(bold(
         f" \u2514\u2500\u2192 {finished_msg} for {len(params_list)} {unit}(s)"
@@ -143,19 +141,18 @@ def tqdm_parallel_async_run(
 def tqdm_parallel_async_write(
     function, params_list, description_msg, finished_msg, unit, threads, file_out
 ):
-    def update_write(function_results):
-        pbar.update()
-        with open(file_out, "at") as fout:
-            fout.write("".join(function_results))
     start = time.time()
     log.log(bold(f"{description_msg}:"))
-    process = multiprocessing.Pool(threads)
     tqdm_cols = min(shutil.get_terminal_size().columns, 120)
     pbar = tqdm(total=len(params_list), ncols=tqdm_cols, unit=unit)
-    for i in range(pbar.total):
-        process.apply_async(function, params_list[i], callback=update_write)
-    process.close()
-    process.join()
+    executor = ProcessPoolExecutor(max_workers=threads)
+    futures = [executor.submit(function, *params) for params in params_list]
+    for future in as_completed(futures):
+        result = future.result()
+        with open(file_out, "at") as fout:
+            fout.write("".join(result))
+        pbar.update()
+    executor.shutdown()
     pbar.close()
     log.log(bold(
         f" \u2514\u2500\u2192 {finished_msg} for {len(params_list)} {unit}(s)"

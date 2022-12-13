@@ -1138,7 +1138,7 @@ def msa(
                 with open(mafft_log_file, "a") as mafft_log:
                     try:
                         subprocess.run(mafft_cmd, stdout=mafft_out, stderr=mafft_log,
-                                    timeout=timeout)
+                                       timeout=timeout)
                         if file_is_empty(fasta_out):
                             message = red(f"'{fasta_out_short}': FAILED alignment, empty output file")
                             fasta_out.unlink()
@@ -1147,7 +1147,7 @@ def msa(
                             message = f"'{fasta_out_short}': aligned [{elapsed_time(time.time() - start)}]"
                     except subprocess.TimeoutExpired:
                         message = (
-                            f"'{red(fasta_out_short)}': '--timeout' exceeded"
+                            f"'{red(fasta_out_short)}': FAILED alignment, timeout exceeded"
                             f" [{elapsed_time(time.time() - start)}]"
                         )
                         fasta_out.unlink()
@@ -1179,20 +1179,23 @@ def msa(
             with open(muscle_log_file, "a") as muscle_log:
                 try:
                     subprocess.run(muscle_cmd, stdout=muscle_log, stderr=muscle_log,
-                                timeout=timeout)
+                                   timeout=timeout)
                     if file_is_empty(fasta_out):
                         message = red(f"'{fasta_out_short}': FAILED alignment, empty output file")
                         fasta_out.unlink()
+                    elif not fasta_out.exists():
+                        message = red(f"'{fasta_out_short}': FAILED alignment, output not generated")
                     else:
                         rehead_root_msa(fasta_in, fasta_out, outgroup)
                         message = f"'{fasta_out_short}': aligned [{elapsed_time(time.time() - start)}]"
                 except subprocess.TimeoutExpired:
                     message = (
-                        f"'{red(fasta_out_short)}': '--timeout' exceeded"
+                        f"'{red(fasta_out_short)}': FAILED alignment, timeout exceeded"
                         f" [{elapsed_time(time.time() - start)}]"
                     )
-                    fasta_out.unlink()
-                    mafft_log.write(
+                    # No need to erase output is timeout is exceeded, MUSCLE doesn't create it
+                    # fasta_out.unlink()
+                    muscle_log.write(
                         "\n\nERROR: The alignment took too long to complete, increase"
                         " '--timeout' or switch to a faster '--align_method' like 'muscle_super5'\n"
                     )
@@ -1670,16 +1673,16 @@ def compute_stats(shared_seq_names, shared_sam_stats, shared_aln_stats, fasta_pa
         fasta_path.stem,                                    # [6] locus name
         f'{aln_stats["sequences"]}',                        # [7] num sequences
         f'{aln_stats["samples"]}',                          # [8] num samples
-        f'{aln_stats["avg_copies"]:.2f}',                   # [9] avg num copies
+        f'{aln_stats["avg_copies"]}',                   # [9] avg num copies
         f'{aln_stats["sites"]}',                            # [10] num sites
         f'{aln_stats["informative"]}',                      # [11] num informative sites
-        f'{aln_stats["informativeness"]:.2f}',              # [12] pct of informative sites
+        f'{aln_stats["informativeness"]}',              # [12] pct of informative sites
         f'{aln_stats["uninformative"]}',                    # [13] num constant + singleton sites
         f'{aln_stats["constant"]}',                         # [14] num constant sites
         f'{aln_stats["singleton"]}',                        # [15] num singleton sites
         f'{aln_stats["patterns"]}',                         # [16] num unique columns
-        f'{aln_stats["avg_pid"]:.2f}',                      # [17] average pairwise identity
-        f'{aln_stats["missingness"]:.2f}',                  # [18] pct of gaps and Ns or Xs
+        f'{aln_stats["avg_pid"]}',                      # [17] average pairwise identity
+        f'{aln_stats["missingness"]}',                  # [18] pct of gaps and Ns or Xs
         f'{aln_stats["gc"]}',                               # [19] GC content in %
         f'{aln_stats["gc_codon_p1"]}',                      # [20] GC content of pos1 in codon in %
         f'{aln_stats["gc_codon_p2"]}',                      # [21] GC content of pos2 in codon in %

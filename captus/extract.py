@@ -14,10 +14,13 @@ not, see <http://www.gnu.org/licenses/>.
 
 import json
 import math
+import random
 import shutil
 import statistics
 import subprocess
 import time
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from multiprocessing import Manager
 from pathlib import Path
 
 from tqdm import tqdm
@@ -28,7 +31,7 @@ from .bioformats import (blat_misc_dna_psl_to_dict, dict_to_fasta, fasta_headers
                          fasta_to_dict, fasta_type, fix_premature_stops, scipio_yaml_to_dict,
                          split_mmseqs_clusters_file, translate_fasta_dict, write_gff3)
 from .misc import (ElapsedTimeThread, bioperl_get_version, blat_path_version, bold, bold_green,
-                   bold_yellow, compress_list_files, dim, dir_is_empty, elapsed_time,
+                   bold_yellow, compress_list_files, dim, dir_is_empty, elapsed_time, file_is_empty,
                    format_dep_msg, has_valid_ext, make_output_dir, make_tmp_dir_within,
                    mmseqs_path_version, python_library_check, quit_with_error, red,
                    remove_formatting, scipio_path_version, set_ram, set_threads, successful_exit,
@@ -208,7 +211,7 @@ def extract(full_command, args):
                                             args.nuc_transtable,
                                             args.ptd_transtable,
                                             args.mit_transtable)
-        max_prot_ref_size = 0
+
         log.log("")
         if any([protein_refs["NUC"]["AA_path"],
                 protein_refs["PTD"]["AA_path"],
@@ -216,27 +219,26 @@ def extract(full_command, args):
             log.log(bold(f'{"PROTEIN OPTIONS":>{mar}}:'))
             if protein_refs["NUC"]["AA_path"]:
                 nuc_query = fasta_to_dict(protein_refs["NUC"]["AA_path"])
+                nuc_query_parts_paths = split_refs(nuc_query, out_dir, "NUC")
                 nuc_query_info = reference_info(nuc_query)
-                max_prot_ref_size = max(max_prot_ref_size, nuc_query_info["total_size"])
             if protein_refs["PTD"]["AA_path"]:
                 ptd_query = fasta_to_dict(protein_refs["PTD"]["AA_path"])
+                ptd_query_parts_paths = split_refs(ptd_query, out_dir, "PTD")
                 ptd_query_info = reference_info(ptd_query)
-                max_prot_ref_size = max(max_prot_ref_size, ptd_query_info["total_size"])
             if protein_refs["MIT"]["AA_path"]:
                 mit_query = fasta_to_dict(protein_refs["MIT"]["AA_path"])
+                mit_query_parts_paths = split_refs(mit_query, out_dir, "MIT")
                 mit_query_info = reference_info(mit_query)
-                max_prot_ref_size = max(max_prot_ref_size, mit_query_info["total_size"])
             log.log(f'{"Max. loci for Scipio x2":>{mar}}: {bold(args.max_loci_scipio_x2)}')
             log.log(f'{"Predict dubious introns":>{mar}}: {bold(args.predict)}')
-            prot_concurrent, prot_ram_B_per_extract = adjust_concurrency(args.concurrent,
-                                                                            threads_max,
-                                                                            max_prot_ref_size,
-                                                                            ram_B)
+            prot_concurrent, prot_threads, prot_ram = adjust_concurrency(args.concurrent,
+                                                                         threads_max,
+                                                                         ram_B,
+                                                                         "protein")
             log.log(f'{"Concurrent extractions":>{mar}}: {bold(prot_concurrent)}')
             log.log(f'{"RAM per extraction":>{mar}}:'
-                    f' {bold(f"{prot_ram_B_per_extract / 1024 ** 3:.1f}GB")}')
-            log.log(f'{"Threads per extraction":>{mar}}: {bold("1")}'
-                    f' {dim("(Scipio and BLAT are single-threaded)")}')
+                    f' {bold(f"{prot_ram / 1024 ** 3:.1f}GB")}')
+            log.log(f'{"Threads per extraction":>{mar}}: {bold(prot_threads)}')
             log.log("")
         log.log(bold(f'{"Nuclear proteins":>{mar}}:'))
         log.log(f'{"reference":>{mar}}: {protein_refs["NUC"]["AA_msg"]}')
@@ -280,13 +282,13 @@ def extract(full_command, args):
             dna_query = fasta_to_dict(dna_ref["DNA"]["NT_path"])
             dna_query_info = reference_info(dna_query)
             dna_ref_size = max(dna_ref_size, dna_query_info["total_size"])
-            dna_concurrent, dna_ram_B_per_extract = adjust_concurrency(args.concurrent,
-                                                                        threads_max,
-                                                                        dna_ref_size,
-                                                                        ram_B)
+            dna_concurrent, dna_threads, dna_ram = adjust_concurrency(args.concurrent,
+                                                                      threads_max,
+                                                                      ram_B,
+                                                                      "dna")
             log.log(f'{"Concurrent extractions":>{mar}}: {bold(dna_concurrent)}')
             log.log(f'{"RAM per extraction":>{mar}}:'
-                    f' {bold(f"{dna_ram_B_per_extract / 1024 ** 3:.1f}GB")}')
+                    f' {bold(f"{dna_ram / 1024 ** 3:.1f}GB")}')
             log.log(f'{"Threads per extraction":>{mar}}: {bold("1")}'
                     f' {dim("(BLAT is single-threaded)")}')
             log.log("")
@@ -333,13 +335,16 @@ def extract(full_command, args):
                         sample,
                         protein_refs["NUC"]["AA_path"],
                         nuc_query,
+                        nuc_query_parts_paths,
                         nuc_query_info,
                         "NUC",
                         args.nuc_transtable,
                         args.max_loci_files,
                         args.max_loci_scipio_x2,
                         args.max_paralogs,
-                        args.predict
+                        args.predict,
+                        prot_threads,
+                        args.debug
                     ))
                 if protein_refs["PTD"]["AA_path"]:
                     scipio_params.append((
@@ -355,13 +360,16 @@ def extract(full_command, args):
                         sample,
                         protein_refs["PTD"]["AA_path"],
                         ptd_query,
+                        ptd_query_parts_paths,
                         ptd_query_info,
                         "PTD",
                         args.ptd_transtable,
                         args.max_loci_files,
                         args.max_loci_scipio_x2,
                         args.max_paralogs,
-                        args.predict
+                        args.predict,
+                        prot_threads,
+                        args.debug
                     ))
                 if protein_refs["MIT"]["AA_path"]:
                     scipio_params.append((
@@ -377,13 +385,16 @@ def extract(full_command, args):
                         sample,
                         protein_refs["MIT"]["AA_path"],
                         mit_query,
+                        mit_query_parts_paths,
                         mit_query_info,
                         "MIT",
                         args.mit_transtable,
                         args.max_loci_files,
                         args.max_loci_scipio_x2,
                         args.max_paralogs,
-                        args.predict
+                        args.predict,
+                        prot_threads,
+                        args.debug
                     ))
                 if dna_ref["DNA"]["NT_path"]:
                     blat_params.append((
@@ -473,6 +484,8 @@ def extract(full_command, args):
             else:
                 tqdm_parallel_async_run(cleanup_post_extraction, cleanup_params, d_msg, f_msg,
                                         "sample", cleanup_concurrent, args.show_less)
+            if not args.keep_all:
+                shutil.rmtree(Path(out_dir, settings.REFS_SPLIT_DIR), ignore_errors=True)
             log.log("")
 
         # Nothing to extract
@@ -529,10 +542,11 @@ def extract(full_command, args):
         if args.cluster_mode != 2: args.cl_seq_id_mode = 0
         clust_tmp_dir = make_tmp_dir_within(args.cl_tmp_dir, "captus_mmseqs2_tmp")
         fastas_to_cluster, num_leftovers = find_fasta_leftovers(fastas_to_extract)
+        num_samples = len(fastas_to_cluster)
         if args.cl_min_samples == "auto":
-            cl_min_samples = int(max(4, len(fastas_to_cluster) * settings.CLR_MIN_SAMPLE_PROP))
+            cl_min_samples = int(max(4, num_samples * settings.CLR_MIN_SAMPLE_PROP))
         else:
-            cl_min_samples = min(int(args.cl_min_samples), len(fastas_to_cluster))
+            cl_min_samples = min(int(args.cl_min_samples), num_samples)
 
         log.log(bold_yellow("  \u25BA STEP 1 OF 3: Clustering contigs across samples with MMseqs2"))
         log.log("")
@@ -573,16 +587,13 @@ def extract(full_command, args):
                                               clustering_input_file, args.cl_max_seq_len,
                                               min(settings.MAX_HDD_WRITE_INSTANCES, threads_max),
                                               args.show_less)
-            log.log("")
-            log.log(bold("Clustering contigs across samples (this may take a while, please wait):"))
-            clust_prefix = mmseqs2_cluster(args.mmseqs2_path, args.mmseqs2_method, args.cluster_mode,
-                                           clustering_input_file, clustering_dir,
-                                           cl_min_identity, args.cl_seq_id_mode,
-                                           args.cl_min_coverage, args.cl_cov_mode,
-                                           clust_tmp_dir, threads_max)
-            log.log("")
-            log.log(bold("Filtering clusters:"))
-            captus_clusters_ref = filter_clusters(clust_prefix, cl_min_samples, args.cl_rep_min_len)
+            captus_cluster_refs = cluster_and_select_refs(num_samples, cl_min_samples, args.cl_rep_min_len,
+                                                          args.mmseqs2_path, args.mmseqs2_method,
+                                                          args.cluster_mode, clustering_input_file,
+                                                          clustering_dir, cl_min_identity,
+                                                          args.cl_seq_id_mode, args.cl_min_coverage,
+                                                          args.cl_cov_mode, clust_tmp_dir,
+                                                          threads_max)
             log.log("")
             log.log("")
             log.log(bold_yellow(
@@ -590,18 +601,18 @@ def extract(full_command, args):
             ))
             log.log("")
             clust_ref_size = 0
-            clust_ref = prepare_dna_refs(captus_clusters_ref, cluster=True)
+            clust_ref = prepare_dna_refs(captus_cluster_refs, cluster=True)
             if clust_ref["CLR"]["NT_path"]:
                 clust_query = fasta_to_dict(clust_ref["CLR"]["NT_path"])
                 clust_query_info = reference_info(clust_query)
                 clust_ref_size = max(clust_ref_size, clust_query_info["total_size"])
-                clust_concurrent, clust_ram_B_per_extract = adjust_concurrency(args.concurrent,
-                                                                               threads_max,
-                                                                               clust_ref_size,
-                                                                               ram_B)
+                clust_concurrent, clust_threads, clust_ram = adjust_concurrency(args.concurrent,
+                                                                                threads_max,
+                                                                                ram_B,
+                                                                                "dna")
                 log.log(f'{"Concurrent extractions":>{mar}}: {bold(clust_concurrent)}')
                 log.log(f'{"RAM per extraction":>{mar}}:'
-                        f' {bold(f"{clust_ram_B_per_extract / 1024 ** 3:.1f}GB")}')
+                        f' {bold(f"{clust_ram / 1024 ** 3:.1f}GB")}')
                 log.log(f'{"Threads per extraction":>{mar}}: {bold("1")}'
                         f' {dim("(BLAT is single-threaded)")}')
                 log.log("")
@@ -680,9 +691,6 @@ def extract(full_command, args):
                     tqdm_parallel_async_run(cleanup_post_extraction, cleanup_params, d_msg, f_msg,
                                             "sample", cleanup_concurrent, args.show_less)
                 log.log("")
-                cleanup_clustering_dir(clustering_dir, clust_prefix, clust_tmp_dir,
-                                       threads_max, args.keep_all)
-                log.log("")
 
         # Nothing to cluster, just skip already processed
         else:
@@ -733,7 +741,7 @@ def extract(full_command, args):
     )
 
 
-def adjust_concurrency(concurrent, threads_max, ref_size_bp, ram_B):
+def adjust_concurrency(concurrent, threads_max, ram_B, ref_type):
     """
     Adjust the proposed number of 'concurrent' BLAT/Scipio processes so 'RAM_per_extraction' is
     never smaller than 'settings.EXTRACTION_MIN_RAM_B'. Once the right 'concurrent' has been found,
@@ -746,14 +754,17 @@ def adjust_concurrency(concurrent, threads_max, ref_size_bp, ram_B):
             concurrent = int(concurrent)
         except ValueError:
             quit_with_error("Invalid value for '--concurrent', set it to 'auto' or use a number")
-    ref_ram_b = (ref_size_bp * math.log(ref_size_bp) * 42 / 1e9) * (1024 ** 3)
-    min_ram_b = max(settings.EXTRACTION_MIN_RAM_B, ref_ram_b)
+    if ref_type == "protein":
+        min_ram_b = settings.EXTRACTION_MIN_RAM_B * 3.75
+    elif ref_type == "dna":
+        min_ram_b = settings.EXTRACTION_MIN_RAM_B
     if min_ram_b >= ram_B: return 1, ram_B
     if concurrent > 1:
         while ram_B // concurrent < min_ram_b:
             concurrent -= 1
+    threads_per_extraction = threads_max // concurrent
     ram_B_per_extraction = ram_B // concurrent
-    return concurrent, ram_B_per_extraction
+    return concurrent, threads_per_extraction, ram_B_per_extraction
 
 
 def status_captus_assemblies_dir(captus_assemblies_dir, extra_fastas, margin):
@@ -842,10 +853,10 @@ def find_and_copy_fastas(fastas, captus_assemblies_dir, overwrite, threads_max, 
     check_and_copy_found_fasta_params = []
     for fasta in fastas:
         check_and_copy_found_fasta_params.append((
-                fasta,
-                valid_exts,
-                captus_assemblies_dir,
-                overwrite
+            fasta,
+            valid_exts,
+            captus_assemblies_dir,
+            overwrite
         ))
     tqdm_parallel_async_run(check_and_copy_found_fasta ,check_and_copy_found_fasta_params,
                             "Verifying and importing provided FASTA files",
@@ -933,13 +944,13 @@ def prepare_protein_refs(
             amino_refset = translate_fasta_dict(fasta_to_dict(refset), transtable)
             amino_refset_fixed = fix_premature_stops(amino_refset)
             if amino_refset_fixed is None:
-                dict_to_fasta(amino_refset, aa_path, wrap=80)
+                dict_to_fasta(amino_refset, aa_path)
                 log.log(
                     f"Translated '{bold(refset)}' using Genetic Code: {bold(transtable)}"
                     f" [{elapsed_time(time.time() - start)}]"
                 )
             else:
-                dict_to_fasta(amino_refset_fixed, aa_path, wrap=80)
+                dict_to_fasta(amino_refset_fixed, aa_path)
                 log.log(
                     f"Translated '{bold(refset)}' using Genetic Code: {bold(transtable)}"
                     f" [{elapsed_time(time.time() - start)}]"
@@ -955,10 +966,10 @@ def prepare_protein_refs(
             amino_refset_fixed = fix_premature_stops(amino_refset)
             if amino_refset_fixed is None:
                 aa_path = Path(Path(refset).resolve().parent, f"{Path(refset).stem}.faa")
-                dict_to_fasta(amino_refset, aa_path, wrap=80)
+                dict_to_fasta(amino_refset, aa_path)
             else:
                 aa_path = Path(Path(refset).resolve().parent, f"{Path(refset).stem}_fixed.faa")
-                dict_to_fasta(amino_refset_fixed, aa_path, wrap=80)
+                dict_to_fasta(amino_refset_fixed, aa_path)
                 log.log(
                     f"WARNING: {refset} contained gaps that were removed"
                     " and/or premature stops that were converted to X"
@@ -1060,110 +1071,36 @@ def adjust_min_coverage(min_coverage):
         return min_coverage
 
 
-def scipio_coding(
-        scipio_path, min_score, min_identity, min_coverage, blat_path, overwrite, keep_all,
-        target_path, sample_dir, sample_name, query_path, query_dict, query_info, marker_type,
-        transtable, max_loci_files, max_loci_scipio_x2, max_paralogs, predict
-):
-    """
-    Perform two consecutive rounds of Scipio, the first run with mostly default settings and with a
-    'min_score' multiplied by 'settings.SCIPIO_SCORE_FACTOR'. This round narrows down the set of
-    target contigs (your assembly) to only those with hits and the set of reference proteins to
-    those that produced the best hits (just when you provided multiple reference proteins of the
-    same cluster, for more details check the section 'REFERENCE_CLUSTER_SEPARATOR' in the file
-    'settings_assembly.py')
-    """
+def split_refs(query_dict, out_dir, marker_type):
+    # Split reference file in groups of roughly REFS_SPLIT_CHUNK_SIZE to run Scipio in parallel
+    # on each
 
-    start = time.time()
-
-    genes = {"NUC": "nuclear genes", "PTD": "plastidial genes", "MIT": "mitochondrial genes"}
-
-    # Set programs' paths in case of using the bundled versions
-    if scipio_path == "bundled": scipio_path = settings.BUNDLED_SCIPIO
-    if blat_path == "bundled": blat_path = settings.BUNDLED_BLAT
-
-    # Group Scipio's basic parameters, the 'sample_dir', and the 'marker_type' into a list
-    scipio_params = {
-        "scipio_path":  scipio_path,
-        "min_score":    min_score,
-        "min_identity": min_identity,
-        "min_coverage": min_coverage,
-        "blat_path":    blat_path,
-        "transtable":   transtable,
-        "sample_dir":   sample_dir,
-        "marker_type":  marker_type,
-        "keep_all":     keep_all,
-    }
-
-    # Run Scipio twice if 'query_info["num_loci"]' does not exceed 'max_loci_scipio_x2'
-    if query_info["num_loci"] <= max_loci_scipio_x2:
-
-        # Use the function run_scipio_command() that to run Scipio and also get the name of the YAML
-        # output 'yaml_out_file'
-        yaml_initial_file = run_scipio_command(scipio_params, target_path, query_path,
-                                               overwrite, stage="initial")
-        if yaml_initial_file is None:
-            message = dim(
-                f"'{sample_name}': extraction of {genes[marker_type]}"
-                " skipped (output files already exist)"
-            )
-            return message
+    seq_names = list(query_dict)
+    random.Random(settings.RANDOM_SEED).shuffle(seq_names)
+    num_seqs = len(seq_names)
+    chunks_floor = max(4, math.floor(num_seqs / settings.REFS_SPLIT_CHUNK_SIZE))
+    chunks_ceiling = max(4, math.ceil(num_seqs / settings.REFS_SPLIT_CHUNK_SIZE))
+    try:
+        if (abs(settings.REFS_SPLIT_CHUNK_SIZE - (num_seqs / chunks_ceiling))
+            <= abs(settings.REFS_SPLIT_CHUNK_SIZE - (num_seqs / chunks_floor))):
+            seqs_per_chunk = math.ceil(num_seqs / chunks_ceiling)
         else:
-            yaml_initial_dir = yaml_initial_file.parent
-            initial_models = scipio_yaml_to_dict(yaml_initial_file, min_score, min_identity,
-                                                 min_coverage, marker_type, transtable,
-                                                 max_paralogs, predict)
-
-        # Parse YAML to subselect only the best proteins from the 'query' and the contigs with hits
-        # from the assembly ('target')
-        if initial_models is None:
-            message = red(f"'{sample_name}': FAILED extraction of {genes[marker_type]}")
-            return message
-        else:
-            final_target, final_query = filter_query_and_target(
-                query_dict, fasta_to_dict(target_path),
-                yaml_initial_dir, initial_models, marker_type
-            )
-
-        # Perform final Scipio's run (more exhaustive but with fewer contigs and reference proteins)
-        yaml_final_file = run_scipio_command(scipio_params, final_target, final_query,
-                                             overwrite, stage="final")
-
-    # Run a single Scipio run when 'num_refs' exceeds 'max_loci_scipio_x2'
-    else:
-        yaml_final_file = run_scipio_command(scipio_params, target_path, query_path,
-                                             overwrite, stage="single")
-
-    if yaml_final_file is None:
-        message = dim(
-            f"'{sample_name}': extraction of {genes[marker_type]}"
-            " skipped (output files already exist)"
-        )
-        return message
-    else:
-        yaml_final_dir = yaml_final_file.parent
-        final_models = scipio_yaml_to_dict(yaml_final_file, min_score, min_identity,
-                                           min_coverage, marker_type, transtable,
-                                           max_paralogs, predict)
-
-    # Parse final YAML to produce output FASTA files and reports
-    if final_models is None:
-        message = red(f"'{sample_name}': FAILED extraction of {genes[marker_type]}")
-        return message
-    else:
-        write_gff3(final_models, marker_type, Path(yaml_final_dir, f"{marker_type}_contigs.gff"))
-        recovery_stats = write_fastas_and_report(
-            final_models, sample_name, fasta_to_dict(target_path),
-            yaml_final_dir, marker_type, overwrite, max_loci_files
-        )
-        message = (
-            f"'{sample_name}': recovered {recovery_stats['num_loci']:,} {genes[marker_type]}"
-            f' ({recovery_stats["num_loci"] / query_info["num_loci"]:.1%} of {query_info["num_loci"]:,}),'
-            f' {recovery_stats["total_length_best_hits"] / query_info["total_length_loci"]:.1%} of'
-            f' total reference length, {recovery_stats["num_paralogs"]:,} paralogs'
-            f" found [{elapsed_time(time.time() - start)}]"
-        )
-        return message
+            seqs_per_chunk = math.ceil(num_seqs / chunks_floor)
+    except ZeroDivisionError:
+        seqs_per_chunk = num_seqs
+    ref_split_dir = Path(out_dir, settings.REFS_SPLIT_DIR, settings.MARKER_DIRS[marker_type])
+    make_output_dir(ref_split_dir)
+    ref_seqs_paths = {}
+    part = 1
+    for i in range(0, len(seq_names), seqs_per_chunk):
+        split_fasta = {}
+        for seq_name in seq_names[i:i+seqs_per_chunk]:
+            split_fasta[seq_name] = query_dict[seq_name]
+        split_fasta_path = Path(ref_split_dir, f"{marker_type}_part{part}.faa")
+        dict_to_fasta(split_fasta, split_fasta_path)
+        ref_seqs_paths[split_fasta_path] = set(split_fasta)
+        part += 1
+    return ref_seqs_paths
 
 
 def reference_info(query_dict):
@@ -1216,8 +1153,121 @@ def reference_info(query_dict):
     return ref_info
 
 
-def run_scipio_command(scipio_params: dict, target, query, overwrite, stage):
-    # Set output directory and files according to 'sample_dir', 'genome', and 'stage'
+def scipio_coding(
+        scipio_path, min_score, min_identity, min_coverage, blat_path, overwrite, keep_all,
+        target_path, sample_dir, sample_name, query_path, query_dict, query_parts_paths, query_info,
+        marker_type, transtable, max_loci_files, max_loci_scipio_x2, max_paralogs, predict,
+        threads, debug
+):
+    """
+    Perform two consecutive rounds of Scipio, the first run with mostly default settings and with a
+    'min_score' multiplied by 'settings.SCIPIO_SCORE_FACTOR'. This round narrows down the set of
+    target contigs (your assembly) to only those with hits and the set of reference proteins to
+    those that produced the best hits (just when you provided multiple reference proteins of the
+    same cluster, for more details check the section 'REFERENCE_CLUSTER_SEPARATOR' in the file
+    'settings_assembly.py')
+    """
+
+    start = time.time()
+
+    genes = {"NUC": "nuclear genes", "PTD": "plastidial genes", "MIT": "mitochondrial genes"}
+
+    # Set programs' paths in case of using the bundled versions
+    if scipio_path == "bundled": scipio_path = settings.BUNDLED_SCIPIO
+    if blat_path == "bundled": blat_path = settings.BUNDLED_BLAT
+
+    # Group Scipio's basic parameters, the 'sample_dir', and the 'marker_type' into a list
+    scipio_params = {
+        "scipio_path":  scipio_path,
+        "min_score":    min_score,
+        "min_identity": min_identity,
+        "min_coverage": min_coverage,
+        "blat_path":    blat_path,
+        "transtable":   transtable,
+        "sample_dir":   sample_dir,
+        "marker_type":  marker_type,
+        "keep_all":     keep_all,
+    }
+
+    # Run Scipio twice if 'query_info["num_loci"]' does not exceed 'max_loci_scipio_x2'
+    if query_info["num_loci"] <= max_loci_scipio_x2:
+
+        # Use the function run_scipio() that to run Scipio and also get the name of the YAML
+        # output 'yaml_out_file'
+        yaml_initial_file = run_scipio_parallel(scipio_params, target_path, query_path,
+                                                query_parts_paths, overwrite, threads,
+                                                debug, stage="initial")
+        if yaml_initial_file is None:
+            message = dim(
+                f"'{sample_name}': extraction of {genes[marker_type]}"
+                " skipped (output files already exist)"
+            )
+            return message
+        else:
+            yaml_initial_dir = yaml_initial_file.parent
+            initial_models = scipio_yaml_to_dict(yaml_initial_file, min_score, min_identity,
+                                                 min_coverage, marker_type, transtable,
+                                                 max_paralogs, predict)
+
+        # Parse YAML to subselect only the best proteins from the 'query' and the contigs with hits
+        # from the assembly ('target')
+        if initial_models is None:
+            message = red(f"'{sample_name}': FAILED extraction of {genes[marker_type]}")
+            return message
+        else:
+            final_target, final_query = filter_query_and_target(
+                query_dict, fasta_to_dict(target_path),
+                yaml_initial_dir, initial_models, marker_type
+            )
+
+        # Perform final Scipio's run (more exhaustive but with fewer contigs and reference proteins)
+        yaml_final_file = run_scipio_parallel(scipio_params, final_target, final_query,
+                                              query_parts_paths, overwrite, threads,
+                                              debug, stage="final")
+
+    # Run a single Scipio run when 'num_refs' exceeds 'max_loci_scipio_x2'
+    else:
+        yaml_final_file = run_scipio_parallel(scipio_params, target_path, query_path,
+                                              query_parts_paths, overwrite, threads,
+                                              debug, stage="single")
+
+    if yaml_final_file is None:
+        message = dim(
+            f"'{sample_name}': extraction of {genes[marker_type]}"
+            " skipped (output files already exist)"
+        )
+        return message
+    else:
+        yaml_final_dir = yaml_final_file.parent
+        final_models = scipio_yaml_to_dict(yaml_final_file, min_score, min_identity,
+                                           min_coverage, marker_type, transtable,
+                                           max_paralogs, predict)
+
+    # Parse final YAML to produce output FASTA files and reports
+    if final_models is None:
+        message = red(f"'{sample_name}': FAILED extraction of {genes[marker_type]}")
+        return message
+    else:
+        write_gff3(final_models, marker_type, Path(yaml_final_dir, f"{marker_type}_contigs.gff"))
+        recovery_stats = write_fastas_and_report(
+            final_models, sample_name, fasta_to_dict(target_path),
+            yaml_final_dir, marker_type, overwrite, max_loci_files
+        )
+        message = (
+            f"'{sample_name}': recovered {recovery_stats['num_loci']:,} {genes[marker_type]}"
+            f' ({recovery_stats["num_loci"] / query_info["num_loci"]:.1%} of {query_info["num_loci"]:,}),'
+            f' {recovery_stats["total_length_best_hits"] / query_info["total_length_loci"]:.1%} of'
+            f' total reference length, {recovery_stats["num_paralogs"]:,} paralogs'
+            f" found [{elapsed_time(time.time() - start)}]"
+        )
+        return message
+
+
+def run_scipio_parallel(
+        scipio_params: dict, target, query, query_part_paths,
+        overwrite, threads, debug, stage
+):
+    # Set output directory and files according to 'sample_dir' and 'stage'
     marker_type = scipio_params["marker_type"]
     scipio_out_dir = Path(scipio_params["sample_dir"], settings.MARKER_DIRS[marker_type])
     if stage == "initial":
@@ -1235,64 +1285,176 @@ def run_scipio_command(scipio_params: dict, target, query, overwrite, stage):
         scipio_log_file = Path(scipio_out_dir, f'{marker_type}_scipio_final.log')
         scipio_min_score = scipio_params["min_score"]
 
+    # Set minimum BLAT score according to number of references (too many hits created when using
+    # a large number of reference proteins), higher score, fewer hits
+    if stage == "single":
+        blat_score = f"{settings.SCIPIO_x1_BLAT_MIN_SCORE}"
+    else:
+        blat_score = f"{settings.SCIPIO_x2_BLAT_MIN_SCORE}"
+
+    # Additional Scipio settings according to first (or single) or second Scipio round
+    if stage == "final":
+        extra_settings = settings.SCIPIO_GENOME_EXTRA_SETTINGS[marker_type]
+    else:
+        extra_settings = settings.SCIPIO_GENOME_BASIC_SETTINGS[marker_type]
+
     scipio_out_dir, _ = make_output_dir(scipio_out_dir)
+
     if dir_is_empty(scipio_out_dir) is True or overwrite is True:
+        manager = Manager()
+        shared_yaml_list = manager.list()
 
-        # Set minimum BLAT score according to number of references (too many hits created when using
-        # a large number of reference proteins), higher score, fewer hits
-        if stage == "single":
-            blat_score = f"{settings.SCIPIO_x1_BLAT_MIN_SCORE}"
+        # First, run BLAT only using the complete target and query files
+        blat_only = True
+        blat_psl = run_scipio_command(scipio_params["scipio_path"], blat_out_file,
+                                      blat_only, scipio_min_score, scipio_params["min_identity"],
+                                      scipio_params["min_coverage"], scipio_params["blat_path"],
+                                      blat_score, scipio_params["transtable"], extra_settings,
+                                      target, query, scipio_out_file, scipio_log_file)
+        if not blat_psl:
+            return None
+
+        # Second, split the previous BLAT psl according to the reference splits
+        filter_blat_psl_params = []
+        for query in query_part_paths:
+            part = query.stem
+            filter_blat_psl_params.append((
+                blat_out_file,
+                query_part_paths[query],
+                Path(scipio_out_dir, f"{part}_scipio.psl")
+            ))
+        psls_to_del = []
+        if debug:
+            for params in filter_blat_psl_params:
+                blat_part_psl = filter_blat_psl(*params)
+                psls_to_del.append(blat_part_psl)
         else:
-            blat_score = f"{settings.SCIPIO_x2_BLAT_MIN_SCORE}"
+            subexecutor = ProcessPoolExecutor(max_workers=threads)
+            futures = [subexecutor.submit(filter_blat_psl, *params)
+                       for params in filter_blat_psl_params]
+            for future in as_completed(futures):
+                blat_part_psl = future.result()
+                psls_to_del.append(blat_part_psl)
+            subexecutor.shutdown()
 
-        # Build the basic part of the command
-        basic = [
-            "perl", f'{scipio_params["scipio_path"]}',
-            f'--blat_output={blat_out_file}',
-            "--overwrite",
-            "--verbose",
-            "--keep_blat_output",
-            "--show_blatline",
-            f'--min_score={scipio_min_score}',
-            f'--min_identity={scipio_params["min_identity"]}',
-            f'--min_coverage={scipio_params["min_coverage"]}',
-            "--max_mismatch=0",  # 0 means infinite
-            "--multiple_results",
-            f'--blat_bin={scipio_params["blat_path"]}',
-            f'--blat_score={blat_score}',
-            f'--blat_identity={scipio_params["min_identity"] * settings.SCIPIO_BLAT_IDENT_FACTOR:.0f}',
-            f'--transtable={scipio_params["transtable"]}',
-            f'--accepted_intron_penalty={settings.SCIPIO_ACCEPTED_INTRON_PENALTY}',
-        ]
-
-        # Initial settings, genome-specific
-        initial_settings = settings.SCIPIO_GENOME_BASIC_SETTINGS[marker_type]
-
-        # Get extra parameters for final Scipio's run according to the 'genome'
-        final_settings = settings.SCIPIO_GENOME_EXTRA_SETTINGS[marker_type]
-
-        # Concatenate pieces of the command
-        if stage == "final":
-            scipio_cmd = basic + final_settings + [f"{target}", f"{query}"]
+        # Third, run a Scipio instance on each partial file
+        blat_only = False
+        run_scipio_command_params = []
+        for query in query_part_paths:
+            part = query.stem
+            run_scipio_command_params.append((
+                scipio_params["scipio_path"],
+                Path(scipio_out_dir, f"{part}_scipio.psl"),
+                blat_only,
+                scipio_min_score,
+                scipio_params["min_identity"],
+                scipio_params["min_coverage"],
+                scipio_params["blat_path"],
+                blat_score,
+                scipio_params["transtable"],
+                extra_settings,
+                target,
+                query,
+                Path(scipio_out_dir, f"{part}_scipio.yaml"),
+                Path(scipio_out_dir, f"{part}_scipio.log")
+            ))
+        yamls_to_cat = []
+        if debug:
+            for params in run_scipio_command_params:
+                scipio_yaml = run_scipio_command(*params)
+                if scipio_yaml is not None:
+                    yamls_to_cat.append(scipio_yaml)
         else:
-            scipio_cmd = basic + initial_settings + [f"{target}", f"{query}"]
+            subexecutor = ProcessPoolExecutor(max_workers=threads)
+            futures = [subexecutor.submit(run_scipio_command, *params)
+                       for params in run_scipio_command_params]
+            for future in as_completed(futures):
+                scipio_yaml = future.result()
+                if scipio_yaml is not None:
+                    yamls_to_cat.append(scipio_yaml)
+            subexecutor.shutdown()
+        with open(scipio_out_file, "wt") as yaml_out:
+            with open(scipio_log_file, "at") as yaml_log:
+                for scipio_yaml in yamls_to_cat:
+                    with open(scipio_yaml, "rt") as yaml_in:
+                        yaml_out.writelines(yaml_in.readlines())
+                    scipio_log = Path(scipio_yaml.parent, f'{scipio_yaml.stem}.log')
+                    with open(scipio_log, "rt") as log_in:
+                        yaml_log.write(f"\n\n{scipio_log}:\n")
+                        yaml_log.writelines(log_in.readlines())
 
-        # Execute Scipio's command
+        # Merge partial output files, then delete all partial files
+        if not file_is_empty(scipio_out_file):
+            for scipio_yaml in yamls_to_cat:
+                scipio_log = Path(scipio_yaml.parent, f'{scipio_yaml.stem}.log')
+                scipio_yaml.unlink()
+                scipio_log.unlink()
+            for psl in psls_to_del:
+                psl.unlink()
+
+        return scipio_out_file
+
+    else:
+        return None
+
+
+def filter_blat_psl(psl_path_in, seq_names_set, psl_out_path):
+    with open(psl_out_path, "wt") as part_psl_out:
+        with open(psl_path_in, "rt") as full_psl_in:
+            for line in full_psl_in:
+                if line.split()[9] in seq_names_set:
+                    part_psl_out.write(line)
+    return psl_out_path
+
+
+def run_scipio_command(
+        scipio_path, blat_out_file, blat_only, scipio_min_score, min_identity, min_coverage,
+        blat_path, blat_score, transtable, extra_settings, target_path, query_path,
+        scipio_out_file, scipio_log_file
+):
+    # Build the basic part of the command
+    basic = [
+        "perl", f'{scipio_path}',
+        f'--blat_output={blat_out_file}',
+        "--verbose",
+        "--keep_blat_output",
+        "--show_blatline",
+        f'--min_score={scipio_min_score}',
+        f'--min_identity={min_identity}',
+        f'--min_coverage={min_coverage}',
+        "--max_mismatch=0",  # 0 means infinite
+        "--multiple_results",
+        f'--blat_bin={blat_path}',
+        f'--blat_score={blat_score}',
+        f'--blat_identity={min_identity * settings.SCIPIO_BLAT_IDENT_FACTOR:.0f}',
+        f'--transtable={transtable}',
+        f'--accepted_intron_penalty={settings.SCIPIO_ACCEPTED_INTRON_PENALTY}',
+    ]
+
+    # Finish building the command and run Scipio
+    if blat_only:
+        scipio_cmd = basic + extra_settings + ["--blat_only"] + [f"{target_path}", f"{query_path}"]
+        with open(scipio_log_file, "wt") as yaml_log:
+            try:
+                subprocess.run(scipio_cmd, stderr=yaml_log)
+            except Exception:
+                return None
+        if file_is_empty(blat_out_file):
+            return None
+        else:
+            return blat_out_file
+    else:
+        scipio_cmd = basic + extra_settings + [f"{target_path}", f"{query_path}"]
         with open(scipio_out_file, "w") as yaml_out:
             with open(scipio_log_file, "w") as yaml_log:
                 try:
                     subprocess.run(scipio_cmd, stdout=yaml_out, stderr=yaml_log)
                 except Exception:
                     return None
-
-        # Erase BLAT .psl files if 'keep_all' is disabled
-        if not scipio_params["keep_all"]: blat_out_file.unlink()
-
-        return scipio_out_file
-
-    else:
-
-        return None
+        if file_is_empty(scipio_out_file):
+            return None
+        else:
+            return scipio_out_file
 
 
 def filter_query_and_target(query_dict, target_dict, yaml_initial_dir, initial_models, marker_type):
@@ -1820,7 +1982,7 @@ def rehead_and_concatenate_fastas(
             full_fasta = fasta_to_dict(cat_fasta)
             if clust_max_seq_len > 0:
                 filtered_fasta = {seq_name:full_fasta[seq_name] for seq_name in full_fasta
-                                if len(full_fasta[seq_name]["sequence"]) <= clust_max_seq_len}
+                                  if len(full_fasta[seq_name]["sequence"]) <= clust_max_seq_len}
                 dict_to_fasta(filtered_fasta, clustering_input_file, append=True)
             else:
                 dict_to_fasta(full_fasta, clustering_input_file, append=True)
@@ -1851,8 +2013,9 @@ def rehead_fasta_with_sample_name(sample_name, sample_fasta_path, clustering_dir
 
 
 def mmseqs2_cluster(
-        mmseqs2_path, mmseqs2_method, cluster_mode, clustering_input_file, clustering_dir,
-        min_identity, seq_id_mode, min_coverage, cov_mode, clustering_tmp_dir, threads
+        mmseqs2_path, mmseqs2_method, clustering_dir, clustering_input_file, cluster_prefix,
+        clustering_tmp_dir, min_identity, seq_id_mode, min_coverage, cov_mode, cluster_mode, threads,
+
 ):
     """
     Run MMseqs easy-linclust but perform some parameter checking/conversion before, the FASTA input
@@ -1864,8 +2027,7 @@ def mmseqs2_cluster(
     if not 0 < min_coverage <= 1:
         min_coverage = min(1.0, round((abs(min_coverage) / 100), 3))
 
-    files_prefix = f"clust_id{min_identity * 100:.2f}_cov{min_coverage * 100:.2f}"
-    result_prefix = f"{Path(clustering_dir, files_prefix)}"
+    result_prefix = f"{Path(clustering_dir, cluster_prefix)}"
     mmseqs2_cmd = [
         mmseqs2_path,
         mmseqs2_method,
@@ -1882,9 +2044,9 @@ def mmseqs2_cluster(
         "--kmer-per-seq-scale", f"{settings.MMSEQS2_KMER_PER_SEQ_SCALE}",
         "--threads", f"{threads}",
     ]
-    if cluster_mode == "easy-cluster":
+    if mmseqs2_method == "easy-cluster" and cluster_mode == 2:
         mmseqs2_cmd += ["--cluster-reassign"]
-    mmseqs2_log_file = Path(clustering_dir, f"{files_prefix}.log")
+    mmseqs2_log_file = Path(clustering_dir, f"{cluster_prefix}.log")
     mmseqs2_thread = ElapsedTimeThread()
     mmseqs2_thread.start()
     with open(mmseqs2_log_file, "w") as mmseqs2_log:
@@ -1896,98 +2058,141 @@ def mmseqs2_cluster(
     print()
 
     message = bold(f" \u2514\u2500\u2192 Clustering completed: [{elapsed_time(time.time() - start)}]")
-    log.log(message)
-    return result_prefix
+    return message
 
 
-def filter_clusters(clust_prefix, clust_min_samples, clust_min_len):
-    """
-    Write clusters that have at least 'clust_min_samples' to 'clustering_dir'
-    """
+def cluster_and_select_refs(
+        num_samples, clust_min_samples, clust_rep_min_len, mmseqs2_path, mmseqs2_method,
+        cluster_mode, clustering_input_file, clustering_dir, min_identity, seq_id_mode,
+        min_coverage, cov_mode, clust_tmp_dir, threads
+):
+    log.log("")
+    log.log(bold(f"Initial clustering of contigs at {min_identity}% identity:"))
+    clust1_prefix = f"cl{min_identity:.2f}_cov{min_coverage:.2f}"
+    clust1_message = mmseqs2_cluster(mmseqs2_path, mmseqs2_method, clustering_dir,
+                                     clustering_input_file, clust1_prefix, clust_tmp_dir,
+                                     min_identity, seq_id_mode, min_coverage, cov_mode,
+                                     cluster_mode, threads)
+    log.log(clust1_message)
+    log.log("")
+    msg_p1 = bold(f"Filtering clusters with less than {clust_min_samples} samples")
+    msg_p2 = bold(f" and centroids shorter than {clust_rep_min_len} bp:")
+    log.log(f"{msg_p1}{msg_p2}")
     start = time.time()
-
-    clusters_raw = split_mmseqs_clusters_file(Path(f"{clust_prefix}_all_seqs.fasta"))
-
-    rep_seq_filtered = []
+    clust1_all_seqs_file = Path(clustering_dir, f"{clust1_prefix}_all_seqs.fasta")
+    clust1_clusters = split_mmseqs_clusters_file(clust1_all_seqs_file)
     passed = []
-    failed = []
-    singletons = []  # singletons have a single sequence, or just sequences from the same sample
-
+    failed = 0
+    singletons = 0
     tqdm_cols = min(shutil.get_terminal_size().columns, 120)
-    with tqdm(total=len(clusters_raw), ncols=tqdm_cols, unit="cluster") as pbar:
-        for cluster in clusters_raw:
-            sample_names = [
+    with tqdm(total=len(clust1_clusters), ncols=tqdm_cols, unit="cluster") as pbar:
+        for cluster in clust1_clusters:
+            samples_in_cluster = len(set([
                 cluster[i][1:].split(settings.SEQ_NAME_SEP)[0] for i in range(0, len(cluster), 2)
-            ]
-            if (len(set(sample_names)) >= clust_min_samples
-                and len(cluster[1]) >= clust_min_len):
-                passed.append(cluster)
-                if len(set(sample_names)) == 1:
-                    singletons.append(cluster)
-                rep_seq_filtered += [cluster[0], cluster[1]]
+            ]))
+            if samples_in_cluster == 1:
+                singletons += 1
                 pbar.update()
                 continue
-            elif len(set(sample_names)) == 1:
-                singletons.append(cluster)
+            elif (samples_in_cluster >= clust_min_samples
+                  and len(cluster[1]) >= clust_rep_min_len):
+                passed.append(cluster)
                 pbar.update()
                 continue
             else:
-                failed.append(cluster)
+                failed += 1
                 pbar.update()
                 continue
-
-    if singletons:
-        singletons_file = Path(f"{clust_prefix}_singletons.fasta")
-        with open(singletons_file, "w") as singletons_out:
-            singletons_out.write("\n//\n".join(["\n".join(s_clust) for s_clust in singletons]))
-    if failed:
-        failed_file = Path(f"{clust_prefix}_failed.fasta")
-        with open(failed_file, "w") as failed_out:
-            failed_out.write("\n//\n".join(["\n".join(f_clust) for f_clust in failed]))
-    if passed:
-        passed_file = Path(f"{clust_prefix}_passed.fasta")
-        with open(passed_file, "w") as passed_out:
-            passed_out.write("\n//\n".join(["\n".join(p_clust) for p_clust in passed]))
-
-    p1 = bold(
-        f" \u2514\u2500\u2192 Clusters retained: {len(passed)} [{elapsed_time(time.time() - start)}]"
-    )
-    p2 = dim(f"(Filtered out: {len(singletons)} singletons and {len(failed)} by '--cl_min_samples')")
-    log.log(f"{p1} {p2}")
-    log.log("")
-
-    new_names = ["captus_cluster_name\toriginal_sequence_name"]
-    num_digits = len(str(len(rep_seq_filtered) // 2))
-    num_cluster = 0
-    for i in range(0, len(rep_seq_filtered), 2):
+    num_clusters = len(passed)
+    num_digits = len(str(num_clusters))
+    num_cluster = 1
+    fasta_to_recluster = {}
+    cluster_lenghts = {}
+    for cluster in passed:
+        clr = f"captus{num_cluster:0{num_digits}}"
+        for i in range (0, len(cluster), 2):
+            if i == 0: cluster_lenghts[clr] = len(cluster[1])
+            h = cluster[i][1:].split(settings.SEQ_NAME_SEP)
+            smp, ctg = h[0], h[1]
+            ref_sep = settings.REFERENCE_CLUSTER_SEPARATOR
+            seq_sep = settings.SEQ_NAME_SEP
+            seq_name = f"{smp}_C{(i//2)+1}{ref_sep}{clr}{seq_sep}{ctg}"
+            fasta_to_recluster[seq_name] = {
+                "sequence": cluster[i+1],
+                "description": "",
+            }
         num_cluster += 1
-
-        # Make new names for a reference file for a Captus' miscellaneous DNA extraction:
-        # >sample_name-marker_name
-        new_header = (
-            f"{rep_seq_filtered[i].split(settings.SEQ_NAME_SEP)[0]}"
-            f"{settings.REFERENCE_CLUSTER_SEPARATOR}captus_{num_cluster:0{num_digits}}"
-        )
-
-        # Record new and old header in 'names_equivalence_file'
-        new_names.append(f"{new_header[1:]}\t{rep_seq_filtered[i][1:]}")
-
-        # Replace the header before writing the FASTA reference
-        rep_seq_filtered[i] = new_header
-
-    # Save a list of new reference names and their respective original sequence names
-    names_equivalence_file = Path(f"{clust_prefix}_original_names.tsv")
-    with open(names_equivalence_file, "w") as names_out:
-        names_out.write("\n".join(new_names))
-
-    # Save the new reference file
-    captus_clusters_file = Path(f"{clust_prefix}_captus_clusters_refs.fasta")
-    with open(captus_clusters_file, "w") as reps_out:
-        reps_out.write("\n".join(rep_seq_filtered))
-    p1 = "Created new reference file for a miscellaneous DNA marker extraction:"
-    p2 = bold(f" \u2514\u2500\u2192 {captus_clusters_file}")
-    log.log(f"{p1}\n{p2}")
-    return captus_clusters_file
+    clust2_input_fasta = Path(clustering_dir, f"{clust1_prefix}_passed.fasta")
+    dict_to_fasta(fasta_to_recluster, clust2_input_fasta)
+    Path(clustering_dir, f"{clust1_prefix}_all_seqs.fasta").unlink()
+    Path(clustering_dir, f"{clust1_prefix}_rep_seq.fasta").unlink()
+    Path(clustering_dir, f"{clust1_prefix}_cluster.tsv").unlink()
+    log.log(bold(
+        f" \u2514\u2500\u2192 Clusters retained: {len(passed)} [{elapsed_time(time.time() - start)}]"
+    ))
+    log.log(dim(
+        f"     Filtered out {singletons+failed} clusters, of which {singletons} were singletons"
+    ))
+    log.log(dim(
+        f"     Retained sequences written to {clust2_input_fasta}"
+    ))
+    log.log("")
+    min_id2 = min(min_identity + ((100 - min_identity) / 2), min_identity + 1)
+    log.log(bold(f"Reducing passing clusters by re-clustering at {min_id2}% identity:"))
+    clust2_prefix = f"cl{min_id2:.2f}_cov{min_coverage:.2f}"
+    clust2_message = mmseqs2_cluster(mmseqs2_path, mmseqs2_method, clustering_dir,
+                                     clust2_input_fasta, clust2_prefix, clust_tmp_dir,
+                                     min_id2, seq_id_mode, min_coverage, cov_mode,
+                                     cluster_mode, threads)
+    log.log(clust2_message)
+    log.log("")
+    log.log(bold(f"Selecting final cluster representatives:"))
+    start = time.time()
+    clust2_all_seqs_file = Path(clustering_dir, f"{clust2_prefix}_all_seqs.fasta")
+    clust2_clusters = split_mmseqs_clusters_file(clust2_all_seqs_file)
+    cluster_refs = {}
+    min_samples_in_cluster = max(1, math.ceil(num_samples * settings.CLR_REP_MIN_SAMPLE_PROP))
+    tqdm_cols = min(shutil.get_terminal_size().columns, 120)
+    with tqdm(total=len(clust2_clusters), ncols=tqdm_cols, unit="cluster") as pbar:
+        for cluster in clust2_clusters:
+            samples_in_cluster = len(set([
+                "_C".join(cluster[i][1:].split(settings.SEQ_NAME_SEP)[0].split("_C")[:-1])
+                for i in range(0, len(cluster), 2)
+            ]))
+            h = cluster[0][1:].split(settings.SEQ_NAME_SEP)
+            seq_name = h[0]
+            clr = seq_name.split(settings.REFERENCE_CLUSTER_SEPARATOR)[-1]
+            size = len(cluster) // 2
+            seq = cluster[1]
+            desc = f"[cluster_size={size}] [contig={h[1]}]"
+            if (len(seq) / cluster_lenghts[clr] >= settings.CLR_REP_MIN_LEN_PROP
+                and samples_in_cluster >= min_samples_in_cluster):
+                if clr not in cluster_refs:
+                    cluster_refs[clr] = {
+                        seq_name: {
+                            "sequence": seq,
+                            "description": desc,
+                        }
+                    }
+                else:
+                    cluster_refs[clr][seq_name] = {
+                        "sequence": seq,
+                        "description": desc,
+                    }
+            pbar.update()
+    cluster_refs_fasta = Path(clustering_dir, f"{clust1_prefix}_captus_cluster_refs.fasta")
+    for clr in sorted(cluster_refs):
+        dict_to_fasta(cluster_refs[clr], cluster_refs_fasta, append=True)
+    Path(clustering_dir, f"{clust2_prefix}_all_seqs.fasta").unlink()
+    Path(clustering_dir, f"{clust2_prefix}_rep_seq.fasta").unlink()
+    Path(clustering_dir, f"{clust2_prefix}_cluster.tsv").unlink()
+    shutil.rmtree(clust_tmp_dir, ignore_errors=True)
+    msg_p1 = bold(f" \u2514\u2500\u2192 Reference saved to {cluster_refs_fasta}")
+    msg_p2 = bold(f" [{elapsed_time(time.time() - start)}]")
+    log.log(f"{msg_p1}{msg_p2}")
+    log.log("")
+    compress_list_files([clustering_input_file, clust2_input_fasta], threads)
+    return cluster_refs_fasta
 
 
 def collect_ext_stats(out_dir):
@@ -2010,29 +2215,3 @@ def collect_ext_stats(out_dir):
                         if line != header:
                             tsv_out.write(line)
         return stats_file_out
-
-
-def cleanup_clustering_dir(clustering_dir, clust_prefix, clust_tmp_dir, threads, keep_all):
-    """
-    Erase junk, compress big files
-    """
-    shutil.rmtree(clust_tmp_dir, ignore_errors=True)
-    f_all_seqs = Path(f"{clust_prefix}_all_seqs.fasta")
-    f_captus_refs = Path(f"{clust_prefix}_captus_clusters_refs.fasta")
-    f_cluster_tsv = Path(f"{clust_prefix}_cluster.tsv")
-    f_failed = Path(f"{clust_prefix}_failed.fasta")
-    f_original_names = Path(f"{clust_prefix}_original_names.tsv")
-    f_passed = Path(f"{clust_prefix}_passed.fasta")
-    f_rep_seq = Path(f"{clust_prefix}_rep_seq.fasta")
-    f_singletons = Path(f"{clust_prefix}_singletons.fasta")
-    f_cluster_input = Path(clustering_dir, "clustering_input.fasta")
-    files_to_compress = [f_failed, f_passed, f_singletons]  # Don't compress 'f_captus_refs' for now
-    files_to_delete = [f_all_seqs, f_cluster_tsv, f_rep_seq, f_cluster_input]
-    if keep_all:
-        files_to_compress += files_to_delete
-    else:
-        for f_del in files_to_delete:
-            if f_del.exists():
-                f_del.unlink()
-    compress_list_files(files_to_compress, threads)
-
