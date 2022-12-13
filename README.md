@@ -21,13 +21,14 @@ channels:
   - defaults
 ```
 
-`conda` sometimes takes too long to find and configure dependencies, we recommend installing `mamba` first:
-```bash
-conda install mamba
-```
-
 Now we are ready to create a separate environment for Captus:
 ```bash
+conda create -n captus -c bioconda captus
+```
+
+`conda` sometimes takes too long to find and configure dependencies, if that happens we recommend installing `mamba` first, and installing `Captus` with it:
+```bash
+conda install mamba
 mamba create -n captus -c bioconda captus
 ```
 
@@ -41,7 +42,7 @@ And if the program was correctly installed you will see the main help page of Ca
 ```text
 usage: captus_assembly command [options]
 
-Captus 0.9.89: Assembly of Phylogenomic Datasets from High-Throughput Sequencing data
+Captus 0.9.90: Assembly of Phylogenomic Datasets from High-Throughput Sequencing data
 
 Captus-assembly commands:
   command     Program commands (in typical order of execution)
