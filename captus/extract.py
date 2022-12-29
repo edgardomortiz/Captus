@@ -35,7 +35,8 @@ from .misc import (ElapsedTimeThread, bioperl_get_version, blat_path_version, bo
                    format_dep_msg, has_valid_ext, make_output_dir, make_tmp_dir_within,
                    mmseqs_path_version, python_library_check, quit_with_error, red,
                    remove_formatting, scipio_path_version, set_ram, set_threads, successful_exit,
-                   tqdm_parallel_async_run, tqdm_serial_run, yaml_perl_get_version)
+                   tqdm_parallel_async_run, tqdm_parallel_nested_run, tqdm_serial_run,
+                   yaml_perl_get_version)
 from .version import __version__
 
 
@@ -460,8 +461,8 @@ def extract(full_command, args):
                     tqdm_serial_run(scipio_coding, scipio_params, d_msg, f_msg,
                                     "extraction", args.show_less)
                 else:
-                    tqdm_parallel_async_run(scipio_coding, scipio_params, d_msg, f_msg,
-                                            "extraction", prot_concurrent, args.show_less)
+                    tqdm_parallel_nested_run(scipio_coding, scipio_params, d_msg, f_msg,
+                                             "extraction", prot_concurrent, args.show_less)
                 log.log("")
 
             if blat_params:

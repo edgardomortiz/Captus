@@ -618,7 +618,7 @@ def align(full_command, args):
         )
         reclaimed_bytes = 0
         files_to_delete = list(out_dir.resolve().rglob("*.mafft.log"))
-        files_to_delete = list(out_dir.resolve().rglob("*.muscle.log"))
+        files_to_delete += list(out_dir.resolve().rglob("*.muscle.log"))
         files_to_delete += list(out_dir.resolve().rglob("*.clipkit.log"))
         for del_file in files_to_delete:
             reclaimed_bytes += del_file.stat().st_size

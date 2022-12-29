@@ -15,6 +15,7 @@ not, see <http://www.gnu.org/licenses/>.
 
 import argparse
 import importlib
+import multiprocessing
 import os
 import platform
 import re
@@ -117,6 +118,35 @@ def tqdm_parallel_async_run(
     """
     Run a function in parallel asynchronous mode updating a tqdm progress bar
     Keep in mind that the function referred as 'function_name' cannot be nested within another
+    """
+    def update(function_message):
+        log.log(function_message, print_to_screen=False)
+        if not show_less:
+            tqdm.write(function_message)
+        pbar.update()
+
+    start = time.time()
+    log.log(bold(f"{description_msg}:"))
+    process = multiprocessing.Pool(threads)
+    tqdm_cols = min(shutil.get_terminal_size().columns, 120)
+    pbar = tqdm(total=len(params_list), ncols=tqdm_cols, unit=unit)
+    for i in range(pbar.total):
+        process.apply_async(function, params_list[i], callback=update)
+    process.close()
+    process.join()
+    pbar.close()
+    log.log(bold(
+        f" \u2514\u2500\u2192 {finished_msg} for {len(params_list)} {unit}(s)"
+        f" [{elapsed_time(time.time() - start)}]"
+    ))
+
+
+def tqdm_parallel_nested_run(
+    function, params_list, description_msg, finished_msg, unit, threads, show_less=False
+    ):
+    """
+    Run a function in parallel allowing children processes to span their own
+    parallel processes
     """
     start = time.time()
     log.log(bold(f"{description_msg}:"))
