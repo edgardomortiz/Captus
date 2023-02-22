@@ -373,7 +373,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         ),
         barmode="overlay",
         bargap=0,
-        bargroupgap=0.1,
+        bargroupgap=0.05,
         legend_tracegroupgap=0,
         height=180 + 15 * len(sample_list),
         plot_bgcolor="rgb(8,8,8)",
@@ -467,7 +467,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                 ]),
                 coloraxis="coloraxis",
                 hoverongaps=False,
-                ygap=0.75,
+                ygap=1,
             ),
             row=1,
             col=1,
@@ -491,7 +491,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                 ]),
                 coloraxis="coloraxis",
                 hoverongaps=False,
-                ygap=0.75,
+                ygap=1,
             ),
             row=1,
             col=2,
@@ -518,15 +518,9 @@ def build_qc_report(out_dir, qc_extras_dir):
                 ]),
                 coloraxis="coloraxis",
                 hoverongaps=False,
-                ygap=0.75,
+                ygap=1,
             )
         )
-
-    # Draw boundaries between samples
-    y = 1.5
-    while y < (len(sample_list) - 1) * 2:
-        fig.add_hline(y=y, line_width=2, line_color="rgb(8,8,8)")
-        y += 2
 
     buttons = []
     for var, lab in zip(var_list, var_lab_list):
@@ -661,7 +655,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                               "Proportion: <b>%{z:.2f}%</b><br>" +
                               "Count: <b>%{customdata[4]:,.0f} reads</b><extra></extra>",
                 hoverongaps=False,
-                ygap=0.75,
+                ygap=1,
             ),
             row=1,
             col=1,
@@ -679,7 +673,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                               "Proportion: <b>%{z:.2f}%</b><br>" +
                               "Count: <b>%{customdata[4]:,.0f} reads</b><extra></extra>",
                 hoverongaps=False,
-                ygap=0.75,
+                ygap=1,
             ),
             row=1,
             col=2,
@@ -700,15 +694,9 @@ def build_qc_report(out_dir, qc_extras_dir):
                               "Proportion: <b>%{z:.2f}%</b><br>" +
                               "Count: <b>%{customdata[4]:,.0f} reads</b><extra></extra>",
                 hoverongaps=False,
-                ygap=0.75,
+                ygap=1,
             )
         )
-
-    # Draw boundaries between samples
-    y = 1.5
-    while y < (len(sample_list) - 1) * 2:
-        fig.add_hline(y=y, line_width=2, line_color="rgb(8,8,8)")
-        y += 2
 
     fig.update_layout(
         font_family="Arial",
@@ -841,7 +829,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                               "Proportion: <b>%{z:.2f}%</b><br>" +
                               "Count: <b>%{customdata[4]:,.0f} reads</b><extra></extra>",
                 hoverongaps=False,
-                ygap=2,
+                ygap=1,
             ),
             row=1,
             col=1,
@@ -859,7 +847,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                               "Proportion: <b>%{z:.2f}%</b><br>" +
                               "Count: <b>%{customdata[4]:,.0f} reads</b><extra></extra>",
                 hoverongaps=False,
-                ygap=2,
+                ygap=1,
             ),
             row=1,
             col=2,
@@ -880,15 +868,9 @@ def build_qc_report(out_dir, qc_extras_dir):
                               "Proportion: <b>%{z:.2f}%</b><br>" +
                               "Count: <b>%{customdata[4]:,.0f} reads</b><extra></extra>",
                 hoverongaps=False,
-                ygap=2,
+                ygap=1,
             )
         )
-
-    # Draw boundaries between samples
-    y = 1.5
-    while y < (len(sample_list) - 1) * 2:
-        fig.add_hline(y=y, line_width=2, line_color="rgb(8,8,8)")
-        y += 2
 
     fig.update_layout(
         font_family="Arial",
@@ -937,28 +919,20 @@ def build_qc_report(out_dir, qc_extras_dir):
     ### Per Base Nucleotide Content ###
     df = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["PBSC"]))
     df["stage"] = df["stage"].str.capitalize()
-    df_pivot = df.pivot(
-        index=["sample_name", "stage"],
-        columns=["read", "base"]
-    ).reset_index()
-    df = df_pivot.melt(
-        id_vars=["sample_name", "stage"],
-        var_name=["nuc", "read", "base"],
-        value_name="pct",
-    )
-    order = {
-        "A": 0,
-        "T": 1,
-        "G": 2,
-        "C": 3,
+
+    color_dict = {
+        "A": "#DD2000",
+        "T": "#36B4F5",
+        "C": "#25FE5B",
+        "G": "#FBFF00",
     }
-    df["nuc_order"] = df["nuc"].map(order)
-    df.sort_values(
-        by=["sample_name", "stage", "base", "nuc_order"],
-        ascending=[True, False, True, True],
-        inplace=True,
-    )
-    df["stage-nuc"] = df["stage"] + " - " + df["nuc"]
+    hovertemplate = "<br>".join(["<b>%{y}</b>",
+        "Position: <b>%{x} bp</b>",
+        "A: <b>%{customdata[5]:.2f}%</b>",
+        "T: <b>%{customdata[6]:.2f}%</b>",
+        "G: <b>%{customdata[4]:.2f}%</b>",
+        "C: <b>%{customdata[7]:.2f}%</b><extra></extra>",
+    ])
 
     # For paired-end
     if "R2" in df["read"].to_list():
@@ -971,69 +945,87 @@ def build_qc_report(out_dir, qc_extras_dir):
             horizontal_spacing=0.02,
             subplot_titles=["Read 1", "Read 2"],
         )
-        # Read 1
-        fig.add_trace(
-            go.Heatmap(
-                x=df_R1["base"],
-                y=[df_R1["sample_name"], df_R1["stage-nuc"]],
-                z=df_R1["pct"],
-                name="Read 1",
-                coloraxis="coloraxis",
-                hovertemplate="<b>%{y}</b><br>" +
-                              "Position: <b>%{x} bp</b><br>" +
-                              "Proportion: <b>%{z:.2f}%</b><extra></extra>",
-                hoverongaps=False,
-                ygap=0.25,
-            ),
-            row=1,
-            col=1,
-        )
-        # Read 2
-        fig.add_trace(
-            go.Heatmap(
-                x=df_R2["base"],
-                y=[df_R2["sample_name"], df_R2["stage-nuc"]],
-                z=df_R2["pct"],
-                name="Read 2",
-                coloraxis="coloraxis",
-                hovertemplate="<b>%{y}</b><br>" +
-                              "Position: <b>%{x} bp</b><br>" +
-                              "Proportion: <b>%{z:.2f}%</b><extra></extra>",
-                hoverongaps=False,
-                ygap=0.25,
-            ),
-            row=1,
-            col=2,
-        )
+        for N in ["A", "T", "G", "C"]:
+            # Read 1
+            fig.add_trace(
+                go.Heatmap(
+                    x=df_R1["base"],
+                    y=[df_R1["sample_name"], df_R1["stage"]],
+                    z=df_R1[N],
+                    zmin=0,
+                    zmax=100,
+                    colorscale=[
+                        [0, "rgba(255,255,255,0)"],
+                        [1, color_dict[N]],
+                    ],
+                    showscale=False,
+                    hoverinfo="skip" if N == "C" else None,
+                    customdata=df_R1 if N == "C" else None,
+                    hovertemplate=hovertemplate,
+                    hoverongaps=False,
+                    ygap=1,
+                ),
+                row=1,
+                col=1,
+            )
+            # Read 2
+            fig.add_trace(
+                go.Heatmap(
+                    x=df_R2["base"],
+                    y=[df_R2["sample_name"], df_R2["stage"]],
+                    z=df_R2[N],
+                    zmin=0,
+                    zmax=100,
+                    colorscale=[
+                        [0, "rgba(255,255,255,0)"],
+                        [1, color_dict[N]],
+                    ],
+                    showscale=False,
+                    hoverinfo="skip" if N == "C" else None,
+                    customdata=df_R2 if N == "C" else None,
+                    hovertemplate=hovertemplate,
+                    hoverongaps=False,
+                    ygap=1,
+                ),
+                row=1,
+                col=2,
+            )
 
     # For single-end
     else:
-        fig = go.Figure()
+        for N in ["A", "T", "G", "C"]:
+            fig = go.Figure()
+            fig.add_trace(
+                go.Heatmap(
+                    x=df["base"],
+                    y=[df["sample_name"], df["stage"]],
+                    z=df[N],
+                    zmin=0,
+                    zmax=100,
+                    colorscale=[
+                        [0, "rgba(255,255,255,0)"],
+                        [1, color_dict[N]],
+                    ],
+                    showscale=False,
+                    hoverinfo="skip" if N == "C" else None,
+                    customdata=df if N == "C" else None,
+                    hovertemplate=hovertemplate,
+                    hoverongaps=False,
+                    ygap=1,
+                )
+            )
+
+    for N in ["A", "T", "G", "C"]:
         fig.add_trace(
-            go.Heatmap(
-                x=df["base"],
-                y=[df["sample_name"], df["stage-nuc"]],
-                z=df["pct"],
-                coloraxis="coloraxis",
-                hovertemplate="<b>%{y}</b><br>" +
-                              "Position: <b>%{x} bp</b><br>" +
-                              "Proportion: <b>%{z:.2f}%</b><extra></extra>",
-                hoverongaps=False,
-                ygap=0.25,
+            go.Bar(
+                x=[None],
+                y=[None],
+                name=N,
+                marker_color=color_dict[N],
+                marker_line_color="rgb(8,8,8)",
+                marker_line_width=0.25,
             )
         )
-
-    # Draw boundaries between stages
-    y = 3.5
-    while y < (len(sample_list)) * 8:
-        fig.add_hline(y=y, line_width=0.75, line_color="rgb(8,8,8)")
-        y += 8
-
-    # Draw boundaries between samples
-    y = 7.5
-    while y < (len(sample_list) - 1) * 8:
-        fig.add_hline(y=y, line_width=2, line_color="rgb(8,8,8)")
-        y += 8
 
     fig.update_layout(
         font_family="Arial",
@@ -1043,22 +1035,11 @@ def build_qc_report(out_dir, qc_extras_dir):
             + settings_assembly.QC_FILES["PBSC"]
             + ")</sup>"
         ),
-        yaxis=dict(title="Sample - Stage - Nucleotide"),
-        coloraxis=dict(
-            colorscale="Spectral_r",
-            colorbar=dict(
-                title="Proportion",
-                lenmode="pixels",
-                len=200,
-                outlinecolor="rgb(8,8,8)",
-                outlinewidth=1,
-                ticks="outside",
-                ticksuffix="%",
-                yanchor="top" if len(sample_list) > 1 else "middle",
-                y=1 if len(sample_list) > 1 else 0.5,
-            )
+        yaxis=dict(title="Sample - Stage"),
+        legend=dict(
+            title_text="Nucleotide",
         ),
-        height=270 + 120 * len(sample_list),
+        height=180 + 30 * len(sample_list),
         plot_bgcolor="rgb(8,8,8)",
     )
     fig.update_xaxes(
@@ -1121,7 +1102,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                               "GC Content: <b>%{x}%</b><br>" +
                               "Proportion: <b>%{z:.2f}%</b><extra></extra>",
                 hoverongaps=False,
-                ygap=0.75,
+                ygap=1,
             ),
             row=1,
             col=1,
@@ -1137,7 +1118,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                               "GC Content: <b>%{x}%</b><br>" +
                               "Proportion: <b>%{z:.2f}%</b><extra></extra>",
                 hoverongaps=False,
-                ygap=0.75,
+                ygap=1,
             ),
             row=1,
             col=2,
@@ -1156,15 +1137,9 @@ def build_qc_report(out_dir, qc_extras_dir):
                               "GC Content: <b>%{x}%</b><br>" +
                               "Proportion: <b>%{z:.2f}%</b><extra></extra>",
                 hoverongaps=False,
-                ygap=0.75,
+                ygap=1,
             )
         )
-
-    # Draw boundaries between samples
-    y = 1.5
-    while y < (len(sample_list) - 1) * 2:
-        fig.add_hline(y=y, line_width=2, line_color="rgb(8,8,8)")
-        y += 2
 
     fig.update_layout(
         font_family="Arial",
@@ -1311,12 +1286,6 @@ def build_qc_report(out_dir, qc_extras_dir):
                 )
             )
 
-    # Draw boundaries between samples
-    y = 1.5
-    while y < (len(sample_list) - 1) * 2:
-        fig.add_hline(y=y, line_width=2, line_color="rgb(8,8,8)")
-        y += 2
-
     fig.update_layout(
         font_family="Arial",
         title_text=(
@@ -1328,7 +1297,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         yaxis=dict(title="Sample - Stage"),
         barmode="stack",
         bargap=0,
-        bargroupgap=0.0375,
+        bargroupgap=0.05,
         height=180 + 30 * len(sample_list),
         legend=dict(title="Duplication<br>Level", tracegroupgap=0),
         plot_bgcolor="rgb(8,8,8)",
@@ -1398,7 +1367,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                 customdata=df_R1,
                 hovertemplate=hovertemplate,
                 hoverongaps=False,
-                ygap=0.75,
+                ygap=1,
             ),
             row=1,
             col=1,
@@ -1414,7 +1383,7 @@ def build_qc_report(out_dir, qc_extras_dir):
                 customdata=df_R2,
                 hovertemplate=hovertemplate,
                 hoverongaps=False,
-                ygap=0.75,
+                ygap=1,
             ),
             row=1,
             col=2,
@@ -1432,15 +1401,9 @@ def build_qc_report(out_dir, qc_extras_dir):
                 customdata=df,
                 hovertemplate=hovertemplate,
                 hoverongaps=False,
-                ygap=0.75,
+                ygap=1,
             )
         )
-
-    # Draw boundaries between samples
-    y = 1.5
-    while y < (len(sample_list) - 1) * 2:
-        fig.add_hline(y=y, line_width=2, line_color="rgb(8,8,8)")
-        y += 2
 
     fig.update_layout(
         font_family="Arial",
