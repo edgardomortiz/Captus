@@ -157,10 +157,11 @@ For more details, read [<i class="fab fa-readme"></i> FastQC documentation](http
 ### 6. Per Base Nucleotide Content
 
 This plot shows the composition of each nucleotide (A, T, G, C) at each position in the reads before and after cleaning.  
+If a particular nucleotide is overrepresented at a certain position in the reads, you will see the color corresponding to that nucleotide; otherwise, the plot will be a uniform grayish color.  
 For more details, read [<i class="fab fa-readme"></i> FastQC documentation](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/3%20Analysis%20Modules/4%20Per%20Base%20Sequence%20Content.html).
 {{< tabs groupId="Per Base Nucleotide Content" >}}
 {{% tab name="Captus" %}}
-{{< plotly json="/captus.docs/plotly/cleaning_report_per_base_seq_content.json" height="750px" >}}
+{{< plotly json="/captus.docs/plotly/cleaning_report_per_base_seq_content.json" height="300px" >}}
 {{% /tab %}}
 {{% tab name="FastQC" %}}
 ![fastqc_per_base_sequence_content](/captus.docs/images/fastqc_per_base_sequence_content.png?height=300px)
@@ -220,4 +221,4 @@ For more details, read [<i class="fab fa-readme"></i> FastQC documentation](http
 
 ---
 Created by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (11.08.2021)  
-Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (16.09.2022)
+Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (22.02.2023)
