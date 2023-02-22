@@ -209,7 +209,7 @@ class CaptusAssembly(object):
                 "FastQC",
                 "Falco",
             ],
-            default="Falco",
+            default="FastQC",
             type=str,
             dest="qc_program",
             help="Which program to use to obtain the statistics from the raw and cleaned FASTQ files."

@@ -103,7 +103,7 @@ ___
 ___
 ### **`-p, --ptd_refs`**
 The reference set of plastidial proteins to search and extract from the assemblies. The options available are:
-- `SeedPlantsPTD` = We curated a set of chloroplast proteins that spans all Seed Plants.
+- `SeedPlantsPTD` = Curated set of chloroplast proteins that spans all Seed Plants.
 - Alternatively, you can provide the path to a FASTA file (e.g. `-p my_refs/my_plastome_prots.fa`) that includes your own coding references either in nucleotide or aminoacid.
 
 If you provide a nucleotide file, please also specify the translation table to be used, otherwise `Captus` will translate it using `--ptd_transtable 11`, the "Bacterial, Archaeal and Plant Plastid code". See the [complete list of translation tables](https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi).
@@ -134,7 +134,8 @@ ___
 ___
 ### **`-m, --mit_refs`**
 The reference set of mitochondrial proteins to search and extract from the assemblies. The options available are:
-- `SeedPlantsMIT` = We curated a set of mitochondrial proteins that spans all Seed Plants.
+- `SeedPlantsMIT` = Curated set of mitochondrial proteins that spans all Seed Plants.
+- `InvertebratesMIT` = Curated set of mitochondrial proteins that spans all Invertebrates (Arthropods, Molluscs, and Nematodes), uses translation table 5.
 - Alternatively, you can provide the path to a FASTA file (e.g. `-p my_refs/my_mitome_prots.fa`) that includes your own coding references either in nucleotide or aminoacid.
 
 If you provide a nucleotide file, please also specify the translation table to be used, otherwise `Captus` will translate it using `--mit_transtable 1`, the "Standard code" which is the genetic code used by plant mitochondria. See the [complete list of translation tables](https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi).
@@ -268,4 +269,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (31.05.2022)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (23.02.2023)

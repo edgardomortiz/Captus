@@ -17,11 +17,14 @@ import copy
 import gzip
 import math
 import re
+import shutil
 import statistics
 import sys
 import urllib
+from pathlib import Path
 
 from . import settings_assembly as set_a
+from .misc import gzip_compress, pigz_compress
 
 # Regular expression to match MEGAHIT headers assembled within Captus
 CAPTUS_MEGAHIT_HEADER_REGEX = r'^NODE_\d+_length_\d+_cov_\d+\.\d+_k_\d{2,3}_flag_\d'
@@ -885,17 +888,15 @@ def dict_to_fasta(
     """
     Saves a `in_fasta_dict` from function `fasta_to_dict()` as a FASTA file to `out_fasta_path`
     """
+    compress = False
     if f"{out_fasta_path}".endswith(".gz"):
-        opener = gzip.open
-    else:
-        opener = open
-    if append is True:
-        action = "at"
-    else:
-        action = "wt"
+        compress = True
+        out_fasta_path = Path(f"{out_fasta_path}".strip(".gz"))
+    action = "wt"
+    if append is True: action = "at"
     if in_fasta_dict:
         if sort: in_fasta_dict = dict(sorted(in_fasta_dict.items(), key=lambda x: x[0]))
-        with opener(out_fasta_path, action) as fasta_out:
+        with open(out_fasta_path, action) as fasta_out:
             for name in in_fasta_dict:
                 header = f'>{name} {in_fasta_dict[name]["description"]}'.strip()
                 seq = in_fasta_dict[name]["sequence"]
@@ -906,8 +907,15 @@ def dict_to_fasta(
                 fasta_out.write(f'{header}\n{seq_out}\n')
     else:
         if write_if_empty:
-            with opener(out_fasta_path, action) as fasta_out:
+            with open(out_fasta_path, action) as fasta_out:
                 fasta_out.write("")
+    if out_fasta_path.exists() and compress is True:
+        if shutil.which("pigz"):
+            pigz_compress(out_fasta_path, 2)
+        elif shutil.which("gzip"):
+            gzip_compress(out_fasta_path)
+        out_fasta_path_gz = Path(out_fasta_path.parent, f"{out_fasta_path.name}.gz")
+        if out_fasta_path_gz.exists(): out_fasta_path = out_fasta_path_gz
     return out_fasta_path
 
 
