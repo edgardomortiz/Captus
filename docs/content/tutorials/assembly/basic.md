@@ -16,7 +16,7 @@ This basic tutorial takes you through **the minimal but most general workflow** 
 To run this tutorial, you need to install the following programs on your system:
 
 - `Captus` and its dependencies (see [<i class="fab fa-readme"></i> Installation]({{< ref "basics/installation">}}))
-- `IQ-TREE` (see [<i class="fab fa-readme"></i> IQ-TREE documentation](http://www.iqtree.org/doc/Quickstart#installation))
+- `IQ-TREE` version 2.0 or higher (see [<i class="fab fa-readme"></i> IQ-TREE documentation](http://www.iqtree.org/doc/Quickstart#installation))
 
 If `conda` [<i class="fas fa-question-circle fa-sm"></i>](https://conda.io/en/latest/index.html#) command is available, you can take the easiest way.  
 Simply run the two commands below to set up and activate an environment:
@@ -184,4 +184,4 @@ To get the most out of this pipeline, such as integrating different data types a
 
 ---
 Created by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (01.10.2021)  
-Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (10.11.2022)
+Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (22.02.2023)
