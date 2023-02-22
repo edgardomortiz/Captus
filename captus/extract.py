@@ -206,6 +206,13 @@ def extract(full_command, args):
                 "'--captus_assemblies_dir' and/or '--fastas' argument"
             )
 
+        if args.nuc_refs.lower() in settings.PROT_REFS["NUC"]:
+            args.nuc_transtable = settings.PROT_REFS["NUC"][args.nuc_refs.lower()]["transtable"]
+        if args.ptd_refs.lower() in settings.PROT_REFS["PTD"]:
+            args.ptd_transtable = settings.PROT_REFS["PTD"][args.ptd_refs.lower()]["transtable"]
+        if args.mit_refs.lower() in settings.PROT_REFS["MIT"]:
+            args.mit_transtable = settings.PROT_REFS["MIT"][args.mit_refs.lower()]["transtable"]
+
         protein_refs = prepare_protein_refs(args.nuc_refs,
                                             args.ptd_refs,
                                             args.mit_refs,
@@ -1903,12 +1910,11 @@ def cleanup_post_extraction(
                         names_hit_contigs.append(line.strip("\n"))
         all_contigs = fasta_to_dict(assembly_path)
         hit_contigs = {}
-        leftover_contigs = {}
+        leftover_contigs = dict(all_contigs)
         for contig_name in all_contigs:
             if contig_name in names_hit_contigs:
                 hit_contigs[contig_name] = dict(all_contigs[contig_name])
-            else:
-                leftover_contigs[contig_name] = dict(all_contigs[contig_name])
+                del leftover_contigs[contig_name]
         dict_to_fasta(hit_contigs, hit_contigs_file, wrap=80)
         if cluster:
             dict_to_fasta(leftover_contigs, leftovers_clust_file, wrap=80, write_if_empty=True)

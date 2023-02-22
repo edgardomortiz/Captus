@@ -237,11 +237,13 @@ PROT_REFS = {
         "angiosperms353": {
             "AA": Path(DATA_DIR, "Angiosperms353.FAA"),
             "NT": Path(DATA_DIR, "Angiosperms353.FNA"),
+            "transtable": 1,
             "notes": "Clustered at 0.98 identity and 0.1 coverage with mmseqs2, isolated Xs removed",
         },
         "mega353": {
             "AA": Path(DATA_DIR, "Mega353.FAA"),
             "NT": Path(DATA_DIR, "Mega353.FNA"),
+            "transtable": 1,
             "notes": "Clustered at 0.78 identity and 0.1 coverage with mmseqs2, isolated Xs removed",
         },
     },
@@ -249,12 +251,19 @@ PROT_REFS = {
         "seedplantsptd": {
             "AA": Path(DATA_DIR, "SeedPlantsPTD.FAA"),
             "NT": Path(DATA_DIR, "SeedPlantsPTD.FNA"),
+            "transtable": 11,
         },
     },
     "MIT": {
         "seedplantsmit": {
             "AA": Path(DATA_DIR, "SeedPlantsMIT.FAA"),
             "NT": Path(DATA_DIR, "SeedPlantsMIT.FNA"),
+            "transtable": 1,
+        },
+        "invertebratesmit": {
+            "AA": Path(DATA_DIR, "InvertebratesMIT.FAA"),
+            "NT": Path(DATA_DIR, "InvertebratesMIT.FNA"),
+            "transtable": 5,
         },
     }
 }
