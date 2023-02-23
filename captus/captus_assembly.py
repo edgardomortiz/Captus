@@ -774,7 +774,6 @@ class CaptusAssembly(object):
             dest="mit_refs",
             help="B|Set of mitochondrial protein references, options are:\n"
                  "SeedPlantsMIT = A set of mitochondrial proteins for Seed Plants, curated by us\n"
-                 "InvertebratesMIT = A set of mitochondrial proteins for Invertebrates, curated by us\n"
                  "Alternatively, provide a path to a FASTA file containing your reference protein"
                  " sequences in either nucleotide or aminoacid. When the FASTA file is in"
                  " nucleotides, '--mit_transtable' will be used to translate it to aminoacids"
