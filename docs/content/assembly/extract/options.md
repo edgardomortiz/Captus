@@ -103,7 +103,7 @@ ___
 ___
 ### **`-p, --ptd_refs`**
 The reference set of plastidial proteins to search and extract from the assemblies. The options available are:
-- `SeedPlantsPTD` = Curated set of chloroplast proteins that spans all Seed Plants.
+- `SeedPlantsPTD` = Set of chloroplast proteins that spans all Seed Plants (curated by us).
 - Alternatively, you can provide the path to a FASTA file (e.g. `-p my_refs/my_plastome_prots.fa`) that includes your own coding references either in nucleotide or aminoacid.
 
 If you provide a nucleotide file, please also specify the translation table to be used, otherwise `Captus` will translate it using `--ptd_transtable 11`, the "Bacterial, Archaeal and Plant Plastid code". See the [complete list of translation tables](https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi).
@@ -134,8 +134,7 @@ ___
 ___
 ### **`-m, --mit_refs`**
 The reference set of mitochondrial proteins to search and extract from the assemblies. The options available are:
-- `SeedPlantsMIT` = Curated set of mitochondrial proteins that spans all Seed Plants.
-- `InvertebratesMIT` = Curated set of mitochondrial proteins that spans all Invertebrates (Arthropods, Molluscs, and Nematodes), uses translation table 5.
+- `SeedPlantsMIT` = Set of mitochondrial proteins that spans all Seed Plants (curated by us).
 - Alternatively, you can provide the path to a FASTA file (e.g. `-p my_refs/my_mitome_prots.fa`) that includes your own coding references either in nucleotide or aminoacid.
 
 If you provide a nucleotide file, please also specify the translation table to be used, otherwise `Captus` will translate it using `--mit_transtable 1`, the "Standard code" which is the genetic code used by plant mitochondria. See the [complete list of translation tables](https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi).

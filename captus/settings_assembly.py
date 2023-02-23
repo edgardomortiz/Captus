@@ -260,11 +260,6 @@ PROT_REFS = {
             "NT": Path(DATA_DIR, "SeedPlantsMIT.FNA"),
             "transtable": 1,
         },
-        "invertebratesmit": {
-            "AA": Path(DATA_DIR, "InvertebratesMIT.FAA"),
-            "NT": Path(DATA_DIR, "InvertebratesMIT.FNA"),
-            "transtable": 5,
-        },
     }
 }
 
