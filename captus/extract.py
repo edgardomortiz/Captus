@@ -206,11 +206,11 @@ def extract(full_command, args):
                 "'--captus_assemblies_dir' and/or '--fastas' argument"
             )
 
-        if args.nuc_refs.lower() in settings.PROT_REFS["NUC"]:
+        if args.nuc_refs and args.nuc_refs.lower() in settings.PROT_REFS["NUC"]:
             args.nuc_transtable = settings.PROT_REFS["NUC"][args.nuc_refs.lower()]["transtable"]
-        if args.ptd_refs.lower() in settings.PROT_REFS["PTD"]:
+        if args.ptd_refs and args.ptd_refs.lower() in settings.PROT_REFS["PTD"]:
             args.ptd_transtable = settings.PROT_REFS["PTD"][args.ptd_refs.lower()]["transtable"]
-        if args.mit_refs.lower() in settings.PROT_REFS["MIT"]:
+        if args.mit_refs and args.mit_refs.lower() in settings.PROT_REFS["MIT"]:
             args.mit_transtable = settings.PROT_REFS["MIT"][args.mit_refs.lower()]["transtable"]
 
         protein_refs = prepare_protein_refs(args.nuc_refs,
