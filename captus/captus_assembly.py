@@ -945,7 +945,7 @@ class CaptusAssembly(object):
         mmseqs2_group.add_argument(
             "--cl_max_copies",
             action="store",
-            default=6,
+            default=5,
             type=int,
             dest="cl_max_copies",
             help="Maximum average number of sequences per sample in a cluster. This can exclude loci"

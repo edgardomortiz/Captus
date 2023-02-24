@@ -249,7 +249,7 @@ ___
 ### **`--cl_max_copies`**
 Maximum average number of sequences per sample in a cluster. Helpful for excluding excessively paralogous loci.
 
-This argument is optional, the default is **6**.
+This argument is optional, the default is **5**.
 ___
 ### **`--cl_tmp_dir`**
 Path where to create the temporary directory for `MMseqs2`. Clustering can become slow when done on external drives, set this location to an internal drive.
