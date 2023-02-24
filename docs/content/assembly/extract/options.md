@@ -246,6 +246,11 @@ Minimum number of samples per cluster.
 
 This argument is optional, the default is **auto** (= 30% of the total number of samples or at least 4).
 ___
+### **`--cl_max_copies`**
+Maximum average number of copies per sample in a cluster. Helpful for excluding excessively paralogous loci.
+
+This argument is optional, the default is **6**.
+___
 ### **`--cl_tmp_dir`**
 Path where to create the temporary directory for `MMseqs2`. Clustering can become slow when done on external drives, set this location to an internal drive.
 
@@ -268,4 +273,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (23.02.2023)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (24.02.2023)
