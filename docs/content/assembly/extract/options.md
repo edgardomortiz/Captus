@@ -247,7 +247,7 @@ Minimum number of samples per cluster.
 This argument is optional, the default is **auto** (= 30% of the total number of samples or at least 4).
 ___
 ### **`--cl_max_copies`**
-Maximum average number of copies per sample in a cluster. Helpful for excluding excessively paralogous loci.
+Maximum average number of sequences per sample in a cluster. Helpful for excluding excessively paralogous loci.
 
 This argument is optional, the default is **6**.
 ___
