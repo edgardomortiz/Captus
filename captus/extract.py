@@ -571,6 +571,7 @@ def extract(full_command, args):
         log.log("")
         log.log(f'{"Min. locus length":>{mar}}: {bold(args.cl_rep_min_len)}')
         log.log(f'{"Min. samples per cluster":>{mar}}: {bold(cl_min_samples)}')
+        log.log(f'{"Max. avg. copies per sample":>{mar}}: {bold(args.cl_max_copies)}')
         log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
         log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
         log.log("")
@@ -595,7 +596,8 @@ def extract(full_command, args):
                                               clustering_input_file, args.cl_max_seq_len,
                                               min(settings.MAX_HDD_WRITE_INSTANCES, threads_max),
                                               args.show_less)
-            captus_cluster_refs = cluster_and_select_refs(num_samples, cl_min_samples, args.cl_rep_min_len,
+            captus_cluster_refs = cluster_and_select_refs(num_samples, cl_min_samples,
+                                                          args.cl_max_copies, args.cl_rep_min_len,
                                                           args.mmseqs2_path, args.mmseqs2_method,
                                                           args.cluster_mode, clustering_input_file,
                                                           clustering_dir, cl_min_identity,
@@ -2069,9 +2071,9 @@ def mmseqs2_cluster(
 
 
 def cluster_and_select_refs(
-        num_samples, clust_min_samples, clust_rep_min_len, mmseqs2_path, mmseqs2_method,
-        cluster_mode, clustering_input_file, clustering_dir, min_identity, seq_id_mode,
-        min_coverage, cov_mode, clust_tmp_dir, threads
+        num_samples, clust_min_samples, clust_max_copies, clust_rep_min_len, mmseqs2_path,
+        mmseqs2_method, cluster_mode, clustering_input_file, clustering_dir, min_identity,
+        seq_id_mode, min_coverage, cov_mode, clust_tmp_dir, threads
 ):
     log.log("")
     log.log(bold(f"Initial clustering of contigs at {min_identity}% identity:"))
@@ -2082,9 +2084,10 @@ def cluster_and_select_refs(
                                      cluster_mode, threads)
     log.log(clust1_message)
     log.log("")
-    msg_p1 = bold(f"Filtering clusters with less than {clust_min_samples} samples")
-    msg_p2 = bold(f" and centroids shorter than {clust_rep_min_len} bp:")
-    log.log(f"{msg_p1}{msg_p2}")
+    msg_p1 = bold(f"Filtering clusters with fewer than {clust_min_samples} samples,")
+    msg_p2 = bold(f" more than {clust_max_copies} copies in average,")
+    msg_p3 = bold(f" and with centroids shorter than {clust_rep_min_len} bp:")
+    log.log(f"{msg_p1}{msg_p2}{msg_p3}")
     start = time.time()
     clust1_all_seqs_file = Path(clustering_dir, f"{clust1_prefix}_all_seqs.fasta")
     clust1_clusters = split_mmseqs_clusters_file(clust1_all_seqs_file)
@@ -2097,11 +2100,13 @@ def cluster_and_select_refs(
             samples_in_cluster = len(set([
                 cluster[i][1:].split(settings.SEQ_NAME_SEP)[0] for i in range(0, len(cluster), 2)
             ]))
+            avg_copies_in_cluster = len(cluster) / 2 / samples_in_cluster
             if samples_in_cluster == 1:
                 singletons += 1
                 pbar.update()
                 continue
             elif (samples_in_cluster >= clust_min_samples
+                  and avg_copies_in_cluster > clust_max_copies
                   and len(cluster[1]) >= clust_rep_min_len):
                 passed.append(cluster)
                 pbar.update()

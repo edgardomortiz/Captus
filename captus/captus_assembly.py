@@ -943,6 +943,15 @@ class CaptusAssembly(object):
                  f" {settings.CLR_MIN_SAMPLE_PROP:.0%}% of the total number of samples or at least 4"
         )
         mmseqs2_group.add_argument(
+            "--cl_max_copies",
+            action="store",
+            default=6,
+            type=int,
+            dest="cl_max_copies",
+            help="Maximum average number of sequences per sample in a cluster. This can exclude loci"
+                 " that are extremely paralogous"
+        )
+        mmseqs2_group.add_argument(
             "--cl_tmp_dir",
             action="store",
             default="$HOME",
