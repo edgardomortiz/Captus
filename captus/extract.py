@@ -2106,7 +2106,7 @@ def cluster_and_select_refs(
                 pbar.update()
                 continue
             elif (samples_in_cluster >= clust_min_samples
-                  and avg_copies_in_cluster > clust_max_copies
+                  and avg_copies_in_cluster <= clust_max_copies
                   and len(cluster[1]) >= clust_rep_min_len):
                 passed.append(cluster)
                 pbar.update()
