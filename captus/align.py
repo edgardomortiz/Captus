@@ -786,10 +786,13 @@ def select_filtering_refs(refs_paths, markers, formats, method):
                                               "marker_dir": settings.MARKER_DIRS[marker],
                                               "format_dir": settings.FORMAT_DIRS["AA"]}
         if "MA" in formats:
-            if refs_paths["DNA"]["NT_path"]:
-                filtering_refs["DNA"] = {"path": refs_paths["DNA"]["NT_path"],
-                                         "marker_dir": settings.MARKER_DIRS["DNA"],
-                                         "format_dir": settings.FORMAT_DIRS["MA"]}
+            for marker in markers:
+                if (marker in ["DNA", "CLR"]
+                    and not marker in filtering_refs
+                    and refs_paths[marker]["NT_path"]):
+                    filtering_refs[marker] = {"path": refs_paths[marker]["NT_path"],
+                                            "marker_dir": settings.MARKER_DIRS[marker],
+                                            "format_dir": settings.FORMAT_DIRS["MA"]}
 
     return filtering_refs
 
@@ -916,9 +919,10 @@ def collect_extracted_markers(
             refs_paths["PTD"]["AA_path"], refs_paths["PTD"]["NT_path"],
             refs_paths["MIT"]["AA_path"], refs_paths["MIT"]["NT_path"],
             refs_paths["DNA"]["NT_path"], refs_paths["DNA"]["NT_path"],
+            refs_paths["CLR"]["NT_path"], refs_paths["CLR"]["NT_path"],
         ]
-        mrks = ["NUC", "NUC", "PTD", "PTD", "MIT", "MIT", "DNA", "DNA"]
-        fmts = ["AA", "NT", "AA", "NT", "AA", "NT", "MA", "MF"]
+        mrks = ["NUC", "NUC", "PTD", "PTD", "MIT", "MIT", "DNA", "DNA", "CLR", "CLR"]
+        fmts = ["AA", "NT", "AA", "NT", "AA", "NT", "MA", "MF", "MA", "MF"]
         add_refs_params = []
         for r, m, f in zip(refs, mrks, fmts):
             if all([r, m in markers.upper().split(","), f in formats.upper().split(",")]):
