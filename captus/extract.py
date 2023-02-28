@@ -571,7 +571,7 @@ def extract(full_command, args):
         log.log("")
         log.log(f'{"Min. locus length":>{mar}}: {bold(args.cl_rep_min_len)}')
         log.log(f'{"Min. samples per cluster":>{mar}}: {bold(cl_min_samples)}')
-        log.log(f'{"Max. avg. copies per sample":>{mar}}: {bold(args.cl_max_copies)}')
+        log.log(f'{"Max. copies per cluster":>{mar}}: {bold(args.cl_max_copies)}')
         log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
         log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
         log.log("")
