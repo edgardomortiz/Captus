@@ -206,12 +206,20 @@ def extract(full_command, args):
                 "'--captus_assemblies_dir' and/or '--fastas' argument"
             )
 
-        if args.nuc_refs and args.nuc_refs.lower() in settings.PROT_REFS["NUC"]:
-            args.nuc_transtable = settings.PROT_REFS["NUC"][args.nuc_refs.lower()]["transtable"]
-        if args.ptd_refs and args.ptd_refs.lower() in settings.PROT_REFS["PTD"]:
-            args.ptd_transtable = settings.PROT_REFS["PTD"][args.ptd_refs.lower()]["transtable"]
-        if args.mit_refs and args.mit_refs.lower() in settings.PROT_REFS["MIT"]:
-            args.mit_transtable = settings.PROT_REFS["MIT"][args.mit_refs.lower()]["transtable"]
+        num_refs = 0
+        if args.nuc_refs:
+            num_refs += 1
+            if args.nuc_refs.lower() in settings.PROT_REFS["NUC"]:
+                args.nuc_transtable = settings.PROT_REFS["NUC"][args.nuc_refs.lower()]["transtable"]
+        if args.ptd_refs:
+            num_refs += 1
+            if args.ptd_refs.lower() in settings.PROT_REFS["PTD"]:
+                args.ptd_transtable = settings.PROT_REFS["PTD"][args.ptd_refs.lower()]["transtable"]
+        if args.mit_refs:
+            num_refs += 1
+            if args.mit_refs.lower() in settings.PROT_REFS["MIT"]:
+                args.mit_transtable = settings.PROT_REFS["MIT"][args.mit_refs.lower()]["transtable"]
+        num_extractions = len(fastas_to_extract) * num_refs
 
         protein_refs = prepare_protein_refs(args.nuc_refs,
                                             args.ptd_refs,
@@ -225,24 +233,25 @@ def extract(full_command, args):
                 protein_refs["PTD"]["AA_path"],
                 protein_refs["MIT"]["AA_path"]]):
             log.log(bold(f'{"PROTEIN OPTIONS":>{mar}}:'))
-            if protein_refs["NUC"]["AA_path"]:
-                nuc_query = fasta_to_dict(protein_refs["NUC"]["AA_path"])
-                nuc_query_parts_paths = split_refs(nuc_query, out_dir, "NUC")
-                nuc_query_info = reference_info(nuc_query)
-            if protein_refs["PTD"]["AA_path"]:
-                ptd_query = fasta_to_dict(protein_refs["PTD"]["AA_path"])
-                ptd_query_parts_paths = split_refs(ptd_query, out_dir, "PTD")
-                ptd_query_info = reference_info(ptd_query)
-            if protein_refs["MIT"]["AA_path"]:
-                mit_query = fasta_to_dict(protein_refs["MIT"]["AA_path"])
-                mit_query_parts_paths = split_refs(mit_query, out_dir, "MIT")
-                mit_query_info = reference_info(mit_query)
-            log.log(f'{"Max. loci for Scipio x2":>{mar}}: {bold(args.max_loci_scipio_x2)}')
-            log.log(f'{"Predict dubious introns":>{mar}}: {bold(args.predict)}')
             prot_concurrent, prot_threads, prot_ram = adjust_concurrency(args.concurrent,
+                                                                         num_extractions,
                                                                          threads_max,
                                                                          ram_B,
                                                                          "protein")
+            if protein_refs["NUC"]["AA_path"]:
+                nuc_query = fasta_to_dict(protein_refs["NUC"]["AA_path"])
+                nuc_query_parts_paths = split_refs(nuc_query, out_dir, "NUC", prot_threads)
+                nuc_query_info = reference_info(nuc_query)
+            if protein_refs["PTD"]["AA_path"]:
+                ptd_query = fasta_to_dict(protein_refs["PTD"]["AA_path"])
+                ptd_query_parts_paths = split_refs(ptd_query, out_dir, "PTD", prot_threads)
+                ptd_query_info = reference_info(ptd_query)
+            if protein_refs["MIT"]["AA_path"]:
+                mit_query = fasta_to_dict(protein_refs["MIT"]["AA_path"])
+                mit_query_parts_paths = split_refs(mit_query, out_dir, "MIT", prot_threads)
+                mit_query_info = reference_info(mit_query)
+            log.log(f'{"Max. loci for Scipio x2":>{mar}}: {bold(args.max_loci_scipio_x2)}')
+            log.log(f'{"Predict dubious introns":>{mar}}: {bold(args.predict)}')
             log.log(f'{"Concurrent extractions":>{mar}}: {bold(prot_concurrent)}')
             log.log(f'{"RAM per extraction":>{mar}}:'
                     f' {bold(f"{prot_ram / 1024 ** 3:.1f}GB")}')
@@ -291,6 +300,7 @@ def extract(full_command, args):
             dna_query_info = reference_info(dna_query)
             dna_ref_size = max(dna_ref_size, dna_query_info["total_size"])
             dna_concurrent, dna_threads, dna_ram = adjust_concurrency(args.concurrent,
+                                                                      num_samples,
                                                                       threads_max,
                                                                       ram_B,
                                                                       "dna")
@@ -751,14 +761,14 @@ def extract(full_command, args):
     )
 
 
-def adjust_concurrency(concurrent, threads_max, ram_B, ref_type):
+def adjust_concurrency(concurrent, num_samples, threads_max, ram_B, ref_type):
     """
     Adjust the proposed number of 'concurrent' BLAT/Scipio processes so 'RAM_per_extraction' is
     never smaller than 'settings.EXTRACTION_MIN_RAM_B'. Once the right 'concurrent' has been found,
     'ram_per_extraction' is readjusted
     """
     if concurrent == "auto":
-        concurrent = threads_max
+        concurrent = min(num_samples, threads_max)
     else:
         try:
             concurrent = int(concurrent)
@@ -1081,15 +1091,15 @@ def adjust_min_coverage(min_coverage):
         return min_coverage
 
 
-def split_refs(query_dict, out_dir, marker_type):
+def split_refs(query_dict, out_dir, marker_type, threads):
     # Split reference file in groups of roughly REFS_SPLIT_CHUNK_SIZE to run Scipio in parallel
     # on each
 
     seq_names = list(query_dict)
     random.Random(settings.RANDOM_SEED).shuffle(seq_names)
     num_seqs = len(seq_names)
-    chunks_floor = max(4, math.floor(num_seqs / settings.REFS_SPLIT_CHUNK_SIZE))
-    chunks_ceiling = max(4, math.ceil(num_seqs / settings.REFS_SPLIT_CHUNK_SIZE))
+    chunks_floor = max(threads, math.floor(num_seqs / settings.REFS_SPLIT_CHUNK_SIZE))
+    chunks_ceiling = max(threads, math.ceil(num_seqs / settings.REFS_SPLIT_CHUNK_SIZE))
     try:
         if (abs(settings.REFS_SPLIT_CHUNK_SIZE - (num_seqs / chunks_ceiling))
             <= abs(settings.REFS_SPLIT_CHUNK_SIZE - (num_seqs / chunks_floor))):
@@ -1213,6 +1223,9 @@ def scipio_coding(
                 " skipped (output files already exist)"
             )
             return message
+        elif yaml_initial_file == "BLAT FILE":
+            message = red(f"'{sample_name}': FAILED extraction of {genes[marker_type]} (0 BLAT hits)")
+            return message
         else:
             yaml_initial_dir = yaml_initial_file.parent
             initial_models = scipio_yaml_to_dict(yaml_initial_file, min_score, min_identity,
@@ -1322,7 +1335,7 @@ def run_scipio_parallel(
                                       blat_score, scipio_params["transtable"], extra_settings,
                                       target, query, scipio_out_file, scipio_log_file)
         if not blat_psl:
-            return None
+            return "BLAT FAILED"
 
         # Second, split the previous BLAT psl according to the reference splits
         filter_blat_psl_params = []
