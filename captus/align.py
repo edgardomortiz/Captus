@@ -554,14 +554,12 @@ def align(full_command, args):
     fastas_to_stats = [file for file in fastas_to_stats
                        if not f"{file.name}".startswith(".")]
     manager = Manager()
-    shared_seq_names = manager.list()
     shared_sam_stats = manager.list()
     shared_aln_stats = manager.list()
 
     compute_stats_params = []
     for fasta in fastas_to_stats:
         compute_stats_params.append((
-            shared_seq_names,
             shared_sam_stats,
             shared_aln_stats,
             fasta
@@ -581,11 +579,9 @@ def align(full_command, args):
 
     aln_stats_tsv = write_aln_stats(out_dir, shared_aln_stats)
     sam_stats_tsv = write_sam_stats(out_dir, shared_sam_stats)
-    astral_pro_tsv = write_astral_pro_seq_to_sam(out_dir, shared_seq_names)
     if aln_stats_tsv:
         log.log(f'{"Alignment statistics":>{mar}}: {bold(aln_stats_tsv)}')
         log.log(f'{"Sample statistics":>{mar}}: {bold(sam_stats_tsv)}')
-        log.log(f'{"ASTRAL-Pro seq-to-sample":>{mar}}: {bold(astral_pro_tsv)}')
         log.log("")
         if all([numpy_found, pandas_found, plotly_found]):
 
@@ -851,13 +847,16 @@ def collect_extracted_markers(
                 fasta_file.unlink()
 
     # List per-sample input FASTA files available for marker collection
+    sample_names = []
     fastas_per_sample = {}
     for sample_dir in extracted_sample_dirs:
+        sample_name = sample_dir.parts[-1].replace("__captus-ext", "")
+        sample_names.append(sample_name)
         for source, destination in zip(source_files, out_dirs):
             source_file = Path(sample_dir, source)
             if source_file.exists():
                 fastas_per_sample[source_file] = {
-                    "sample_name": sample_dir.parts[-1].replace("__captus-ext", ""),
+                    "sample_name": sample_name,
                     "destination": destination,
                     "suffix": source.suffix,
                 }
@@ -922,18 +921,31 @@ def collect_extracted_markers(
             refs_paths["CLR"]["NT_path"], refs_paths["CLR"]["NT_path"],
         ]
         mrks = ["NUC", "NUC", "PTD", "PTD", "MIT", "MIT", "DNA", "DNA", "CLR", "CLR"]
-        fmts = ["AA", "NT", "AA", "NT", "AA", "NT", "MA", "MF", "MA", "MF"]
+        fmts = [ "AA",  "NT",  "AA",  "NT",  "AA",  "NT",  "MA",  "MF",  "MA",  "MF"]
         add_refs_params = []
+        manager = Manager()
+        shared_ref_names = manager.list()
         for r, m, f in zip(refs, mrks, fmts):
             if all([r, m in markers.upper().split(","), f in formats.upper().split(",")]):
                 add_refs_params.append((
-                    r, Path(out_dir, base_dir, settings.MARKER_DIRS[m], settings.FORMAT_DIRS[f])
+                    r,
+                    Path(out_dir, base_dir, settings.MARKER_DIRS[m], settings.FORMAT_DIRS[f]),
+                    shared_ref_names,
                 ))
         if bool(add_refs_params):
             log.log("")
             tqdm_serial_run(add_refs, add_refs_params,
                             "Adding reference markers", "Addition of reference markers finished",
                             "reference", show_less)
+
+    # Write ASTRAL-Pro sequence to sample equivalence tsv file
+    astral_pro_tsv = write_astral_pro_seq_to_sam(out_dir,
+                                                 max_paralogs,
+                                                 shared_ref_names,
+                                                 sample_names)
+    if astral_pro_tsv:
+        log.log("")
+        log.log(f'{"ASTRAL-Pro seq-to-sample":>{26}}: {bold(astral_pro_tsv)}')
 
 
 def collect_sample_markers(
@@ -975,7 +987,7 @@ def collect_sample_markers(
     return message
 
 
-def add_refs(ref_path, dest_dir):
+def add_refs(ref_path, dest_dir, shared_ref_names):
     start = time.time()
     fastas_in_dest = list(Path(dest_dir).rglob("*.f[an]a"))
     ref_fasta = fasta_to_dict(ref_path)
@@ -995,6 +1007,7 @@ def add_refs(ref_path, dest_dir):
             name_parts = ref_name.split(settings.REFERENCE_CLUSTER_SEPARATOR)
             ref_out = (f"{settings.REFERENCE_CLUSTER_SEPARATOR.join(name_parts[0:-1])}"
                        f"{settings.SEQ_NAME_SEP}ref")
+            if ref_out not in shared_ref_names: shared_ref_names.append(ref_out)
             if ref_name in ref_fasta:
                 markers_in_ref.append(name_parts[-1])
                 fastas_found.append(ref_name)
@@ -1677,16 +1690,16 @@ def compute_stats(shared_seq_names, shared_sam_stats, shared_aln_stats, fasta_pa
         fasta_path.stem,                                    # [6] locus name
         f'{aln_stats["sequences"]}',                        # [7] num sequences
         f'{aln_stats["samples"]}',                          # [8] num samples
-        f'{aln_stats["avg_copies"]}',                   # [9] avg num copies
+        f'{aln_stats["avg_copies"]}',                       # [9] avg num copies
         f'{aln_stats["sites"]}',                            # [10] num sites
         f'{aln_stats["informative"]}',                      # [11] num informative sites
-        f'{aln_stats["informativeness"]}',              # [12] pct of informative sites
+        f'{aln_stats["informativeness"]}',                  # [12] pct of informative sites
         f'{aln_stats["uninformative"]}',                    # [13] num constant + singleton sites
         f'{aln_stats["constant"]}',                         # [14] num constant sites
         f'{aln_stats["singleton"]}',                        # [15] num singleton sites
         f'{aln_stats["patterns"]}',                         # [16] num unique columns
-        f'{aln_stats["avg_pid"]}',                      # [17] average pairwise identity
-        f'{aln_stats["missingness"]}',                  # [18] pct of gaps and Ns or Xs
+        f'{aln_stats["avg_pid"]}',                          # [17] average pairwise identity
+        f'{aln_stats["missingness"]}',                      # [18] pct of gaps and Ns or Xs
         f'{aln_stats["gc"]}',                               # [19] GC content in %
         f'{aln_stats["gc_codon_p1"]}',                      # [20] GC content of pos1 in codon in %
         f'{aln_stats["gc_codon_p2"]}',                      # [21] GC content of pos2 in codon in %
@@ -1712,8 +1725,6 @@ def compute_stats(shared_seq_names, shared_sam_stats, shared_aln_stats, fasta_pa
             f'{sam_stats[sample]["num_copies"]}',           # [11] num copies
         ])
     shared_sam_stats += ["\t".join(row)+"\n" for row in sam_tsv]
-
-    shared_seq_names += [k for k in fasta_dict.keys() if k not in shared_seq_names]
 
     message = f"'{short_path}': stats computed [{elapsed_time(time.time() - start)}]"
 
@@ -1775,18 +1786,18 @@ def write_sam_stats(out_dir, shared_sam_stats):
         return stats_tsv_file
 
 
-def write_astral_pro_seq_to_sam(out_dir, shared_seq_names):
-    if not shared_seq_names:
+def write_astral_pro_seq_to_sam(out_dir, max_paralogs, ref_names, sample_names):
+    if not sample_names:
         return None
     else:
-        unique_names = set(shared_seq_names)
         seq_to_sam = []
-        for name in unique_names:
-            if name.endswith(f'{settings.SEQ_NAME_SEP}ref'):
-                seq_to_sam.append(f'{name}\t{name}\n')
-            else:
-                seq_to_sam.append(f'{name}\t{name.split(settings.SEQ_NAME_SEP)[0]}\n')
+        for name in sorted(ref_names):
+            seq_to_sam.append(f'{name}\t{name}\n')
+        for name in sorted(sample_names):
+            seq_to_sam.append(f'{name}\t{name}\n')
+            for p in range(max_paralogs+1):
+                seq_to_sam.append(f'{name}{settings.SEQ_NAME_SEP}{p:02}\t{name}\n')
         stats_tsv_file = Path(out_dir, settings.ASTRAL_PRO_EQ)
         with open(stats_tsv_file, "wt") as tsv_out:
-            tsv_out.writelines(sorted(seq_to_sam))
+            tsv_out.writelines(seq_to_sam)
         return stats_tsv_file
