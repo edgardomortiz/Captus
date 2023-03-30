@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Copyright 2020 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
+Copyright 2020-2023 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
 https://github.com/edgardomortiz/Captus
 
 This file is part of Captus. Captus is free software: you can redistribute it and/or modify
@@ -19,8 +19,7 @@ import subprocess
 import time
 from pathlib import Path
 
-from . import log
-from . import settings_assembly as settings
+from . import log, settings
 from .bioformats import get_mean_read_length
 from .misc import (bbtools_path_version, bold, dim, elapsed_time, falco_path_version,
                    fastqc_path_version, find_and_match_fastqs, format_dep_msg, has_valid_ext,
@@ -68,15 +67,15 @@ def clean(full_command, args):
     else:
         _, fastqc_version, fastqc_status = fastqc_path_version(args.fastqc_path)
         _, falco_version, falco_status = falco_path_version(args.falco_path)
-        if args.qc_program == "Falco" and falco_status == "not found":
+        if args.qc_program == "falco" and falco_status == "not found":
             if fastqc_status == "OK":
-                args.qc_program = "FastQC"
+                args.qc_program = "fastqc"
                 intro_msg = ("FastQC will run after the cleaning has been completed.")
             else:
                 args.skip_qc_stats = True
-        elif args.qc_program == "FastQC" and fastqc_status == "not found":
+        elif args.qc_program == "fastqc" and fastqc_status == "not found":
             if falco_status == "OK":
-                args.qc_program = "Falco"
+                args.qc_program = "falco"
                 intro_msg = ("Falco will run after the cleaning has been completed.")
             else:
                 args.skip_qc_stats = True
@@ -95,10 +94,10 @@ def clean(full_command, args):
     log.log(f'{"Dependencies":>{mar}}:')
     _, bbduk_version, bbduk_status = bbtools_path_version(args.bbduk_path)
     log.log(format_dep_msg(f'{"BBTools":>{mar}}: ', bbduk_version, bbduk_status))
-    if args.qc_program == "Falco":
+    if args.qc_program == "falco":
         log.log(format_dep_msg(f'{"Falco":>{mar}}: ', falco_version, falco_status))
         log.log(format_dep_msg(f'{"FastQC":>{mar}}: ', "", "not used"))
-    if args.qc_program == "FastQC":
+    if args.qc_program == "fastqc":
         log.log(format_dep_msg(f'{"Falco":>{mar}}: ', "", "not used"))
         log.log(format_dep_msg(f'{"FastQC":>{mar}}: ', fastqc_version, fastqc_status))
     log.log("")
@@ -264,9 +263,9 @@ def clean(full_command, args):
     else:
         qc_stats_before_dir, qc_stats_before_msg = make_output_dir(Path(out_dir, "01_qc_stats_before"))
         qc_stats_after_dir, qc_stats_after_msg = make_output_dir(Path(out_dir, "02_qc_stats_after"))
-        if args.qc_program == "FastQC":
+        if args.qc_program == "fastqc":
             qc_program_path = args.fastqc_path
-        elif args.qc_program == "Falco":
+        elif args.qc_program == "falco":
             qc_program_path = args.falco_path
 
         qc_stats_params = []
@@ -640,12 +639,12 @@ def qc_stats(qc_program_name, qc_program_path, in_fastq, qc_stats_out_dir, overw
     in_fastq_parts = in_fastq.parts[-1].split("_R")
     file_out_dir = f'{"_R".join(in_fastq_parts[:-1])}_R{in_fastq_parts[-1][0]}_fastqc'
 
-    if qc_program_name == "Falco":
+    if qc_program_name == "falco":
         qc_stats_cmd = [
             qc_program_path,
             "--outdir", f"{Path(qc_stats_out_dir, file_out_dir)}",
         ]
-    elif qc_program_name == "FastQC":
+    elif qc_program_name == "fastqc":
         qc_stats_cmd = [
             qc_program_path,
             "--outdir", f"{qc_stats_out_dir}",
@@ -657,7 +656,8 @@ def qc_stats(qc_program_name, qc_program_path, in_fastq, qc_stats_out_dir, overw
         "--adapters", f"{settings.QC_ADAPTORS_LIST}",
         f"{in_fastq}"
     ]
-    mean_read_length = get_mean_read_length(in_fastq, settings.NUM_READS_TO_CALCULATE_MEAN_READ_LENGTH)
+    mean_read_length = get_mean_read_length(in_fastq,
+                                            settings.NUM_READS_TO_CALCULATE_MEAN_READ_LENGTH)
     if mean_read_length <= 1000: cmd_last_part = ["--nogroup"] + cmd_last_part
 
     qc_stats_cmd += cmd_last_part

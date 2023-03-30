@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Copyright 2020 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
+Copyright 2020-2023 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
 https://github.com/edgardomortiz/Captus
 
 This file is part of Captus. Captus is free software: you can redistribute it and/or modify
@@ -25,13 +25,13 @@ from pathlib import Path
 
 from tqdm import tqdm
 
-from . import log
-from . import settings_assembly as settings
+from . import log, settings
 from .bioformats import (blat_misc_dna_psl_to_dict, dict_to_fasta, fasta_headers_to_spades,
-                         fasta_to_dict, fasta_type, fix_premature_stops, scipio_yaml_to_dict,
-                         split_mmseqs_clusters_file, translate_fasta_dict, write_gff3)
-from .misc import (ElapsedTimeThread, bioperl_get_version, blat_path_version, bold, bold_green,
-                   bold_yellow, compress_list_files, dim, dir_is_empty, elapsed_time, file_is_empty,
+                         fasta_to_dict, fasta_type, fix_premature_stops, mmseqs2_cluster,
+                         scipio_yaml_to_dict, split_mmseqs_clusters_file, translate_fasta_dict,
+                         write_gff3)
+from .misc import (bioperl_get_version, blat_path_version, bold, bold_green, bold_yellow,
+                   compress_list_files, dim, dir_is_empty, elapsed_time, file_is_empty,
                    format_dep_msg, has_valid_ext, make_output_dir, make_tmp_dir_within,
                    mmseqs_path_version, python_library_check, quit_with_error, red,
                    remove_formatting, scipio_path_version, set_ram, set_threads, successful_exit,
@@ -2031,55 +2031,6 @@ def rehead_fasta_with_sample_name(sample_name, sample_fasta_path, clustering_dir
         f"'{sample_name}': file '{sample_fasta_path.name}'"
         f" reheaded [{elapsed_time(time.time() - start)}]"
     )
-    return message
-
-
-def mmseqs2_cluster(
-        mmseqs2_path, mmseqs2_method, clustering_dir, clustering_input_file, cluster_prefix,
-        clustering_tmp_dir, min_identity, seq_id_mode, min_coverage, cov_mode, cluster_mode, threads,
-
-):
-    """
-    Run MMseqs easy-linclust but perform some parameter checking/conversion before, the FASTA input
-    file has to be decompressed, we can compress it afterwards
-    """
-    start = time.time()
-    if not 0 < min_identity <= 1:
-        min_identity = min(1.0, round((abs(min_identity) / 100), 3))
-    if not 0 < min_coverage <= 1:
-        min_coverage = min(1.0, round((abs(min_coverage) / 100), 3))
-
-    result_prefix = f"{Path(clustering_dir, cluster_prefix)}"
-    mmseqs2_cmd = [
-        mmseqs2_path,
-        mmseqs2_method,
-        f"{clustering_input_file}",
-        f"{result_prefix}",
-        f"{clustering_tmp_dir}",
-        "--min-seq-id", f"{min_identity}",
-        "--seq-id-mode", f"{seq_id_mode}",
-        "-c", f"{min_coverage}",
-        "--cov-mode", f"{cov_mode}",
-        "--cluster-mode", f"{cluster_mode}",
-        "--gap-open", f"{max(1, settings.MMSEQS2_GAP_OPEN)}",
-        "--gap-extend", f"{max(1, settings.MMSEQS2_GAP_EXTEND)}",
-        "--kmer-per-seq-scale", f"{settings.MMSEQS2_KMER_PER_SEQ_SCALE}",
-        "--threads", f"{threads}",
-    ]
-    if mmseqs2_method == "easy-cluster" and cluster_mode == 2:
-        mmseqs2_cmd += ["--cluster-reassign"]
-    mmseqs2_log_file = Path(clustering_dir, f"{cluster_prefix}.log")
-    mmseqs2_thread = ElapsedTimeThread()
-    mmseqs2_thread.start()
-    with open(mmseqs2_log_file, "w") as mmseqs2_log:
-        mmseqs2_log.write(f"Captus' MMseqs2 Command:\n  {' '.join(mmseqs2_cmd)}\n\n")
-    with open(mmseqs2_log_file, "a") as mmseqs2_log:
-        subprocess.run(mmseqs2_cmd, stdout=mmseqs2_log, stdin=mmseqs2_log)
-    mmseqs2_thread.stop()
-    mmseqs2_thread.join()
-    print()
-
-    message = bold(f" \u2514\u2500\u2192 Clustering completed: [{elapsed_time(time.time() - start)}]")
     return message
 
 

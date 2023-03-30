@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Copyright 2020 Gentaro Shigita (gentaro.shigita@tum.de)
+Copyright 2020-2023 Gentaro Shigita (gentaro.shigita@tum.de)
 https://github.com/edgardomortiz/Captus
 
 This file is part of Captus. Captus is free software: you can redistribute it and/or modify
@@ -13,19 +13,20 @@ not, see <http://www.gnu.org/licenses/>.
 """
 
 
+import itertools
 import re
 import time
 from pathlib import Path
 
 import numpy as np
-import itertools
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.colors import sample_colorscale
 from plotly.subplots import make_subplots
 
-from . import settings_assembly
+from . import settings
 from .misc import dim, elapsed_time, red
+
 
 def normalize(l):
     if len(l) > 0:
@@ -39,11 +40,11 @@ def build_qc_report(out_dir, qc_extras_dir):
     start = time.time()
 
     ### Summary table ###
-    df1 = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["REBA"]))
-    df2 = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["PSQS"]))
-    df3 = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["SLEN"]))
-    df4 = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["PSGC"]))
-    df5 = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["ADCO"]))
+    df1 = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["REBA"]))
+    df2 = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["PSQS"]))
+    df3 = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["SLEN"]))
+    df4 = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["PSGC"]))
+    df5 = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["ADCO"]))
 
     # Output reads/bases%
     df1["reads_passed_cleaning_%"] = df1["reads_passed_cleaning"] / df1["reads_input"] * 100
@@ -190,11 +191,11 @@ def build_qc_report(out_dir, qc_extras_dir):
             "1. Summary Table</b><br>"
             "<sup>(Source: 03_qc_extras/"
             + ", ".join([
-                settings_assembly.QC_FILES["REBA"],
-                settings_assembly.QC_FILES["PSQS"],
-                settings_assembly.QC_FILES["SLEN"],
-                settings_assembly.QC_FILES["PSGC"],
-                settings_assembly.QC_FILES["ADCO"],
+                settings.QC_FILES["REBA"],
+                settings.QC_FILES["PSQS"],
+                settings.QC_FILES["SLEN"],
+                settings.QC_FILES["PSGC"],
+                settings.QC_FILES["ADCO"],
             ])
             + ")</sup>"
         ),
@@ -205,7 +206,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     figs.append(fig)
 
     ### Stats on reads/bases ###
-    df = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["REBA"]),
+    df = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["REBA"]),
                        usecols=[*range(0,3),4,5,7,8,10,11])
 
     df["reads_input_%"] = 100
@@ -362,7 +363,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         title_text=(
             "<b>2. Stats on Reads/Bases</b><br>"
             "<sup>(Source: 03_qc_extras/"
-            + settings_assembly.QC_FILES["REBA"]
+            + settings.QC_FILES["REBA"]
             + ")</sup>"
         ),
         yaxis=dict(title="Sample"),
@@ -396,7 +397,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     figs.append(fig)
 
     ### Per Base Quality ###
-    df = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["PBSQ"]))
+    df = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["PBSQ"]))
     df["stage"] = df["stage"].str.capitalize()
 
     # Covert Phred64 to Phred33
@@ -553,7 +554,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         title_text=(
             "<b>3. Per Base Quality</b><br>"
             "<sup>(Source: 03_qc_extras/"
-            + settings_assembly.QC_FILES["PBSQ"]
+            + settings.QC_FILES["PBSQ"]
             + ")</sup>"
         ),
         plot_bgcolor="rgb(8,8,8)",
@@ -594,7 +595,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     figs.append(fig)
 
     ### Per Read Quality ###
-    df = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["PSQS"]))
+    df = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["PSQS"]))
     df["stage"] = df["stage"].str.capitalize()
 
     # Convert Phred64 to Phred33
@@ -703,7 +704,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         title_text=(
             "<b>4. Per Read Quality</b><br>"
             "<sup>(Source: 03_qc_extras/"
-            + settings_assembly.QC_FILES["PSQS"]
+            + settings.QC_FILES["PSQS"]
             + ")</sup>"
         ),
         yaxis=dict(title="Sample - Stage"),
@@ -743,7 +744,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     figs.append(fig)
 
     ### Read Length Distribution ###
-    df = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["SLEN"]))
+    df = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["SLEN"]))
     stage_list = df["stage"].unique()
     read_list = df["read"].unique()
     length_range = range(
@@ -877,7 +878,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         title_text=(
             "<b>5. Read Length Distribution</b><br>"
             "<sup>(Source: 03_qc_extras/"
-            + settings_assembly.QC_FILES["SLEN"]
+            + settings.QC_FILES["SLEN"]
             + ")</sup>"
         ),
         yaxis=dict(title="Sample - Stage"),
@@ -917,7 +918,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     figs.append(fig)
 
     ### Per Base Nucleotide Content ###
-    df = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["PBSC"]))
+    df = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["PBSC"]))
     df["stage"] = df["stage"].str.capitalize()
 
     color_dict = {
@@ -1032,7 +1033,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         title_text=(
             "<b>6. Per Base Nucleotide Content</b><br>"
             "<sup>(Source: 03_qc_extras/"
-            + settings_assembly.QC_FILES["PBSC"]
+            + settings.QC_FILES["PBSC"]
             + ")</sup>"
         ),
         yaxis=dict(title="Sample - Stage"),
@@ -1061,7 +1062,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     figs.append(fig)
 
     ### Per Read GC Content ###
-    df = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["PSGC"]))
+    df = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["PSGC"]))
     df["stage"] = df["stage"].str.capitalize()
     df_grouped = df.groupby(["sample_name", "read", "stage"], as_index=False)["count"].sum()
     df_merged = pd.merge(df, df_grouped, on=["sample_name", "read", "stage"], how="outer")
@@ -1146,7 +1147,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         title_text=(
             "<b>7. Per Read GC Content</b><br>"
             "<sup>(Source: 03_qc_extras/"
-            + settings_assembly.QC_FILES["PSGC"]
+            + settings.QC_FILES["PSGC"]
             + ")</sup>"
         ),
         yaxis=dict(title="Sample - Stage"),
@@ -1187,7 +1188,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     figs.append(fig)
 
     ### Sequence Duplication Level ###
-    df = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["SDUP"]),
+    df = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["SDUP"]),
                        usecols=[*range(0,4), 5])
     df["stage"] = df["stage"].str.capitalize()
     sample_list = df["sample_name"].unique()
@@ -1291,7 +1292,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         title_text=(
             "<b>8. Sequence Duplication Level</b><br>"
             "<sup>(Source: 03_qc_extras/"
-            + settings_assembly.QC_FILES["SDUP"]
+            + settings.QC_FILES["SDUP"]
             + ")</sup>"
         ),
         yaxis=dict(title="Sample - Stage"),
@@ -1321,7 +1322,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     figs.append(fig)
 
     ### Adapter Content ###
-    df = pd.read_table(Path(qc_extras_dir, settings_assembly.QC_FILES["ADCO"]))
+    df = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["ADCO"]))
     df["stage"] = df["stage"].str.capitalize()
     df["Total adapter content"] = df.iloc[:,4:].sum(axis=1)
     df_pivot = df.pivot(
@@ -1410,7 +1411,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         title_text=(
             "<b>9. Adapter Content</b><br>"
             "<sup>(Source: 03_qc_extras/"
-            + settings_assembly.QC_FILES["ADCO"]
+            + settings.QC_FILES["ADCO"]
             + ")</sup>"
         ),
         yaxis=dict(title="Sample - Stage"),

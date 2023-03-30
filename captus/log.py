@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Copyright 2020 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
+Copyright 2020-2023 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
 https://github.com/edgardomortiz/Captus
 
 This module contains Unicycler's class for writing output to both stdout and a log file.

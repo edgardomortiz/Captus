@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Copyright 2020 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
+Copyright 2020-2023 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
 https://github.com/edgardomortiz/Captus
 
 This file is part of Captus. Captus is free software: you can redistribute it and/or modify
@@ -22,8 +22,7 @@ from pathlib import Path
 
 from tqdm import tqdm
 
-from . import log
-from . import settings_assembly as settings
+from . import log, settings
 from .bioformats import (alignment_stats, dict_to_fasta, fasta_to_dict, fasta_type,
                          pairwise_identity, sample_stats)
 from .misc import (bold, clipkit_path_version, dim, dir_is_empty, elapsed_time, file_is_empty,
@@ -212,7 +211,7 @@ def align(full_command, args):
         fastas_to_align = fastas_origs_dests(out_dir,
                                              settings.ALN_DIRS["UNAL"],
                                              Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFR"]))
-        log.log(f'{"FASTA files to align":>{mar}}: {bold(len(fastas_to_align))}')
+        log.log(f'{"FASTAs to align":>{mar}}: {bold(len(fastas_to_align))}')
         log.log("")
         log.log(make_output_dirtree(markers,
                                     formats,
@@ -461,7 +460,13 @@ def align(full_command, args):
         log.log(f'{"Concurrent processes":>{mar}}: {bold(concurrent)}')
         log.log("")
         log.log(f'{"Algorithm":>{mar}}: {bold(args.clipkit_method)}')
-        log.log(f'{"Gaps threshold":>{mar}}: {bold(args.clipkit_gaps)}')
+        clipkit_gaps = "auto" if args.clipkit_method == "smart-gap" else args.clipkit_gaps
+        clipkit_gaps = "auto" if args.min_data_per_column > 0 else args.clipkit_gaps
+        log.log(f'{"Gaps threshold":>{mar}}: {bold(clipkit_gaps)}')
+        if args.min_data_per_column > 0:
+            log.log(f'{"Min. sequences per column":>{mar}}: {bold(args.min_data_per_column)}')
+        else:
+            log.log(f'{"Min. sequences per column":>{mar}}: {dim("NOT USED")}')
         log.log(f'{"Min. sequence coverage":>{mar}}: {bold(args.min_coverage)}')
         log.log(f'{"Min. samples to keep":>{mar}}: {bold(args.min_samples)}')
         log.log("")
@@ -524,6 +529,7 @@ def align(full_command, args):
                 args.clipkit_gaps,
                 fasta_orig,
                 fastas_to_trim[fasta_orig],
+                args.min_data_per_column,
                 args.min_coverage,
                 args.min_samples,
                 args.overwrite,
@@ -1312,8 +1318,8 @@ def filter_paralogs_naive(fasta_in: Path, fasta_out: Path, min_samples, overwrit
     if file_is_empty(fasta_in):
         return red(f"'{fasta_out_short}': FAILED paralog removal, input file was empty")
 
-    fasta_with_paralogs, fasta_without_paralogs = fasta_to_dict(fasta_in), {}
     if overwrite is True or not fasta_out.exists():
+        fasta_with_paralogs, fasta_without_paralogs = fasta_to_dict(fasta_in), {}
         for seq_name in fasta_with_paralogs:
             if ("hit=00" in fasta_with_paralogs[seq_name]["description"] or
                 f"{settings.SEQ_NAME_SEP}ref" in seq_name):
@@ -1559,8 +1565,8 @@ def rem_refs_from_fasta(fasta_in: Path, fasta_out: Path, ref_names: list, min_sa
     if file_is_empty(fasta_in):
         return red(f"'{fasta_out_short}': FAILED removal of references, input file was empty")
 
-    fasta_with_refs, fasta_without_refs = fasta_to_dict(fasta_in), {}
     if overwrite is True or not fasta_out.exists():
+        fasta_with_refs, fasta_without_refs = fasta_to_dict(fasta_in), {}
         for seq_name in fasta_with_refs:
             if seq_name not in ref_names:
                 fasta_without_refs[seq_name] = dict(fasta_with_refs[seq_name])
@@ -1582,7 +1588,7 @@ def rem_refs_from_fasta(fasta_in: Path, fasta_out: Path, ref_names: list, min_sa
 
 def clipkit(
     clipkit_path, clipkit_method, clipkit_gaps, fasta_in: Path, fasta_out: Path,
-    min_coverage, min_samples, overwrite
+    min_data_per_column, min_coverage, min_samples, overwrite
 ):
     start = time.time()
 
@@ -1591,6 +1597,8 @@ def clipkit(
         return red(f"'{fasta_out_short}': FAILED alignment trimming, input file was empty")
 
     if overwrite is True or not fasta_out.exists():
+        if min_data_per_column > 0:
+            clipkit_gaps = 1 - (min_data_per_column / len(fasta_to_dict(fasta_in)))
         clipkit_cmd = [
             clipkit_path,
             f"{fasta_in}",
@@ -1657,7 +1665,7 @@ def clipkit(
     return message
 
 
-def compute_stats(shared_seq_names, shared_sam_stats, shared_aln_stats, fasta_path):
+def compute_stats(shared_sam_stats, shared_aln_stats, fasta_path):
 
     start = time.time()
 

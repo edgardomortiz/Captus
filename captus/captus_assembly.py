@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Copyright 2020 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
+Copyright 2020-2023 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
 https://github.com/edgardomortiz/Captus
 
 This is the control program for the assembly pipeline of Captus.
@@ -21,7 +21,7 @@ not, see <http://www.gnu.org/licenses/>.
 import argparse
 import sys
 
-from . import settings_assembly as settings
+from . import settings
 from .align import align
 from .assemble import assemble
 from .clean import clean
@@ -57,7 +57,7 @@ class CaptusAssembly(object):
                  " also allowed\n"
                  "extract = Recover targeted markers with BLAT and Scipio: Extracting markers"
                  " from the assembly obtained with the 'assemble' command is recommended, but any"
-                 " other assemblies in FASTA format are also allowed.\n"
+                 " other assemblies in FASTA format are also allowed\n"
                  "align = Align extracted markers across samples with MAFFT or MUSCLE: Marker"
                  " alignment depends on the directory structure created by the 'extract' command."
                  " This step also performs paralog filtering and alignment trimming using ClipKIT"
@@ -206,10 +206,10 @@ class CaptusAssembly(object):
             "--qc_program",
             action="store",
             choices=[
-                "FastQC",
-                "Falco",
+                "fastqc",
+                "falco",
             ],
-            default="FastQC",
+            default="fastqc",
             type=str,
             dest="qc_program",
             help="Which program to use to obtain the statistics from the raw and cleaned FASTQ files."
@@ -1262,14 +1262,24 @@ class CaptusAssembly(object):
                  " use 'smart-gap'"
         )
         clipkit_group.add_argument(
+            "--min_data_per_column",
+            action="store",
+            default=0,
+            type=int,
+            dest="min_data_per_column",
+            help="Minimum number of non-missing sites per column. When this parameter is > 0, Captus"
+                 " will dynamically calculate a '--clipkit_gaps' threshold per alignment to keep"
+                 " this minimum amount of data per column"
+        )
+        clipkit_group.add_argument(
             "--min_coverage",
             action="store",
             default=0.40,
             type=float,
             dest="min_coverage",
             help="Minimum coverage of sequence as proportion of the mean of sequence lengths in the"
-                 " alignment, ignoring gaps. After ClipKIT finishes trimming columns, Captus will"
-                 " also remove short sequences below this threshold"
+                 " alignment, ignoring gaps. Accepted values between 0 and 1. After ClipKIT finishes"
+                 " trimming columns, Captus will also remove short sequences below this threshold"
         )
 
         other_group = parser.add_argument_group("Other")
