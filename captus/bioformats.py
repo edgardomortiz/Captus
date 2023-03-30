@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Copyright 2020 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
+Copyright 2020-2023 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
 https://github.com/edgardomortiz/Captus
 
 This file is part of Captus. Captus is free software: you can redistribute it and/or modify
@@ -16,15 +16,19 @@ not, see <http://www.gnu.org/licenses/>.
 import copy
 import gzip
 import math
+import random
 import re
 import shutil
 import statistics
+import subprocess
 import sys
+import time
 import urllib
 from pathlib import Path
 
-from . import settings_assembly as set_a
-from .misc import gzip_compress, pigz_compress
+from . import settings
+from .misc import ElapsedTimeThread, bold, elapsed_time, gzip_compress, pigz_compress
+
 
 # Regular expression to match MEGAHIT headers assembled within Captus
 CAPTUS_MEGAHIT_HEADER_REGEX = r'^NODE_\d+_length_\d+_cov_\d+\.\d+_k_\d{2,3}_flag_\d'
@@ -45,7 +49,8 @@ NT_IUPAC = {
     "S": ["G", "C"], "Y": ["C", "T"], "K": ["G", "T"],
     "V": ["A", "G", "C"], "H": ["A", "C", "T"],
     "D": ["G", "A", "T"], "B": ["G", "C", "T"],
-    "N": ["A", "C", "G", "T"], "-": ["-"],
+    "N": ["A", "C", "G", "T"],
+    "-": ["-"],
 }
 
 # Calculate pairwise identities for nucleotides
@@ -489,7 +494,7 @@ def reverse_complement(seq):
     return "".join([REV_COMP_DICT[n] for n in seq[::-1]])
 
 
-sys.setrecursionlimit(set_a.RECURSION_LIMIT)
+sys.setrecursionlimit(settings.RECURSION_LIMIT)
 def align_prots(s1, s2, method, scoring_matrix=PAM250):
 
     def gapless(s1, s2, aln):
@@ -981,7 +986,7 @@ def alignment_stats(fasta_dict, aln_type, coding: bool):
     def num_samples(fasta_dict):
         sample_names = []
         for seq in fasta_dict:
-            sample_names.append(seq.split(set_a.SEQ_NAME_SEP)[0])
+            sample_names.append(seq.split(settings.SEQ_NAME_SEP)[0])
 
         return len(set(sample_names))
 
@@ -1159,10 +1164,10 @@ def sample_stats(fasta_dict, aln_type, coding):
     """
     stats = {}
     for seq_name in fasta_dict:
-        if seq_name.endswith(f'{set_a.SEQ_NAME_SEP}ref'):
+        if seq_name.endswith(f'{settings.SEQ_NAME_SEP}ref'):
             sam_name = seq_name
         else:
-            sam_name = seq_name.split(set_a.SEQ_NAME_SEP)[0]
+            sam_name = seq_name.split(settings.SEQ_NAME_SEP)[0]
         len_seq = len(fasta_dict[seq_name]["sequence"])
         len_gapped = len(fasta_dict[seq_name]["sequence"].strip("-"))
         ungapped_seq = fasta_dict[seq_name]["sequence"].replace("-", "")
@@ -1177,7 +1182,7 @@ def sample_stats(fasta_dict, aln_type, coding):
             for r in ungapped_seq.upper():
                 if r in list("BZJX"):
                     ambigs += 1
-        elif aln_type == "NT":
+        elif aln_type == "NT" and len_ungapped > 0:
             for r in ungapped_seq.upper():
                 if r in list("MRWSYKVHDBN"):
                     ambigs += 1
@@ -1482,7 +1487,11 @@ def scipio_yaml_to_dict(
                         else:
                             if k == "    target" and " " in v: v = v.split()[0].strip("'").strip('"')
                             if v.startswith("'"): v = v.strip("'").replace(" ", "")
-                            if v.startswith("["): v = [int(n) for n in v[1:-1].split(", ")]
+                            if v.startswith("["):
+                                try:
+                                    v = [int(n) for n in v[1:-1].split(", ")]
+                                except ValueError:
+                                    pass
                         if k == "  - ID":
                             if protein not in yaml:
                                 yaml[protein] = {hit_num: [copy.deepcopy(hit)]}
@@ -1698,7 +1707,7 @@ def scipio_yaml_to_dict(
         if len(exon_indexes) > 1:
             last_exon_idx = exon_indexes[-1]
             if (mod["mat_types"][last_exon_idx-1] == "intron"
-                and len(mod["mat_nt"][last_exon_idx]) < set_a.SCIPIO_MIN_LEN_FINAL_EXON):
+                and len(mod["mat_nt"][last_exon_idx]) < settings.SCIPIO_MIN_LEN_FINAL_EXON):
                 last_intron_idx = last_exon_idx - 1
                 mod["ref_starts"] = mod["ref_starts"][:last_intron_idx]
                 mod["ref_ends"]   = mod["ref_ends"][:last_intron_idx]
@@ -1838,7 +1847,7 @@ def scipio_yaml_to_dict(
             aln = align_prots(cds_nt_translated, cds_aa, "gapless")
             mismatches = (len(aln["mismatches"])
                           - sum(aln["s2_aln"][i] == "X" for i in aln["mismatches"]))
-            if mismatches <= set_a.SCIPIO_MAX_MISMATCHES:
+            if mismatches <= settings.SCIPIO_MAX_MISMATCHES:
                 return mod
             else:
                 return None
@@ -1872,14 +1881,14 @@ def scipio_yaml_to_dict(
                 prot_gap = ref_seq[0][max(mod["ref_ends"][i-1] - ref_seq[1], 0) :
                                       min(mod["ref_starts"][i+1] - ref_seq[1], len(ref_seq[0]))]
                 len_gap = len(prot_gap)
-                max_gap_size = mod["ref_size"] * set_a.SCIPIO_MAX_GAP_AS_REF_PROP
-                min_gap_identity = (min_identity / 100) - set_a.SCIPIO_MAX_GAP_DELTA_IDENTITY
+                max_gap_size = mod["ref_size"] * settings.SCIPIO_MAX_GAP_AS_REF_PROP
+                min_gap_identity = (min_identity / 100) - settings.SCIPIO_MAX_GAP_DELTA_IDENTITY
 
                 if len_gap > 0:
                     len_chunk = len(current_chunk) // 3
                     overlap = min(len_gap, len_chunk) / max(len_gap, len_chunk)
                     # Don't align if 'current_chunk' is too long compared to the unmatched protein
-                    if len_chunk <= max_gap_size and len_gap * len_chunk <= set_a.RECURSION_LIMIT:
+                    if len_chunk <= max_gap_size and len_gap * len_chunk <= settings.RECURSION_LIMIT:
                         rfs  = {i: translate(current_chunk, gencode, frame=i, start_as_M=False)
                                 for i in [1,2,3]}
                         # Global alignment if they overlap at least 80%
@@ -1898,7 +1907,7 @@ def scipio_yaml_to_dict(
                         # Rank reading frames by their match rate penalized by the number of stops
                         else:
                             for rf in alns:
-                                alns[rf]["match_rate"] *= (set_a.SCIPIO_STOP_PENALTY
+                                alns[rf]["match_rate"] *= (settings.SCIPIO_STOP_PENALTY
                                                            ** alns[rf]["s1_aln"].count("*"))
                             rf, aln = max(alns.items(), key=(lambda x: x[1]["match_rate"]))
                             if (aln["match_rate"] >= min_gap_identity
@@ -2003,12 +2012,12 @@ def scipio_yaml_to_dict(
             if mod["mat_types"][i] == "upstream":
                 mod["seq_flanked"] += mod["mat_nt"][i].lower()
             if mod["mat_types"][i] == "exon":
-                if set_a.FILL_GAP_WITH_X:
+                if settings.FILL_GAP_WITH_X:
                     if last_exon is not None: # if this is not the first exon
                         gap_len = mod["ref_starts"][i] - mod["ref_ends"][last_exon]
                         if (("gap before" in mod["mat_notes"][i]
                             and "gap after" in mod["mat_notes"][last_exon])
-                            or gap_len >= set_a.SCIPIO_MIN_GAP_LEN_TO_X):
+                            or gap_len >= settings.SCIPIO_MIN_GAP_LEN_TO_X):
                             if "/exon" not in mod["mat_types"][i-1]:
                                 mod["seq_nt"] += "n" * 3 * gap_len
                 mod["seq_flanked"] += mod["mat_nt"][i].upper()
@@ -2147,7 +2156,7 @@ def scipio_yaml_to_dict(
                     hit_ends.append(None)
                     mat_types.append("separator")
                     mat_notes.append("separator")
-                    mat_nt.append(set_a.SCIPIO_CONTIG_SEPARATOR)
+                    mat_nt.append(settings.SCIPIO_CONTIG_SEPARATOR)
                     mat_aa.append(None)
                 if ctg["upstream"]:
                     ref_starts.append(None)
@@ -2283,10 +2292,10 @@ def scipio_yaml_to_dict(
 
     # Separate reference protein names formatted like in the Angiosperms353.FAA file to get
     # the name of the protein cluster only when EVERY reference protein has the
-    # 'set_a.REFERENCE_CLUSTER_SEPARATOR'
+    # 'settings.REFERENCE_CLUSTER_SEPARATOR'
     refs_have_separators = True
     for prot in unfilter_models:
-        if set_a.REFERENCE_CLUSTER_SEPARATOR not in prot:
+        if settings.REFERENCE_CLUSTER_SEPARATOR not in prot:
             refs_have_separators = False
             break
 
@@ -2295,7 +2304,7 @@ def scipio_yaml_to_dict(
     for prot in unfilter_models:
         for model in unfilter_models[prot]:
             if refs_have_separators:
-                ref_cluster = prot.split(set_a.REFERENCE_CLUSTER_SEPARATOR)[-1]
+                ref_cluster = prot.split(settings.REFERENCE_CLUSTER_SEPARATOR)[-1]
             else:
                 ref_cluster = prot
             if ref_cluster in max_len_aa_recov:
@@ -2311,7 +2320,7 @@ def scipio_yaml_to_dict(
         accepted_models = []
         for model in unfilter_models[prot]:
             if refs_have_separators:
-                ref_cluster = prot.split(set_a.REFERENCE_CLUSTER_SEPARATOR)[-1]
+                ref_cluster = prot.split(settings.REFERENCE_CLUSTER_SEPARATOR)[-1]
             else:
                 ref_cluster = prot
             frameshifts = len(set(
@@ -2324,8 +2333,8 @@ def scipio_yaml_to_dict(
                 (unfilter_models[prot][model]["score"]
                  * (unfilter_models[prot][model]["match_len"]
                    / max_len_aa_recov[ref_cluster]))
-                * (set_a.SCIPIO_FRAMESHIFT_PENALTY ** frameshifts)
-                * (set_a.EXTRA_CONTIG_PENALTY ** (contigs-1))
+                * (settings.SCIPIO_FRAMESHIFT_PENALTY ** frameshifts)
+                * (settings.EXTRA_CONTIG_PENALTY ** (contigs-1))
             )
             if (unfilter_models[prot][model]["score"] >= min_score
                 and unfilter_models[prot][model]["identity"] >= min_identity
@@ -2345,7 +2354,7 @@ def scipio_yaml_to_dict(
         best_models = {}
         for prot in filter_models:
             if refs_have_separators:
-                ref_cluster = prot.split(set_a.REFERENCE_CLUSTER_SEPARATOR)[-1]
+                ref_cluster = prot.split(settings.REFERENCE_CLUSTER_SEPARATOR)[-1]
             else:
                 ref_cluster = prot
             if ref_cluster not in best_models:
@@ -2384,7 +2393,7 @@ def blat_misc_dna_psl_to_dict(
         q_end, t_end = [], []
         for i in range(len(block_sizes) - 1):
             if (t_starts[i + 1] - (t_starts[i] + block_sizes[i])
-                >= min(q_size * set_a.DNA_MAX_INSERT_PROP, set_a.DNA_MAX_INSERT_SIZE)):
+                >= min(q_size * settings.DNA_MAX_INSERT_PROP, settings.DNA_MAX_INSERT_SIZE)):
                 t_inserts += t_starts[i + 1] - (t_starts[i] + block_sizes[i])
                 q_start.append(q_starts[i + 1])
                 t_start.append(t_starts[i + 1])
@@ -2430,23 +2439,23 @@ def blat_misc_dna_psl_to_dict(
         is partial and subsumed within a larger stretch of sequence unrelated to the query
         """
         region = ""
-        if q_end - q_start >= q_size * (1 - set_a.DNA_TOLERANCE_PROP):
+        if q_end - q_start >= q_size * (1 - settings.DNA_TOLERANCE_PROP):
             region = "full"
-        elif (q_start <= q_size * set_a.DNA_TOLERANCE_PROP
-              and (q_size - q_end) <= q_size * set_a.DNA_TOLERANCE_PROP):
+        elif (q_start <= q_size * settings.DNA_TOLERANCE_PROP
+              and (q_size - q_end) <= q_size * settings.DNA_TOLERANCE_PROP):
             region = "full"
-        elif (q_start >= q_size * set_a.DNA_TOLERANCE_PROP
-              and (q_size - q_end) >= q_size * set_a.DNA_TOLERANCE_PROP):
+        elif (q_start >= q_size * settings.DNA_TOLERANCE_PROP
+              and (q_size - q_end) >= q_size * settings.DNA_TOLERANCE_PROP):
             region = "middle"
-        elif q_start <= q_size * set_a.DNA_TOLERANCE_PROP:
+        elif q_start <= q_size * settings.DNA_TOLERANCE_PROP:
             region = "proximal"
-        elif (q_size - q_end) <= q_size * set_a.DNA_TOLERANCE_PROP:
+        elif (q_size - q_end) <= q_size * settings.DNA_TOLERANCE_PROP:
             region = "distal"
         else:  # hit is only partial and surrounded by a large proportion of unmatched sequence
             region = "wedged"
         # Now check if the flanks in the contig are too long to be part of a multi-part hit
-        left_flank_too_long = t_start / (t_end - t_start) < set_a.DNA_TOLERANCE_PROP
-        right_flank_too_long = (t_size - t_end) / (t_end - t_start) < set_a.DNA_TOLERANCE_PROP
+        left_flank_too_long = t_start / (t_end - t_start) < settings.DNA_TOLERANCE_PROP
+        right_flank_too_long = (t_size - t_end) / (t_end - t_start) < settings.DNA_TOLERANCE_PROP
         if region == "middle":
             if left_flank_too_long or right_flank_too_long:
                 region = "wedged"
@@ -2463,7 +2472,7 @@ def blat_misc_dna_psl_to_dict(
         if template.match(contig_name):
             max_overlap_bp = int(contig_name.split("_")[7])
         else:
-            max_overlap_bp = set_a.DNA_MAX_OVERLAP_BP
+            max_overlap_bp = settings.DNA_MAX_OVERLAP_BP
         return max_overlap_bp
 
     def greedy_assembly_partial_hits(hits_list, max_overlap_bp, max_paralogs: int):
@@ -2524,14 +2533,14 @@ def blat_misc_dna_psl_to_dict(
         return assembly
 
     def pair_is_compatible(h1, h2, max_overlap_bp):
-        if (max(h1["identity"], h2["identity"]) * (1 - set_a.DNA_TOLERANCE_PROP)
+        if (max(h1["identity"], h2["identity"]) * (1 - settings.DNA_TOLERANCE_PROP)
             > min(h1["identity"], h2["identity"])):
             return False
         overlap = min(h1["q_end"][-1], h2["q_end"][-1]) - max(h1["q_start"][0], h2["q_start"][0])
         if overlap < 1:
             return True
-        if (h1["match_len"] * (1 - set_a.DNA_TOLERANCE_PROP) <= overlap
-            or h2["match_len"] * (1 - set_a.DNA_TOLERANCE_PROP) <= overlap):
+        if (h1["match_len"] * (1 - settings.DNA_TOLERANCE_PROP) <= overlap
+            or h2["match_len"] * (1 - settings.DNA_TOLERANCE_PROP) <= overlap):
             return False
         return bool(overlap <= max_overlap_bp)
 
@@ -2570,7 +2579,7 @@ def blat_misc_dna_psl_to_dict(
                 "region": path[0]["region"],    # full, proximal, middle, distal with respect to ref
                 # assembled sequence match plus upstream and downstream buffer
                 "seq_flanked": extract_psl_sequence(target_dict, path[0],
-                                                    set_a.DNA_UP_DOWN_STREAM_BP,
+                                                    settings.DNA_UP_DOWN_STREAM_BP,
                                                     flanked=True),
                 # assembled sequence match
                 "seq_gene": extract_psl_sequence(target_dict, path[0], 0),
@@ -2594,7 +2603,7 @@ def blat_misc_dna_psl_to_dict(
                     hit_ids.append(path[h+1]["identity"])
                     asm_hit["region"] += f',{path[h+1]["region"]}'
                     next_seq_flanked = extract_psl_sequence(target_dict, path[h+1],
-                                                            set_a.DNA_UP_DOWN_STREAM_BP,
+                                                            settings.DNA_UP_DOWN_STREAM_BP,
                                                             flanked=True)
                     next_seq_gene = extract_psl_sequence(target_dict, path[h+1], 0)
                     match_props.append(path[h+1]["matches"] / len(next_seq_gene))
@@ -2736,15 +2745,15 @@ def blat_misc_dna_psl_to_dict(
         check_len = min(len(current_trail), len(next_lead))
         scaffold_overlap = 0
         # Only check for potential overlaps > DNA_MIN_OVERLAP_BP (21 bp)
-        if check_len > set_a.DNA_MIN_OVERLAP_BP:
-            while check_len >= set_a.DNA_MIN_OVERLAP_BP:
+        if check_len > settings.DNA_MIN_OVERLAP_BP:
+            while check_len >= settings.DNA_MIN_OVERLAP_BP:
                 if overlap_matches(current_trail[-check_len:], next_lead[0:check_len]):
                     scaffold_overlap = check_len
                     break
                 check_len -= 1
         scaffold = ""
         sep_len = gap_len - (len(current_trail) + len(next_lead))
-        separator = "n" * sep_len if sep_len > 0 else set_a.DNA_CONTIG_SEPARATOR
+        separator = "n" * sep_len if sep_len > 0 else settings.DNA_CONTIG_SEPARATOR
 
         if scaffold_overlap == 0:
             scaffold = f'{current_ctg_seq}{separator}{next_ctg_seq}'
@@ -2763,7 +2772,7 @@ def blat_misc_dna_psl_to_dict(
             matches += NT_PIDS["".join(sorted([n1, n2]))]
         if matches == seq_len:
             return True
-        if matches / seq_len >= (1 - set_a.DNA_TOLERANCE_PROP):
+        if matches / seq_len >= (1 - settings.DNA_TOLERANCE_PROP):
             return True
         if seq_len - matches <= 1.0 and seq_len <= 10:
             return True
@@ -2779,8 +2788,8 @@ def blat_misc_dna_psl_to_dict(
             q_inserts, t_strand, q_name, q_size = int(cols[4]), cols[8], cols[9], int(cols[10])
             t_base_inserts, t_name, t_size = int(cols[7]), cols[13], int(cols[14])
             # When an insertion as long as the query size is detected we must attempt splitting hit
-            if t_base_inserts >= min(q_size * set_a.DNA_MAX_INSERT_PROP,
-                                     set_a.DNA_MAX_INSERT_SIZE):
+            if t_base_inserts >= min(q_size * settings.DNA_MAX_INSERT_PROP,
+                                     settings.DNA_MAX_INSERT_SIZE):
                 block_sizes = [int(s) for s in cols[18].strip(",").split(",")]
                 q_starts = [int(p) for p in cols[19].strip(",").split(",")]
                 t_starts = [int(p) for p in cols[20].strip(",").split(",")]
@@ -2804,7 +2813,7 @@ def blat_misc_dna_psl_to_dict(
 
             # Ignore hits with not enough coverage of the reference, or partial hits immersed in
             # larger segments of unrelated sequence
-            if not (coverage < set_a.DNA_MIN_COVERAGE_BEFORE_ASSEMBLY and region == "wedged"):
+            if not (coverage < settings.DNA_MIN_COVERAGE_BEFORE_ASSEMBLY and region == "wedged"):
 
                 # Compose hit record with columns from the .psl line
                 hit = {
@@ -2850,11 +2859,11 @@ def blat_misc_dna_psl_to_dict(
             dna_hits[dna_ref] = assembled_hits
 
     # Find if reference has been formatted like Angiosperms353.FAA in order to accomodate more than
-    # a single reference of the same type, we can also use 'set_a.REFERENCE_CLUSTER_SEPARATOR' to
+    # a single reference of the same type, we can also use 'settings.REFERENCE_CLUSTER_SEPARATOR' to
     # recognize the name of the cluster of references of the same kind
     refs_have_separators = True
     for dna_ref in dna_hits:
-        if set_a.REFERENCE_CLUSTER_SEPARATOR not in dna_ref:
+        if settings.REFERENCE_CLUSTER_SEPARATOR not in dna_ref:
             refs_have_separators = False
             break
 
@@ -2864,7 +2873,7 @@ def blat_misc_dna_psl_to_dict(
         max_len_nt_recov = {}
         for dna_ref in dna_hits:
             if refs_have_separators:
-                ref_cluster = dna_ref.split(set_a.REFERENCE_CLUSTER_SEPARATOR)[-1]
+                ref_cluster = dna_ref.split(settings.REFERENCE_CLUSTER_SEPARATOR)[-1]
             else:
                 ref_cluster = dna_ref
             for hit in dna_hits[dna_ref]:
@@ -2877,14 +2886,14 @@ def blat_misc_dna_psl_to_dict(
         # Loop the object again to calculate the actual wscore
         for dna_ref in dna_hits:
             if refs_have_separators:
-                ref_cluster = dna_ref.split(set_a.REFERENCE_CLUSTER_SEPARATOR)[-1]
+                ref_cluster = dna_ref.split(settings.REFERENCE_CLUSTER_SEPARATOR)[-1]
             else:
                 ref_cluster = dna_ref
             for hit in dna_hits[dna_ref]:
                 contigs = len(hit["hit_contigs"].split("\n"))
                 hit["wscore"] = (
                     hit["score"] * (hit["match_len"] / max_len_nt_recov[ref_cluster])
-                    * (set_a.EXTRA_CONTIG_PENALTY ** (contigs-1))
+                    * (settings.EXTRA_CONTIG_PENALTY ** (contigs-1))
                 )
             # Sort hits from largest to smallest 'wscore'
             dna_hits[dna_ref] = sorted(dna_hits[dna_ref], key=lambda i: i["wscore"], reverse=True)
@@ -2895,7 +2904,7 @@ def blat_misc_dna_psl_to_dict(
         best_dna_hits = {}
         for dna_ref in dna_hits:
             if refs_have_separators:
-                ref_cluster = dna_ref.split(set_a.REFERENCE_CLUSTER_SEPARATOR)[-1]
+                ref_cluster = dna_ref.split(settings.REFERENCE_CLUSTER_SEPARATOR)[-1]
             else:
                 ref_cluster = dna_ref
             if ref_cluster not in best_dna_hits:
@@ -2962,7 +2971,7 @@ def write_gff3(hits, marker_type, out_gff_path):
             if len(hits[ref]) == 1:
                 h_name = urllib.parse.quote(ref)
             else:
-                h_name = urllib.parse.quote(f"{ref}{set_a.SEQ_NAME_SEP}{h:02}")
+                h_name = urllib.parse.quote(f"{ref}{settings.SEQ_NAME_SEP}{h:02}")
                 gff.append(f"# {h_name}")
             ref_coords = split_coords(hits[ref][h]["ref_coords"], as_strings=True)
             hit_ids = hits[ref][h]["hit_ids"].split("\n")
@@ -2973,7 +2982,7 @@ def write_gff3(hits, marker_type, out_gff_path):
             wscore = f"""WScore={urllib.parse.quote(f'{hits[ref][h]["wscore"]:.3f}')}"""
             cover_pct = f"""Coverage={urllib.parse.quote(f'{hits[ref][h]["coverage"]:.2f}')}"""
             ident_pct = f"""Identity={urllib.parse.quote(f'{hits[ref][h]["identity"]:.2f}')}"""
-            color = f"Color={urllib.parse.quote(set_a.GFF_COLORS[marker_type])}"
+            color = f"Color={urllib.parse.quote(settings.GFF_COLORS[marker_type])}"
             for c in range(len(hit_coords)):
                 seq_id = urllib.parse.quote(hit_contigs[c])
                 strand = strands[c]
@@ -3024,4 +3033,302 @@ def split_mmseqs_clusters_file(all_seqs_file_path):
         return mmseqs_clusters
     else:
         return None
+
+
+def cds_from_gff(gff_path, fasta_path, bait_length):
+    """
+    Extract a FASTA genome file using its corresponding GFF annotation file,
+    extract and concatenate CDS sequence, classify exons as short or long
+    according to `min_exon_size`, and compile a data table about exons
+    and total intron lengths
+
+    Parameters
+    ----------
+    gff_path : Path
+        Location of GFF annotation file
+    fasta_path : Path
+        Location of FASTA genome file
+    min_exon_size : int
+        Minimum exon length to be considered as long, usually the length of the
+        projected baits, e.g. 120
+    """
+
+    if f"{gff_path}".endswith(".gz"):
+        opener = gzip.open
+    else:
+        opener = open
+
+    cds = {}
+    with opener(gff_path, "rt") as gff_in:
+        for line in gff_in:
+            if not line.startswith("#"):
+                record = line.strip().split("\t")
+                if len(record) < 8:
+                    continue
+                if record[2].lower() == "cds":
+                    notes = {n.split("=")[0].lower(): n.split("=")[1] for n in record[8].split(";") if n}
+                    key   = "protein_id" if "protein_id" in notes else "parent"
+                    shift = int(record[7]) if record[7] != "." else 0
+                    start = int(record[3])
+                    end   = int(record[4])
+                    if notes[key] not in cds:
+                        cds[notes[key]] = {
+                            "seq_id": record[0],
+                            "strand": record[6],
+                            "coords": [(start, shift, end)],
+                        }
+                    else:
+                        cds[notes[key]]["coords"].append((start, shift, end))
+
+    genome = fasta_to_dict(fasta_path)
+    fasta_cds = {}
+    fasta_long_exons = {}
+    fasta_short_exons = {}
+    annotations = []
+
+    cds_data = [[
+        "cds_id", "position", "exons", "exons_len", "long_exons", "long_exons_len",
+        "short_exons", "short_exons_len", "introns_len", "gene_len"
+    ]]
+    for cds_id in cds:
+        seq_id = cds[cds_id]["seq_id"]
+        strand = cds[cds_id]["strand"]
+        if cds[cds_id]["strand"] == "+":
+            cds[cds_id]["coords"].sort()
+        elif cds[cds_id]["strand"] == "-":
+            cds[cds_id]["coords"].sort(reverse=True)
+        coords = cds[cds_id]["coords"]
+        cds[cds_id]["seqs"] = []
+        for i in range(len(coords)):
+            s, e = coords[i][0], coords[i][2]
+            if i == 0:
+                if strand == "+":
+                    s = coords[i][0] + coords[i][1]
+                elif strand == "-":
+                    e = coords[i][2] - coords[i][1]
+            if strand == "+":
+                seq = genome[seq_id]["sequence"][s-1:e]
+            elif strand == "-":
+                seq = reverse_complement(genome[seq_id]["sequence"][s-1:e])
+            cds[cds_id]["seqs"].append(seq)
+        sequence  = "".join(cds[cds_id]["seqs"])
+        se = ",".join([f'{t[0]}-{t[2]}' for t in coords])
+        description = f'[{seq_id}:{se}:{strand}]'
+
+        # Ignore identical annotations
+        if description not in annotations:
+            annotations.append(description)
+            fasta_cds[cds_id] = {
+                "sequence": sequence,
+                "description": description,
+            }
+            exons = len(coords)
+            exons_len = 0
+            long_exons = 0
+            long_exons_len = 0
+            short_exons = 0
+            short_exons_len = 0
+            if strand == "+":
+                gene_len = abs(cds[cds_id]["coords"][-1][2] - cds[cds_id]["coords"][0][0]) + 1
+            elif strand == "-":
+                gene_len = abs(cds[cds_id]["coords"][0][2] - cds[cds_id]["coords"][-1][0]) + 1
+            for i in range(len(coords)):
+                s = f'{cds[cds_id]["coords"][i][0]}'
+                e = f'{cds[cds_id]["coords"][i][2]}'
+                seq = cds[cds_id]["seqs"][i]
+                exons_len += len(seq)
+                if len(seq) >= bait_length:
+                    long_exons += 1
+                    long_exons_len += len(seq)
+                    fasta_long_exons[f'{cds_id}_exon{i+1}'] = {
+                        "sequence": seq,
+                        "description": f'[{seq_id}:{s}-{e}:{strand}]',
+                    }
+                else:
+                    short_exons += 1
+                    short_exons_len += len(seq)
+                    fasta_short_exons[f'{cds_id}_exon{i+1}'] = {
+                        "sequence": seq,
+                        "description": f'[{seq_id}:{s}-{e}:{strand}]',
+                    }
+            cds_data.append([
+                cds_id,
+                f'{seq_id}:{cds[cds_id]["coords"][0][0]}-{cds[cds_id]["coords"][-1][2]}:{strand}',
+                f'{exons}',
+                f'{exons_len}',
+                f'{long_exons}',
+                f'{long_exons_len}',
+                f'{short_exons}',
+                f'{short_exons_len}',
+                f'{gene_len - exons_len}',
+                f'{gene_len}',
+            ])
+
+    return fasta_cds, fasta_long_exons, fasta_short_exons, cds_data
+
+
+def mmseqs2_cluster(
+        mmseqs2_path, mmseqs2_method, clustering_dir, clustering_input_file, cluster_prefix,
+        clustering_tmp_dir, min_identity, seq_id_mode, min_coverage, cov_mode, cluster_mode, threads,
+
+):
+    """
+    Run MMseqs easy-linclust but perform some parameter checking/conversion before, the FASTA input
+    file has to be decompressed, we can compress it afterwards
+    """
+    start = time.time()
+    if not 0 < min_identity <= 1:
+        min_identity = min(1.0, round((abs(min_identity) / 100), 3))
+    if not 0 < min_coverage <= 1:
+        min_coverage = min(1.0, round((abs(min_coverage) / 100), 3))
+
+    result_prefix = f"{Path(clustering_dir, cluster_prefix)}"
+    mmseqs2_cmd = [
+        mmseqs2_path,
+        mmseqs2_method,
+        f"{clustering_input_file}",
+        f"{result_prefix}",
+        f"{clustering_tmp_dir}",
+        "--min-seq-id", f"{min_identity}",
+        "--seq-id-mode", f"{seq_id_mode}",
+        "-c", f"{min_coverage}",
+        "--cov-mode", f"{cov_mode}",
+        "--cluster-mode", f"{cluster_mode}",
+        "--gap-open", f"{max(1, settings.MMSEQS2_GAP_OPEN)}",
+        "--gap-extend", f"{max(1, settings.MMSEQS2_GAP_EXTEND)}",
+        "--kmer-per-seq-scale", f"{settings.MMSEQS2_KMER_PER_SEQ_SCALE}",
+        "--threads", f"{threads}",
+    ]
+    if mmseqs2_method == "easy-cluster" and cluster_mode == 2:
+        mmseqs2_cmd += ["--cluster-reassign"]
+    mmseqs2_log_file = Path(clustering_dir, f"{cluster_prefix}.log")
+    mmseqs2_thread = ElapsedTimeThread()
+    mmseqs2_thread.start()
+    with open(mmseqs2_log_file, "w") as mmseqs2_log:
+        mmseqs2_log.write(f"Captus' MMseqs2 Command:\n  {' '.join(mmseqs2_cmd)}\n\n")
+    with open(mmseqs2_log_file, "a") as mmseqs2_log:
+        subprocess.run(mmseqs2_cmd, stdout=mmseqs2_log, stdin=mmseqs2_log)
+    mmseqs2_thread.stop()
+    mmseqs2_thread.join()
+    print()
+
+    message = bold(f" \u2514\u2500\u2192 Clustering completed: [{elapsed_time(time.time() - start)}]")
+    return message
+
+
+def resolve_iupac(seq):
+    """
+    Select a random nucleotide for IUPAC ambiguity codes, returning sequences with only A,T,G,C
+    Leaves capitalization intact (important for low complexity masking)
+
+    Parameters
+    ----------
+    seq : str
+        Input sequence
+
+    Returns
+    -------
+    str
+        Output sequence with ambiguities replaced
+    """
+    seq_upper = seq.upper()
+    seq_out = ""
+    for i in range(len(seq)):
+        r = seq_upper[i]
+        if r in NT_IUPAC:
+            r_resolved = random.choice(NT_IUPAC[r])
+            if seq[i].islower():
+                seq_out += r_resolved.lower()
+            else:
+                seq_out += r_resolved
+    return seq_out
+
+
+def bait_stats(bait_seq, hybrid_chem, sodium_conc, formamide_conc):
+
+    def calc_melt_temp(bait_len, gc_content, hybrid_chem, sodium_conc, formamide_conc):
+        """
+        Calculate oligonucleotide melting temperature
+
+        Parameters
+        ----------
+        seq_len : int
+            Oligonucleotide length
+        gc_content : float
+            GC content in percentage
+        hybrid_chem : str
+            Bait hybridization chemistry, can be RNA-DNA, DNA-DNA, or RNA-RNA
+        sodium_conc : float
+            Na concentration
+        formamide_conc : float
+            Formamide concentration
+
+        Returns
+        -------
+        float
+            Oligonucleotide melting temperature
+        """
+        melt_temp = -1.0
+        if hybrid_chem == "RNA-DNA":
+            melt_temp = (79.8
+                        + (58.4 * gc_content)
+                        + (11.8 * math.pow(gc_content, 2))
+                        - (820.0 / bait_len)
+                        + (18.5 * math.log(sodium_conc))
+                        - (0.5 * formamide_conc))
+        elif hybrid_chem == "DNA-DNA":
+            melt_temp = (81.5
+                        + (41.0 * gc_content)
+                        - (500.0 / bait_len)
+                        + (16.6 * math.log(sodium_conc))
+                        - (0.62 * formamide_conc))
+        elif hybrid_chem == "RNA-RNA":
+            melt_temp = (79.8
+                        + (58.4 * gc_content)
+                        + (11.8 * math.pow(gc_content, 2))
+                        - (820.0 / bait_len)
+                        + (18.5 * math.log(sodium_conc))
+                        - (0.35 * formamide_conc))
+        return melt_temp
+
+    gc_bp = []
+    lower_bp = 0
+    homopolymer_len = 0
+    max_homopolymer_len = 1
+    bait_len = len(bait_seq)
+    bait_seq_upper = bait_seq.upper()
+
+    for i in range(bait_len):
+        r = bait_seq_upper[i]
+
+        if r in NT_IUPAC:
+            g_prop = NT_IUPAC[r].count("G") / len(NT_IUPAC[r])
+            c_prop = NT_IUPAC[r].count("C") / len(NT_IUPAC[r])
+            gc_bp.append(g_prop + c_prop)
+
+        if i == 0:
+            homopolymer_len = 1
+        else:
+            if r == bait_seq_upper[i-1]:
+                homopolymer_len += 1
+            else:
+                if homopolymer_len > max_homopolymer_len:
+                    max_homopolymer_len = homopolymer_len
+                homopolymer_len = 1
+
+        if bait_seq[i].islower():
+            lower_bp += 1
+
+    gc_content = round(sum(gc_bp) / len(gc_bp) * 100, 2)
+
+    stats = {
+        "gc": gc_content,
+        "melt_temp": calc_melt_temp(bait_len, gc_content, hybrid_chem, sodium_conc, formamide_conc),
+        "low_complexity": round(lower_bp / bait_len * 100, 2),
+        "max_homopolymer_len": max_homopolymer_len,
+        "Ns": bait_seq_upper.count("N"),
+    }
+
+    return stats
+
 

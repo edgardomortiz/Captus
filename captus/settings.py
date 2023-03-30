@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Copyright 2020 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
+Copyright 2020-2023 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
 https://github.com/edgardomortiz/Captus
 
 This module contains hard-coded settings for Captus-assembly
@@ -17,6 +17,7 @@ not, see <http://www.gnu.org/licenses/>.
 import platform
 from pathlib import Path
 
+
 # Seed for randomization
 RANDOM_SEED = 142857
 
@@ -31,6 +32,9 @@ FASTA_VALID_EXTENSIONS = [".fa", ".fna", ".fasta", ".fa.gz", ".fna.gz", ".fasta.
 
 # FASTQ valid filename extensions:
 FASTQ_VALID_EXTENSIONS = [".fq", ".fastq", ".fq.gz", ".fastq.gz"]
+
+# GFF valid filename extensions:
+GFF_VALID_EXTENSIONS = [".gff", ".gff3", ".gtf", ".gff.gz", ".gff3.gz", ".gtf.gz"]
 
 # Fraction of total RAM available to Captus when using 'auto' in --ram
 RAM_FRACTION = 0.99
@@ -576,3 +580,14 @@ SEQ_NAME_SEP = "__"
 # File name for sequence-to-sample equivalence table used by ASTRAL-Pro to analyze trees that
 # include paralogs
 ASTRAL_PRO_EQ = "captus-assembly_align.astral-pro.tsv"
+
+# Import data for clustering file names
+IMPORT_SUFFIXES = {
+    "CDS":     "_markers.fasta",          # Full CDS, concatenated exons
+    "LONG":    "_exons_long.fasta",       # Individual exons >= bait_length
+    "SHORT":   "_exons_short.fasta",      # Individual exons < bait_length
+    "DATA":    "_exons_data.tsv",          # Exon and intron data, tab-separated values table
+    "MARKERS": "_markers.fasta",          # Any sequences, when no GFF is found
+    "FILTER":  "_markers_filtered.fasta", # Sequences filtered according to '--min_seq_len'
+    "DEDUPED": "_markers_deduped.fasta",  # Deduplicated sequences, ready for clustering
+}

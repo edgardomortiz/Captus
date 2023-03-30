@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Copyright 2020 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
+Copyright 2020-2023 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
 https://github.com/edgardomortiz/Captus
 
 This file is part of Captus. Captus is free software: you can redistribute it and/or modify
@@ -20,8 +20,7 @@ import subprocess
 import time
 from pathlib import Path
 
-from . import log
-from . import settings_assembly as settings
+from . import log, settings
 from .bioformats import dict_to_fasta, fasta_headers_to_spades, fasta_to_dict, get_mean_read_length
 from .misc import (bbtools_path_version, bold, dim, elapsed_time, find_and_match_fastqs,
                    format_dep_msg, make_output_dir, make_tmp_dir_within, megahit_path_version,

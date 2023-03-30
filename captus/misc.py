@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Copyright 2020 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
+Copyright 2020-2023 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
 https://github.com/edgardomortiz/Captus
 
 This file is part of Captus. Captus is free software: you can redistribute it and/or modify
@@ -30,7 +30,7 @@ from pathlib import Path
 
 from tqdm import tqdm
 
-from . import log, settings_assembly
+from . import log, settings
 
 
 class ElapsedTimeThread(threading.Thread):
@@ -74,7 +74,7 @@ def set_ram(ram):
     """
     memsize = get_ram()
     if ram == "auto":
-        ram_B = int(memsize * settings_assembly.RAM_FRACTION)
+        ram_B = int(memsize * settings.RAM_FRACTION)
     else:
         ram_B = min(int(float(ram) * 1024 ** 3), memsize)
     ram_MB = ram_B // 1024 ** 2
@@ -170,7 +170,7 @@ def tqdm_parallel_nested_run(
 
 def tqdm_parallel_async_write(
     function, params_list, description_msg, finished_msg, unit, threads, file_out
-):
+    ):
     start = time.time()
     log.log(bold(f"{description_msg}:"))
     tqdm_cols = min(shutil.get_terminal_size().columns, 120)
@@ -295,7 +295,7 @@ def find_and_match_fastqs(reads, recursive=False):
     fastqs[file_R1] = {"containing_drectory", "file_R2"} for pairs of files, and
     fastqs[file_R1] = ["containing_drectory", None} for single-end files
     """
-    valid_exts = settings_assembly.FASTQ_VALID_EXTENSIONS
+    valid_exts = settings.FASTQ_VALID_EXTENSIONS
     if type(reads) is not list:
         reads = [reads]
     if len(reads) == 1 and Path(reads[0]).is_dir():
@@ -323,6 +323,56 @@ def find_and_match_fastqs(reads, recursive=False):
             else:
                 fastqs[file_name] = {"fastq_dir": file_dir, "fastq_r2": None}
     return fastqs
+
+
+def find_and_match_fastas_gffs(markers, recursive=False):
+    """
+    Receives a list of files or a drectory name. Only FASTA and GFF files in the list or inside the
+    folder are retained. Returns a dictionary with the items formatted as:
+    fastas_to_cluster[fasta_name] = {"containing_drectory", "gff_path"} for FASTA+GFF, and
+    fastas_to_cluster[fasta_name] = {"containing_drectory", None} for FASTA only
+    """
+    valid_fasta_exts = settings.FASTA_VALID_EXTENSIONS
+    valid_gff_exts   = settings.GFF_VALID_EXTENSIONS
+    fastas, gffs = [], []
+    if type(markers) is not list:
+        markers = [markers]
+    if len(markers) == 1 and Path(markers[0]).is_dir():
+        if recursive:
+            fastas = [file for file in Path(markers[0]).resolve().rglob("*")
+                      if has_valid_ext(file, valid_fasta_exts)]
+            gffs   = [file for file in Path(markers[0]).resolve().rglob("*")
+                      if has_valid_ext(file, valid_gff_exts)]
+        else:
+            fastas = [file for file in Path(markers[0]).resolve().glob("*")
+                      if has_valid_ext(file, valid_fasta_exts)]
+            gffs   = [file for file in Path(markers[0]).resolve().glob("*")
+                      if has_valid_ext(file, valid_gff_exts)]
+    else:
+        fastas = [Path(Path(file).parent.resolve(), Path(file).name) for file in markers
+                  if Path(file).resolve().is_file()
+                  and has_valid_ext(file, valid_fasta_exts)
+                  and " " not in Path(file).name]
+        gffs   = [Path(Path(file).parent.resolve(), Path(file).name) for file in markers
+                  if Path(file).resolve().is_file()
+                  and has_valid_ext(file, valid_gff_exts)
+                  and " " not in Path(file).name]
+    # Remove hidden files from list
+    fastas = [Path(file) for file in fastas if not file.name.startswith(".")]
+    gffs   = [Path(file) for file in gffs if not file.name.startswith(".")]
+    # Get stem name (sample name) from each GFF with its corresponding path in a dictionary
+    gffs   = {file.name.rstrip("".join(file.suffixes)): file for file in gffs}
+    # Match if possible a FASTA with a GFF with identical stem
+    fastas_to_import = {}
+    for fasta_file in fastas:
+        fasta_name = fasta_file.name
+        fasta_stem = fasta_file.name.rstrip("".join(fasta_file.suffixes))
+        fasta_dir  = fasta_file.parent
+        if fasta_stem in gffs:
+            fastas_to_import[fasta_name] = {"fasta_dir": fasta_dir, "gff_path": gffs[fasta_stem]}
+        else:
+            fastas_to_import[fasta_name] = {"fasta_dir": fasta_dir, "gff_path": None}
+    return fastas_to_import
 
 
 def quit_with_error(message):
@@ -368,7 +418,7 @@ def pigz_compress(file_in, threads):
 
 def compress_list_files(files_list, threads):
     compress_params = []
-    t = min(threads, settings_assembly.MAX_HDD_WRITE_INSTANCES)
+    t = min(threads, settings.MAX_HDD_WRITE_INSTANCES)
     if shutil.which("pigz"):
         for ungz_file in files_list:
             if ungz_file.is_file():
@@ -539,7 +589,7 @@ def yaml_perl_get_version():
 
 def blat_path_version(blat_path):
     if blat_path == "bundled":
-        blat_path = settings_assembly.BUNDLED_BLAT
+        blat_path = settings.BUNDLED_BLAT
     found_blat_path = shutil.which(blat_path)
     if found_blat_path is None:
         return blat_path, "", "not found"
@@ -557,6 +607,16 @@ def mmseqs_path_version(mmseqs_path):
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     version = process.communicate()[0].decode().strip("\n")
     return found_mmseqs_path, version, "OK"
+
+
+def vsearch_path_version(vsearch_path):
+    found_vsearch_path = shutil.which(vsearch_path)
+    if found_vsearch_path is None:
+        return vsearch_path, "", "not found"
+    command = [found_vsearch_path, "--version"]
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    version = process.communicate()[0].decode().splitlines()[0].split()[1].lstrip("v").rstrip(",")
+    return found_vsearch_path, version, "OK"
 
 
 def clipkit_path_version(clipkit_path):
