@@ -336,7 +336,7 @@ def subsample_reads(
             subprocess.run(reformat_cmd, stderr=reformat_log)
         message = f"'{sample_name}': reads subsampled [{elapsed_time(time.time() - start)}]"
     else:
-        message = dim(f"'{sample_name}': skipped (output files already exist)")
+        message = dim(f"'{sample_name}': SKIPPED (output files already exist)")
 
     return message
 
@@ -424,7 +424,7 @@ def megahit(
         mean_read_length = get_mean_read_length(Path(fastq_dir, fastq_r1),
                                                 settings.NUM_READS_TO_CALCULATE_MEAN_READ_LENGTH)
         if mean_read_length is False:
-            message = red(f"'{sample_name}': skipped (FASTQ files have .gz"
+            message = red(f"'{sample_name}': SKIPPED (FASTQ files have .gz"
                            " extension but are not compressed, please verify)")
             return message
         adjusted_k_list = adjust_megahit_k_list(k_list, mean_read_length,
@@ -462,7 +462,7 @@ def megahit(
         asm_stats = get_asm_stats(sample_megahit_out_dir)
         message = f"'{sample_name}': {asm_stats} [{elapsed_time(time.time() - start)}]"
     else:
-        message = dim(f"'{sample_name}': skipped (output files already exist)")
+        message = dim(f"'{sample_name}': SKIPPED (output files already exist)")
 
     return message
 

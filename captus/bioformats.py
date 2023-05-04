@@ -3170,7 +3170,6 @@ def cds_from_gff(gff_path, fasta_path, bait_length):
 def mmseqs2_cluster(
         mmseqs2_path, mmseqs2_method, clustering_dir, clustering_input_file, cluster_prefix,
         clustering_tmp_dir, min_identity, seq_id_mode, min_coverage, cov_mode, cluster_mode, threads,
-
 ):
     """
     Run MMseqs easy-linclust but perform some parameter checking/conversion before, the FASTA input
@@ -3201,7 +3200,7 @@ def mmseqs2_cluster(
     ]
     if mmseqs2_method == "easy-cluster" and cluster_mode == 2:
         mmseqs2_cmd += ["--cluster-reassign"]
-    mmseqs2_log_file = Path(clustering_dir, f"{cluster_prefix}.log")
+    mmseqs2_log_file = Path(clustering_dir, f"{cluster_prefix}_mmseqs.log")
     mmseqs2_thread = ElapsedTimeThread()
     mmseqs2_thread.start()
     with open(mmseqs2_log_file, "w") as mmseqs2_log:
@@ -3210,6 +3209,43 @@ def mmseqs2_cluster(
         subprocess.run(mmseqs2_cmd, stdout=mmseqs2_log, stdin=mmseqs2_log)
     mmseqs2_thread.stop()
     mmseqs2_thread.join()
+    print()
+
+    message = bold(f" \u2514\u2500\u2192 Clustering completed: [{elapsed_time(time.time() - start)}]")
+    return message
+
+
+def vsearch_cluster(
+        vsearch_path, vsearch_method, clustering_dir, clustering_input_file,
+        cluster_prefix, min_identity, seq_id_mode, min_coverage, strand, threads
+):
+    start = time.time()
+    if not 0 < min_identity <= 1:
+        min_identity = min(1.0, round((abs(min_identity) / 100), 3))
+    if not 0 < min_coverage <= 1:
+        min_coverage = min(1.0, round((abs(min_coverage) / 100), 3))
+
+    vsearch_cmd = [
+        vsearch_path,
+        vsearch_method, f"{Path(clustering_input_file)}",
+        "-strand", strand,
+        "-id", f"{min_identity}",
+        "-iddef", f"{seq_id_mode}",
+        "-query_cov", f"{min_coverage}",
+        "-userout", f"{Path(clustering_dir, f'{cluster_prefix}_cluster.tsv')}",
+        "-userfields", "target+query",
+        "-maxrejects", "0",
+        "-threads", f"{threads}",
+    ]
+    vsearch_log_file = Path(clustering_dir, f'{cluster_prefix}_vsearch.log')
+    vsearch_thread = ElapsedTimeThread()
+    vsearch_thread.start()
+    with open(vsearch_log_file, "w") as vsearch_log:
+        vsearch_log.write(f"Captus' VSEARCH Command:\n  {' '.join(vsearch_cmd)}\n\n")
+    with open(vsearch_log_file, "a") as vsearch_log:
+        subprocess.run(vsearch_cmd, stdout=vsearch_log, stdin=vsearch_log, stderr=vsearch_log)
+    vsearch_thread.stop()
+    vsearch_thread.join()
     print()
 
     message = bold(f" \u2514\u2500\u2192 Clustering completed: [{elapsed_time(time.time() - start)}]")

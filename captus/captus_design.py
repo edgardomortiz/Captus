@@ -148,6 +148,36 @@ class CaptusDesign(object):
 
         clustering_group = parser.add_argument_group("Clustering of markers")
         clustering_group.add_argument(
+            "--clust_program",
+            action="store",
+            default="mmseqs",
+            type=str,
+            dest="clust_program",
+            choices=["mmseqs", "vsearch"],
+            help="Clustering software to use for deduplication and clustering"
+        )
+        clustering_group.add_argument(
+            "--max_seq_len",
+            action="store",
+            default="auto",
+            type=str,
+            dest="max_seq_len",
+            help="When left to 'auto' Captus will filter sequences longer than 65535 bp if MMseqs2"
+                 " is used or longer than 5000 bp if VSEARCH is used. Otherwise provide a length in"
+                 " bp to remove longer sequences prior to deduplication and clustering"
+        )
+        clustering_group.add_argument(
+            "-s", "--strand",
+            action="store",
+            default="both",
+            type=str,
+            dest="strand",
+            choices=["both", "plus"],
+            help="Strand to compare for deduplication or clustering when using VSEARCH (MMSeqs2"
+                 " processes both strands by default). Using both strands increases"
+                 " processing time in VSEARCH"
+        )
+        clustering_group.add_argument(
             "-d", "--dedup_threshold",
             action="store",
             default=99.5,
@@ -163,51 +193,13 @@ class CaptusDesign(object):
             dest="clust_threshold",
             help="Percent identity threshold for across-samples marker clustering"
         )
-        clustering_group.add_argument(
-            "-s", "--strand",
-            action="store",
-            default="plus",
-            type=str,
-            dest="strand",
-            choices=["plus", "both"],
-            help="Strand to compare for deduplication or clustering. Using both strands increases"
-                 " time when using VSEARCH"
-        )
-        clustering_group.add_argument(
-            "--max_seq_len",
-            action="store",
-            default=20000,
-            type=int,
-            dest="max_seq_len",
-            help="Do not cluster sequences longer than this length in bp. Reduce to at most 5000"
-                 " when using VSEARCH to avoid excessive processing times"
-        )
-        clustering_group.add_argument(
-            "--clust_program",
-            action="store",
-            default="mmseqs",
-            type=str,
-            dest="clust_program",
-            choices=[
-                "mmseqs",
-                "vsearch"
-            ],
-            help="Clustering software to use for deduplication and clustering"
-        )
 
         align_group = parser.add_argument_group("Alignment of clusters")
         align_group.add_argument(
-            "--align_sigletons",
+            "--align_singletons",
             action="store_true",
-            dest="align_sigletons",
-            help="Align clusters containing sequences from a sinlge species"
-        )
-        align_group.add_argument(
-            "--keep_sigletons",
-            action="store_true",
-            dest="keep_sigletons",
-            help="Do not delete clusters containing a single sequence of multiple sequences from"
-                 " a single species"
+            dest="align_singletons",
+            help="Align clusters containing sequences from a single species"
         )
         align_group.add_argument(
             "--timeout",
@@ -233,22 +225,23 @@ class CaptusDesign(object):
             action="store",
             type=str,
             dest="focal_species",
-            help="Comma-separated list of species whose presence must be tracked in the alignments"
+            help="Comma-separated list (no spaces) of species whose presence must be tracked in the"
+                 " alignments"
         )
         curation_group.add_argument(
             "--outgroup_species",
             action="store",
             type=str,
             dest="outgroup_species",
-            help="Comma-separated list of outgroup species names"
+            help="Comma-separated list (no spaces) of outgroup species names"
         )
         curation_group.add_argument(
             "--addon_samples",
             action="store",
             type=str,
             dest="addon_samples",
-            help="Comma-separated list of samples to exclude from the maximum proportion of missing"
-                 " data, these can be poor quality assemblies for example"
+            help="Comma-separated list (no spaces) of samples to exclude from the maximum proportion"
+                 " of missing data, these can be poor quality assemblies for example"
         )
 
         other_group = parser.add_argument_group("Other")
@@ -256,7 +249,7 @@ class CaptusDesign(object):
             "--redo_from",
             action="store",
             choices=[
-                "import",
+                "importation",
                 "dereplication",
                 "clustering",
                 "alignment",
@@ -266,7 +259,7 @@ class CaptusDesign(object):
             dest="redo_from",
             help="B|Repeat analysis from a particular stage:\n"
                  "import = Delete all subdirectories and import input data again\n"
-                 "dereplication = Delete all dereplicated FASTA files and restart\n"
+                 "deduplication = Delete all deduplicated FASTA files and restart\n"
                  "clustering = Delete clustering subdirectory and restart\n"
                  "alignment = Delete alignments subdirectory and restart\n"
                  "curation = Delete curated alignments subdirectory and restart"
@@ -330,11 +323,11 @@ class CaptusDesign(object):
             help="Enable debugging mode, parallelization is disabled so errors are logged to screen"
         )
         other_group.add_argument(
-            "--show_less",
+            "--show_more",
             action="store_true",
-            dest="show_less",
-            help="Do not show individual sample information during the run, the information is still"
-                 " written to the log"
+            dest="show_more",
+            help="Show individual alignment information during the run. Detailed information is"
+                 " written regardless to the log"
         )
 
         help_group = parser.add_argument_group("Help")

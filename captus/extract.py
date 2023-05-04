@@ -219,7 +219,7 @@ def extract(full_command, args):
             num_refs += 1
             if args.mit_refs.lower() in settings.PROT_REFS["MIT"]:
                 args.mit_transtable = settings.PROT_REFS["MIT"][args.mit_refs.lower()]["transtable"]
-        num_extractions = len(fastas_to_extract) * num_refs
+        num_prot_extractions = len(fastas_to_extract) * num_refs
 
         protein_refs = prepare_protein_refs(args.nuc_refs,
                                             args.ptd_refs,
@@ -234,7 +234,7 @@ def extract(full_command, args):
                 protein_refs["MIT"]["AA_path"]]):
             log.log(bold(f'{"PROTEIN OPTIONS":>{mar}}:'))
             prot_concurrent, prot_threads, prot_ram = adjust_concurrency(args.concurrent,
-                                                                         num_extractions,
+                                                                         num_prot_extractions,
                                                                          threads_max,
                                                                          ram_B,
                                                                          "protein")
@@ -299,8 +299,9 @@ def extract(full_command, args):
             dna_query = fasta_to_dict(dna_ref["DNA"]["NT_path"])
             dna_query_info = reference_info(dna_query)
             dna_ref_size = max(dna_ref_size, dna_query_info["total_size"])
+            num_dna_extractions = len(fastas_to_extract)
             dna_concurrent, dna_threads, dna_ram = adjust_concurrency(args.concurrent,
-                                                                      num_samples,
+                                                                      num_dna_extractions,
                                                                       threads_max,
                                                                       ram_B,
                                                                       "dna")
@@ -849,7 +850,7 @@ def find_fasta_assemblies(captus_assemblies_dir, out_dir):
                     sample_dir = Path(out_dir, f"{sample_name}__captus-ext")
                     fastas_to_extract[sample_name] = {
                         "assembly_path": fasta,
-                        "sample_dir": sample_dir
+                        "sample_dir": sample_dir,
                     }
     return fastas_to_extract
 
@@ -914,10 +915,10 @@ def check_and_copy_found_fasta(fasta_path, valid_exts, captus_assemblies_dir, ov
                 f"' [{elapsed_time(time.time() - start)}]"
             )
         else:
-            message = dim(f"'{fasta_name}': skipped, this FASTA contains aminoacids")
+            message = dim(f"'{fasta_name}': SKIPPED, this FASTA contains aminoacids")
     else:
         message = (
-            f"'{fasta_name}': skipped, '[captus_assemblies_dir]/"
+            f"'{fasta_name}': SKIPPED, '[captus_assemblies_dir]/"
             f'{Path(f"{sample_name}__captus-asm","01_assembly","assembly.fasta")}'
             "' already exists"
         )
@@ -1220,11 +1221,11 @@ def scipio_coding(
         if yaml_initial_file is None:
             message = dim(
                 f"'{sample_name}': extraction of {genes[marker_type]}"
-                " skipped (output files already exist)"
+                " SKIPPED (output files already exist)"
             )
             return message
-        elif yaml_initial_file == "BLAT FILE":
-            message = red(f"'{sample_name}': FAILED extraction of {genes[marker_type]} (0 BLAT hits)")
+        elif yaml_initial_file == "BLAT FAILED":
+            message = red(f"'{sample_name}': FAILED extraction of {genes[marker_type]} (No BLAT hits)")
             return message
         else:
             yaml_initial_dir = yaml_initial_file.parent
@@ -1257,8 +1258,11 @@ def scipio_coding(
     if yaml_final_file is None:
         message = dim(
             f"'{sample_name}': extraction of {genes[marker_type]}"
-            " skipped (output files already exist)"
+            " SKIPPED (output files already exist)"
         )
+        return message
+    elif yaml_final_file == "BLAT FAILED":
+        message = red(f"'{sample_name}': FAILED extraction of {genes[marker_type]} (No BLAT hits)")
         return message
     else:
         yaml_final_dir = yaml_final_file.parent
@@ -1837,7 +1841,7 @@ def blat_misc_dna(
     else:
         message = dim(
             f"'{sample_name}': extraction of miscellaneous DNA markers"
-            " skipped (output files already exist)"
+            " SKIPPED (output files already exist)"
         )
         return message
 
@@ -1952,7 +1956,7 @@ def cleanup_post_extraction(
         return message
     else:
         message = dim(
-            f"'{sample_name}': cleanup and merging of GFFs and stats skipped"
+            f"'{sample_name}': cleanup and merging of GFFs and stats SKIPPED"
             " (output files already exist)"
         )
         return message
@@ -2018,7 +2022,7 @@ def rehead_and_concatenate_fastas(
 
 def rehead_fasta_with_sample_name(sample_name, sample_fasta_path, clustering_dir):
     """
-    Prepend sample name to sequence header followed by a '|'
+    Prepend sample name to sequence header followed by a '__'
     """
     start = time.time()
     sample_fasta = fasta_to_dict(sample_fasta_path)

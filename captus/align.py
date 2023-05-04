@@ -464,9 +464,9 @@ def align(full_command, args):
         clipkit_gaps = "auto" if args.min_data_per_column > 0 else args.clipkit_gaps
         log.log(f'{"Gaps threshold":>{mar}}: {bold(clipkit_gaps)}')
         if args.min_data_per_column > 0:
-            log.log(f'{"Min. sequences per column":>{mar}}: {bold(args.min_data_per_column)}')
+            log.log(f'{"Min. sites per column":>{mar}}: {bold(args.min_data_per_column)}')
         else:
-            log.log(f'{"Min. sequences per column":>{mar}}: {dim("NOT USED")}')
+            log.log(f'{"Min. sites per column":>{mar}}: {dim("NOT USED")}')
         log.log(f'{"Min. sequence coverage":>{mar}}: {bold(args.min_coverage)}')
         log.log(f'{"Min. samples to keep":>{mar}}: {bold(args.min_samples)}')
         log.log("")
@@ -1125,7 +1125,7 @@ def msa(
     fasta_out_short = Path(*fasta_out.parts[-3:])
     if num_samples(fasta_to_dict(fasta_in)) < min_samples:
         message = dim(
-            f"'{fasta_out_short}': skipped (input FASTA has fewer than"
+            f"'{fasta_out_short}': SKIPPED (input FASTA has fewer than"
             f" {min_samples} samples)"
         )
         return message
@@ -1157,8 +1157,8 @@ def msa(
             mafft_log_file = Path(fasta_out.parent, f"{fasta_out.stem}.mafft.log")
             with open(fasta_out, "w") as mafft_out:
                 with open(mafft_log_file, "w") as mafft_log:
-                    mafft_log.write(f"Captus' MAFFT Command:\n  {' '.join(mafft_cmd)}\n\n\n")
-                with open(mafft_log_file, "a") as mafft_log:
+                    mafft_log.write(f"Captus' MAFFT Command:\n  {' '.join(mafft_cmd)}"
+                                    f" > {fasta_out}\n\n\n")
                     try:
                         subprocess.run(mafft_cmd, stdout=mafft_out, stderr=mafft_log,
                                        timeout=timeout)
@@ -1169,9 +1169,9 @@ def msa(
                             rehead_root_msa(fasta_in, fasta_out, outgroup)
                             message = f"'{fasta_out_short}': aligned [{elapsed_time(time.time() - start)}]"
                     except subprocess.TimeoutExpired:
-                        message = (
-                            f"'{red(fasta_out_short)}': FAILED alignment, timeout exceeded"
-                            f" [{elapsed_time(time.time() - start)}]"
+                        message = red(
+                            f"'{fasta_out_short}': FAILED alignment, timeout"
+                            f" exceeded [{elapsed_time(time.time() - start)}]"
                         )
                         fasta_out.unlink()
                         mafft_log.write(
@@ -1199,7 +1199,6 @@ def msa(
             muscle_log_file = Path(fasta_out.parent, f"{fasta_out.stem}.muscle.log")
             with open(muscle_log_file, "w") as muscle_log:
                 muscle_log.write(f"Captus' MUSCLE Command:\n  {' '.join(muscle_cmd)}\n\n\n")
-            with open(muscle_log_file, "a") as muscle_log:
                 try:
                     subprocess.run(muscle_cmd, stdout=muscle_log, stderr=muscle_log,
                                    timeout=timeout)
@@ -1238,7 +1237,7 @@ def msa(
             message += f'\n{codon_message}'
 
     else:
-        message = dim(f"'{fasta_out_short}': skipped (output FASTA already exists)")
+        message = dim(f"'{fasta_out_short}': SKIPPED (output FASTA already exists)")
 
     return message
 
@@ -1255,7 +1254,7 @@ def codon_align(
         fasta_out_short = Path(*nt_dest.parts[-3:])
         if num_samples(fasta_to_dict(nt_orig)) < min_samples:
             message = dim(
-                f"'{fasta_out_short}': skipped (input FASTA has fewer than"
+                f"'{fasta_out_short}': SKIPPED (input FASTA has fewer than"
                 f" {min_samples} samples)"
             )
             return message
@@ -1285,7 +1284,7 @@ def codon_align(
             dict_to_fasta(nt_aligned, nt_dest)
             message = f"'{fasta_out_short}': codon-aligned [{elapsed_time(time.time() - start)}]"
         else:
-            message = dim(f"'{fasta_out_short}': skipped (output FASTA already exists)")
+            message = dim(f"'{fasta_out_short}': SKIPPED (output FASTA already exists)")
 
         return message
 
@@ -1334,7 +1333,7 @@ def filter_paralogs_naive(fasta_in: Path, fasta_out: Path, min_samples, overwrit
                 f" {min_samples} samples) [{elapsed_time(time.time() - start)}]"
             )
     else:
-        message = dim(f"'{fasta_out_short}': skipped (output FASTA already exists)")
+        message = dim(f"'{fasta_out_short}': SKIPPED (output FASTA already exists)")
 
     return message
 
@@ -1496,7 +1495,7 @@ def filter_paralogs_informed(
             ))
     else:
         messages.append(dim(
-            f"'{fasta_model_short}': skipped (output FASTA already exists)"
+            f"'{fasta_model_short}': SKIPPED (output FASTA already exists)"
         ))
 
     return "\n".join(messages)
@@ -1581,7 +1580,7 @@ def rem_refs_from_fasta(fasta_in: Path, fasta_out: Path, ref_names: list, min_sa
                 f" {min_samples} samples) [{elapsed_time(time.time() - start)}]"
             )
     else:
-        message = dim(f"'{fasta_out_short}': skipped (output FASTA already exists)")
+        message = dim(f"'{fasta_out_short}': SKIPPED (output FASTA already exists)")
 
     return message
 
@@ -1660,7 +1659,7 @@ def clipkit(
         else:
             message = red(f"'{fasta_out_short}': FAILED trimming, check ClipKIT's log")
     else:
-        message = dim(f"'{fasta_out_short}': skipped (output FASTA already exists)")
+        message = dim(f"'{fasta_out_short}': SKIPPED (output FASTA already exists)")
 
     return message
 
