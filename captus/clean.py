@@ -557,7 +557,7 @@ def bbduk_trim_adaptors(
 
         message = f"'{sample_name}': adaptors trimmed [{elapsed_time(time.time() - start)}]"
     else:
-        message = dim(f"'{sample_name}': skipped (output files already exist)")
+        message = dim(f"'{sample_name}': SKIPPED (output files already exist)")
 
     return message
 
@@ -616,7 +616,7 @@ def bbduk_filter_quality(
         Path(out_dir, f"{sample_name}.stdout.log").unlink()
         message = f"'{sample_name}': quality filtered [{elapsed_time(time.time() - start)}]"
     else:
-        message = dim(f"'{sample_name}': skipped (output files already exist)")
+        message = dim(f"'{sample_name}': SKIPPED (output files already exist)")
 
     return message
 
@@ -675,7 +675,7 @@ def qc_stats(qc_program_name, qc_program_path, in_fastq, qc_stats_out_dir, overw
             subprocess.call(qc_stats_cmd, stdout=qc_stats_log, stderr=qc_stats_log)
         message = f"{file_name_stage}: {qc_program_name} finished [{elapsed_time(time.time() - start)}]"
     else:
-        message = dim(f"{file_name_stage}: skipped ({qc_program_name} report already exists)")
+        message = dim(f"{file_name_stage}: SKIPPED ({qc_program_name} report already exists)")
 
     return message
 

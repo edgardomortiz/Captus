@@ -573,6 +573,9 @@ ALIGN_ALGORITHMS = {
     },
 }
 
+# Default MAFFT algorithm for Captus Design, use keys from ALIGN_ALGORITHMS (above)
+DESIGN_ALIGN_ALGORITHM = "mafft_genafpair"
+
 # Separator used in output sequences names, for example used to distinguish sample name from gene
 # name or to indicate copy number
 SEQ_NAME_SEP = "__"
@@ -586,8 +589,25 @@ IMPORT_SUFFIXES = {
     "CDS":     "_markers.fasta",          # Full CDS, concatenated exons
     "LONG":    "_exons_long.fasta",       # Individual exons >= bait_length
     "SHORT":   "_exons_short.fasta",      # Individual exons < bait_length
-    "DATA":    "_exons_data.tsv",          # Exon and intron data, tab-separated values table
+    "DATA":    "_exons_data.tsv",         # Exon and intron data, tab-separated values table
     "MARKERS": "_markers.fasta",          # Any sequences, when no GFF is found
     "FILTER":  "_markers_filtered.fasta", # Sequences filtered according to '--min_seq_len'
     "DEDUPED": "_markers_deduped.fasta",  # Deduplicated sequences, ready for clustering
 }
+
+# Clustering output folders
+CLR_DIRS = {
+    "CAT": "01_concatenated",
+    "CLR": "02_clustered",
+    "ALN": "03_aligned",
+    "CUR": "04_curated",
+}
+
+# Automatic maximum sequence length for deduplication and clustering according to clustering program
+MAX_SEQ_LEN = {
+    "mmseqs": 65535,
+    "vsearch": 5000,
+}
+
+# Minimum proportion of the longest sequence to be considered as long in Captus design
+MIN_SEQ_LEN_PROP = 0.5
