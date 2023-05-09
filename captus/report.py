@@ -2954,44 +2954,14 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
                     for fmt in fmt_list:
                         d = data[(data["stage"] == stage) & (data["format"] == fmt)]
                         if var == "gc" and fmt == "AA":
-                            x = [
-                                [],
-                                [],
-                                [],
-                                [],
-                            ]
-                            y = [
-                                [],
-                                [],
-                                [],
-                                [],
-                            ]
+                            x = [[], [], [], []]
+                            y = [[], [], [], []]
                         elif "codon" in var and fmt in ["AA", "GE", "GF", "MA", "MF"]:
-                            x = [
-                                [],
-                                [],
-                                [],
-                                [],
-                            ]
-                            y = [
-                                [],
-                                [],
-                                [],
-                                [],
-                            ]
+                            x = [[], [], [], []]
+                            y = [[], [], [], []]
                         else:
-                            x = [
-                                d[var],
-                                d[var],
-                                d[var],
-                                None,
-                            ]
-                            y = [
-                                d[var],
-                                d[var],
-                                None,
-                                d[var],
-                            ]
+                            x = [d[var], d[var], d[var], None]
+                            y = [d[var], d[var], None, d[var]]
                         x_list += x
                         y_list += y
                 buttonX = dict(
@@ -3451,3 +3421,287 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
         aln_html_msg = red(f"Report not generated, verify your Python environment")
 
     return aln_html_report, aln_html_msg
+
+def build_design_report(out_dir, des_stats_tsv):
+    start = time.time()
+
+    df = pd.read_table(des_stats_tsv)
+    df.drop(columns=["path"], inplace=True)
+    var_dict = {
+        "Length (bp)": "length",
+        "GC content (%)": "gc_content",
+        "Mean pairwise identity (%)": "avg_pid",
+        "Informative sites": "informative_sites",
+        "Informativeness (%)": "informativeness",
+        "Missingness (%)": "missingness",
+        "Sequences": "sequences",
+        "Samples": "samples",
+        "Focal species": "focal_species",
+        "Outgroup species": "outgroup_species",
+        "Add-on samples": "addon_samples",
+        "Species": "species",
+        "Genera": "genera",
+        "CDS length (bp)": "cds_len",
+        "Length of long exons retained (bp)": "len_long_exons_retained",
+        "Length of short exons retained (bp)": "len_short_exons_retained",
+        "Percentage of exons retained (%)": "perc_exons_retained",
+        "Percentage of long exons retained (%)": "perc_long_exons_retained",
+        "Percentage of short exons retained (%)": "perc_short_exons_retained",
+    }
+    hovertemplate = "<br>".join([
+        "Locus: <b>%{customdata[0]}</b>",
+        "Paralog: <b>%{customdata[1]}</b>",
+        "Length: <b>%{customdata[2]:,.0f} bp</b>",
+        "GC content: <b>%{customdata[3]:,.2f}%</b>",
+        "Mean pairwise identity: <b>%{customdata[4]:.2f}%</b>",
+        "Informative sites: <b>%{customdata[5]:,.0f}</b>",
+        "Informativeness: <b>%{customdata[6]:.2f}%</b>",
+        "Missingness: <b>%{customdata[7]:,.2f}%</b>",
+        "Sequences: <b>%{customdata[8]:,.0f}</b>",
+        "Samples: <b>%{customdata[9]:,.0f}</b>",
+        "Focal species: <b>%{customdata[10]:,.0f}</b>",
+        "Outgroup species: <b>%{customdata[11]:,.0f}</b>",
+        "Add-on samples: <b>%{customdata[12]:,.0f}</b>",
+        "Species: <b>%{customdata[13]:,.0f}</b>",
+        "Genera: <b>%{customdata[14]:,.0f}</b>",
+        "CDS id: <b>%{customdata[15]}</b>",
+        "CDS length: <b>%{customdata[16]:,.0f} bp</b>",
+        "Length of long exons retained: <b>%{customdata[17]:,.0f} bp</b>",
+        "Length of short exons retained: <b>%{customdata[18]:,.0f} bp</b>",
+        "Percentage of exons retained: <b>%{customdata[19]:.2f}%</b>",
+        "Percentage of long exons retained: <b>%{customdata[20]:.2f}%</b>",
+        "Percentage of short exons retained: <b>%{customdata[21]:.2f}%</b><extra></extra>",
+    ])
+    figs = []
+    fig = go.Figure()
+    for paralog in sorted(df["paralog"].unique()):
+        d = df.query('paralog == @paralog')
+        x=d[list(var_dict.values())[0]]
+        y=d[list(var_dict.values())[3]]
+        color = "#56B4E9" if paralog == False else "#CC79A7"
+        fig.add_trace(
+            go.Histogram2dContour(
+                x=x,
+                y=y,
+                contours_coloring="fill",
+                colorscale=[
+                    [0, "rgba(8,8,8,0)"],
+                    [1, color],
+                ],
+                opacity=0.5,
+                showscale=False,
+                line_width=0.1,
+                # visible=True if i == 0 else False,
+                hoverinfo="skip",
+                legendgroup=str(paralog),
+            )
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=x,
+                y=y,
+                name="Present" if paralog == True else "Absent",
+                mode="markers",
+                # visible=True if i == 0 else False,
+                legendgroup=str(paralog),
+                customdata=d,
+                hovertemplate=hovertemplate,
+                marker=dict(
+                    size=7 if len(df) < 1000 else 4,
+                    color=color,
+                    opacity=0.7,
+                    line=dict(
+                        # color="white",
+                        width=1,
+                    )
+                ),
+            )
+        )
+        fig.add_trace(
+            go.Histogram(
+                x=x,
+                yaxis="y2",
+                # name=paralog,
+                bingroup="x",
+                hovertemplate="<br>".join([
+                    "Bin: <b>%{x}</b>",
+                    "Count: <b>%{y}</b><extra></extra>",
+                ]),
+                marker=dict(
+                    color=color,
+                    opacity=0.7,
+                    line=dict(
+                        color="rgb(8,8,8)",
+                        width=1,
+                    ),
+                ),
+                # visible=True if i == 0 else False,
+                legendgroup=str(paralog),
+                showlegend=False,
+            )
+        )
+        fig.add_trace(
+            go.Histogram(
+                y=y,
+                xaxis="x2",
+                # name=paralog,
+                bingroup="y",
+                hovertemplate="<br>".join([
+                    "Bin: <b>%{y}</b>",
+                    "Count: <b>%{x}</b><extra></extra>",
+                ]),
+                marker=dict(
+                    color=color,
+                    opacity=0.7,
+                    line=dict(
+                        color="rgb(8,8,8)",
+                        width=1,
+                    ),
+                ),
+                # visible=True if i == 0 else False,
+                legendgroup=str(paralog),
+                showlegend=False,
+            )
+        )
+    buttonsX, buttonsY = [], []
+    for lab, var in var_dict.items():
+        x_list, y_list = [], []
+        for paralog in sorted(df["paralog"].unique()):
+            d = df.query('paralog == @paralog')
+            x = [d[var], d[var], d[var], None]
+            y = [d[var], d[var], None, d[var]]
+            x_list += x
+            y_list += y
+        buttonX = dict(
+            label=lab,
+            method="update",
+            args=[
+                dict(
+                    x=x_list,
+                ),
+            ]
+        )
+        buttonY = dict(
+            label=lab,
+            method="update",
+            args=[
+                dict(
+                    y=y_list,
+                ),
+            ]
+        )
+        buttonsX.append(buttonX)
+        buttonsY.append(buttonY)
+
+    updatemenus = [
+            dict(
+                buttons=buttonsX,
+                type="dropdown",
+                direction="up",
+                pad={"t": 30, "b": 10},
+                active=0,
+                showactive=True,
+                x=0.475,
+                xanchor="center",
+                y=0,
+                yanchor="top"
+            ),
+            dict(
+                buttons=buttonsY,
+                type="dropdown",
+                direction="down",
+                pad={"t": 10, "b": 10, "r": 40},
+                active=3,
+                showactive=True,
+                x=0,
+                xanchor="right",
+                y=0.4625,
+                yanchor="middle"
+            ),
+        ]
+    title = (
+        "<b>Captus-design: Cluster (Alignment Report)</b><br>"
+        + "<sup>(Source: "
+        + str(des_stats_tsv.name)
+        + ")</sup>"
+    )
+    fig.update_layout(
+        font_family="Arial",
+        plot_bgcolor="rgb(8,8,8)",
+        title=title,
+        xaxis=dict(
+            showgrid=True,
+            gridcolor="rgb(64,64,64)",
+            ticks="outside",
+            domain=[0, 0.95],
+        ),
+        yaxis=dict(
+            showgrid=True,
+            gridcolor="rgb(64,64,64)",
+            ticks="outside",
+            domain=[0, 0.925],
+        ),
+        xaxis2=dict(
+            title="Count",
+            gridcolor="rgb(64,64,64)",
+            ticks="outside",
+            zeroline=True,
+            domain=[0.95, 1],
+        ),
+        yaxis2=dict(
+            title="Count",
+            gridcolor="rgb(64,64,64)",
+            ticks="outside",
+            zeroline=True,
+            domain=[0.925, 1],
+        ),
+        hoverlabel=dict(
+            font_color="rgb(64,64,64)",
+            bordercolor="rgb(64,64,64)",
+        ),
+        legend=dict(
+            title=dict(
+                text="<b>Paralog</b>",
+                side="top",
+            ),
+            traceorder="reversed",
+            itemsizing="constant",
+        ),
+        barmode="overlay",
+        updatemenus=updatemenus,
+    )
+    figs.append(fig)
+    des_html_report = Path(out_dir, "captus-design_cluster.report.html")
+    with open(des_html_report, "w") as f:
+        for i, fig in enumerate(figs):
+            f.write(
+                fig.to_html(
+                    full_html=False,
+                    include_plotlyjs="cdn",
+                    config=dict(
+                        scrollZoom=True,
+                        toImageButtonOptions=dict(
+                            format="svg",
+                        ),
+                        modeBarButtonsToAdd=[
+                            "v1hovermode",
+                            "hoverclosest",
+                            "hovercompare",
+                            "togglehover",
+                            "togglespikelines",
+                            "drawline",
+                            "drawopenpath",
+                            "drawclosedpath",
+                            "drawcircle",
+                            "drawrect",
+                            "eraseshape",
+                        ]
+                    ),
+                )
+            )
+    if des_html_report.exists() and des_html_report.is_file():
+        des_html_msg = dim(f"Report generated in {elapsed_time(time.time() - start)}")
+    else:
+        des_html_msg = red(f"Report not generated, verify your Python environment")
+
+    return des_html_report, des_html_msg
