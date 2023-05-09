@@ -3450,7 +3450,7 @@ def build_design_report(out_dir, des_stats_tsv):
     }
     hovertemplate = "<br>".join([
         "Locus: <b>%{customdata[0]}</b>",
-        "Paralog: <b>%{customdata[1]}</b>",
+        "Single-copy: <b>%{customdata[1]}</b>",
         "Length: <b>%{customdata[2]:,.0f} bp</b>",
         "GC content: <b>%{customdata[3]:,.2f}%</b>",
         "Mean pairwise identity: <b>%{customdata[4]:.2f}%</b>",
@@ -3474,11 +3474,11 @@ def build_design_report(out_dir, des_stats_tsv):
     ])
     figs = []
     fig = go.Figure()
-    for paralog in sorted(df["paralog"].unique()):
-        d = df.query('paralog == @paralog')
+    for single_copy in sorted(df["single_copy"].unique(), reverse=True):
+        d = df.query('single_copy == @single_copy')
         x=d[list(var_dict.values())[0]]
         y=d[list(var_dict.values())[3]]
-        color = "#56B4E9" if paralog == False else "#CC79A7"
+        color = "#56B4E9" if single_copy == True else "#CC79A7"
         fig.add_trace(
             go.Histogram2dContour(
                 x=x,
@@ -3491,19 +3491,17 @@ def build_design_report(out_dir, des_stats_tsv):
                 opacity=0.5,
                 showscale=False,
                 line_width=0.1,
-                # visible=True if i == 0 else False,
                 hoverinfo="skip",
-                legendgroup=str(paralog),
+                legendgroup=str(single_copy),
             )
         )
         fig.add_trace(
             go.Scatter(
                 x=x,
                 y=y,
-                name="Present" if paralog == True else "Absent",
+                name=str(single_copy),
                 mode="markers",
-                # visible=True if i == 0 else False,
-                legendgroup=str(paralog),
+                legendgroup=str(single_copy),
                 customdata=d,
                 hovertemplate=hovertemplate,
                 marker=dict(
@@ -3511,7 +3509,6 @@ def build_design_report(out_dir, des_stats_tsv):
                     color=color,
                     opacity=0.7,
                     line=dict(
-                        # color="white",
                         width=1,
                     )
                 ),
@@ -3521,7 +3518,6 @@ def build_design_report(out_dir, des_stats_tsv):
             go.Histogram(
                 x=x,
                 yaxis="y2",
-                # name=paralog,
                 bingroup="x",
                 hovertemplate="<br>".join([
                     "Bin: <b>%{x}</b>",
@@ -3535,8 +3531,7 @@ def build_design_report(out_dir, des_stats_tsv):
                         width=1,
                     ),
                 ),
-                # visible=True if i == 0 else False,
-                legendgroup=str(paralog),
+                legendgroup=str(single_copy),
                 showlegend=False,
             )
         )
@@ -3544,7 +3539,6 @@ def build_design_report(out_dir, des_stats_tsv):
             go.Histogram(
                 y=y,
                 xaxis="x2",
-                # name=paralog,
                 bingroup="y",
                 hovertemplate="<br>".join([
                     "Bin: <b>%{y}</b>",
@@ -3558,16 +3552,15 @@ def build_design_report(out_dir, des_stats_tsv):
                         width=1,
                     ),
                 ),
-                # visible=True if i == 0 else False,
-                legendgroup=str(paralog),
+                legendgroup=str(single_copy),
                 showlegend=False,
             )
         )
     buttonsX, buttonsY = [], []
     for lab, var in var_dict.items():
         x_list, y_list = [], []
-        for paralog in sorted(df["paralog"].unique()):
-            d = df.query('paralog == @paralog')
+        for single_copy in sorted(df["single_copy"].unique(), reverse=True):
+            d = df.query('single_copy == @single_copy')
             x = [d[var], d[var], d[var], None]
             y = [d[var], d[var], None, d[var]]
             x_list += x
@@ -3661,10 +3654,9 @@ def build_design_report(out_dir, des_stats_tsv):
         ),
         legend=dict(
             title=dict(
-                text="<b>Paralog</b>",
+                text="<b>Single-copy</b>",
                 side="top",
             ),
-            traceorder="reversed",
             itemsizing="constant",
         ),
         barmode="overlay",
@@ -3673,7 +3665,7 @@ def build_design_report(out_dir, des_stats_tsv):
     figs.append(fig)
     des_html_report = Path(out_dir, "captus-design_cluster.report.html")
     with open(des_html_report, "w") as f:
-        for i, fig in enumerate(figs):
+        for fig in figs:
             f.write(
                 fig.to_html(
                     full_html=False,
