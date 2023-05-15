@@ -1113,24 +1113,24 @@ class CaptusAssembly(object):
         )
         input_group.add_argument(
             "--max_paralogs",
-             action="store",
-             default=5,
-             type=int,
-             dest="max_paralogs",
-             help="Maximum number of secondary hits (copies) per sample to import from the"
-                  " extraction step. Large numbers of marker copies per sample can increase"
-                  " alignment times. Hits (copies) are ranked from best to worst during the"
-                  " 'extract' step. -1 disables the initial removal of paralogs and aligns which"
-                  " might be useful if you expect very high ploidy levels for example"
+            action="store",
+            default=5,
+            type=int,
+            dest="max_paralogs",
+            help="Maximum number of secondary hits (copies) per sample to import from the"
+                 " extraction step. Large numbers of marker copies per sample can increase"
+                 " alignment times. Hits (copies) are ranked from best to worst during the"
+                 " 'extract' step. -1 disables the initial removal of paralogs and aligns which"
+                 " might be useful if you expect very high ploidy levels for example"
         )
         input_group.add_argument(
             "--min_samples",
-             action="store",
-             default=4,
-             type=int,
-             dest="min_samples",
-             help="Minimum number of samples in a marker to proceed with alignment. Markers with"
-                  " fewer samples will be skipped"
+            action="store",
+            default=4,
+            type=int,
+            dest="min_samples",
+            help="Minimum number of samples in a marker to proceed with alignment. Markers with"
+                 " fewer samples will be skipped"
         )
 
         output_group = parser.add_argument_group("Output")
