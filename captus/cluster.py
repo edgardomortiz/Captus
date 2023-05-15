@@ -116,9 +116,9 @@ def cluster(full_command, args):
     log.log("")
 
     log.log(f'{"Python libraries":>{mar}}:')
-    numpy_found, numpy_version, numpy_status = python_library_check("numpy")
-    pandas_found, pandas_version, pandas_status = python_library_check("pandas")
-    plotly_found, plotly_version, plotly_status = python_library_check("plotly")
+    _, numpy_version, numpy_status = python_library_check("numpy")
+    _, pandas_version, pandas_status = python_library_check("pandas")
+    _, plotly_version, plotly_status = python_library_check("plotly")
     log.log(format_dep_msg(f'{"numpy":>{mar}}: ', numpy_version, numpy_status))
     log.log(format_dep_msg(f'{"pandas":>{mar}}: ', pandas_version, pandas_status))
     log.log(format_dep_msg(f'{"plotly":>{mar}}: ', plotly_version, plotly_status))
@@ -158,7 +158,7 @@ def cluster(full_command, args):
 
     log.log(f'{"Concurrent imports":>{mar}}: {bold(threads_max)}')
     log.log("")
-    log.log(f'{"Bait length":>{mar}}: {args.bait_length}')
+    log.log(f'{"Bait length":>{mar}}: {bold(args.bait_length)}')
     log.log("")
     log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
     log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
@@ -200,16 +200,16 @@ def cluster(full_command, args):
 
     log.log(f'{"Max. threads":>{mar}}: {bold(threads_max)}')
     log.log("")
-    log.log(f'{"Clustering program":>{mar}}: {args.clust_program}')
-    log.log(f'{"Max. sequence length":>{mar}}: {max_seq_len}')
-    log.log(f'{"Strand":>{mar}}: {args.strand}')
-    log.log(f'{"Deduplication id.":>{mar}}: {args.dedup_threshold}%')
-    log.log(f'{"Clustering id.":>{mar}}: {args.clust_threshold}%')
-    log.log(f'{"Align singletons":>{mar}}: {args.align_singletons}')
+    log.log(f'{"Clustering program":>{mar}}: {bold(args.clust_program)}')
+    log.log(f'{"Max. sequence length":>{mar}}: {bold(max_seq_len)}')
+    log.log(f'{"Strand":>{mar}}: {bold(args.strand)}')
+    log.log(f'{"Deduplication id.":>{mar}}: {bold(args.dedup_threshold)}%')
+    log.log(f'{"Clustering id.":>{mar}}: {bold(args.clust_threshold)}%')
+    log.log(f'{"Align singletons":>{mar}}: {bold(args.align_singletons)}')
     log.log("")
     log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
     log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
-    samples_to_filter = find_fastas_in_sample_dirs(out_dir, settings.IMPORT_SUFFIXES["MARKERS"])
+    samples_to_filter = find_fastas_in_sample_dirs(out_dir, settings.DES_SUFFIXES["MARKERS"])
     log.log(f'{"FASTAs to process":>{mar}}: {bold(len(samples_to_filter))}')
     log.log("")
 
@@ -234,7 +234,7 @@ def cluster(full_command, args):
 
     log.log("")
 
-    samples_to_dedup = find_fastas_in_sample_dirs(out_dir, settings.IMPORT_SUFFIXES["FILTER"])
+    samples_to_dedup = find_fastas_in_sample_dirs(out_dir, settings.DES_SUFFIXES["FILTER"])
     dedup_params = []
     for sample_name in samples_to_dedup:
         dedup_params.append((
@@ -256,18 +256,18 @@ def cluster(full_command, args):
                     f"Deduplication completed", "sample", show_less)
     log.log("")
 
-    concat_dir_path, concat_dir_msg = make_output_dir(Path(out_dir, settings.CLR_DIRS["CAT"]))
+    concat_dir_path, concat_dir_msg = make_output_dir(Path(out_dir, settings.DES_DIRS["CAT"]))
     log.log(f'{"Concatenation directory":>{mar}}: {bold(concat_dir_path)}')
     log.log(f'{"":>{mar}}  {dim(concat_dir_msg)}')
     log.log("")
-    samples_to_concat = find_fastas_in_sample_dirs(out_dir, settings.IMPORT_SUFFIXES["DEDUPED"])
+    samples_to_concat = find_fastas_in_sample_dirs(out_dir, settings.DES_SUFFIXES["DEDUPED"])
     fasta_concat_path = rehead_and_concatenate_fastas(samples_to_concat,
                                                       concat_dir_path,
                                                       args.overwrite,
                                                       show_less)
     log.log("")
 
-    cluster_dir_path, cluster_dir_msg = make_output_dir(Path(out_dir, settings.CLR_DIRS["CLR"]))
+    cluster_dir_path, cluster_dir_msg = make_output_dir(Path(out_dir, settings.DES_DIRS["CLR"]))
     log.log(f'{"Clustering directory":>{mar}}: {bold(cluster_dir_path)}')
     log.log(f'{"":>{mar}}  {dim(cluster_dir_msg)}')
     log.log("")
@@ -295,7 +295,7 @@ def cluster(full_command, args):
 
     fastas_to_align = find_fastas_in_dir(cluster_dir_path, ".fasta")
     concurrent, threads_per_alignment = adjust_align_concurrency(args.concurrent, threads_max)
-    align_dir_path, align_dir_msg = make_output_dir(Path(out_dir, settings.CLR_DIRS["ALN"]))
+    align_dir_path, align_dir_msg = make_output_dir(Path(out_dir, settings.DES_DIRS["ALN"]))
     align_params = []
     for fasta_path in fastas_to_align:
         align_params.append((
@@ -352,7 +352,7 @@ def cluster(full_command, args):
     args.outgroup_species = format_sample_list(args.outgroup_species)
     args.addon_samples = format_sample_list(args.addon_samples, list_format="samples")
     exons_data = find_and_merge_exon_data(out_dir)
-    curate_dir_path, curate_dir_msg = make_output_dir(Path(out_dir, settings.CLR_DIRS["CUR"]))
+    curate_dir_path, curate_dir_msg = make_output_dir(Path(out_dir, settings.DES_DIRS["CUR"]))
     manager = Manager()
     shared_aln_stats = manager.list()
     curate_params = []
@@ -372,11 +372,11 @@ def cluster(full_command, args):
 
     log.log(f'{"Concurrent curations":>{mar}}: {bold(threads_max)}')
     log.log("")
-    log.log(f'{"Max. gap proportion":>{mar}}: {args.gaps}')
-    log.log(f'{"Bait length":>{mar}}: {args.bait_length}')
-    log.log(f'{"Focal species":>{mar}}: {args.focal_species}')
-    log.log(f'{"Outgroup species":>{mar}}: {args.outgroup_species}')
-    log.log(f'{"Add-on samples":>{mar}}: {args.addon_samples}')
+    log.log(f'{"Max. gap proportion":>{mar}}: {bold(args.gaps)}')
+    log.log(f'{"Bait length":>{mar}}: {bold(args.bait_length)}')
+    log.log(f'{"Focal species":>{mar}}: {bold(args.focal_species)}')
+    log.log(f'{"Outgroup species":>{mar}}: {bold(args.outgroup_species)}')
+    log.log(f'{"Add-on samples":>{mar}}: {bold(args.addon_samples)}')
     log.log("")
     log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
     log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
@@ -444,11 +444,11 @@ def cluster(full_command, args):
 
 def prepare_redo(out_dir: Path, redo_from: str):
     importation = list(Path(out_dir).rglob("*__captus-clr"))
-    dereplication = list(Path(out_dir).rglob(f'*{settings.IMPORT_SUFFIXES["DEDUPED"]}'))
-    concatenation = [Path(out_dir, settings.CLR_DIRS["CAT"])]
-    clustering = [Path(out_dir, settings.CLR_DIRS["CLR"])]
-    alignment = [Path(out_dir, settings.CLR_DIRS["ALN"])]
-    curation = [Path(out_dir, settings.CLR_DIRS["CUR"])]
+    dereplication = list(Path(out_dir).rglob(f'*{settings.DES_SUFFIXES["DEDUPED"]}'))
+    concatenation = [Path(out_dir, settings.DES_DIRS["CAT"])]
+    clustering = [Path(out_dir, settings.DES_DIRS["CLR"])]
+    alignment = [Path(out_dir, settings.DES_DIRS["ALN"])]
+    curation = [Path(out_dir, settings.DES_DIRS["CUR"])]
     dirs_to_delete = []
     if redo_from == "importation":
         dirs_to_delete = importation + concatenation + clustering + alignment + curation
@@ -482,6 +482,7 @@ def prepare_redo(out_dir: Path, redo_from: str):
         f" directories and files deleted [{elapsed_time(time.time() - start)}]"
     ))
 
+
 def import_fasta(
         fasta_name: str, fasta_parent: Path, gff_path: Path, bait_length: int, out_dir: Path,
         overwrite: bool
@@ -496,10 +497,10 @@ def import_fasta(
         sample_out_dir, _ = make_output_dir(Path(out_dir, f"{sample_name}__captus-clr"))
         if gff_path:
             cds, long, short, data = cds_from_gff(gff_path, fasta_path, bait_length)
-            cds_path =   Path(sample_out_dir, f'{sample_name}{settings.IMPORT_SUFFIXES["CDS"]}')
-            long_path =  Path(sample_out_dir, f'{sample_name}{settings.IMPORT_SUFFIXES["LONG"]}')
-            short_path = Path(sample_out_dir, f'{sample_name}{settings.IMPORT_SUFFIXES["SHORT"]}')
-            data_path =  Path(sample_out_dir, f'{sample_name}{settings.IMPORT_SUFFIXES["DATA"]}')
+            cds_path =   Path(sample_out_dir, f'{sample_name}{settings.DES_SUFFIXES["CDS"]}')
+            long_path =  Path(sample_out_dir, f'{sample_name}{settings.DES_SUFFIXES["LONG"]}')
+            short_path = Path(sample_out_dir, f'{sample_name}{settings.DES_SUFFIXES["SHORT"]}')
+            data_path =  Path(sample_out_dir, f'{sample_name}{settings.DES_SUFFIXES["DATA"]}')
             dict_to_fasta(cds, cds_path, write_if_empty=True)
             dict_to_fasta(long, long_path, write_if_empty=True)
             dict_to_fasta(short, short_path, write_if_empty=True)
@@ -510,7 +511,7 @@ def import_fasta(
                        f" [{elapsed_time(time.time() - start)}]")
         else:
             markers = fasta_to_dict(fasta_path)
-            markers_path = Path(sample_out_dir, f'{sample_name}{settings.IMPORT_SUFFIXES["MARKERS"]}')
+            markers_path = Path(sample_out_dir, f'{sample_name}{settings.DES_SUFFIXES["MARKERS"]}')
             dict_to_fasta(markers, markers_path, write_if_empty=True)
             message = f"'{sample_name}': FASTA imported [{elapsed_time(time.time() - start)}]"
     else:
@@ -555,7 +556,7 @@ def filter_fasta(
         overwrite: bool
 ):
     start = time.time()
-    fasta_out_path = Path(out_dir, sample_dir, f'{sample_name}{settings.IMPORT_SUFFIXES["FILTER"]}')
+    fasta_out_path = Path(out_dir, sample_dir, f'{sample_name}{settings.DES_SUFFIXES["FILTER"]}')
 
     if overwrite is True or not fasta_out_path.exists():
         fasta_in  = fasta_to_dict(fasta_path)
@@ -580,7 +581,7 @@ def dedup_fasta(
         overwrite: bool, keep_all: bool
 ):
     start = time.time()
-    fasta_out_path = Path(out_dir, sample_dir, f'{sample_name}{settings.IMPORT_SUFFIXES["DEDUPED"]}')
+    fasta_out_path = Path(out_dir, sample_dir, f'{sample_name}{settings.DES_SUFFIXES["DEDUPED"]}')
     if dedup_threshold > 1:
         dedup_threshold = dedup_threshold / 100
 
@@ -942,7 +943,7 @@ def find_and_merge_exon_data(out_dir: Path):
     if out_dir.exists():
         sample_dirs = list(Path(out_dir).rglob("*__captus-clr"))
         for sample_dir in sample_dirs:
-            tsvs += list(Path(sample_dir).rglob(f'*{settings.IMPORT_SUFFIXES["DATA"]}'))
+            tsvs += list(Path(sample_dir).rglob(f'*{settings.DES_SUFFIXES["DATA"]}'))
     exons_data = {}
     for tsv in tsvs:
         with open(tsv, "rt") as tsv_in:
@@ -1038,7 +1039,7 @@ def curate(
 
         if len(aln_trimmed) > 1:
 
-            has_paralogs = False
+            single_copy = True
             samples = set(aln_samples)
             overlaps = {k: ["-"] * aln_width for k in samples}
             for seq_name in aln_trimmed:
@@ -1047,7 +1048,7 @@ def curate(
                     if overlaps[aln_trimmed[seq_name]["sample_name"]][pos] == "-":
                         overlaps[aln_trimmed[seq_name]["sample_name"]][pos] = seq[pos]
                     elif overlaps[aln_trimmed[seq_name]["sample_name"]][pos] != seq[pos]:
-                        has_paralogs = True
+                        single_copy = False
                         break
 
             aln_stats = alignment_stats(aln_trimmed, "NT", coding=False)
@@ -1057,7 +1058,7 @@ def curate(
             aln_stats["outgroup"] = len(set(aln_outgroup_species))
             aln_stats["samples"] = len(set(aln_samples))
             aln_stats["addons"] = len(set(aln_addon_samples))
-            aln_stats["paralog"] = has_paralogs
+            aln_stats["single_copy"] = single_copy
             aln_stats["cds_id"] = "NA"
             aln_stats["exons"] = "NA"
             aln_stats["exons_len"] = "NA"
@@ -1108,19 +1109,20 @@ def curate(
                 # Format as text
                 aln_stats["len_long_exons_retained"] = f'{aln_stats["len_long_exons_retained"]:.0f}'
                 aln_stats["len_short_exons_retained"] = f'{aln_stats["len_short_exons_retained"]:.0f}'
-                aln_stats["prop_exons_retained"] = f'{aln_stats["prop_exons_retained"]*100:.2f}'
-                aln_stats["prop_long_exons_retained"] = f'{aln_stats["prop_long_exons_retained"]*100:.2f}'
-                aln_stats["prop_short_exons_retained"] = f'{aln_stats["prop_short_exons_retained"]*100:.2f}'
+                aln_stats["perc_exons_retained"] = f'{aln_stats["prop_exons_retained"]*100:.2f}'
+                aln_stats["perc_long_exons_retained"] = f'{aln_stats["prop_long_exons_retained"]*100:.2f}'
+                aln_stats["perc_short_exons_retained"] = f'{aln_stats["prop_short_exons_retained"]*100:.2f}'
 
             stats = [
                 f"{curated_fasta_path}",                     # Path to curated FASTA
                 f"{curated_fasta_path.stem}",                # Locus name
+                f"{aln_stats['single_copy']}",               # Is single copy marker or not
                 f"{aln_stats['sites']}",                     # Alignment length
+                f"{aln_stats['gc']:.2f}",                    # % GC content
+                f"{aln_stats['avg_pid']:.2f}",               # % Pairwise identity
                 f"{aln_stats['informative']}",               # Number of informative sites
                 f"{aln_stats['informativeness']:.2f}",       # % Informativeness
-                f"{aln_stats['avg_pid']:.2f}",               # % Pairwise identity
                 f"{aln_stats['missingness']:.2f}",           # % Missingness
-                f"{aln_stats['gc']:.2f}",                    # % GC content
                 f"{aln_stats['sequences']}",                 # Number of sequences
                 f"{aln_stats['samples']}",                   # Number of samples
                 f"{aln_stats['focal']}",                     # Number of focal species
@@ -1132,10 +1134,9 @@ def curate(
                 f"{aln_stats['exons_len']}",                 # Total exon length of CDS
                 f"{aln_stats['len_long_exons_retained']}",   # Long exons retained in bp
                 f"{aln_stats['len_short_exons_retained']}",  # Short exons retained in bp
-                f"{aln_stats['prop_exons_retained']}",       # Proportion of CDS retained
-                f"{aln_stats['prop_long_exons_retained']}",  # Proportion of long exons retained
-                f"{aln_stats['prop_short_exons_retained']}", # Proportion of short exons retained
-                f"{aln_stats['paralog']}",                   # Is paralog or not
+                f"{aln_stats['perc_exons_retained']}",       # Proportion of CDS retained
+                f"{aln_stats['perc_long_exons_retained']}",  # Proportion of long exons retained
+                f"{aln_stats['perc_short_exons_retained']}", # Proportion of short exons retained
             ]
 
             shared_aln_stats += ["\t".join(stats) + "\n"]
@@ -1159,12 +1160,13 @@ def write_aln_stats(out_dir: Path, shared_aln_stats: list):
         with open(stats_tsv_file, "wt") as tsv_out:
             tsv_out.write("\t".join(["path",
                                      "locus",
-                                     "sites",
+                                     "single_copy",
+                                     "length",
+                                     "gc_content",
+                                     "avg_pid",
                                      "informative_sites",
                                      "informativeness",
-                                     "avg_pid",
                                      "missingness",
-                                     "gc_content",
                                      "sequences",
                                      "samples",
                                      "focal_species",
@@ -1176,9 +1178,9 @@ def write_aln_stats(out_dir: Path, shared_aln_stats: list):
                                      "cds_len",
                                      "len_long_exons_retained",
                                      "len_short_exons_retained",
-                                     "prop_exons_retained",
-                                     "prop_long_exons_retained",
-                                     "prop_short_exons_retained",
-                                     "paralog",]) + "\n")
+                                     "perc_exons_retained",
+                                     "perc_long_exons_retained",
+                                     "perc_short_exons_retained",
+                                    ]) + "\n")
             tsv_out.writelines(sorted(shared_aln_stats))
         return stats_tsv_file

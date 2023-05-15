@@ -585,7 +585,7 @@ SEQ_NAME_SEP = "__"
 ASTRAL_PRO_EQ = "captus-assembly_align.astral-pro.tsv"
 
 # Import data for clustering file names
-IMPORT_SUFFIXES = {
+DES_SUFFIXES = {
     "CDS":     "_markers.fasta",          # Full CDS, concatenated exons
     "LONG":    "_exons_long.fasta",       # Individual exons >= bait_length
     "SHORT":   "_exons_short.fasta",      # Individual exons < bait_length
@@ -595,12 +595,30 @@ IMPORT_SUFFIXES = {
     "DEDUPED": "_markers_deduped.fasta",  # Deduplicated sequences, ready for clustering
 }
 
-# Clustering output folders
-CLR_DIRS = {
-    "CAT": "01_concatenated",
-    "CLR": "02_clustered",
-    "ALN": "03_aligned",
-    "CUR": "04_curated",
+# Design output folders
+DES_DIRS = {
+    "CAT": "01_concatenated",  # inside 01_clustered_markers
+    "CLR": "02_clustered",     # inside 01_clustered_markers
+    "ALN": "03_aligned",       # inside 01_clustered_markers
+    "CUR": "04_curated",       # inside 01_clustered_markers
+    "AUT": "01_automatic",     # inside 02_selected_markers
+    "MAN": "02_manual",        # inside 02_selected_markers
+    "RAW": "01_raw",           # inside 03_baits
+    "FIL": "02_filtered",      # inside 03_baits
+    "BAI": "03_baitsets",      # inside 03_baits
+}
+
+# Design output files
+DES_FILES = {
+    "BFEX": "baits_full_exons.fasta",
+    "BFNE": "baits_full_no_exons.fasta",
+    "BDEX": "baits_exons.fasta",
+    "BDNE": "baits_no_exons.fasta",
+    "LONG": "long_exons.fasta",
+    "BEXM": "baits_exons_mapped.fasta",
+    "BCAT": "baits_concat.fasta",
+    "BACC": "baits_accepted.fasta",
+    "BREJ": "baits_rejected.fasta",
 }
 
 # Automatic maximum sequence length for deduplication and clustering according to clustering program
@@ -608,6 +626,9 @@ MAX_SEQ_LEN = {
     "mmseqs": 65535,
     "vsearch": 5000,
 }
+
+# Split bait file if chunks of this size
+BAIT_SPLIT_SIZE = 100000
 
 # Minimum proportion of the longest sequence to be considered as long in Captus design
 MIN_SEQ_LEN_PROP = 0.5

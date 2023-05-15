@@ -429,7 +429,7 @@ def compress_list_files(files_list, threads):
         for ungz_file in files_list:
             if ungz_file.is_file():
                 compress_params.append((ungz_file, ))
-        tqdm_parallel_async_run(pigz_compress, compress_params, "Compressing with 'gzip'",
+        tqdm_parallel_async_run(gzip_compress, compress_params, "Compressing with 'gzip'",
                                 "Completed 'gzip' compression", "file", t)
 
 

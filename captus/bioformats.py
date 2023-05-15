@@ -3304,27 +3304,28 @@ def bait_stats(bait_seq, hybrid_chem, sodium_conc, formamide_conc):
         float
             Oligonucleotide melting temperature
         """
+        gc_content /= 100
         melt_temp = -1.0
         if hybrid_chem == "RNA-DNA":
             melt_temp = (79.8
-                        + (58.4 * gc_content)
-                        + (11.8 * math.pow(gc_content, 2))
-                        - (820.0 / bait_len)
-                        + (18.5 * math.log(sodium_conc))
-                        - (0.5 * formamide_conc))
+                         + (58.4 * gc_content)
+                         + (11.8 * math.pow(gc_content, 2))
+                         - (820.0 / bait_len)
+                         + (18.5 * math.log(sodium_conc))
+                         - (0.5 * formamide_conc))
         elif hybrid_chem == "DNA-DNA":
             melt_temp = (81.5
-                        + (41.0 * gc_content)
-                        - (500.0 / bait_len)
-                        + (16.6 * math.log(sodium_conc))
-                        - (0.62 * formamide_conc))
+                         + (41.0 * gc_content)
+                         - (500.0 / bait_len)
+                         + (16.6 * math.log(sodium_conc))
+                         - (0.62 * formamide_conc))
         elif hybrid_chem == "RNA-RNA":
             melt_temp = (79.8
-                        + (58.4 * gc_content)
-                        + (11.8 * math.pow(gc_content, 2))
-                        - (820.0 / bait_len)
-                        + (18.5 * math.log(sodium_conc))
-                        - (0.35 * formamide_conc))
+                         + (58.4 * gc_content)
+                         + (11.8 * math.pow(gc_content, 2))
+                         - (820.0 / bait_len)
+                         + (18.5 * math.log(sodium_conc))
+                         - (0.35 * formamide_conc))
         return melt_temp
 
     gc_bp = []
