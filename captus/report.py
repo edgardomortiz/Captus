@@ -3422,7 +3422,7 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
 
     return aln_html_report, aln_html_msg
 
-def build_design_report(out_dir, des_stats_tsv):
+def build_design_report(out_dir, des_stats_tsv, step):
     start = time.time()
 
     df = pd.read_table(des_stats_tsv)
@@ -3612,12 +3612,22 @@ def build_design_report(out_dir, des_stats_tsv):
                 yanchor="middle"
             ),
         ]
-    title = (
-        "<b>Captus-design: Cluster (Alignment Report)</b><br>"
-        + "<sup>(Source: "
-        + str(des_stats_tsv.name)
-        + ")</sup>"
-    )
+    if step == "cluster":
+        des_html_report = Path(out_dir, "captus-design_cluster.report.html")
+        title = (
+            "<b>Captus-design: Cluster (Alignment Report)</b><br>"
+            + "<sup>(Source: "
+            + str(des_stats_tsv.name)
+            + ")</sup>"
+        )
+    elif step == "select":
+        des_html_report = Path(out_dir, "captus-design_select.report.html")
+        title = (
+            "<b>Captus-design: Select (Alignment Report)</b><br>"
+            + "<sup>(Source: "
+            + str(des_stats_tsv.name)
+            + ")</sup>"
+        )
     fig.update_layout(
         font_family="Arial",
         plot_bgcolor="rgb(8,8,8)",
@@ -3663,7 +3673,6 @@ def build_design_report(out_dir, des_stats_tsv):
         updatemenus=updatemenus,
     )
     figs.append(fig)
-    des_html_report = Path(out_dir, "captus-design_cluster.report.html")
     with open(des_html_report, "w") as f:
         for fig in figs:
             f.write(

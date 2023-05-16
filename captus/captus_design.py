@@ -815,10 +815,8 @@ class CaptusDesign(object):
             default="auto",
             type=str,
             dest="concurrent",
-            help="Captus will attempt to execute this many extractions concurrently. RAM and CPUs"
-                 " will be divided by this value for each individual process. If set to 'auto',"
-                 " Captus will set as many processes as to at least have 2GB of RAM available for"
-                 " each process due to the RAM requirements of BLAT"
+            help="Captus will attempt to execute this many tasks concurrently. This number will not"
+                 " exceed '--threads'"
         )
         other_group.add_argument(
             "--debug",

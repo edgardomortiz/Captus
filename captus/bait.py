@@ -17,13 +17,12 @@ import math
 import shutil
 import subprocess
 import time
-from multiprocessing import Manager
 from pathlib import Path
 
 from tqdm import tqdm
 
 from . import log, settings
-from .bioformats import bait_stats, dict_to_fasta, fasta_to_dict, resolve_iupac, vsearch_cluster
+from .bioformats import bait_stats, dict_to_fasta, fasta_to_dict, resolve_iupac
 from .misc import (bbtools_path_version, bold, compress_list_files, dim, dir_is_empty, elapsed_time,
                    file_is_empty, format_dep_msg, gzip_compress, has_valid_ext, make_output_dir,
                    pigz_compress, python_library_check, quit_with_error, red, set_ram, set_threads,
@@ -150,6 +149,7 @@ def bait(full_command, args):
         " or mitochondria) you can provide a single FASTA file containing the genomic sequence(s)"
         " to exclude with '--exclude_reference'"
     )
+
     show_less =  not args.show_more
     log.log(f'{"Concurrent tasks":>{mar}}: {bold(threads_max)}')
     log.log("")
@@ -184,8 +184,7 @@ def bait(full_command, args):
 
     baits_concat_mask_gz_path = concat_refex_mask_baits(
         fil_baits_dir_path, baits_exons_gz_path, baits_no_exons_gz_path, args.exclude_reference,
-        args.bbmap_path, args.vsearch_path, ram_MB, threads_max, args.bait_length,
-        args.keep_all, args.overwrite
+        args.bbmap_path, args.vsearch_path, ram_MB, threads_max, args.bait_length, args.overwrite
     )
 
     baits_filtered_gz_path = filter_baits(
@@ -219,7 +218,7 @@ def bait(full_command, args):
 
     cluster_tile_baits(
         clu_baits_dir_path, baits_filtered_gz_path, args.bait_length, args.vsearch_path,
-        args.tiling_percentage_overlap, args.clustering_threshold, args.keep_all, args.overwrite
+        args.tiling_percentage_overlap, args.clustering_threshold, args.overwrite
     )
 
 
@@ -279,8 +278,8 @@ def find_and_merge_exon_data(cluster_dir_path: Path):
 
 
 def create_baits(
-        raw_baits_dir_path: Path, cluster_dir_path: Path, bait_length: int,
-        fastas_auto: list, fastas_manual: list, overwrite: bool, show_more: bool
+    raw_baits_dir_path: Path, cluster_dir_path: Path, bait_length: int,
+    fastas_auto: list, fastas_manual: list, overwrite: bool, show_more: bool
 ):
     baits_full_exons_path = Path(raw_baits_dir_path, settings.DES_FILES["BFEX"])
     baits_full_no_exons_path = Path(raw_baits_dir_path, settings.DES_FILES["BFNE"])
@@ -367,8 +366,8 @@ def create_baits(
 
 
 def dereplicate_compress_baits(
-        raw_baits_dir_path: Path, baits_full_exons_path: Path, baits_full_no_exons_path: Path,
-        bait_length: int, overwrite: bool, vsearch_path: str, threads_max: int
+    raw_baits_dir_path: Path, baits_full_exons_path: Path, baits_full_no_exons_path: Path,
+    bait_length: int, overwrite: bool, vsearch_path: str, threads_max: int
 ):
     start = time.time()
 
@@ -431,9 +430,8 @@ def dereplicate_compress_baits(
 
 
 def map_exonic_baits(
-        filtered_baits_dir_path: Path, baits_exons_gz_path: Path, long_exons_path: Path,
-        bbmap_path: str, ram_MB: int, threads_max: int, bait_length: int,
-        keep_all: bool, overwrite: bool
+    filtered_baits_dir_path: Path, baits_exons_gz_path: Path, long_exons_path: Path, bbmap_path: str,
+    ram_MB: int, threads_max: int, bait_length: int, keep_all: bool, overwrite: bool
 ):
     start = time.time()
 
@@ -522,8 +520,8 @@ def map_exonic_baits(
         ))
         log.log("")
     else:
-        log.log(f"'{bold(baits_exons_mapped_gz_path.name)}':"
-                f" SKIPPED mapping baits to long exons sequences")
+        log.log(f"'{bold(baits_exons_mapped_gz_path.name)}': output already"
+                f" exists, SKIPPED mapping baits to long exons sequences")
         log.log("")
 
     if baits_exons_mapped_gz_path.exists():
@@ -533,9 +531,9 @@ def map_exonic_baits(
 
 
 def concat_refex_mask_baits(
-        filtered_baits_dir_path: Path, baits_exons_gz_path: Path, baits_no_exons_gz_path: Path,
-        exclude_reference: str, bbmap_path: str, vsearch_path: str, ram_MB: int, threads_max: int,
-        bait_length: int, keep_all: bool, overwrite: bool
+    filtered_baits_dir_path: Path, baits_exons_gz_path: Path, baits_no_exons_gz_path: Path,
+    exclude_reference: str, bbmap_path: str, vsearch_path: str, ram_MB: int, threads_max: int,
+    bait_length: int, overwrite: bool
 ):
     start = time.time()
 
@@ -554,6 +552,7 @@ def concat_refex_mask_baits(
         baits_unmap_stdout_path = Path(f"{baits_concat_path}".replace(".fasta", "_unmap.stdout.log"))
         baits_unmap_stderr_path = Path(f"{baits_concat_path}".replace(".fasta", "_unmap.stderr.log"))
         baits_mask_log_path = Path(f"{baits_concat_path}".replace(".fasta", "_mask.vsearch.log"))
+
         log.log(bold(f"Excluding baits matching a given reference and masking low-complexity:"))
         tqdm_cols = min(shutil.get_terminal_size().columns, 120)
         with tqdm(total=3, ncols=tqdm_cols, unit="task") as pbar:
@@ -639,8 +638,8 @@ def concat_refex_mask_baits(
         ))
         log.log("")
     else:
-        log.log(f"'{bold(baits_mask_gz_path.name)}': SKIPPED concatenation,"
-                f" filtering by reference, and masking of baits")
+        log.log(f"'{bold(baits_mask_gz_path.name)}': output already exists, SKIPPED"
+                f" concatenation, filtering by reference, and masking of baits")
         log.log("")
 
     if baits_mask_gz_path.exists():
@@ -649,14 +648,14 @@ def concat_refex_mask_baits(
         return None
 
 
-def split_bait_file(filtered_baits_dir_path: Path, baits_path: Path, threads_max: int):
+def split_baits_file(filtered_baits_dir_path: Path, baits_path: Path, threads_max: int):
     baits = fasta_to_dict(baits_path)
     num_seqs = len(baits)
-    chunks_floor = max(threads_max, math.floor(num_seqs / settings.BAIT_SPLIT_SIZE))
-    chunks_ceiling = max(threads_max, math.ceil(num_seqs / settings.BAIT_SPLIT_SIZE))
+    chunks_floor = max(threads_max, math.floor(num_seqs / settings.BAITS_SPLIT_SIZE))
+    chunks_ceiling = max(threads_max, math.ceil(num_seqs / settings.BAITS_SPLIT_SIZE))
     try:
-        if (abs(settings.BAIT_SPLIT_SIZE - (num_seqs / chunks_ceiling))
-            <= abs(settings.BAIT_SPLIT_SIZE - (num_seqs / chunks_floor))):
+        if (abs(settings.BAITS_SPLIT_SIZE - (num_seqs / chunks_ceiling))
+            <= abs(settings.BAITS_SPLIT_SIZE - (num_seqs / chunks_floor))):
             seqs_per_chunk = math.ceil(num_seqs / chunks_ceiling)
         else:
             seqs_per_chunk = math.ceil(num_seqs / chunks_floor)
@@ -681,10 +680,10 @@ def split_bait_file(filtered_baits_dir_path: Path, baits_path: Path, threads_max
     return bait_parts_paths
 
 
-def filter_bait_part(
-        bait_part_path: Path, include_n: bool, keep_iupac: bool, gc_content: str,
-        melting_temperature: str, hybridization_chemistry: str, sodium: float, formamide: float,
-        max_masked_percentage: float, max_homopolymer_length: int, bait_length: int
+def filter_baits_chunk(
+    bait_part_path: Path, include_n: bool, keep_iupac: bool, gc_content: str,
+    melting_temperature: str, hybridization_chemistry: str, sodium: float, formamide: float,
+    max_masked_percentage: float, max_homopolymer_length: int, bait_length: int
 ):
     start = time.time()
 
@@ -727,11 +726,11 @@ def filter_bait_part(
 
 
 def filter_baits(
-        filtered_baits_dir_path: Path, baits_concat_mask_gz_path: Path, include_n: bool,
-        keep_iupac: bool, gc_content: str, melting_temperature: str, hybridization_chemistry: str,
-        sodium: float, formamide: float, max_masked_percentage: float, max_homopolymer_length: int,
-        bait_length: int, keep_all: bool, overwrite: bool,
-        threads_max: int, debug: bool, show_less: bool
+    filtered_baits_dir_path: Path, baits_concat_mask_gz_path: Path, include_n: bool,
+    keep_iupac: bool, gc_content: str, melting_temperature: str, hybridization_chemistry: str,
+    sodium: float, formamide: float, max_masked_percentage: float, max_homopolymer_length: int,
+    bait_length: int, keep_all: bool, overwrite: bool, threads_max: int, debug: bool,
+    show_less: bool
 ):
 
     if not baits_concat_mask_gz_path.exists():
@@ -744,13 +743,13 @@ def filter_baits(
     if overwrite or not baits_accepted_gz_path.exists():
         if baits_accepted_path.exists(): baits_accepted_path.unlink()
         if baits_accepted_gz_path.exists(): baits_accepted_gz_path.unlink()
-        bait_parts_paths = split_bait_file(filtered_baits_dir_path,
-                                           baits_concat_mask_gz_path,
-                                           threads_max)
+        baits_chunks_paths = split_baits_file(filtered_baits_dir_path,
+                                              baits_concat_mask_gz_path,
+                                              threads_max)
         filter_params = []
-        for bait_path in bait_parts_paths:
+        for baits_chunk_path in baits_chunks_paths:
             filter_params.append((
-                bait_path,
+                baits_chunk_path,
                 include_n,
                 keep_iupac,
                 gc_content,
@@ -760,28 +759,28 @@ def filter_baits(
                 formamide,
                 max_masked_percentage,
                 max_homopolymer_length,
-                bait_length,
+                bait_length
             ))
         if debug:
-            tqdm_serial_run(filter_bait_part, filter_params,
-                            f"Filtering baits",
-                            f"Baits filtering completed", "file", show_less)
+            tqdm_serial_run(filter_baits_chunk, filter_params,
+                            f"Filtering baits", f"Baits filtering completed",
+                            "file", show_less)
         else:
-            tqdm_parallel_async_run(filter_bait_part, filter_params,
-                                    f"Filtering baits",
-                                    f"Baits filtering completed", "file", threads_max, show_less)
+            tqdm_parallel_async_run(filter_baits_chunk, filter_params,
+                                    f"Filtering baits", f"Baits filtering completed",
+                                    "file", threads_max, show_less)
         log.log("")
 
         if not keep_all:
-            for bait_path in bait_parts_paths:
-                if bait_path.exists(): bait_path.unlink()
+            for baits_chunk_path in baits_chunks_paths:
+                if baits_chunk_path.exists(): baits_chunk_path.unlink()
 
         start = time.time()
         rejected_bait_paths = list(filtered_baits_dir_path.rglob("*_rejected.fasta.gz"))
-        for bait_path in rejected_bait_paths:
-            rejected_baits = fasta_to_dict(bait_path)
+        for baits_chunk_path in rejected_bait_paths:
+            rejected_baits = fasta_to_dict(baits_chunk_path)
+            baits_chunk_path.unlink()
             dict_to_fasta(rejected_baits, baits_rejected_path, append=True)
-            bait_path.unlink()
             if shutil.which("pigz"):
                 pigz_compress(baits_rejected_path, threads_max)
             elif shutil.which("gzip"):
@@ -791,9 +790,9 @@ def filter_baits(
 
         accepted_bait_paths = list(filtered_baits_dir_path.rglob("*_accepted.fasta.gz"))
         baits_accepted_unsort_path = Path(f"{baits_accepted_path}".replace(".fasta", "_unsort.fasta"))
-        for bait_path in accepted_bait_paths:
-            accepted_baits = fasta_to_dict(bait_path)
-            bait_path.unlink()
+        for baits_chunk_path in accepted_bait_paths:
+            accepted_baits = fasta_to_dict(baits_chunk_path)
+            baits_chunk_path.unlink()
             dict_to_fasta(accepted_baits, baits_accepted_unsort_path, append=True)
         baits_accepted = fasta_to_dict(baits_accepted_unsort_path)
         baits_accepted_unsort_path.unlink()
@@ -805,7 +804,8 @@ def filter_baits(
         log.log(f"'{bold(baits_accepted_gz_path.name)}': concatenated [{elapsed_time(time.time() - start)}]")
         log.log("")
     else:
-        log.log(f"'{bold(baits_accepted_gz_path.name)}': SKIPPED bait filtering")
+        log.log(f"'{bold(baits_accepted_gz_path.name)}': output"
+                f" already exists, SKIPPED bait filtering")
         log.log("")
 
     if baits_accepted_gz_path.exists():
@@ -815,23 +815,23 @@ def filter_baits(
 
 
 def cluster_tile_baits(
-        clust_baits_dir_path: Path, baits_filtered_gz_path: Path, bait_length: int,
-        vsearch_path: str, tiling_percentage_overlap:float, clustering_threshold: float,
-        keep_all: bool, overwrite: bool
+    clust_baits_dir_path: Path, baits_filtered_gz_path: Path, bait_length: int, vsearch_path: str,
+    tiling_percentage_overlap:float, clustering_threshold: float, overwrite: bool
 ):
-    start = time.time()
 
-    mincols = math.floor(tiling_percentage_overlap / 100 * bait_length)
-    clust_baits_file = f"baits_clust{clustering_threshold:.2f}_mincols{mincols}_unsorted.fasta"
-    clust_baits_sorted_file = f"baits_clust{clustering_threshold:.2f}_mincols{mincols}.fasta"
-    clust_baits_path = Path(clust_baits_dir_path, clust_baits_file)
-    clust_baits_sorted_path = Path(clust_baits_dir_path, clust_baits_sorted_file)
-    clust_baits_log_path = Path(f"{clust_baits_sorted_path}".replace(".fasta", ".log"))
-    clust_baits_tsv = Path(f"{clust_baits_sorted_path}".replace(".fasta", ".tsv"))
-    clustering_threshold /= 100
+    mincols = math.ceil(tiling_percentage_overlap / 100 * bait_length)
+    clust_baits_unsorted_file = f"baits_clust{clustering_threshold:.2f}_mincols{mincols}_unsorted.fasta"
+    clust_baits_unsorted_path = Path(clust_baits_dir_path, clust_baits_unsorted_file)
+    clust_baits_final_file = f"baits_clust{clustering_threshold:.2f}_mincols{mincols}.fasta"
+    clust_baits_final_path = Path(clust_baits_dir_path, clust_baits_final_file)
+    clust_baits_log_path = Path(f"{clust_baits_final_path}".replace(".fasta", ".log"))
+    clust_baits_tsv_path = Path(f"{clust_baits_final_path}".replace(".fasta", ".tsv"))
+    if clustering_threshold > 1.0: clustering_threshold /= 100
 
-    if overwrite or not clust_baits_path.exists():
-        if clust_baits_path.exists(): clust_baits_path.unlink()
+    if overwrite or not clust_baits_final_path.exists():
+        if clust_baits_final_path.exists(): clust_baits_final_path.unlink()
+        if clust_baits_log_path.exists(): clust_baits_log_path.unlink()
+        if clust_baits_tsv_path.exists(): clust_baits_tsv_path.unlink()
         log.log(bold(f"Clustering and tiling baits:"))
         tqdm_cols = min(shutil.get_terminal_size().columns, 120)
         with tqdm(total=1, ncols=tqdm_cols, unit="task") as pbar:
@@ -845,14 +845,14 @@ def cluster_tile_baits(
                 "--mincols", f"{mincols}",
                 "--fasta_width", f"{bait_length}",
                 "--notrunclabels",
-                "--centroids", f"{clust_baits_path}"
+                "--centroids", f"{clust_baits_unsorted_path}"
             ]
             with open(clust_baits_log_path, "w") as clust_log:
                 clust_log.write(f"Captus' Bait Clustering Command:\n  {' '.join(clust_cmd)}\n\n\n")
             with open(clust_baits_log_path, "a") as clust_log:
                 subprocess.run(clust_cmd, stdout=clust_log, stdin=clust_log, stderr=clust_log)
-            if clust_baits_path.exists() and not file_is_empty(clust_baits_path):
-                msg = (f"'{clust_baits_sorted_path.name}': baits clustered"
+            if clust_baits_unsorted_path.exists() and not file_is_empty(clust_baits_unsorted_path):
+                msg = (f"'{clust_baits_final_path.name}': baits clustered"
                        f" [{elapsed_time(time.time() - inner_start)}]")
             else:
                 quit_with_error("No bait files were found, nothing else to process...")
@@ -861,22 +861,27 @@ def cluster_tile_baits(
             pbar.update()
         log.log("")
         loci = {}
-        baits = fasta_to_dict(clust_baits_path)
-        clust_baits_path.unlink()
-        dict_to_fasta(baits, clust_baits_sorted_path, sort=True)
+        baits = fasta_to_dict(clust_baits_unsorted_path)
         num_baits = len(baits)
+        clust_baits_unsorted_path.unlink()
+        dict_to_fasta(baits, clust_baits_final_path, sort=True)
         for bait_name in baits:
             locus = bait_name.split(settings.SEQ_NAME_SEP)[0]
             if locus in loci:
                 loci[locus] += 1
             else:
                 loci[locus] = 1
-        log.log(f"'{bold(clust_baits_sorted_path)}': {num_baits} baits covering {len(loci)} loci")
+        log.log(f"'{bold(clust_baits_final_path.name)}': {num_baits} baits covering {len(loci)} loci")
         log.log("")
-        with open(clust_baits_tsv, "wt") as tsv_out:
+        with open(clust_baits_tsv_path, "wt") as tsv_out:
             tsv_out.write(f"locus\tnum_baits\n")
             for locus in sorted(loci):
                 tsv_out.write(f"{locus}\t{loci[locus]}\n")
-        log.log(f"'{bold(clust_baits_tsv)}': saved table with number of baits per locus")
+        log.log(f"'{bold(clust_baits_tsv_path.name)}': saved table with number of baits per locus")
+        log.log("")
+    else:
+        log.log(f"'{bold(clust_baits_final_path.name)}': output"
+                f" already exists, SKIPPED bait clustering")
+        log.log("")
 
     return
