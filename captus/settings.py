@@ -628,7 +628,7 @@ MAX_SEQ_LEN = {
 }
 
 # Split bait file if chunks of this size
-BAIT_SPLIT_SIZE = 100000
+BAITS_SPLIT_SIZE = 100000
 
 # Minimum proportion of the longest sequence to be considered as long in Captus design
 MIN_SEQ_LEN_PROP = 0.5

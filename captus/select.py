@@ -48,9 +48,9 @@ def select(full_command, args):
     log.log("")
 
     log.log(f'{"Python libraries":>{mar}}:')
-    _, numpy_version, numpy_status = python_library_check("numpy")
-    _, pandas_version, pandas_status = python_library_check("pandas")
-    _, plotly_version, plotly_status = python_library_check("plotly")
+    numpy_found, numpy_version, numpy_status = python_library_check("numpy")
+    pandas_found, pandas_version, pandas_status = python_library_check("pandas")
+    plotly_found, plotly_version, plotly_status = python_library_check("plotly")
     log.log(format_dep_msg(f'{"numpy":>{mar}}: ', numpy_version, numpy_status))
     log.log(format_dep_msg(f'{"pandas":>{mar}}: ', pandas_version, pandas_status))
     log.log(format_dep_msg(f'{"plotly":>{mar}}: ', plotly_version, plotly_status))
@@ -106,12 +106,31 @@ def select(full_command, args):
         copy_loci(aln_stats_filtered, out_dir, args.overwrite, args.show_more)
         log.log("")
         start = time.time()
+        log.log("")
         log.log_explanation("Writing selected alignments statistics...")
         aln_stats_tsv = write_aln_stats(out_dir, aln_stats_filtered)
         if aln_stats_tsv:
             log.log(f'{"Alignment statistics":>{mar}}: {bold(aln_stats_tsv)}')
             log.log(f'{"":>{mar}}  {dim(f"File saved in {elapsed_time(time.time() - start)}")}')
             log.log("")
+            if all([numpy_found, pandas_found, plotly_found]):
+
+                from .report import build_design_report
+
+                log.log("")
+                log.log_explanation(
+                    "Generating Alignment Statistics report..."
+                )
+                aln_html_report, aln_html_msg = build_design_report(out_dir, aln_stats_tsv, "select")
+                log.log(f'{"Alignment report":>{mar}}: {bold(aln_html_report)}')
+                log.log(f'{"":>{mar}}  {dim(aln_html_msg)}')
+            else:
+                log.log(
+                    f"{bold('WARNING:')} Captus uses 'numpy', 'pandas', and 'plotly' to generate an"
+                    " HTML report based on the marker recovery statistics. At least one of these"
+                    " libraries could not be found, please verify these libraries are installed and"
+                    " available."
+                )
 
     log.log("")
 
@@ -164,12 +183,12 @@ def load_aln_stats_tsv(clusters_dir: Path):
 
 
 def filter_loci(
-        aln_stats: dict, include_paralogs: bool, length: str, pairwise_identity: str,
-        gc_content: str, informative_sites: str, informativeness: str, missingness: str,
-        num_sequences: int, num_samples: int, num_focal_species: int, num_outgroup_species: int,
-        num_addon_samples: int, num_species: int, num_genera: int, cds_len: str,
-        len_long_exons_retained: str, len_short_exons_retained: str, perc_exons_retained: str,
-        perc_long_exons_retained: str, perc_short_exons_retained: str, mar: int
+    aln_stats: dict, include_paralogs: bool, length: str, pairwise_identity: str, gc_content: str,
+    informative_sites: str, informativeness: str, missingness: str, num_sequences: int,
+    num_samples: int, num_focal_species: int, num_outgroup_species: int, num_addon_samples: int,
+    num_species: int, num_genera: int, cds_len: str, len_long_exons_retained: str,
+    len_short_exons_retained: str, perc_exons_retained: str, perc_long_exons_retained: str,
+    perc_short_exons_retained: str, mar: int
 ):
     log.log(f'{"":>{mar}}  {len(aln_stats)} loci found')
     log.log("")
@@ -428,7 +447,6 @@ def copy_loci(aln_stats: dict, out_dir: Path, overwrite: bool, show_more: bool):
         ))
     else:
         quit_with_error(f"'{sel_dir}': is not empty, enable '--overwrite' if needed")
-
     return
 
 

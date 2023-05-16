@@ -116,9 +116,9 @@ def cluster(full_command, args):
     log.log("")
 
     log.log(f'{"Python libraries":>{mar}}:')
-    _, numpy_version, numpy_status = python_library_check("numpy")
-    _, pandas_version, pandas_status = python_library_check("pandas")
-    _, plotly_version, plotly_status = python_library_check("plotly")
+    numpy_found, numpy_version, numpy_status = python_library_check("numpy")
+    pandas_found, pandas_version, pandas_status = python_library_check("pandas")
+    plotly_found, plotly_version, plotly_status = python_library_check("plotly")
     log.log(format_dep_msg(f'{"numpy":>{mar}}: ', numpy_version, numpy_status))
     log.log(format_dep_msg(f'{"pandas":>{mar}}: ', pandas_version, pandas_status))
     log.log(format_dep_msg(f'{"plotly":>{mar}}: ', plotly_version, plotly_status))
@@ -414,9 +414,30 @@ def cluster(full_command, args):
         log.log(f'{"Alignment statistics":>{mar}}: {bold(aln_stats_tsv)}')
         log.log(f'{"":>{mar}}  {dim(f"File saved in {elapsed_time(time.time() - start)}")}')
         log.log("")
+        if all([numpy_found, pandas_found, plotly_found]):
+
+            from .report import build_design_report
+
+            log.log("")
+            log.log_explanation(
+                "Generating Alignment Statistics report..."
+            )
+            aln_html_report, aln_html_msg = build_design_report(out_dir, aln_stats_tsv, "cluster")
+            log.log(f'{"Alignment report":>{mar}}: {bold(aln_html_report)}')
+            log.log(f'{"":>{mar}}  {dim(aln_html_msg)}')
+        else:
+            log.log(
+                f"{bold('WARNING:')} Captus uses 'numpy', 'pandas', and 'plotly' to generate an HTML"
+                " report based on the marker recovery statistics. At least one of these libraries"
+                " could not be found, please verify these libraries are installed and available."
+            )
+    else:
+        log.log(red("Skipping summarization step... (no alignment statistics files were produced)"))
+    log.log("")
 
     if not args.keep_all:
         start = time.time()
+        log.log("")
         log.log_explanation("Deleting MAFFT's logs and other unnecessary files...")
         reclaimed_bytes = 0
         files_to_delete = list(out_dir.resolve().rglob("*.mafft.log"))
@@ -484,8 +505,8 @@ def prepare_redo(out_dir: Path, redo_from: str):
 
 
 def import_fasta(
-        fasta_name: str, fasta_parent: Path, gff_path: Path, bait_length: int, out_dir: Path,
-        overwrite: bool
+    fasta_name: str, fasta_parent: Path, gff_path: Path, bait_length: int, out_dir: Path,
+    overwrite: bool
 ):
     start = time.time()
 
@@ -552,8 +573,8 @@ def adjust_max_seq_len(clust_program: str, max_seq_len: str):
 
 
 def filter_fasta(
-        sample_name: str, sample_dir: str, fasta_path: Path, out_dir: Path, max_seq_len: int,
-        overwrite: bool
+    sample_name: str, sample_dir: str, fasta_path: Path, out_dir: Path, max_seq_len: int,
+    overwrite: bool
 ):
     start = time.time()
     fasta_out_path = Path(out_dir, sample_dir, f'{sample_name}{settings.DES_SUFFIXES["FILTER"]}')
@@ -576,9 +597,9 @@ def filter_fasta(
 
 
 def dedup_fasta(
-        sample_name: str, sample_dir: str, fasta_path: Path, out_dir: Path, clust_program: str,
-        mmseqs_path: str, vsearch_path: str, dedup_threshold: float, strand: str, threads_max: int,
-        overwrite: bool, keep_all: bool
+    sample_name: str, sample_dir: str, fasta_path: Path, out_dir: Path, clust_program: str,
+    mmseqs_path: str, vsearch_path: str, dedup_threshold: float, strand: str, threads_max: int,
+    overwrite: bool, keep_all: bool
 ):
     start = time.time()
     fasta_out_path = Path(out_dir, sample_dir, f'{sample_name}{settings.DES_SUFFIXES["DEDUPED"]}')
@@ -645,7 +666,7 @@ def dedup_fasta(
 
 
 def rehead_and_concatenate_fastas(
-        samples_to_concat: dict, concat_dir: Path, overwrite: bool, show_less: bool
+    samples_to_concat: dict, concat_dir: Path, overwrite: bool, show_less: bool
 ):
     """
     Since all the FASTAs coming from all the samples will be joined in a single file for clustering,
@@ -680,9 +701,9 @@ def rehead_and_concatenate_fastas(
 
 
 def cluster_markers(
-        fasta_concat_path: Path, cluster_dir_path: Path, clust_program: str, mmseqs_path: str,
-        vsearch_path: str, strand: str, clust_threshold: float, align_singletons: bool,
-        threads: int, overwrite: bool
+    fasta_concat_path: Path, cluster_dir_path: Path, clust_program: str, mmseqs_path: str,
+    vsearch_path: str, strand: str, clust_threshold: float, align_singletons: bool, threads: int,
+    overwrite: bool
 ):
 
     log.log(bold(f"Clustering '{fasta_concat_path.name}' at {clust_threshold}% identity:"))
@@ -808,8 +829,8 @@ def adjust_align_concurrency(concurrent, threads_max):
 
 
 def mafft_assembly(
-        mafft_path: Path, mafft_algorithm: str, threads_per_alignment: int, timeout: int,
-        input_fasta_path: Path, align_dir_path: Path, overwrite: bool
+    mafft_path: Path, mafft_algorithm: str, threads_per_alignment: int, timeout: int,
+    input_fasta_path: Path, align_dir_path: Path, overwrite: bool
 ):
     start = time.time()
 
@@ -967,9 +988,9 @@ def find_and_merge_exon_data(out_dir: Path):
 
 
 def curate(
-        gaps: float, bait_length: int, focal_species: list, outgroup_species: list,
-        addon_samples: list, exons_data: dict, input_fasta_path: Path, curate_dir_path: Path,
-        shared_aln_stats: list, overwrite: bool
+    gaps: float, bait_length: int, focal_species: list, outgroup_species: list,
+    addon_samples: list, exons_data: dict, input_fasta_path: Path, curate_dir_path: Path,
+    shared_aln_stats: list, overwrite: bool
 ):
     start = time.time()
     curated_fasta_path = Path(curate_dir_path, input_fasta_path.name)
@@ -1051,30 +1072,30 @@ def curate(
                         single_copy = False
                         break
 
-            aln_stats = alignment_stats(aln_trimmed, "NT", coding=False)
-            aln_stats["genera"] = len(set(aln_genera))
-            aln_stats["species"] = len(set(aln_species))
-            aln_stats["focal"] = len(set(aln_focal_species))
-            aln_stats["outgroup"] = len(set(aln_outgroup_species))
-            aln_stats["samples"] = len(set(aln_samples))
-            aln_stats["addons"] = len(set(aln_addon_samples))
-            aln_stats["single_copy"] = single_copy
-            aln_stats["cds_id"] = "NA"
-            aln_stats["exons"] = "NA"
-            aln_stats["exons_len"] = "NA"
-            aln_stats["long_exons"] = "NA"
-            aln_stats["long_exons_len"] = "NA"
-            aln_stats["short_exons"] = "NA"
-            aln_stats["short_exons_len"] = "NA"
-            aln_stats["introns_len"] = "NA"
-            aln_stats["gene_len"] = "NA"
-            aln_stats["prop_exons_retained"] = "NA"
-            aln_stats["prop_long_exons"] = "NA"
-            aln_stats["prop_long_exons_retained"] = "NA"
-            aln_stats["len_long_exons_retained"] = "NA"
-            aln_stats["prop_short_exons"] = "NA"
-            aln_stats["prop_short_exons_retained"] = "NA"
-            aln_stats["len_short_exons_retained"] = "NA"
+            ast = alignment_stats(aln_trimmed, "NT", coding=False)
+            ast["genera"] = len(set(aln_genera))
+            ast["species"] = len(set(aln_species))
+            ast["focal"] = len(set(aln_focal_species))
+            ast["outgroup"] = len(set(aln_outgroup_species))
+            ast["samples"] = len(set(aln_samples))
+            ast["addons"] = len(set(aln_addon_samples))
+            ast["single_copy"] = single_copy
+            ast["cds_id"] = "NA"
+            ast["exons"] = "NA"
+            ast["exons_len"] = "NA"
+            ast["long_exons"] = "NA"
+            ast["long_exons_len"] = "NA"
+            ast["short_exons"] = "NA"
+            ast["short_exons_len"] = "NA"
+            ast["introns_len"] = "NA"
+            ast["gene_len"] = "NA"
+            ast["prop_exons_retained"] = "NA"
+            ast["prop_long_exons"] = "NA"
+            ast["prop_long_exons_retained"] = "NA"
+            ast["len_long_exons_retained"] = "NA"
+            ast["prop_short_exons"] = "NA"
+            ast["prop_short_exons_retained"] = "NA"
+            ast["len_short_exons_retained"] = "NA"
 
             if cds_ids:
                 if len(cds_ids) > 1:
@@ -1086,57 +1107,54 @@ def curate(
                     if cds_ids[cds] == median_len:
                         cds_id = cds
 
-                aln_stats["cds_id"] = cds_id
-                aln_stats["exons"] = exons_data[cds_id]["exons"]
-                aln_stats["exons_len"] = exons_data[cds_id]["exons_len"]
-                aln_stats["long_exons"] = exons_data[cds_id]["long_exons"]
-                aln_stats["long_exons_len"] = exons_data[cds_id]["long_exons_len"]
-                aln_stats["short_exons"] = exons_data[cds_id]["short_exons"]
-                aln_stats["short_exons_len"] = exons_data[cds_id]["short_exons_len"]
-                aln_stats["introns_len"] = exons_data[cds_id]["introns_len"]
-                aln_stats["gene_len"] = exons_data[cds_id]["gene_len"]
-                aln_stats["prop_exons_retained"] = median_len / exons_data[cds_id]["exons_len"]
-                aln_stats["prop_long_exons"] = exons_data[cds_id]["prop_long_exons"]
-                aln_stats["prop_long_exons_retained"] = (aln_stats["prop_long_exons"]
-                                                         * aln_stats["prop_exons_retained"])
-                aln_stats["len_long_exons_retained"] = (aln_stats["prop_long_exons_retained"]
-                                                        * aln_stats["exons_len"])
-                aln_stats["prop_short_exons"] = exons_data[cds_id]["prop_short_exons"]
-                aln_stats["prop_short_exons_retained"] = (aln_stats["prop_short_exons"]
-                                                          * aln_stats["prop_exons_retained"])
-                aln_stats["len_short_exons_retained"] = (aln_stats["prop_short_exons_retained"]
-                                                         * aln_stats["exons_len"])
+                ast["cds_id"] = cds_id
+                ast["exons"] = exons_data[cds_id]["exons"]
+                ast["exons_len"] = exons_data[cds_id]["exons_len"]
+                ast["long_exons"] = exons_data[cds_id]["long_exons"]
+                ast["long_exons_len"] = exons_data[cds_id]["long_exons_len"]
+                ast["short_exons"] = exons_data[cds_id]["short_exons"]
+                ast["short_exons_len"] = exons_data[cds_id]["short_exons_len"]
+                ast["introns_len"] = exons_data[cds_id]["introns_len"]
+                ast["gene_len"] = exons_data[cds_id]["gene_len"]
+                ast["prop_exons_retained"] = median_len / exons_data[cds_id]["exons_len"]
+                ast["prop_long_exons"] = exons_data[cds_id]["prop_long_exons"]
+                ast["prop_long_exons_retained"] = ast["prop_long_exons"] * ast["prop_exons_retained"]
+                ast["len_long_exons_retained"] = ast["prop_long_exons_retained"] * ast["exons_len"]
+                ast["prop_short_exons"] = exons_data[cds_id]["prop_short_exons"]
+                ast["prop_short_exons_retained"] = (ast["prop_short_exons"]
+                                                    * ast["prop_exons_retained"])
+                ast["len_short_exons_retained"] = ast["prop_short_exons_retained"] * ast["exons_len"]
                 # Format as text
-                aln_stats["len_long_exons_retained"] = f'{aln_stats["len_long_exons_retained"]:.0f}'
-                aln_stats["len_short_exons_retained"] = f'{aln_stats["len_short_exons_retained"]:.0f}'
-                aln_stats["perc_exons_retained"] = f'{aln_stats["prop_exons_retained"]*100:.2f}'
-                aln_stats["perc_long_exons_retained"] = f'{aln_stats["prop_long_exons_retained"]*100:.2f}'
-                aln_stats["perc_short_exons_retained"] = f'{aln_stats["prop_short_exons_retained"]*100:.2f}'
+                ast["len_long_exons_retained"] = f'{ast["len_long_exons_retained"]:.0f}'
+                ast["len_short_exons_retained"] = f'{ast["len_short_exons_retained"]:.0f}'
+                ast["perc_exons_retained"] = f'{ast["prop_exons_retained"]*100:.2f}'
+                ast["perc_long_exons_retained"] = f'{ast["prop_long_exons_retained"]*100:.2f}'
+                ast["perc_short_exons_retained"] = f'{ast["prop_short_exons_retained"]*100:.2f}'
 
             stats = [
-                f"{curated_fasta_path}",                     # Path to curated FASTA
-                f"{curated_fasta_path.stem}",                # Locus name
-                f"{aln_stats['single_copy']}",               # Is single copy marker or not
-                f"{aln_stats['sites']}",                     # Alignment length
-                f"{aln_stats['gc']:.2f}",                    # % GC content
-                f"{aln_stats['avg_pid']:.2f}",               # % Pairwise identity
-                f"{aln_stats['informative']}",               # Number of informative sites
-                f"{aln_stats['informativeness']:.2f}",       # % Informativeness
-                f"{aln_stats['missingness']:.2f}",           # % Missingness
-                f"{aln_stats['sequences']}",                 # Number of sequences
-                f"{aln_stats['samples']}",                   # Number of samples
-                f"{aln_stats['focal']}",                     # Number of focal species
-                f"{aln_stats['outgroup']}",                  # Number of outgroup species
-                f"{aln_stats['addons']}",                    # Number of add-on samples
-                f"{aln_stats['species']}",                   # Number of species
-                f"{aln_stats['genera']}",                    # Number of genera
-                f"{aln_stats['cds_id']}",                    # CDS ID
-                f"{aln_stats['exons_len']}",                 # Total exon length of CDS
-                f"{aln_stats['len_long_exons_retained']}",   # Long exons retained in bp
-                f"{aln_stats['len_short_exons_retained']}",  # Short exons retained in bp
-                f"{aln_stats['perc_exons_retained']}",       # Proportion of CDS retained
-                f"{aln_stats['perc_long_exons_retained']}",  # Proportion of long exons retained
-                f"{aln_stats['perc_short_exons_retained']}", # Proportion of short exons retained
+                f"{curated_fasta_path}",                        # Path to curated FASTA
+                f"{curated_fasta_path.stem}",                   # Locus name
+                f"{ast['single_copy']}",                        # Is single copy marker or not
+                f"{ast['sites']}",                              # Alignment length
+                f"{ast['gc']:.2f}",                             # % GC content
+                f"{ast['avg_pid']:.2f}",                        # % Pairwise identity
+                f"{ast['informative']}",                        # Number of informative sites
+                f"{ast['informativeness']:.2f}",                # % Informativeness
+                f"{ast['missingness']:.2f}",                    # % Missingness
+                f"{ast['sequences']}",                          # Number of sequences
+                f"{ast['samples']}",                            # Number of samples
+                f"{ast['focal']}",                              # Number of focal species
+                f"{ast['outgroup']}",                           # Number of outgroup species
+                f"{ast['addons']}",                             # Number of add-on samples
+                f"{ast['species']}",                            # Number of species
+                f"{ast['genera']}",                             # Number of genera
+                f"{ast['cds_id']}",                             # CDS ID
+                f"{ast['exons_len']}",                          # Total exon length of CDS
+                f"{ast['len_long_exons_retained']}",            # Long exons retained in bp
+                f"{ast['len_short_exons_retained']}",           # Short exons retained in bp
+                f"{ast['perc_exons_retained']}",                # Proportion of CDS retained
+                f"{ast['perc_long_exons_retained']}",           # Proportion of long exons retained
+                f"{ast['perc_short_exons_retained']}",          # Proportion of short exons retained
             ]
 
             shared_aln_stats += ["\t".join(stats) + "\n"]
