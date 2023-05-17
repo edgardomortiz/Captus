@@ -372,7 +372,6 @@ def find_and_match_fastas_gffs(markers, recursive=False):
             fastas_to_import[fasta_name] = {"fasta_dir": fasta_dir, "gff_path": gffs[fasta_stem]}
         else:
             fastas_to_import[fasta_name] = {"fasta_dir": fasta_dir, "gff_path": None}
-    print(fastas_to_import)
     return fastas_to_import
 
 

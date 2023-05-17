@@ -425,7 +425,7 @@ class CaptusDesign(object):
             action="store",
             type=str,
             dest="length",
-            default="720,20000",
+            default="0,20000",
             help="Alignment length range in bp (min,max)"
         )
         filter_group.add_argument(
@@ -433,7 +433,7 @@ class CaptusDesign(object):
             action="store",
             type=str,
             dest="pairwise_identity",
-            default="75.0,99.99",
+            default="0.0,100.0",
             help="Range of average pairwise percent identity (min,max)"
         )
         filter_group.add_argument(
@@ -441,7 +441,7 @@ class CaptusDesign(object):
             action="store",
             type=str,
             dest="gc_content",
-            default="25.0,75.0",
+            default="0.0,100.0",
             help="Range of GC content as percentage (min,max)"
         )
         filter_group.add_argument(
@@ -457,7 +457,7 @@ class CaptusDesign(object):
             action="store",
             type=str,
             dest="informativeness",
-            default="0.0,25.0",
+            default="0.0,100.0",
             help="Range of percentage of parsimony informative sites (min,max)"
         )
         filter_group.add_argument(
@@ -465,7 +465,7 @@ class CaptusDesign(object):
             action="store",
             type=str,
             dest="missingness",
-            default="0.00,5.00",
+            default="0.0,100.0",
             help="Range of percentage of internal gaps and missing data allowed (min,max)"
         )
         filter_group.add_argument(
@@ -569,7 +569,7 @@ class CaptusDesign(object):
             action="store",
             type=str,
             dest="perc_short_exons_retained",
-            default="0.0,15.0",
+            default="0.0,100.0",
             help="Percentage range of sequence retained corresponding to short exons (min,max)"
         )
 
