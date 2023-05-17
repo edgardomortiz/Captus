@@ -3066,7 +3066,8 @@ def cds_from_gff(gff_path, fasta_path, bait_length):
                 if len(record) < 8:
                     continue
                 if record[2].lower() == "cds":
-                    notes = {n.split("=")[0].lower(): n.split("=")[1] for n in record[8].split(";") if n}
+                    notes = {n.split("=")[0].strip().lower(): n.split("=")[1].strip()
+                             for n in record[8].split(";") if n}
                     key   = "protein_id" if "protein_id" in notes else "parent"
                     shift = int(record[7]) if record[7] != "." else 0
                     start = int(record[3])
@@ -3228,14 +3229,14 @@ def vsearch_cluster(
     vsearch_cmd = [
         vsearch_path,
         vsearch_method, f"{Path(clustering_input_file)}",
-        "-strand", strand,
-        "-id", f"{min_identity}",
-        "-iddef", f"{seq_id_mode}",
-        "-query_cov", f"{min_coverage}",
-        "-userout", f"{Path(clustering_dir, f'{cluster_prefix}_cluster.tsv')}",
-        "-userfields", "target+query",
-        "-maxrejects", "0",
-        "-threads", f"{threads}",
+        "--strand", strand,
+        "--id", f"{min_identity}",
+        "--iddef", f"{seq_id_mode}",
+        "--query_cov", f"{min_coverage}",
+        "--userout", f"{Path(clustering_dir, f'{cluster_prefix}_cluster.tsv')}",
+        "--userfields", "target+query",
+        "--maxrejects", "0",
+        "--threads", f"{threads}",
     ]
     vsearch_log_file = Path(clustering_dir, f'{cluster_prefix}_vsearch.log')
     vsearch_thread = ElapsedTimeThread()
