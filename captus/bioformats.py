@@ -772,14 +772,18 @@ def pairwise_identity(seq1: str, seq2: str, seq_type: str, ignore_internal_gaps=
     if overlap_length > 0:
         for pos in range(max(seq1_start, seq2_start), min(seq1_end, seq2_end)):
             pair = "".join(sorted(f"{seq1[pos]}{seq2[pos]}"))
-            if ignore_internal_gaps:
-                if not "-" in pair:
-                    matches += PIDS[pair]
-                    aligned_length += 1
-            else:
-                if pair != "--":
-                    matches += PIDS[pair]
-                    aligned_length += 1
+            if pair != "--":
+                if ignore_internal_gaps:
+                    if not "-" in pair:
+                        try:
+                            matches += PIDS[pair]
+                            aligned_length += 1
+                        except KeyError: continue
+                else:
+                    try:
+                        matches += PIDS[pair]
+                        aligned_length += 1
+                    except KeyError: continue
         try:
             return (matches / aligned_length) * 100
         except ZeroDivisionError:
@@ -828,11 +832,15 @@ def site_pairwise_identity(site: str, seq_type: str):
             return [0,0]
         matches = 0
         for ra in counts:
-            matches += ((counts[ra] * (counts[ra] - 1)) / 2) * PIDS[ra+ra]
+            try:
+                matches += ((counts[ra] * (counts[ra] - 1)) / 2) * PIDS[ra+ra]
+            except KeyError: continue
         i = 0
         for ra in ss_site[i:]:
             for rb in ss_site[i+1:]:
-                matches += counts[ra] * counts[rb] * PIDS[ra+rb]
+                try:
+                    matches += counts[ra] * counts[rb] * PIDS[ra+rb]
+                except KeyError: continue
             i += 1
         return [(matches / combos) * 100, combos]
 
@@ -3189,18 +3197,20 @@ def mmseqs2_cluster(
         f"{clustering_input_file}",
         f"{result_prefix}",
         f"{clustering_tmp_dir}",
-        "--min-seq-id", f"{min_identity}",
-        "--seq-id-mode", f"{seq_id_mode}",
         "-c", f"{min_coverage}",
         "--cov-mode", f"{cov_mode}",
-        "--cluster-mode", f"{cluster_mode}",
+        "--min-seq-id", f"{min_identity}",
+        "--seq-id-mode", f"{seq_id_mode}",
         "--gap-open", f"{max(1, settings.MMSEQS2_GAP_OPEN)}",
         "--gap-extend", f"{max(1, settings.MMSEQS2_GAP_EXTEND)}",
+        "--cluster-mode", f"{cluster_mode}",
         "--kmer-per-seq-scale", f"{settings.MMSEQS2_KMER_PER_SEQ_SCALE}",
         "--threads", f"{threads}",
     ]
-    if mmseqs2_method == "easy-cluster" and cluster_mode == 2:
-        mmseqs2_cmd += ["--cluster-reassign"]
+    if mmseqs2_method == "easy-cluster":
+        mmseqs2_cmd += ["-s", f"{settings.MMSEQS2_SENSITIVITY}"]
+        if cluster_mode == 2:
+            mmseqs2_cmd += ["--cluster-reassign"]
     mmseqs2_log_file = Path(clustering_dir, f"{cluster_prefix}_mmseqs.log")
     mmseqs2_thread = ElapsedTimeThread()
     mmseqs2_thread.start()

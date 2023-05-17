@@ -908,7 +908,7 @@ class CaptusAssembly(object):
         mmseqs2_group.add_argument(
             "--cl_cov_mode",
             action="store",
-            default=1,
+            default=settings.MMSEQS2_COV_MODE,
             type=int,
             dest="cl_cov_mode",
             help="MMseqs2 sequence coverage mode (https://github.com/soedinglab/mmseqs2/wiki#how-"

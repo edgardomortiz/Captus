@@ -254,7 +254,7 @@ def cluster(full_command, args):
             args.keep_all,
         ))
     tqdm_serial_run(dedup_fasta, dedup_params,
-                    f"Deduplicating samples' sequences at {args.dedup_threshold}% identity",
+                    f"Deduplicating sequences from each sample at {args.dedup_threshold}% identity",
                     f"Deduplication completed", "sample", show_less)
     log.log("")
 
