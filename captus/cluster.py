@@ -202,6 +202,7 @@ def cluster(full_command, args):
     log.log("")
     log.log(f'{"Clustering program":>{mar}}: {bold(args.clust_program)}')
     log.log(f'{"Max. sequence length":>{mar}}: {bold(max_seq_len)}')
+    log.log(f'{"Min. sequence length":>{mar}}: {bold(args.bait_length)} (= bait length)')
     log.log(f'{"Strand":>{mar}}: {bold(args.strand)}')
     log.log(f'{"Deduplication id.":>{mar}}: {bold(args.dedup_threshold)}%')
     log.log(f'{"Clustering id.":>{mar}}: {bold(args.clust_threshold)}%')
@@ -221,15 +222,16 @@ def cluster(full_command, args):
             samples_to_filter[sample_name]["fasta_path"],
             out_dir,
             max_seq_len,
+            args.bait_length,
             args.overwrite,
         ))
+    task_title = (f"Removing sequences shorter than {args.bait_length}"
+                  f" bp or longer than {max_seq_len} bp from FASTAs")
     if args.debug:
-        tqdm_serial_run(filter_fasta, filter_params,
-                        f"Removing sequences longer than {max_seq_len} bp from FASTAs",
+        tqdm_serial_run(filter_fasta, filter_params, task_title,
                         f"Length filtering completed", "sample", show_less)
     else:
-        tqdm_parallel_async_run(filter_fasta, filter_params,
-                                f"Removing sequences longer than {max_seq_len} bp from FASTAs",
+        tqdm_parallel_async_run(filter_fasta, filter_params, task_title,
                                 f"Length filtering completed", "sample", threads_max, show_less)
 
     log.log("")
@@ -511,7 +513,7 @@ def import_fasta(
     start = time.time()
 
     fasta_path = Path(fasta_parent, fasta_name)
-    sample_name = fasta_path.name.rstrip("".join(fasta_path.suffixes))
+    sample_name = fasta_path.name.replace("".join(fasta_path.suffixes), "")
     sample_out_dir = Path(out_dir, f"{sample_name}__captus-clr")
 
     if overwrite is True or not sample_out_dir.exists():
@@ -574,7 +576,7 @@ def adjust_max_seq_len(clust_program: str, max_seq_len: str):
 
 def filter_fasta(
     sample_name: str, sample_dir: str, fasta_path: Path, out_dir: Path, max_seq_len: int,
-    overwrite: bool
+    min_seq_len: int, overwrite: bool
 ):
     start = time.time()
     fasta_out_path = Path(out_dir, sample_dir, f'{sample_name}{settings.DES_SUFFIXES["FILTER"]}')
@@ -583,7 +585,7 @@ def filter_fasta(
         fasta_in  = fasta_to_dict(fasta_path)
         fasta_out = {}
         for seq_name in fasta_in:
-            if len(fasta_in[seq_name]["sequence"]) <= max_seq_len:
+            if min_seq_len <= len(fasta_in[seq_name]["sequence"]) <= max_seq_len:
                 fasta_out[seq_name] = fasta_in[seq_name]
         dict_to_fasta(fasta_out, fasta_out_path)
         if fasta_out_path.exists():
@@ -607,7 +609,7 @@ def dedup_fasta(
         dedup_threshold = dedup_threshold / 100
 
     if overwrite is True or not fasta_out_path.exists():
-        result_prefix = f"{fasta_out_path}".rstrip(".fasta")
+        result_prefix = f"{fasta_out_path}".replace(".fasta", "")
         tmp_dir = Path(out_dir, sample_dir, "mmseqs_tmp")
         if clust_program == "vsearch":
             dedup_cmd = [
@@ -727,7 +729,7 @@ def cluster_markers(
                                       threads)
         elif clust_program == "vsearch":
             message  = vsearch_cluster(vsearch_path,
-                                       "-cluster_fast",
+                                       "--cluster_fast",
                                        Path(fasta_concat_path.parent),
                                        fasta_concat_path,
                                        cluster_prefix,
@@ -971,6 +973,14 @@ def find_and_merge_exon_data(out_dir: Path):
             for line in tsv_in:
                 if not line.startswith("cds_id"):
                     record = line.strip().split()
+                    try:
+                        prop_long_exons = int(record[5]) / int(record[3])
+                    except ZeroDivisionError:
+                        prop_long_exons = 0
+                    try:
+                        prop_short_exons = int(record[7]) / int(record[3])
+                    except ZeroDivisionError:
+                        prop_short_exons = 0
                     exons_data[record[0]] = {
                         "position": record[1],
                         "exons": int(record[2]),
@@ -981,8 +991,8 @@ def find_and_merge_exon_data(out_dir: Path):
                         "short_exons_len": int(record[7]),
                         "introns_len": int(record[8]),
                         "gene_len": int(record[9]),
-                        "prop_long_exons": int(record[5]) / int(record[3]),
-                        "prop_short_exons": int(record[7]) / int(record[3]),
+                        "prop_long_exons": prop_long_exons,
+                        "prop_short_exons": prop_short_exons,
                     }
     return exons_data
 

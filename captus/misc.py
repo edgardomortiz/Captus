@@ -361,17 +361,18 @@ def find_and_match_fastas_gffs(markers, recursive=False):
     fastas = [Path(file) for file in fastas if not file.name.startswith(".")]
     gffs   = [Path(file) for file in gffs if not file.name.startswith(".")]
     # Get stem name (sample name) from each GFF with its corresponding path in a dictionary
-    gffs   = {file.name.rstrip("".join(file.suffixes)): file for file in gffs}
+    gffs   = {file.name.replace("".join(file.suffixes), ""): file for file in gffs}
     # Match if possible a FASTA with a GFF with identical stem
     fastas_to_import = {}
     for fasta_file in fastas:
         fasta_name = fasta_file.name
-        fasta_stem = fasta_file.name.rstrip("".join(fasta_file.suffixes))
+        fasta_stem = fasta_file.name.replace("".join(fasta_file.suffixes), "")
         fasta_dir  = fasta_file.parent
         if fasta_stem in gffs:
             fastas_to_import[fasta_name] = {"fasta_dir": fasta_dir, "gff_path": gffs[fasta_stem]}
         else:
             fastas_to_import[fasta_name] = {"fasta_dir": fasta_dir, "gff_path": None}
+    print(fastas_to_import)
     return fastas_to_import
 
 
