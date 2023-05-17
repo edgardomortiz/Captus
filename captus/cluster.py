@@ -254,7 +254,7 @@ def cluster(full_command, args):
             args.keep_all,
         ))
     tqdm_serial_run(dedup_fasta, dedup_params,
-                    f"Deduplicating sequences from FASTAs",
+                    f"Deduplicating samples' sequences at {args.dedup_threshold}% identity",
                     f"Deduplication completed", "sample", show_less)
     log.log("")
 
@@ -388,14 +388,21 @@ def cluster(full_command, args):
     log.log(f'{"":>{mar}}  {dim(curate_dir_msg)}')
     log.log("")
 
-    if args.debug:
-        tqdm_serial_run(curate, curate_params,
-                        "Curating cluster alignments", "Curation of alignments completed",
-                        "alignment", show_less)
-    else:
-        tqdm_parallel_async_run(curate, curate_params,
-                                "Curating cluster alignments", "Curation of alignments completed",
-                                "alignment", threads_max, show_less)
+    tqdm_serial_run(curate, curate_params,
+                    "Curating cluster alignments", "Curation of alignments completed",
+                    "alignment", show_less)
+
+    # manager.list() slows down the curate() function when used in parallel, until better solution
+    # we will run it serially
+    # if args.debug:
+    #     tqdm_serial_run(curate, curate_params,
+    #                     "Curating cluster alignments", "Curation of alignments completed",
+    #                     "alignment", show_less)
+    # else:
+    #     tqdm_parallel_async_run(curate, curate_params,
+    #                             "Curating cluster alignments", "Curation of alignments completed",
+    #                             "alignment", threads_max, show_less)
+
     log.log("")
 
 
@@ -677,7 +684,7 @@ def rehead_and_concatenate_fastas(
     the use of '__' to name the samples. The descriptions will be lost (MMseqs ignores them afaik).
     """
     start = time.time()
-    log.log(bold("Concatenating input FASTAs for clustering:"))
+    log.log(bold(f"Concatenating FASTAs from {len(samples_to_concat)} samples for clustering:"))
     fasta_concat_path = Path(concat_dir, "concatenated.fasta")
     if overwrite is True or not fasta_concat_path.exists():
         tqdm_cols = min(shutil.get_terminal_size().columns, 120)
@@ -694,7 +701,7 @@ def rehead_and_concatenate_fastas(
                     tqdm.write(message)
                 pbar.update()
         log.log(bold(
-            f" \u2514\u2500\u2192 File '{fasta_concat_path}'"
+            f" \u2514\u2500\u2192 File '{fasta_concat_path.name}'"
             f" prepared in {elapsed_time(time.time() - start)}(s)"
         ))
     else:
