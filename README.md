@@ -5,7 +5,44 @@
 [![Install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](http://bioconda.github.io/recipes/captus/README.html) [![Bioconda downloads](https://anaconda.org/bioconda/captus/badges/downloads.svg)](https://anaconda.org/bioconda/captus) [![Version in Bioconda](https://anaconda.org/bioconda/captus/badges/version.svg)](https://anaconda.org/bioconda/captus) [![Last updated](https://anaconda.org/bioconda/captus/badges/latest_release_date.svg)](https://github.com/edgardomortiz/Captus/releases)
 ___
 ## Installation
+### Using micromamba
+The fastest way to install `Captus` is to create an isolated software environment using `micromamba` (https://mamba.readthedocs.io/en/latest/installation.html), if you don't have `micromamba` it can very easily be installed:
+For linux with `bash` shell:
+```
+curl micro.mamba.pm/install.sh | bash
+```
+For macOS with `zsh` shell:
+```
+curl micro.mamba.pm/install.sh | zsh
+```
 
+. Once you have `micromamba` installed in your system you need to configure your channels:
+```bash
+micromamba config prepend channels bioconda
+micromamba config prepend channels conda-forge
+micromamba config list
+```
+
+The last command should show your current channels, the order matters:
+```bash
+channels:
+  - conda-forge
+  - bioconda
+show_banner: false
+```
+
+Now we are ready to create a separate environment for Captus:
+```bash
+micromamba create -n captus captus
+```
+
+Finally, test that `Captus` was correctly installed:
+```bash
+micromamba activate captus
+captus_assembly
+```
+
+### Using conda
 The simplest way to install `Captus` is to create an isolated software environment using `conda`, if you don't have `conda` we recommend to install `miniconda` from [https://docs.conda.io/en/latest/miniconda.html](https://docs.conda.io/en/latest/miniconda.html). Once you have `conda` installed in your system you need to configure your channels:
 ```bash
 conda config --prepend channels bioconda
