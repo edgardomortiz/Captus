@@ -773,10 +773,10 @@ class CaptusDesign(object):
                  " will overlap by at most 30 bp"
         )
         clustering_group.add_argument(
-            "--ct", "--clustering_threshold",
+            "--ct", "--clust_threshold",
             action="store",
             type=int,
-            dest="clustering_threshold",
+            dest="clust_threshold",
             default=86,
             help="The entire set of potential baits are finally clustered at this identity, keeping"
                  " a single centroid bait sequence per cluster. It has been shown than a bait can"

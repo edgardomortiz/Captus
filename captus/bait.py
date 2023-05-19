@@ -199,7 +199,7 @@ def bait(full_command, args):
     ######################################################################## BAIT CLUSTERING SECTION
     log.log_section_header("Clustering and tiling baits")
     log.log_explanation(
-        "Now Captus will cluster the filtered baits at '--clustering_threshold' percent identity"
+        "Now Captus will cluster the filtered baits at '--clust_threshold' percent identity"
         " and tiled at '--tiling_percentage_overlap' to create the final set of baits ready to be"
         " sent for synthesis. Increase the clustering threshold to increase the final number of"
         " or reduce it to achieve the opposite result."
@@ -208,7 +208,7 @@ def bait(full_command, args):
     log.log(f'{"Bait length":>{mar}}: {bold(args.bait_length)}')
     log.log("")
     log.log(f'{"Tiling overlap":>{mar}}: {bold(args.tiling_percentage_overlap)}% (= {mincols} bp)')
-    log.log(f'{"Clustering id.":>{mar}}: {bold(args.clustering_threshold)}%')
+    log.log(f'{"Clustering id.":>{mar}}: {bold(args.clust_threshold)}%')
     log.log("")
     log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
     log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
@@ -221,7 +221,7 @@ def bait(full_command, args):
 
     cluster_tile_baits(
         clu_baits_dir_path, baits_filtered_gz_path, args.bait_length, args.vsearch_path,
-        mincols, args.clustering_threshold, args.overwrite
+        mincols, args.clust_threshold, args.overwrite
     )
 
 
@@ -837,16 +837,16 @@ def filter_baits(
 
 def cluster_tile_baits(
     clust_baits_dir_path: Path, baits_filtered_gz_path: Path, bait_length: int, vsearch_path: str,
-    mincols: int, clustering_threshold: float, overwrite: bool
+    mincols: int, clust_threshold: float, overwrite: bool
 ):
 
-    clust_baits_unsorted_file = f"baits_clust{clustering_threshold:.2f}_mincols{mincols}_unsorted.fasta"
+    clust_baits_unsorted_file = f"baits_clust{clust_threshold:.2f}_mincols{mincols}_unsorted.fasta"
     clust_baits_unsorted_path = Path(clust_baits_dir_path, clust_baits_unsorted_file)
-    clust_baits_final_file = f"baits_clust{clustering_threshold:.2f}_mincols{mincols}.fasta"
+    clust_baits_final_file = f"baits_clust{clust_threshold:.2f}_mincols{mincols}.fasta"
     clust_baits_final_path = Path(clust_baits_dir_path, clust_baits_final_file)
     clust_baits_log_path = Path(f"{clust_baits_final_path}".replace(".fasta", ".log"))
     clust_baits_tsv_path = Path(f"{clust_baits_final_path}".replace(".fasta", ".tsv"))
-    if clustering_threshold > 1.0: clustering_threshold /= 100
+    if clust_threshold > 1.0: clust_threshold /= 100
 
     if overwrite or not clust_baits_final_path.exists():
         if clust_baits_final_path.exists(): clust_baits_final_path.unlink()
@@ -861,7 +861,7 @@ def cluster_tile_baits(
                 "--cluster_smallmem", f"{baits_filtered_gz_path}",
                 "--usersort",
                 "--strand", "both",
-                "--id", f"{clustering_threshold}",
+                "--id", f"{clust_threshold}",
                 "--mincols", f"{mincols}",
                 "--fasta_width", f"{bait_length}",
                 "--notrunclabels",
