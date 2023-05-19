@@ -345,7 +345,7 @@ def create_baits(
         long_exons_fastas = find_fastas_in_dir(cluster_dir_path, settings.DES_SUFFIXES["LONG"])
         if all_cds_ids and long_exons_fastas:
             start = time.time()
-            log.log(bold(f"Saving FASTA file including long exons found in selected loci:"))
+            log.log(bold(f"Saving FASTA file with the long exons found in selected loci:"))
             tqdm_cols = min(shutil.get_terminal_size().columns, 120)
             with tqdm(total=len(long_exons_fastas), ncols=tqdm_cols, unit="loci") as pbar:
                 inner_start = time.time()
@@ -357,15 +357,15 @@ def create_baits(
                         if cds_id in all_cds_ids:
                             lef[seq_name] = long_exons[seq_name]
                     dict_to_fasta(lef, long_exons_path, append=True)
-                msg = f"'{long_exons_path}' saved in {elapsed_time(time.time() - inner_start)}"
-                if show_more: tqdm.write(msg)
-                log.log(msg, print_to_screen=False)
-                pbar.update()
-        log.log(bold(
-            f" \u2514\u2500\u2192 FASTA file '{long_exons_path.name}' succesfully created"
-            f" [{elapsed_time(time.time() - start)}]"
-        ))
-        log.log("")
+                    msg = f"'{long_exons_path}' saved in {elapsed_time(time.time() - inner_start)}"
+                    if show_more: tqdm.write(msg)
+                    log.log(msg, print_to_screen=False)
+                    pbar.update()
+            log.log(bold(
+                f" \u2514\u2500\u2192 FASTA file '{long_exons_path.name}' succesfully created"
+                f" [{elapsed_time(time.time() - start)}]"
+            ))
+            log.log("")
         if not long_exons_path.exists() or file_is_empty(long_exons_path):
             long_exons_path = None
 
