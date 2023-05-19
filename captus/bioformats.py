@@ -3186,6 +3186,8 @@ def mmseqs2_cluster(
     file has to be decompressed, we can compress it afterwards
     """
     start = time.time()
+    if sensitivity < 1: sensitivity = 1.0
+    if sensitivity > 7.5: sensitivity = 7.5
     if not 0 < min_identity <= 1:
         min_identity = min(1.0, round((abs(min_identity) / 100), 3))
     if not 0 < min_coverage <= 1:

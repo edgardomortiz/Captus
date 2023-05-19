@@ -203,7 +203,6 @@ def cluster(full_command, args):
     log.log(f'{"Clustering program":>{mar}}: {bold(args.clust_program)}')
     if args.clust_program == "mmseqs":
             log.log(f'{"MMseqs2 sensitivity":>{mar}}: {bold(args.mmseqs_sensitivity)}')
-    log.log(f'{"Clustering program":>{mar}}: {bold(args.clust_program)}')
     log.log(f'{"Max. sequence length":>{mar}}: {bold(max_seq_len)}')
     log.log(f'{"Min. sequence length":>{mar}}: {bold(args.bait_length)} (= bait length)')
     log.log(f'{"Strand":>{mar}}: {bold(args.strand)}')
