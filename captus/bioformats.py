@@ -3178,7 +3178,8 @@ def cds_from_gff(gff_path, fasta_path, bait_length):
 
 def mmseqs2_cluster(
         mmseqs2_path, mmseqs2_method, clustering_dir, clustering_input_file, cluster_prefix,
-        clustering_tmp_dir, min_identity, seq_id_mode, min_coverage, cov_mode, cluster_mode, threads,
+        clustering_tmp_dir, sensitivity, min_identity, seq_id_mode, min_coverage, cov_mode,
+        cluster_mode, threads,
 ):
     """
     Run MMseqs easy-linclust but perform some parameter checking/conversion before, the FASTA input
@@ -3208,7 +3209,7 @@ def mmseqs2_cluster(
         "--threads", f"{threads}",
     ]
     if mmseqs2_method == "easy-cluster":
-        mmseqs2_cmd += ["-s", f"{settings.MMSEQS2_SENSITIVITY}"]
+        mmseqs2_cmd += ["-s", f"{sensitivity}"]
         if cluster_mode == 2:
             mmseqs2_cmd += ["--cluster-reassign"]
     mmseqs2_log_file = Path(clustering_dir, f"{cluster_prefix}_mmseqs.log")
