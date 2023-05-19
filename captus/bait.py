@@ -357,7 +357,7 @@ def create_baits(
                         if cds_id in all_cds_ids:
                             lef[seq_name] = long_exons[seq_name]
                     dict_to_fasta(lef, long_exons_path, append=True)
-                    msg = f"'{long_exons_path}' saved in {elapsed_time(time.time() - inner_start)}"
+                    msg = f"'{fasta_path.name}': processed in {elapsed_time(time.time() - inner_start)}"
                     if show_more: tqdm.write(msg)
                     log.log(msg, print_to_screen=False)
                     pbar.update()
