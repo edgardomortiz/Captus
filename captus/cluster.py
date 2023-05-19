@@ -201,6 +201,9 @@ def cluster(full_command, args):
     log.log(f'{"Max. threads":>{mar}}: {bold(threads_max)}')
     log.log("")
     log.log(f'{"Clustering program":>{mar}}: {bold(args.clust_program)}')
+    if args.clust_program == "mmseqs":
+            log.log(f'{"MMseqs2 sensitivity":>{mar}}: {bold(args.mmseqs_sensitivity)}')
+    log.log(f'{"Clustering program":>{mar}}: {bold(args.clust_program)}')
     log.log(f'{"Max. sequence length":>{mar}}: {bold(max_seq_len)}')
     log.log(f'{"Min. sequence length":>{mar}}: {bold(args.bait_length)} (= bait length)')
     log.log(f'{"Strand":>{mar}}: {bold(args.strand)}')
@@ -246,6 +249,7 @@ def cluster(full_command, args):
             out_dir,
             args.clust_program,
             args.mmseqs_path,
+            args.mmseqs_sensitivity,
             args.vsearch_path,
             args.dedup_threshold,
             args.strand,
@@ -277,6 +281,7 @@ def cluster(full_command, args):
                     cluster_dir_path,
                     args.clust_program,
                     args.mmseqs_path,
+                    args.mmseqs_sensitivity,
                     args.vsearch_path,
                     args.strand,
                     args.clust_threshold,
@@ -607,8 +612,8 @@ def filter_fasta(
 
 def dedup_fasta(
     sample_name: str, sample_dir: str, fasta_path: Path, out_dir: Path, clust_program: str,
-    mmseqs_path: str, vsearch_path: str, dedup_threshold: float, strand: str, threads_max: int,
-    overwrite: bool, keep_all: bool
+    mmseqs_path: str, mmseqs_sensitivity: float, vsearch_path: str, dedup_threshold: float,
+    strand: str, threads_max: int, overwrite: bool, keep_all: bool
 ):
     start = time.time()
     fasta_out_path = Path(out_dir, sample_dir, f'{sample_name}{settings.DES_SUFFIXES["DEDUPED"]}')
@@ -637,6 +642,7 @@ def dedup_fasta(
                 f"{fasta_path}",
                 f"{result_prefix}",
                 f"{tmp_dir}",
+                "-s", f"{mmseqs_sensitivity}",
                 "--min-seq-id", f"{dedup_threshold}",
                 "--seq-id-mode", "1",
                 "-c", "0.99",
@@ -711,8 +717,8 @@ def rehead_and_concatenate_fastas(
 
 def cluster_markers(
     fasta_concat_path: Path, cluster_dir_path: Path, clust_program: str, mmseqs_path: str,
-    vsearch_path: str, strand: str, clust_threshold: float, align_singletons: bool, threads: int,
-    overwrite: bool
+    mmseqs_sensitivity: float, vsearch_path: str, strand: str, clust_threshold: float,
+    align_singletons: bool, threads: int, overwrite: bool
 ):
 
     log.log(bold(f"Clustering '{fasta_concat_path.name}' at {clust_threshold}% identity:"))
@@ -728,6 +734,7 @@ def cluster_markers(
                                       fasta_concat_path,
                                       cluster_prefix,
                                       mmseqs2_tmp_dir,
+                                      mmseqs_sensitivity,
                                       clust_threshold,
                                       1,
                                       clust_threshold,

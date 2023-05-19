@@ -159,6 +159,15 @@ class CaptusDesign(object):
             help="Clustering software to use for deduplication and clustering"
         )
         clustering_group.add_argument(
+            "--mmseqs_sensitivity",
+            action="store",
+            default=settings.MMSEQS2_SENSITIVITY,
+            type=float,
+            dest="mmseqs_sensitivity",
+            help="MMseqs2 sensitivity, from 1 to 7.5. Common reference points are: 1 (faster),"
+                 " 4 (fast), 7.5 (sens)"
+        )
+        clustering_group.add_argument(
             "--max_seq_len",
             action="store",
             default="auto",

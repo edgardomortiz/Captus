@@ -864,6 +864,15 @@ class CaptusAssembly(object):
                  "easy-cluster = Sensitive homology search (slower)"
         )
         mmseqs2_group.add_argument(
+            "--cl_sensitivity",
+            action="store",
+            default=settings.MMSEQS2_SENSITIVITY,
+            type=float,
+            dest="cl_sensitivity",
+            help="MMseqs2 sensitivity, from 1 to 7.5, only applicable when using 'easy-cluster'."
+                 " Common reference points are: 1 (faster), 4 (fast), 7.5 (sens)"
+        )
+        mmseqs2_group.add_argument(
             "--cluster_mode",
             action="store",
             default=2,

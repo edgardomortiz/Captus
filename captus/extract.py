@@ -571,6 +571,7 @@ def extract(full_command, args):
         log.log("")
         log.log(f'{"MMseqs2 method":>{mar}}: {bold(args.mmseqs2_method)}')
         log.log(f'{"cluster_mode":>{mar}}: {bold(args.cluster_mode)}')
+        log.log(f'{"sensitivity":>{mar}}: {bold(args.sensitivity)}')
         log.log(f'{"min_seq_id":>{mar}}: {bold(cl_min_identity)}')
         log.log(f'{"seq_id_mode":>{mar}}: {bold(args.cl_seq_id_mode)}')
         log.log(f'{"cov":>{mar}}: {bold(args.cl_min_coverage)}')
@@ -610,11 +611,11 @@ def extract(full_command, args):
             captus_cluster_refs = cluster_and_select_refs(num_samples, cl_min_samples,
                                                           args.cl_max_copies, args.cl_rep_min_len,
                                                           args.mmseqs2_path, args.mmseqs2_method,
-                                                          args.cluster_mode, clustering_input_file,
-                                                          clustering_dir, cl_min_identity,
-                                                          args.cl_seq_id_mode, args.cl_min_coverage,
-                                                          args.cl_cov_mode, clust_tmp_dir,
-                                                          threads_max)
+                                                          args.cluster_mode, args.cl_sensitivity,
+                                                          clustering_input_file, clustering_dir,
+                                                          cl_min_identity, args.cl_seq_id_mode,
+                                                          args.cl_min_coverage, args.cl_cov_mode,
+                                                          clust_tmp_dir, threads_max)
             log.log("")
             log.log("")
             log.log(bold_yellow(
@@ -2040,16 +2041,16 @@ def rehead_fasta_with_sample_name(sample_name, sample_fasta_path, clustering_dir
 
 def cluster_and_select_refs(
         num_samples, clust_min_samples, clust_max_copies, clust_rep_min_len, mmseqs2_path,
-        mmseqs2_method, cluster_mode, clustering_input_file, clustering_dir, min_identity,
-        seq_id_mode, min_coverage, cov_mode, clust_tmp_dir, threads
+        mmseqs2_method, cluster_mode, cluster_sensitivity, clustering_input_file, clustering_dir,
+        min_identity, seq_id_mode, min_coverage, cov_mode, clust_tmp_dir, threads
 ):
     log.log("")
     log.log(bold(f"Initial clustering of contigs at {min_identity}% identity:"))
     clust1_prefix = f"cl{min_identity:.2f}_cov{min_coverage:.2f}"
     clust1_message = mmseqs2_cluster(mmseqs2_path, mmseqs2_method, clustering_dir,
                                      clustering_input_file, clust1_prefix, clust_tmp_dir,
-                                     min_identity, seq_id_mode, min_coverage, cov_mode,
-                                     cluster_mode, threads)
+                                     cluster_sensitivity, min_identity, seq_id_mode,
+                                     min_coverage, cov_mode, cluster_mode, threads)
     log.log(clust1_message)
     log.log("")
     msg_p1 = bold(f"Filtering clusters with fewer than {clust_min_samples} samples,")
@@ -2122,8 +2123,8 @@ def cluster_and_select_refs(
     clust2_prefix = f"cl{min_id2:.2f}_cov{min_coverage:.2f}"
     clust2_message = mmseqs2_cluster(mmseqs2_path, mmseqs2_method, clustering_dir,
                                      clust2_input_fasta, clust2_prefix, clust_tmp_dir,
-                                     min_id2, seq_id_mode, min_coverage, cov_mode,
-                                     cluster_mode, threads)
+                                     cluster_sensitivity, min_id2, seq_id_mode,
+                                     min_coverage, cov_mode, cluster_mode, threads)
     log.log(clust2_message)
     log.log("")
     log.log(bold(f"Selecting final cluster representatives:"))
