@@ -344,18 +344,28 @@ def create_baits(
         if long_exons_path.exists(): long_exons_path.unlink()
         long_exons_fastas = find_fastas_in_dir(cluster_dir_path, settings.DES_SUFFIXES["LONG"])
         if all_cds_ids and long_exons_fastas:
-            log.log(bold(f"Saving FASTA file including long exons found in selected loci:"))
             start = time.time()
-            for fasta_path in long_exons_fastas:
-                long_exons = fasta_to_dict(fasta_path)
-                lef = {}
-                for seq_name in long_exons:
-                    cds_id = seq_name.split("_exon")[0]
-                    if cds_id in all_cds_ids:
-                        lef[seq_name] = long_exons[seq_name]
-                dict_to_fasta(lef, long_exons_path, append=True)
-            log.log(f"'{long_exons_path}' saved in {elapsed_time(time.time() - start)}")
-            log.log("")
+            log.log(bold(f"Saving FASTA file including long exons found in selected loci:"))
+            tqdm_cols = min(shutil.get_terminal_size().columns, 120)
+            with tqdm(total=len(long_exons_fastas), ncols=tqdm_cols, unit="loci") as pbar:
+                inner_start = time.time()
+                for fasta_path in long_exons_fastas:
+                    long_exons = fasta_to_dict(fasta_path)
+                    lef = {}
+                    for seq_name in long_exons:
+                        cds_id = seq_name.split("_exon")[0]
+                        if cds_id in all_cds_ids:
+                            lef[seq_name] = long_exons[seq_name]
+                    dict_to_fasta(lef, long_exons_path, append=True)
+                msg = f"'{long_exons_path}' saved in {elapsed_time(time.time() - inner_start)}"
+                if show_more: tqdm.write(msg)
+                log.log(msg, print_to_screen=False)
+                pbar.update()
+        log.log(bold(
+            f" \u2514\u2500\u2192 FASTA file '{long_exons_path.name}' succesfully created"
+            f" [{elapsed_time(time.time() - start)}]"
+        ))
+        log.log("")
         if not long_exons_path.exists() or file_is_empty(long_exons_path):
             long_exons_path = None
 
@@ -393,7 +403,7 @@ def dereplicate_compress_baits(
         with tqdm(total=2, ncols=tqdm_cols, unit="file") as pbar:
             for bait_file in [baits_full_exons_path, baits_full_no_exons_path]:
                 if bait_file is None:
-                    msg = dim(f"'{bait_file.name}': SKIPPED, file not found/produced")
+                    pbar.update()
                 else:
                     inner_start = time.time()
                     bait_derep_file = Path(f"{bait_file}".replace("_full", ""))
@@ -418,9 +428,9 @@ def dereplicate_compress_baits(
                     else:
                         bait_derep_file.unlink()
                         msg = red(f"'{bait_file.name}': FAILED dereplication")
-                tqdm.write(msg)
-                log.log(msg, print_to_screen=False)
-                pbar.update()
+                    tqdm.write(msg)
+                    log.log(msg, print_to_screen=False)
+                    pbar.update()
         log.log(bold(
             f" \u2514\u2500\u2192 Bait files successfully dereplicated"
             f" [{elapsed_time(time.time() - start)}]"
