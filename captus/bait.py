@@ -204,7 +204,10 @@ def bait(full_command, args):
         " sent for synthesis. Increase the clustering threshold to increase the final number of"
         " or reduce it to achieve the opposite result."
     )
-    log.log(f'{"Tiling overlap":>{mar}}: {bold(args.tiling_percentage_overlap)}%')
+    mincols = math.ceil(args.tiling_percentage_overlap / 100 * args.bait_length)
+    log.log(f'{"Bait length":>{mar}}: {bold(args.bait_length)}')
+    log.log("")
+    log.log(f'{"Tiling overlap":>{mar}}: {bold(args.tiling_percentage_overlap)}% (= {mincols} bp)')
     log.log(f'{"Clustering id.":>{mar}}: {bold(args.clustering_threshold)}%')
     log.log("")
     log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
@@ -218,7 +221,7 @@ def bait(full_command, args):
 
     cluster_tile_baits(
         clu_baits_dir_path, baits_filtered_gz_path, args.bait_length, args.vsearch_path,
-        args.tiling_percentage_overlap, args.clustering_threshold, args.overwrite
+        mincols, args.clustering_threshold, args.overwrite
     )
 
 
@@ -347,7 +350,7 @@ def create_baits(
             start = time.time()
             log.log(bold(f"Saving FASTA file with the long exons found in selected loci:"))
             tqdm_cols = min(shutil.get_terminal_size().columns, 120)
-            with tqdm(total=len(long_exons_fastas), ncols=tqdm_cols, unit="loci") as pbar:
+            with tqdm(total=len(long_exons_fastas), ncols=tqdm_cols, unit="file") as pbar:
                 inner_start = time.time()
                 for fasta_path in long_exons_fastas:
                     long_exons = fasta_to_dict(fasta_path)
@@ -834,10 +837,9 @@ def filter_baits(
 
 def cluster_tile_baits(
     clust_baits_dir_path: Path, baits_filtered_gz_path: Path, bait_length: int, vsearch_path: str,
-    tiling_percentage_overlap:float, clustering_threshold: float, overwrite: bool
+    mincols: int, clustering_threshold: float, overwrite: bool
 ):
 
-    mincols = math.ceil(tiling_percentage_overlap / 100 * bait_length)
     clust_baits_unsorted_file = f"baits_clust{clustering_threshold:.2f}_mincols{mincols}_unsorted.fasta"
     clust_baits_unsorted_path = Path(clust_baits_dir_path, clust_baits_unsorted_file)
     clust_baits_final_file = f"baits_clust{clustering_threshold:.2f}_mincols{mincols}.fasta"
