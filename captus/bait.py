@@ -261,6 +261,14 @@ def find_and_merge_exon_data(cluster_dir_path: Path):
             for line in tsv_in:
                 if not line.startswith("cds_id"):
                     record = line.strip().split()
+                    try:
+                        ple = int(record[5]) / int(record[3])
+                    except ZeroDivisionError:
+                        ple = 0
+                    try:
+                        pse = int(record[7]) / int(record[3])
+                    except ZeroDivisionError:
+                        pse = 0
                     exons_data[record[0]] = {
                         "position": record[1],
                         "exons": int(record[2]),
@@ -271,8 +279,8 @@ def find_and_merge_exon_data(cluster_dir_path: Path):
                         "short_exons_len": int(record[7]),
                         "introns_len": int(record[8]),
                         "gene_len": int(record[9]),
-                        "prop_long_exons": int(record[5]) / int(record[3]),
-                        "prop_short_exons": int(record[7]) / int(record[3]),
+                        "prop_long_exons": ple,
+                        "prop_short_exons": pse,
                     }
     return exons_data
 
