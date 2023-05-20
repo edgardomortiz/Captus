@@ -1779,7 +1779,7 @@ def write_fastas_and_report(
 
 
 def blat_misc_dna(
-        blat_path, min_identity, min_coverage, overwrite, keep_all, target, sample_dir, sample_name,
+        blat_path, min_identity, min_coverage, overwrite, keep_all, target_path, sample_dir, sample_name,
         query_path, query_dict, query_info, marker_type, max_loci_files, max_paralogs
 ):
     """
@@ -1788,8 +1788,6 @@ def blat_misc_dna(
     """
 
     start = time.time()
-
-    dna_target = fasta_to_dict(target)
 
     # Set BLAT path in case of using the bundled version
     if blat_path == "bundled": blat_path = settings.BUNDLED_BLAT
@@ -1802,13 +1800,14 @@ def blat_misc_dna(
     blat_dna_out_dir, _ = make_output_dir(blat_dna_out_dir)
 
     if dir_is_empty(blat_dna_out_dir) is True or overwrite is True:
+        dna_target = fasta_to_dict(target_path)
         blat_cmd = [
             f"{blat_path}",
             "-t=dna",
             "-q=dna",
             "-noHead",
             f"-minIdentity={min_identity}",
-            f"{target}",
+            f"{target_path}",
             f"{query_path}",
             f"{blat_dna_out_file}"
         ]
