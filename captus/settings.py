@@ -632,3 +632,6 @@ BAITS_SPLIT_SIZE = 500000
 
 # Minimum proportion of the longest sequence to be considered as long in Captus design
 MIN_SEQ_LEN_PROP = 0.5
+
+# Max indel allowed when mapping to long exons as proportion of bait length
+MAX_INDEL_BAIT_PROP = 0.1

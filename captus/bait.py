@@ -326,13 +326,14 @@ def create_baits(
                     if settings.SEQ_NAME_SEP in seq_name:
                         sample = seq_name.split(settings.SEQ_NAME_SEP)[0]
                         seq_id = seq_name.split(settings.SEQ_NAME_SEP)[1]
+                        des = (f'[sample={sample}] [seq_id={seq_id}]'
+                               f' {fasta_in[seq_name]["description"]}').strip()
                     else:
                         sample = seq_name
                         seq_id = "NA"
+                        des = (f'[sample={sample}] {fasta_in[seq_name]["description"]}').strip()
                     if seq_id in exons_data: cds_ids.append(seq_id)
                     seq = fasta_in[seq_name]["sequence"].replace("-","").upper()
-                    des = (f'[sample={sample}] [seq_id={seq_id}]'
-                        f' {fasta_in[seq_name]["description"]}').strip()
                     for p in range(0, len(seq) - (bait_length - 1)):
                         bait_name = f"{locus}{settings.SEQ_NAME_SEP}b{bait_count:05}"
                         baits[bait_name] = {
@@ -474,6 +475,7 @@ def map_exonic_baits(
     if not baits_exons_gz_path or not long_exons_path: return None
     baits_exons_mapped_path = Path(filtered_baits_dir_path, f'{settings.DES_FILES["BEXM"]}')
     baits_exons_mapped_gz_path = Path(f"{baits_exons_mapped_path}.gz")
+    maxindel = math.ceil(bait_length * settings.MAX_INDEL_BAIT_PROP)
 
     if overwrite or not baits_exons_mapped_gz_path.exists():
         if baits_exons_mapped_path.exists(): baits_exons_mapped_path.unlink()
@@ -498,6 +500,8 @@ def map_exonic_baits(
                 f"outm={baits_sam_gz_path}",
                 "sam=1.3",
                 f"fastawrap={bait_length}",
+                f"maxindel={maxindel}",
+                f"strictmaxindel=t",
                 f"2>{baits_sam_stdout_path}"
             ]
             with open(baits_sam_stderr_path, "w") as bbmap_err:
@@ -595,8 +599,10 @@ def concat_refex_mask_baits(
 
             inner_start = time.time()
             cat_cmd = ["cat"]
-            if baits_exons_gz_path.exists(): cat_cmd += [f"{baits_exons_gz_path}"]
-            if baits_no_exons_gz_path.exists(): cat_cmd += [f"{baits_no_exons_gz_path}"]
+            if baits_exons_gz_path and baits_exons_gz_path.exists():
+                cat_cmd += [f"{baits_exons_gz_path}"]
+            if baits_no_exons_gz_path and baits_no_exons_gz_path.exists():
+                cat_cmd += [f"{baits_no_exons_gz_path}"]
             with open(baits_tomap_path, "w") as baits_tomap:
                 subprocess.run(cat_cmd, stdout=baits_tomap)
             if baits_tomap_path.exists():
@@ -684,35 +690,59 @@ def concat_refex_mask_baits(
         return None
 
 
-def split_baits_file(filtered_baits_dir_path: Path, baits_path: Path, threads_max: int):
+def split_baits_file(
+    filtered_baits_dir_path: Path, baits_path: Path, threads_max: int, show_less: bool
+):
+    start = time.time()
+    log.log(bold(f"Splitting '{baits_path.name}' for filtering:"))
     baits = fasta_to_dict(baits_path)
     num_seqs = len(baits)
     chunks_floor = max(threads_max, math.floor(num_seqs / settings.BAITS_SPLIT_SIZE))
     chunks_ceiling = max(threads_max, math.ceil(num_seqs / settings.BAITS_SPLIT_SIZE))
+    num_chunks = 0
     try:
         if (abs(settings.BAITS_SPLIT_SIZE - (num_seqs / chunks_ceiling))
             <= abs(settings.BAITS_SPLIT_SIZE - (num_seqs / chunks_floor))):
             seqs_per_chunk = math.ceil(num_seqs / chunks_ceiling)
+            num_chunks = chunks_ceiling
         else:
             seqs_per_chunk = math.ceil(num_seqs / chunks_floor)
+            num_chunks = chunks_floor
     except ZeroDivisionError:
         seqs_per_chunk = num_seqs
-    bait_parts_paths = []
-    part = 1
-    split_bait = {}
-    seq_count = 0
-    for seq_name in baits:
-        split_bait[seq_name] = baits[seq_name]
-        seq_count += 1
-        if seq_count < seqs_per_chunk:
-            continue
-        else:
-            split_bait_path = Path(filtered_baits_dir_path, f"{baits_path.stem}_part{part}.fasta.gz")
-            dict_to_fasta(split_bait, split_bait_path)
-            bait_parts_paths.append(split_bait_path)
-            part += 1
-            split_bait = {}
-            seq_count = 0
+        num_chunks = 1
+    num_digits = len(str(num_chunks))
+    tqdm_cols = min(shutil.get_terminal_size().columns, 120)
+    with tqdm(total=num_chunks, ncols=tqdm_cols, unit="part") as pbar:
+        inner_start = time.time()
+        bait_parts_paths = []
+        part = 1
+        split_bait = {}
+        chunk_count = 0
+        total_count = 0
+        for seq_name in baits:
+            split_bait[seq_name] = baits[seq_name]
+            chunk_count += 1
+            total_count += 1
+            if chunk_count == seqs_per_chunk or total_count == num_seqs:
+                split_bait_path = Path(filtered_baits_dir_path,
+                                       f"{baits_path.stem}_part{part:0{num_digits}}.fasta.gz")
+                dict_to_fasta(split_bait, split_bait_path)
+                bait_parts_paths.append(split_bait_path)
+                part += 1
+                split_bait = {}
+                chunk_count = 0
+                msg = f"'{split_bait_path.name}': saved in {elapsed_time(time.time() - inner_start)}"
+                inner_start = time.time()
+                if not show_less: tqdm.write(msg)
+                log.log(msg, print_to_screen=False)
+                pbar.update()
+    log.log(bold(
+        f" \u2514\u2500\u2192 Baits file '{baits_path.name}' succesfully splitted"
+        f" in {num_chunks} parts [{elapsed_time(time.time() - start)}]"
+    ))
+    log.log("")
+
     return bait_parts_paths
 
 
@@ -781,7 +811,8 @@ def filter_baits(
         if baits_accepted_gz_path.exists(): baits_accepted_gz_path.unlink()
         baits_chunks_paths = split_baits_file(filtered_baits_dir_path,
                                               baits_concat_mask_gz_path,
-                                              threads_max)
+                                              threads_max,
+                                              show_less)
         filter_params = []
         for baits_chunk_path in baits_chunks_paths:
             filter_params.append((
@@ -813,23 +844,45 @@ def filter_baits(
 
         start = time.time()
         rejected_bait_paths = list(filtered_baits_dir_path.rglob("*_rejected.fasta.gz"))
-        for baits_chunk_path in rejected_bait_paths:
-            rejected_baits = fasta_to_dict(baits_chunk_path)
-            baits_chunk_path.unlink()
-            dict_to_fasta(rejected_baits, baits_rejected_path, append=True)
-            if shutil.which("pigz"):
-                pigz_compress(baits_rejected_path, threads_max)
-            elif shutil.which("gzip"):
-                gzip_compress(baits_rejected_path)
-        log.log(f"'{bold(baits_rejected_gz_path.name)}': concatenated [{elapsed_time(time.time() - start)}]")
+        log.log(bold(f"Concatenating rejected baits files:"))
+        tqdm_cols = min(shutil.get_terminal_size().columns, 120)
+        with tqdm(total=len(rejected_bait_paths), ncols=tqdm_cols, unit="file") as pbar:
+            for baits_chunk_path in sorted(rejected_bait_paths):
+                inner_start = time.time()
+                rejected_baits = fasta_to_dict(baits_chunk_path)
+                baits_chunk_path.unlink()
+                dict_to_fasta(rejected_baits, baits_rejected_path, append=True)
+                msg = (f"'{baits_chunk_path.name}': concatenated"
+                       f" in {elapsed_time(time.time() - inner_start)}")
+                if not show_less: tqdm.write(msg)
+                log.log(msg, print_to_screen=False)
+                pbar.update()
+        if shutil.which("pigz"):
+            pigz_compress(baits_rejected_path, threads_max)
+        elif shutil.which("gzip"):
+            gzip_compress(baits_rejected_path)
+        log.log(bold(
+            f" \u2514\u2500\u2192 '{bold(baits_rejected_gz_path.name)}':"
+            f" concatenated [{elapsed_time(time.time() - start)}]"
+        ))
         log.log("")
 
+        start = time.time()
         accepted_bait_paths = list(filtered_baits_dir_path.rglob("*_accepted.fasta.gz"))
         baits_accepted_unsort_path = Path(f"{baits_accepted_path}".replace(".fasta", "_unsort.fasta"))
-        for baits_chunk_path in accepted_bait_paths:
-            accepted_baits = fasta_to_dict(baits_chunk_path)
-            baits_chunk_path.unlink()
-            dict_to_fasta(accepted_baits, baits_accepted_unsort_path, append=True)
+        log.log(bold(f"Concatenating accepted baits files:"))
+        tqdm_cols = min(shutil.get_terminal_size().columns, 120)
+        with tqdm(total=len(rejected_bait_paths), ncols=tqdm_cols, unit="file") as pbar:
+            for baits_chunk_path in sorted(accepted_bait_paths):
+                inner_start = time.time()
+                accepted_baits = fasta_to_dict(baits_chunk_path)
+                baits_chunk_path.unlink()
+                dict_to_fasta(accepted_baits, baits_accepted_unsort_path, append=True)
+                msg = (f"'{baits_chunk_path.name}': concatenated"
+                       f" in {elapsed_time(time.time() - inner_start)}")
+                if not show_less: tqdm.write(msg)
+                log.log(msg, print_to_screen=False)
+                pbar.update()
         baits_accepted = fasta_to_dict(baits_accepted_unsort_path)
         baits_accepted_unsort_path.unlink()
         dict_to_fasta(baits_accepted, baits_accepted_path, sort=True)
@@ -837,7 +890,10 @@ def filter_baits(
             pigz_compress(baits_accepted_path, threads_max)
         elif shutil.which("gzip"):
             gzip_compress(baits_accepted_path)
-        log.log(f"'{bold(baits_accepted_gz_path.name)}': concatenated [{elapsed_time(time.time() - start)}]")
+        log.log(bold(
+            f" \u2514\u2500\u2192 '{bold(baits_accepted_gz_path.name)}':"
+            f" concatenated [{elapsed_time(time.time() - start)}]"
+        ))
         log.log("")
     else:
         log.log(f"'{bold(baits_accepted_gz_path.name)}': output"
