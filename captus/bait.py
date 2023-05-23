@@ -121,11 +121,18 @@ def bait(full_command, args):
 
     if baits_exons_gz_path.exists() or baits_no_exons_gz_path.exists():
         log.log(bold("The following output files were already found, nothing to process:"))
-        for output_file in [baits_exons_gz_path, baits_no_exons_gz_path, long_exons_path]:
-            if output_file.exists():
-                log.log(f"'{output_file}'")
-            else:
-                output_file = None
+        if not baits_exons_gz_path.exists() or file_is_empty(baits_exons_gz_path):
+            baits_exons_gz_path = None
+        else:
+            log.log(f"'{baits_exons_gz_path}'")
+        if not baits_no_exons_gz_path.exists() or file_is_empty(baits_no_exons_gz_path):
+            baits_no_exons_gz_path = None
+        else:
+            log.log(f"'{baits_no_exons_gz_path}'")
+        if not long_exons_path.exists() or file_is_empty(long_exons_path):
+            long_exons_path = None
+        else:
+            log.log(f"'{long_exons_path}'")
     else:
         baits_full_exons_path, baits_full_no_exons_path, long_exons_path = create_baits(
             raw_baits_dir_path, Path(args.captus_clusters_dir), args.bait_length,
@@ -297,7 +304,7 @@ def create_baits(
     long_exons_path = Path(raw_baits_dir_path, settings.DES_FILES["LONG"])
     fastas = fastas_auto + fastas_manual
 
-    if overwrite or not baits_full_exons_path.exists() or not baits_full_no_exons_path.exists():
+    if overwrite or (not baits_full_exons_path.exists() and not baits_full_no_exons_path.exists()):
         exons_data = find_and_merge_exon_data(cluster_dir_path)
         all_cds_ids = []
         log.log(bold(f"Segmenting selected loci alignments into {bait_length} bp baits:"))
@@ -316,8 +323,12 @@ def create_baits(
                         ext = e
                         break
                 for seq_name in fasta_in:
-                    sample = seq_name.split(settings.SEQ_NAME_SEP)[0]
-                    seq_id = seq_name.split(settings.SEQ_NAME_SEP)[1]
+                    if settings.SEQ_NAME_SEP in seq_name:
+                        sample = seq_name.split(settings.SEQ_NAME_SEP)[0]
+                        seq_id = seq_name.split(settings.SEQ_NAME_SEP)[1]
+                    else:
+                        sample = seq_name
+                        seq_id = "NA"
                     if seq_id in exons_data: cds_ids.append(seq_id)
                     seq = fasta_in[seq_name]["sequence"].replace("-","").upper()
                     des = (f'[sample={sample}] [seq_id={seq_id}]'
@@ -369,19 +380,23 @@ def create_baits(
                 f" [{elapsed_time(time.time() - start)}]"
             ))
             log.log("")
-        if not long_exons_path.exists() or file_is_empty(long_exons_path):
-            long_exons_path = None
 
     else:
         log.log(bold("The following output files were already found:"))
-        for output_file in [baits_full_exons_path, baits_full_no_exons_path, long_exons_path]:
-            if output_file.exists(): log.log(f"'{output_file}'")
+        if baits_full_exons_path.exists() and not file_is_empty(baits_full_exons_path):
+            log.log(f"'{baits_full_exons_path}'")
+        if baits_full_no_exons_path.exists() and not file_is_empty(baits_full_no_exons_path):
+            log.log(f"'{baits_full_no_exons_path}'")
+        if long_exons_path.exists() and not file_is_empty(long_exons_path):
+            log.log(f"'{long_exons_path}'")
         log.log("")
 
     if not baits_full_exons_path.exists() or file_is_empty(baits_full_exons_path):
         baits_full_exons_path = None
     if not baits_full_no_exons_path.exists() or file_is_empty(baits_full_no_exons_path):
         baits_full_no_exons_path = None
+    if not long_exons_path.exists() or file_is_empty(long_exons_path):
+        long_exons_path = None
 
     return baits_full_exons_path, baits_full_no_exons_path, long_exons_path
 
@@ -558,7 +573,7 @@ def concat_refex_mask_baits(
 ):
     start = time.time()
 
-    if not baits_exons_gz_path.exists() and not baits_no_exons_gz_path.exists():
+    if not baits_exons_gz_path and not baits_no_exons_gz_path:
         quit_with_error("No bait files were found, nothing else to process...")
     baits_concat_path = Path(filtered_baits_dir_path, f'{settings.DES_FILES["BCAT"]}')
     baits_mask_path = Path(f"{baits_concat_path}".replace(".fasta", "_mask.fasta"))
@@ -585,7 +600,7 @@ def concat_refex_mask_baits(
             with open(baits_tomap_path, "w") as baits_tomap:
                 subprocess.run(cat_cmd, stdout=baits_tomap)
             if baits_tomap_path.exists():
-                msg = (f"'{baits_tomap_path}': baits concatenated"
+                msg = (f"'{baits_tomap_path.name}': baits concatenated"
                        f" [{elapsed_time(time.time() - inner_start)}]")
             else:
                 quit_with_error("No bait files were found, nothing else to process...")
@@ -655,7 +670,7 @@ def concat_refex_mask_baits(
 
         log.log(bold(
             f" \u2514\u2500\u2192 Baits concatenated, filtered against excluding"
-            f" reference and masked [{elapsed_time(time.time() - start)}]"
+            f" reference, and masked [{elapsed_time(time.time() - start)}]"
         ))
         log.log("")
     else:
