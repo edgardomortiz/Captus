@@ -135,7 +135,7 @@ def bait(full_command, args):
             log.log(f"'{long_exons_path}'")
     else:
         baits_full_exons_path, baits_full_no_exons_path, long_exons_path = create_baits(
-            raw_baits_dir_path, Path(args.captus_clusters_dir), args.bait_length,
+            raw_baits_dir_path, args.captus_clusters_dir, args.bait_length,
             fastas_auto, fastas_manual, args.overwrite, args.show_more
         )
         baits_exons_gz_path, baits_no_exons_gz_path = dereplicate_compress_baits(
@@ -209,7 +209,7 @@ def bait(full_command, args):
         "Now Captus will cluster the filtered baits at '--clust_threshold' percent identity"
         " and tiled at '--tiling_percentage_overlap' to create the final set of baits ready to be"
         " sent for synthesis. Increase the clustering threshold to increase the final number of"
-        " or reduce it to achieve the opposite result."
+        " baits or reduce it to achieve the opposite result."
     )
     mincols = math.ceil(args.tiling_percentage_overlap / 100 * args.bait_length)
     log.log(f'{"Bait length":>{mar}}: {bold(args.bait_length)}')
@@ -249,19 +249,21 @@ def find_fastas(fastas_dir: Path):
         return []
 
 
-def find_fastas_in_dir(cluster_dir_path: Path, extension: str):
+def find_fastas_in_dir(cluster_dir_path: str, extension: str):
+    cluster_dir_path = Path(cluster_dir_path)
     if cluster_dir_path.exists() and not dir_is_empty(cluster_dir_path):
-        fastas_to_process = list(Path(cluster_dir_path).rglob(f"*{extension}"))
+        fastas_to_process = list(cluster_dir_path.rglob(f"*{extension}"))
         return fastas_to_process
     else:
         quit_with_error(
-            f"The directory {cluster_dir_path} does not exist or it is empty, no files to process"
+            f"The directory '{cluster_dir_path}' does not exist or it is empty, no files to process"
         )
 
 
 def find_and_merge_exon_data(cluster_dir_path: Path):
+    if cluster_dir_path is None: return {}
     tsvs = []
-    if cluster_dir_path.exists():
+    if Path(cluster_dir_path).exists():
         sample_dirs = list(Path(cluster_dir_path).rglob("*__captus-clr"))
         for sample_dir in sample_dirs:
             tsvs += list(Path(sample_dir).rglob(f'*{settings.DES_SUFFIXES["DATA"]}'))
@@ -296,7 +298,7 @@ def find_and_merge_exon_data(cluster_dir_path: Path):
 
 
 def create_baits(
-    raw_baits_dir_path: Path, cluster_dir_path: Path, bait_length: int,
+    raw_baits_dir_path: Path, cluster_dir_path: str, bait_length: int,
     fastas_auto: list, fastas_manual: list, overwrite: bool, show_more: bool
 ):
     baits_full_exons_path = Path(raw_baits_dir_path, settings.DES_FILES["BFEX"])
@@ -335,7 +337,7 @@ def create_baits(
                     if seq_id in exons_data: cds_ids.append(seq_id)
                     seq = fasta_in[seq_name]["sequence"].replace("-","").upper()
                     for p in range(0, len(seq) - (bait_length - 1)):
-                        bait_name = f"{locus}{settings.SEQ_NAME_SEP}b{bait_count:05}"
+                        bait_name = f"{locus}{settings.SEQ_NAME_SEP}b{bait_count:06}"
                         baits[bait_name] = {
                             "sequence": seq[p:p+bait_length],
                             "description": des,
@@ -357,30 +359,32 @@ def create_baits(
         log.log("")
 
         if long_exons_path.exists(): long_exons_path.unlink()
-        long_exons_fastas = find_fastas_in_dir(cluster_dir_path, settings.DES_SUFFIXES["LONG"])
-        if all_cds_ids and long_exons_fastas:
-            start = time.time()
-            log.log(bold(f"Saving FASTA file with the long exons found in selected loci:"))
-            tqdm_cols = min(shutil.get_terminal_size().columns, 120)
-            with tqdm(total=len(long_exons_fastas), ncols=tqdm_cols, unit="file") as pbar:
-                inner_start = time.time()
-                for fasta_path in long_exons_fastas:
-                    long_exons = fasta_to_dict(fasta_path)
-                    lef = {}
-                    for seq_name in long_exons:
-                        cds_id = seq_name.split("_exon")[0]
-                        if cds_id in all_cds_ids:
-                            lef[seq_name] = long_exons[seq_name]
-                    dict_to_fasta(lef, long_exons_path, append=True)
-                    msg = f"'{fasta_path.name}': processed in {elapsed_time(time.time() - inner_start)}"
-                    if show_more: tqdm.write(msg)
-                    log.log(msg, print_to_screen=False)
-                    pbar.update()
-            log.log(bold(
-                f" \u2514\u2500\u2192 FASTA file '{long_exons_path.name}' succesfully created"
-                f" [{elapsed_time(time.time() - start)}]"
-            ))
-            log.log("")
+        if cluster_dir_path:
+            long_exons_fastas = find_fastas_in_dir(cluster_dir_path, settings.DES_SUFFIXES["LONG"])
+            if all_cds_ids and long_exons_fastas:
+                start = time.time()
+                log.log(bold(f"Saving FASTA file with the long exons found in selected loci:"))
+                tqdm_cols = min(shutil.get_terminal_size().columns, 120)
+                with tqdm(total=len(long_exons_fastas), ncols=tqdm_cols, unit="file") as pbar:
+                    inner_start = time.time()
+                    for fasta_path in long_exons_fastas:
+                        long_exons = fasta_to_dict(fasta_path)
+                        lef = {}
+                        for seq_name in long_exons:
+                            cds_id = seq_name.split("_exon")[0]
+                            if cds_id in all_cds_ids:
+                                lef[seq_name] = long_exons[seq_name]
+                        dict_to_fasta(lef, long_exons_path, append=True)
+                        msg = (f"'{fasta_path.name}': processed in"
+                               f" {elapsed_time(time.time() - inner_start)}")
+                        if show_more: tqdm.write(msg)
+                        log.log(msg, print_to_screen=False)
+                        pbar.update()
+                log.log(bold(
+                    f" \u2514\u2500\u2192 FASTA file '{long_exons_path.name}' succesfully created"
+                    f" [{elapsed_time(time.time() - start)}]"
+                ))
+                log.log("")
 
     else:
         log.log(bold("The following output files were already found:"))
@@ -616,7 +620,7 @@ def concat_refex_mask_baits(
 
             inner_start = time.time()
             if not exclude_reference or not Path(exclude_reference).exists():
-                msg = (f"'{baits_tomap_path}': SKIPPED mapping against excluding"
+                msg = (f"'{baits_tomap_path.name}': SKIPPED mapping against excluding"
                        f" reference [{elapsed_time(time.time() - inner_start)}]")
                 baits_tomap_path.replace(baits_unmap_path)
             else:
