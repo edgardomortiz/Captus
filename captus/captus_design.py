@@ -641,14 +641,13 @@ class CaptusDesign(object):
         input_group.add_argument(
             "-c", "--captus_clusters_dir",
             action="store",
-            default="./01_clustered_markers",
             type=str,
             dest="captus_clusters_dir",
             help="Path to the output directory that contains the curated aligned clusters found"
                  " during the previous 'cluster' step of Captus-design. This directory is called"
                  " '01_clustered_markers' if you did not specify a different name during the"
-                 " 'cluster' step. Captus uses the exon data table to create baits that do not span"
-                 " exonic boundaries"
+                 " 'cluster' step. When provided, Captus uses the exon data table to create baits"
+                 " that do not span exonic boundaries"
         )
 
         output_group = parser.add_argument_group("Output")
@@ -775,7 +774,7 @@ class CaptusDesign(object):
         clustering_group.add_argument(
             "--ct", "--clust_threshold",
             action="store",
-            type=int,
+            type=float,
             dest="clust_threshold",
             default=86,
             help="The entire set of potential baits are finally clustered at this identity, keeping"
