@@ -571,7 +571,7 @@ def extract(full_command, args):
         log.log("")
         log.log(f'{"MMseqs2 method":>{mar}}: {bold(args.mmseqs2_method)}')
         log.log(f'{"cluster_mode":>{mar}}: {bold(args.cluster_mode)}')
-        log.log(f'{"sensitivity":>{mar}}: {bold(args.sensitivity)}')
+        log.log(f'{"sensitivity":>{mar}}: {bold(args.cl_sensitivity)}')
         log.log(f'{"min_seq_id":>{mar}}: {bold(cl_min_identity)}')
         log.log(f'{"seq_id_mode":>{mar}}: {bold(args.cl_seq_id_mode)}')
         log.log(f'{"cov":>{mar}}: {bold(args.cl_min_coverage)}')
@@ -628,7 +628,9 @@ def extract(full_command, args):
                 clust_query = fasta_to_dict(clust_ref["CLR"]["NT_path"])
                 clust_query_info = reference_info(clust_query)
                 clust_ref_size = max(clust_ref_size, clust_query_info["total_size"])
+                num_clr_extractions = len(fastas_to_extract)
                 clust_concurrent, clust_threads, clust_ram = adjust_concurrency(args.concurrent,
+                                                                                num_clr_extractions,
                                                                                 threads_max,
                                                                                 ram_B,
                                                                                 "dna")
@@ -646,7 +648,7 @@ def extract(full_command, args):
             log.log("")
             log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
             log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
-            log.log(f'{"Samples to process":>{mar}}: {bold(len(fastas_to_extract))}')
+            log.log(f'{"Samples to process":>{mar}}: {bold(num_clr_extractions)}')
             if clust_ref["CLR"]["NT_path"]:
                 blat_clusters_params = []
                 for sample in fastas_to_extract:
