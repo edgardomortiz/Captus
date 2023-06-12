@@ -126,8 +126,8 @@ def log_progress_line(completed, total, base_pairs=None, end_newline=False):
 
 
 def log_explanation(
-        text, verbosity=1, print_to_screen=True, write_to_log_file=True,
-        extra_empty_lines_after=1, indent_size=4
+    text, verbosity=1, print_to_screen=True, write_to_log_file=True, extra_empty_lines_after=1,
+    indent_size=4
 ):
     """
     This function writes explanatory text to the screen. It is wrapped to the terminal width for
@@ -151,7 +151,7 @@ def log_explanation(
 
 
 def log_number_list(
-        numbers, verbosity=1, print_to_screen=True, write_to_log_file=True, indent_size=4
+    numbers, verbosity=1, print_to_screen=True, write_to_log_file=True, indent_size=4
 ):
     """
     Some lists of numbers are long, so this function makes them wrap nicely when displayed on

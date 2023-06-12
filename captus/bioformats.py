@@ -1315,8 +1315,7 @@ def fasta_headers_to_spades(fasta_dict):
 
 
 def scipio_yaml_to_dict(
-        yaml_path, min_score, min_identity, min_coverage,
-        marker_type, transtable, max_paralogs, predict
+    yaml_path, min_score, min_identity, min_coverage, marker_type, transtable, max_paralogs, predict
 ):
     """
     Process Scipio's YAML output, verify translation of each model, add extra aminoacid in gaps if
@@ -2083,8 +2082,8 @@ def scipio_yaml_to_dict(
         return prot_len_matched
 
     def parse_model(
-            yaml_mod: dict, protein_name: str, marker_type: str, gencode: dict, predict: bool,
-            min_identity: float
+        yaml_mod: dict, protein_name: str, marker_type: str, gencode: dict, predict: bool,
+        min_identity: float
     ):
         """
         A gene model is composed by several sequence matchings (e.g. exons, introns, etc.) which can
@@ -2384,7 +2383,7 @@ def scipio_yaml_to_dict(
 
 
 def blat_misc_dna_psl_to_dict(
-        psl_path, target_dict, min_identity, min_coverage, marker_type, max_paralogs
+    psl_path, target_dict, min_identity, min_coverage, marker_type, max_paralogs
 ):
     """
     Parse .psl from BLAT, assemble greedily the partial hits, and return the best set of hits if
@@ -2413,7 +2412,7 @@ def blat_misc_dna_psl_to_dict(
         return q_start, q_end, t_start, t_end, t_inserts
 
     def calculate_psl_identity(
-            q_end, q_start, t_end, t_start, q_inserts, matches, rep_matches, mismatches
+        q_end, q_start, t_end, t_start, q_inserts, matches, rep_matches, mismatches
     ):
         """
         Adapted for the case of DNA vs DNA search only from:
@@ -3177,9 +3176,9 @@ def cds_from_gff(gff_path, fasta_path, bait_length):
 
 
 def mmseqs2_cluster(
-        mmseqs2_path, mmseqs2_method, clustering_dir, clustering_input_file, cluster_prefix,
-        clustering_tmp_dir, sensitivity, min_identity, seq_id_mode, min_coverage, cov_mode,
-        cluster_mode, threads,
+    mmseqs2_path, mmseqs2_method, clustering_dir, clustering_input_file, cluster_prefix,
+    clustering_tmp_dir, sensitivity, min_identity, seq_id_mode, min_coverage, cov_mode, cluster_mode,
+    threads,
 ):
     """
     Run MMseqs easy-linclust but perform some parameter checking/conversion before, the FASTA input
@@ -3230,8 +3229,8 @@ def mmseqs2_cluster(
 
 
 def vsearch_cluster(
-        vsearch_path, vsearch_method, clustering_dir, clustering_input_file,
-        cluster_prefix, min_identity, seq_id_mode, min_coverage, strand, threads
+    vsearch_path, vsearch_method, clustering_dir, clustering_input_file, cluster_prefix,
+    min_identity, seq_id_mode, min_coverage, strand, threads
 ):
     start = time.time()
     if not 0 < min_identity <= 1:
