@@ -1178,10 +1178,9 @@ def reference_info(query_dict):
 
 
 def scipio_coding(
-        scipio_path, min_score, min_identity, min_coverage, blat_path, overwrite, keep_all,
-        target_path, sample_dir, sample_name, query_path, query_dict, query_parts_paths, query_info,
-        marker_type, transtable, max_loci_files, max_loci_scipio_x2, max_paralogs, predict,
-        threads, debug
+    scipio_path, min_score, min_identity, min_coverage, blat_path, overwrite, keep_all, target_path,
+    sample_dir, sample_name, query_path, query_dict, query_parts_paths, query_info, marker_type,
+    transtable, max_loci_files, max_loci_scipio_x2, max_paralogs, predict, threads, debug
 ):
     """
     Perform two consecutive rounds of Scipio, the first run with mostly default settings and with a
@@ -1294,8 +1293,7 @@ def scipio_coding(
 
 
 def run_scipio_parallel(
-        scipio_params: dict, target, query, query_part_paths,
-        overwrite, threads, debug, stage
+    scipio_params: dict, target, query, query_part_paths, overwrite, threads, debug, stage
 ):
     # Set output directory and files according to 'sample_dir' and 'stage'
     marker_type = scipio_params["marker_type"]
@@ -1438,9 +1436,9 @@ def filter_blat_psl(psl_path_in, seq_names_set, psl_out_path):
 
 
 def run_scipio_command(
-        scipio_path, blat_out_file, blat_only, scipio_min_score, min_identity, min_coverage,
-        blat_path, blat_score, transtable, extra_settings, target_path, query_path,
-        scipio_out_file, scipio_log_file
+    scipio_path, blat_out_file, blat_only, scipio_min_score, min_identity, min_coverage, blat_path,
+    blat_score, transtable, extra_settings, target_path, query_path, scipio_out_file,
+    scipio_log_file
 ):
     # Build the basic part of the command
     basic = [
@@ -1507,7 +1505,7 @@ def filter_query_and_target(query_dict, target_dict, yaml_initial_dir, initial_m
 
 
 def write_fastas_and_report(
-        hits, sample_name, target_dict, out_dir, marker_type, overwrite, max_loci_files
+    hits, sample_name, target_dict, out_dir, marker_type, overwrite, max_loci_files
 ):
     """
     Take a 'hits' dictionary from coding or miscellaneous DNA extraction and produce FASTA outputs
@@ -1781,8 +1779,8 @@ def write_fastas_and_report(
 
 
 def blat_misc_dna(
-        blat_path, min_identity, min_coverage, overwrite, keep_all, target_path, sample_dir, sample_name,
-        query_path, query_dict, query_info, marker_type, max_loci_files, max_paralogs
+    blat_path, min_identity, min_coverage, overwrite, keep_all, target_path, sample_dir, sample_name,
+    query_path, query_dict, query_info, marker_type, max_loci_files, max_paralogs
 ):
     """
     Extract matches of miscellaneous DNA sequences by comparing the assemblies to a set of
@@ -1849,7 +1847,7 @@ def blat_misc_dna(
 
 
 def cleanup_post_extraction(
-        sample_name, sample_dir, assembly_path, keep_all, overwrite, skip_clustering, cluster=False
+    sample_name, sample_dir, assembly_path, keep_all, overwrite, skip_clustering, cluster=False
 ):
     """
     Concatenate all '.gff' from extraction folders to make a master annotation file and a single
@@ -1985,8 +1983,8 @@ def find_fasta_leftovers(fastas_to_extract):
 
 
 def rehead_and_concatenate_fastas(
-        fastas_to_cluster, clustering_dir, clustering_input_file, clust_max_seq_len,
-        threads_max, show_less
+    fastas_to_cluster, clustering_dir, clustering_input_file, clust_max_seq_len, threads_max,
+    show_less
 ):
     """
     Since all the FASTAs coming from all the samples will be joined in a single file for clustering,
@@ -2041,9 +2039,9 @@ def rehead_fasta_with_sample_name(sample_name, sample_fasta_path, clustering_dir
 
 
 def cluster_and_select_refs(
-        num_samples, clust_min_samples, clust_max_copies, clust_rep_min_len, mmseqs2_path,
-        mmseqs2_method, cluster_mode, cluster_sensitivity, clustering_input_file, clustering_dir,
-        min_identity, seq_id_mode, min_coverage, cov_mode, clust_tmp_dir, threads
+    num_samples, clust_min_samples, clust_max_copies, clust_rep_min_len, mmseqs2_path,
+    mmseqs2_method, cluster_mode, cluster_sensitivity, clustering_input_file, clustering_dir,
+    min_identity, seq_id_mode, min_coverage, cov_mode, clust_tmp_dir, threads
 ):
     log.log("")
     log.log(bold(f"Initial clustering of contigs at {min_identity}% identity:"))

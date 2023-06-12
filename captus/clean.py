@@ -451,7 +451,7 @@ def trim_AT_GC_bias(in_dir, in_fastq):
 
 
 def bbduk_trim_adaptors(
-        bbduk_path, ram_MB, threads, in_dir, in_fastq, out_dir, adaptor_set, rna, overwrite
+    bbduk_path, ram_MB, threads, in_dir, in_fastq, out_dir, adaptor_set, rna, overwrite
 ):
     """
     Trims adaptors from FASTQ reads using bbduk.sh from BBTools. Runs two simultaneous rounds of
@@ -563,7 +563,7 @@ def bbduk_trim_adaptors(
 
 
 def bbduk_filter_quality(
-        bbduk_path, ram_MB, threads, in_dir, in_fastq, out_dir, trimq, maq, ftl, ftr, overwrite
+    bbduk_path, ram_MB, threads, in_dir, in_fastq, out_dir, trimq, maq, ftl, ftr, overwrite
 ):
     """
     Use bbduk.sh from BBTools to quality-filter reads and filter sequencing artifacts and reads

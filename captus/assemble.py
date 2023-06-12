@@ -310,7 +310,7 @@ def assemble(full_command, args):
 
 
 def subsample_reads(
-        reformat_path, ram_MB, threads, in_dir, in_fastq, out_dir, sample_reads_target, overwrite
+    reformat_path, ram_MB, threads, in_dir, in_fastq, out_dir, sample_reads_target, overwrite
 ):
     """
     Subsample reads using reformat.sh from BBTools
@@ -404,9 +404,9 @@ def adjust_megahit_concurrency(concurrent, threads_max, ram_B, num_samples, pres
 
 
 def megahit(
-        megahit_path, megahit_toolkit_path, fastq_dir, fastq_r1, fastq_r2, k_list, min_count,
-        prune_level, merge_level, ram_B, threads, out_dir, min_contig_len, max_contig_gc,
-        extra_options, tmp_dir, keep_all, overwrite
+    megahit_path, megahit_toolkit_path, fastq_dir, fastq_r1, fastq_r2, k_list, min_count,
+    prune_level, merge_level, ram_B, threads, out_dir, min_contig_len, max_contig_gc, extra_options,
+    tmp_dir, keep_all, overwrite
 ):
     """
     De novo assembly with MEGAHIT >= v1.2.9

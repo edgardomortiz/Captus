@@ -837,8 +837,8 @@ def make_output_dirtree(markers, formats, out_dir, base_dir, margin):
 
 
 def collect_extracted_markers(
-    markers, formats, max_paralogs, min_samples, extracted_sample_dirs,
-    out_dir, base_dir, refs_paths, overwrite, show_less
+    markers, formats, max_paralogs, min_samples, extracted_sample_dirs, out_dir, base_dir,
+    refs_paths, overwrite, show_less
 ):
     source_files = [Path(settings.MARKER_DIRS[m], f"{m}{settings.FORMAT_SUFFIXES[f]}")
                    for m in markers.split(",") for f in formats.split(",")
@@ -1110,8 +1110,8 @@ def rehead_root_msa(fasta_in: Path, fasta_out: Path, outgroup: list):
 
 
 def msa(
-    mafft_path, muscle_path, align_method, threads, timeout, outgroup,
-    fastas_in: list, fastas_out: list, min_samples, overwrite
+    mafft_path, muscle_path, align_method, threads, timeout, outgroup, fastas_in: list,
+    fastas_out: list, min_samples, overwrite
 ):
 
     start = time.time()
@@ -1243,8 +1243,8 @@ def msa(
 
 
 def codon_align(
-    mafft_path, muscle_path, align_method, threads, timeout, outgroup,
-    aa_aligned: Path, nt_orig: Path, nt_dest: Path, min_samples, overwrite
+    mafft_path, muscle_path, align_method, threads, timeout, outgroup, aa_aligned: Path,
+    nt_orig: Path, nt_dest: Path, min_samples, overwrite
 ):
     if not aa_aligned.exists() or file_is_empty(aa_aligned):
         return msa(mafft_path, muscle_path, align_method, threads, timeout,
@@ -1339,8 +1339,8 @@ def filter_paralogs_naive(fasta_in: Path, fasta_out: Path, min_samples, overwrit
 
 
 def paralog_informed_filter(
-    shared_paralog_stats, fastas_paths, filtering_refs, tolerance,
-    min_samples, overwrite, concurrent, debug, show_less
+    shared_paralog_stats, fastas_paths, filtering_refs, tolerance, min_samples, overwrite,
+    concurrent, debug, show_less
 ):
     fastas = {}
     for marker in filtering_refs:
@@ -1586,8 +1586,8 @@ def rem_refs_from_fasta(fasta_in: Path, fasta_out: Path, ref_names: list, min_sa
 
 
 def clipkit(
-    clipkit_path, clipkit_method, clipkit_gaps, fasta_in: Path, fasta_out: Path,
-    min_data_per_column, min_coverage, min_samples, overwrite
+    clipkit_path, clipkit_method, clipkit_gaps, fasta_in: Path, fasta_out: Path, min_data_per_column,
+    min_coverage, min_samples, overwrite
 ):
     start = time.time()
 
