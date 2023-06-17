@@ -393,10 +393,11 @@ SCIPIO_GENOME_BASIC_SETTINGS = {
 SCIPIO_GENOME_EXTRA_SETTINGS = {
     # Change here the final settings for nuclear genes:
     "NUC": [
-        "--blat_params=-oneOff=1",
+        "--blat_params=-oneOff=1 -maxIntron=100000",
         "--blat_tilesize=6",
         "--exhaust_align_size=15000",
         "--exhaust_gap_size=21",
+        "--min_dna_coverage=0.2",
     ],
     # Change here the final settings for plastidial genes:
     "PTD": [
