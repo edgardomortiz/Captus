@@ -371,7 +371,7 @@ SCIPIO_MAX_IDENT_DIV_CODE = 66
 SCIPIO_GENOME_BASIC_SETTINGS = {
     # Change here the initial settings for nuclear genes:
     "NUC": [
-        "--blat_params=-maxIntron=100000",
+        "--blat_params=-maxIntron=50000",
         "--min_dna_coverage=0.2",
     ],
     # Change here the initial settings for plastidial genes:
