@@ -393,7 +393,7 @@ SCIPIO_GENOME_BASIC_SETTINGS = {
 SCIPIO_GENOME_EXTRA_SETTINGS = {
     # Change here the final settings for nuclear genes:
     "NUC": [
-        "--blat_params=-oneOff=1 -maxIntron=100000",
+        "--blat_params=-oneOff=1 -maxIntron=50000",
         "--blat_tilesize=6",
         "--exhaust_align_size=15000",
         "--exhaust_gap_size=21",
