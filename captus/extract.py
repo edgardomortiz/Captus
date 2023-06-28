@@ -1404,8 +1404,12 @@ def run_scipio_parallel(
         with open(scipio_out_file, "wt") as yaml_out:
             with open(scipio_log_file, "at") as yaml_log:
                 for scipio_yaml in yamls_to_cat:
+                    part = scipio_yaml.stem.split("_")[1].replace("part", "")
                     with open(scipio_yaml, "rt") as yaml_in:
-                        yaml_out.writelines(yaml_in.readlines())
+                        for line in yaml_in:
+                            if line.startswith("  - ID: "):
+                                line = line.replace("  - ID: ", f"  - ID: {part}_")
+                        yaml_out.write(line)
                     scipio_log = Path(scipio_yaml.parent, f'{scipio_yaml.stem}.log')
                     with open(scipio_log, "rt") as log_in:
                         yaml_log.write(f"\n\n{scipio_log}:\n")
