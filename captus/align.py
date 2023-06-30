@@ -158,15 +158,23 @@ def align(full_command, args):
         log.log("")
         log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
         log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
-        extracted_sample_dirs = find_extracted_sample_dirs(args.captus_extractions_dir)
+        extracted_sample_dirs, skipped_align = find_extracted_sample_dirs(args.captus_extractions_dir)
         log.log(f'{"Samples to process":>{mar}}: {bold(len(extracted_sample_dirs))}')
         log.log("")
+    if skipped_align:
+        log.log(f'{bold("WARNING:")} {len(skipped_align)} sample(s) will be skipped')
+        for msg in skipped_align:
+            log.log(msg)
+        log.log("")
+
         log.log(make_output_dirtree(markers, formats, out_dir, settings.ALN_DIRS["UNAL"], mar))
         log.log("")
+
         collect_extracted_markers(markers, formats, args.max_paralogs, args.min_samples,
                                   extracted_sample_dirs, out_dir, settings.ALN_DIRS["UNAL"],
                                   refs_paths, args.overwrite, show_less)
         log.log("")
+
 
 
     ################################################################################################
@@ -557,8 +565,8 @@ def align(full_command, args):
     )
     fastas_to_stats = list(Path(out_dir, settings.ALN_DIRS["ALND"]).rglob("*.f[an]a"))
     fastas_to_stats += list(Path(out_dir, settings.ALN_DIRS["TRIM"]).rglob("*.f[an]a"))
-    fastas_to_stats = [file for file in fastas_to_stats
-                       if not f"{file.name}".startswith(".")]
+    fastas_to_stats = sorted([file for file in fastas_to_stats
+                              if not f"{file.name}".startswith(".")])
     manager = Manager()
     shared_sam_stats = manager.list()
     shared_aln_stats = manager.list()
@@ -711,14 +719,22 @@ def find_extracted_sample_dirs(captus_extractions_dir):
             f"'{captus_extractions_dir}' is not a valid directory, please provide a valid directory"
             " with '--captus_extractions_dir'"
         )
-    extracted_sample_dirs = list(captus_extractions_dir.resolve().rglob("*__captus-ext"))
+    all_sample_dirs = sorted(list(captus_extractions_dir.resolve().rglob("*__captus-ext")))
+    extracted_sample_dirs = []
+    skipped = []
+    for sample_dir in all_sample_dirs:
+        if settings.SEQ_NAME_SEP in f"{sample_dir}".replace("__captus-ext", ""):
+            skipped.append(f"'{sample_dir.parts[-1]}': SKIPPED, pattern"
+                           f" '{settings.SEQ_NAME_SEP}' not allowed in sample names")
+        else:
+            extracted_sample_dirs.append(sample_dir)
     if not extracted_sample_dirs:
         quit_with_error(
             f"Captus did not find valid sample directories within '{captus_extractions_dir}' please"
             " provide a valid directory with '--captus_extractions_dir"
         )
 
-    return extracted_sample_dirs
+    return extracted_sample_dirs, skipped
 
 
 def prepare_refs(captus_ext_dir, margin):
@@ -1069,7 +1085,7 @@ def fastas_origs_dests(dir_path: Path, orig_base_dir: str, dest_base_dir: str):
     instead of `orig_base_dir` as values (destinations).
     """
     fastas_to_process = {}
-    for path in list(Path(dir_path, orig_base_dir).rglob("*.f[an]a")):
+    for path in sorted(list(Path(dir_path, orig_base_dir).rglob("*.f[an]a"))):
         if not f"{path.name}".startswith("."):
             origin = path.resolve()
             # Troubleshoot later, needed if we want to take simlinks as input
@@ -1441,17 +1457,17 @@ def filter_paralogs_informed(
                 else:
                     samples_with_paralogs[sample_name] = {seq: paralog_score}
                 tsv.append([
-                    fasta_model_marker,     # [0]  marker type
-                    fasta_model_format,     # [1]  format used for filtering
-                    fasta_model.stem,       # [2]  locus name
-                    best_ref_full_name,     # [3]  reference name
-                    sample_name,            # [4]  sample name
-                    hit_num,                # [5]  hit ranking
-                    seq,                    # [6]  sequence name
-                    f"{length_seq}",        # [7]  ungapped sequence length
-                    f"{pid:.5f}",           # [8]  identity to reference
-                    f"{paralog_score:.5f}", # [9]  pid * (len(seq) / len(ref))
-                    f"{False}",             # [10] accepted as ortholog
+                    fasta_model_marker,       # [0]  marker type
+                    fasta_model_format,       # [1]  format used for filtering
+                    fasta_model.stem,         # [2]  locus name
+                    best_ref_full_name,       # [3]  reference name
+                    sample_name,              # [4]  sample name
+                    hit_num,                  # [5]  hit ranking
+                    seq,                      # [6]  sequence name
+                    f"{length_seq}",          # [7]  ungapped sequence length
+                    f"{pid:.5f}",             # [8]  identity to reference
+                    f"{paralog_score:.5f}",   # [9]  pid * (len(seq) / len(ref))
+                    f"{False}",               # [10] accepted as ortholog
                 ])
         for sample in samples_with_paralogs:
             accepted.append(max(samples_with_paralogs[sample], key=samples_with_paralogs[sample].get))

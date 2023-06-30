@@ -158,7 +158,7 @@ def extract(full_command, args):
             )
 
     # Check and import extra FASTA assemblies
-    fastas_to_extract = find_fasta_assemblies(captus_assemblies_dir, out_dir)
+    fastas_to_extract, skipped_extract = find_fasta_assemblies(captus_assemblies_dir, out_dir)
     if args.fastas:
         log.log_explanation(
             "Now Captus will verify the additional assembly files provided with '--fastas'. A new"
@@ -168,7 +168,7 @@ def extract(full_command, args):
         asms_before_import = len(fastas_to_extract)
         find_and_copy_fastas(args.fastas, captus_assemblies_dir, args.overwrite,
                              threads_max, args.show_less)
-        fastas_to_extract = find_fasta_assemblies(captus_assemblies_dir, out_dir)
+        fastas_to_extract, skipped_extract = find_fasta_assemblies(captus_assemblies_dir, out_dir)
         log.log("")
         asms_imported = len(fastas_to_extract) - asms_before_import
         log.log(f'{"Assemblies imported":>{mar}}: {bold(asms_imported)}')
@@ -177,6 +177,12 @@ def extract(full_command, args):
     log.log(f'{"Output directory":>{mar}}: {bold(out_dir)}')
     log.log(f'{"":>{mar}}  {dim(out_dir_msg)}')
     log.log("")
+
+    if skipped_extract:
+        log.log(f'{bold("WARNING:")} {len(skipped_extract)} sample(s) will be skipped')
+        for msg in skipped_extract:
+            log.log(msg)
+        log.log("")
 
 
     ################################################################################################
@@ -339,7 +345,9 @@ def extract(full_command, args):
             scipio_params = []
             blat_params = []
             cleanup_params = []
-            for sample in fastas_to_extract:
+            for sample in sorted(fastas_to_extract,
+                                 key=lambda x: fastas_to_extract[x]["assembly_size"],
+                                 reverse=True):
                 if protein_refs["NUC"]["AA_path"]:
                     scipio_params.append((
                         args.scipio_path,
@@ -651,7 +659,9 @@ def extract(full_command, args):
             log.log(f'{"Samples to process":>{mar}}: {bold(num_clr_extractions)}')
             if clust_ref["CLR"]["NT_path"]:
                 blat_clusters_params = []
-                for sample in fastas_to_extract:
+                for sample in sorted(fastas_to_extract,
+                                     key=lambda x: fastas_to_extract[x]["assembly_size"],
+                                     reverse=True):
                     blat_clusters_params.append((
                         args.blat_path,
                         args.dna_min_identity,
@@ -843,19 +853,25 @@ def status_captus_assemblies_dir(captus_assemblies_dir, extra_fastas, margin):
 def find_fasta_assemblies(captus_assemblies_dir, out_dir):
     captus_assemblies_dir = Path(captus_assemblies_dir)
     fastas_to_extract = {}
+    skipped = []
     if captus_assemblies_dir.exists():
         sample_dirs = list(Path(captus_assemblies_dir).resolve().rglob("*__captus-asm"))
         for sample_dir in sample_dirs:
-            fastas = list(Path(sample_dir.resolve()).rglob("*/assembly.fasta"))
-            for fasta in fastas:
-                if f"{fasta.parent.parent}".endswith("__captus-asm"):
-                    sample_name = fasta.parent.parent.parts[-1].replace("__captus-asm", "")
-                    sample_dir = Path(out_dir, f"{sample_name}__captus-ext")
-                    fastas_to_extract[sample_name] = {
-                        "assembly_path": fasta,
-                        "sample_dir": sample_dir,
-                    }
-    return fastas_to_extract
+            if settings.SEQ_NAME_SEP in f"{sample_dir}".replace("__captus-asm", ""):
+                skipped.append(f"'{sample_dir.parts[-1]}': SKIPPED, pattern"
+                               f" '{settings.SEQ_NAME_SEP}' not allowed in sample names")
+            else:
+                fastas = list(Path(sample_dir.resolve()).rglob("*/assembly.fasta"))
+                for fasta in fastas:
+                    if f"{fasta.parent.parent}".endswith("__captus-asm"):
+                        sample_name = fasta.parent.parent.parts[-1].replace("__captus-asm", "")
+                        sample_dir = Path(out_dir, f"{sample_name}__captus-ext")
+                        fastas_to_extract[sample_name] = {
+                            "assembly_path": fasta,
+                            "assembly_size": fasta.stat().st_size,
+                            "sample_dir": sample_dir,
+                        }
+    return fastas_to_extract, skipped
 
 
 def find_and_copy_fastas(fastas, captus_assemblies_dir, overwrite, threads_max, show_less):
@@ -1102,16 +1118,20 @@ def split_refs(query_dict, out_dir, marker_type, threads):
     seq_names = list(query_dict)
     random.Random(settings.RANDOM_SEED).shuffle(seq_names)
     num_seqs = len(seq_names)
-    chunks_floor = max(threads, math.floor(num_seqs / settings.REFS_SPLIT_CHUNK_SIZE))
-    chunks_ceiling = max(threads, math.ceil(num_seqs / settings.REFS_SPLIT_CHUNK_SIZE))
-    try:
+    if num_seqs < threads:
+        seqs_per_chunk = num_seqs
+    else:
+        cc = math.ceil(num_seqs / settings.REFS_SPLIT_CHUNK_SIZE)
+        cf = math.floor(num_seqs / settings.REFS_SPLIT_CHUNK_SIZE)
+        if cc % threads != 0: cc += threads - (cc % threads)
+        if cf % threads != 0: cf += threads - (cf % threads)
+        chunks_ceiling = max(threads, cc)
+        chunks_floor = max(threads, cf)
         if (abs(settings.REFS_SPLIT_CHUNK_SIZE - (num_seqs / chunks_ceiling))
             <= abs(settings.REFS_SPLIT_CHUNK_SIZE - (num_seqs / chunks_floor))):
             seqs_per_chunk = math.ceil(num_seqs / chunks_ceiling)
         else:
             seqs_per_chunk = math.ceil(num_seqs / chunks_floor)
-    except ZeroDivisionError:
-        seqs_per_chunk = num_seqs
     ref_split_dir = Path(out_dir, settings.REFS_SPLIT_DIR, settings.MARKER_DIRS[marker_type])
     make_output_dir(ref_split_dir)
     ref_seqs_paths = {}
@@ -1873,7 +1893,7 @@ def cleanup_post_extraction(
 
     if dir_is_empty(annotated_assembly_dir) is True or overwrite is True:
         # Concatenate all GFF from different genomes
-        sample_gffs = list(sample_dir.resolve().rglob("[A-Z]*_contigs.gff"))
+        sample_gffs = sorted(list(sample_dir.resolve().rglob("[A-Z]*_contigs.gff")))
         sample_gffs = [gff for gff in sample_gffs
                        if gff.parts[-2] != "06_assembly_annotated"]
         if not cluster and not skip_clustering:
@@ -1902,7 +1922,7 @@ def cleanup_post_extraction(
 
         # Concatenate all recovery statistics tables
         stats_header = "\t".join(settings.EXT_STATS_HEADER) + "\n"
-        sample_stats = list(sample_dir.resolve().rglob("[A-Z]*_recovery_stats.tsv"))
+        sample_stats = sorted(list(sample_dir.resolve().rglob("[A-Z]*_recovery_stats.tsv")))
         sample_stats = [tsv for tsv in sample_stats
                         if tsv.parts[-2] != "06_assembly_annotated"]
         if not cluster and not skip_clustering:

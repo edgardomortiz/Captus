@@ -313,16 +313,24 @@ def find_and_match_fastqs(reads, recursive=False):
     # Remove hidden files from list
     reads = [Path(file) for file in reads if not f"{file.name}".startswith(".")]
     fastqs = {}
-    for fastq_file in reads:
+    skipped = []
+    for fastq_file in sorted(reads):
         file_name = fastq_file.name
         file_dir = fastq_file.parent
         if "_R1" in file_name:
-            file_name_r2 = file_name.replace("_R1", "_R2")
-            if Path(file_dir, file_name_r2) in reads:
-                fastqs[file_name] = {"fastq_dir": file_dir, "fastq_r2": file_name_r2}
+            if settings.SEQ_NAME_SEP in file_name:
+                skipped.append(f"'{file_name}': SKIPPED, pattern"
+                               f" '{settings.SEQ_NAME_SEP}' not allowed in filenames")
             else:
-                fastqs[file_name] = {"fastq_dir": file_dir, "fastq_r2": None}
-    return fastqs
+                file_name_r2 = file_name.replace("_R1", "_R2")
+                if Path(file_dir, file_name_r2) in reads:
+                    fastqs[file_name] = {"fastq_dir": file_dir, "fastq_r2": file_name_r2}
+                else:
+                    fastqs[file_name] = {"fastq_dir": file_dir, "fastq_r2": None}
+        elif "_R2" not in file_name:
+            skipped.append(f"'{file_name}': SKIPPED, pattern '_R1'"
+                           f" or '_R2' not found in filename")
+    return fastqs, skipped
 
 
 def find_and_match_fastas_gffs(markers, recursive=False):
