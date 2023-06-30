@@ -61,8 +61,9 @@ def assemble(full_command, args):
             " respective '_R2' pairs. If the '_R2' can not be found, the sample is treated as"
             " single-end. Sample names are derived from the text found before the '_R1' string."
         )
+    skipped_subsample = []
     if args.sample_reads_target > 0:
-        fastqs_to_subsample = find_and_match_fastqs(args.reads)
+        fastqs_to_subsample, skipped_subsample = find_and_match_fastqs(args.reads)
         skip_subsampling = False
         _, reformat_version, reformat_status = bbtools_path_version(args.reformat_path)
         intro_msg += (
@@ -70,7 +71,7 @@ def assemble(full_command, args):
             " read pairs (or single-end reads)."
         )
     else:
-        fastqs_to_assemble = find_and_match_fastqs(args.reads, recursive=False)
+        fastqs_to_assemble, skipped_assemble = find_and_match_fastqs(args.reads, recursive=False)
         skip_subsampling = True
         reformat_version, reformat_status = "", "not used"
         intro_msg += (
@@ -149,6 +150,12 @@ def assemble(full_command, args):
         log.log(f'{"Output directories":>{mar}}:'
                 f' {bold(f"{out_dir}/[Sample_name]__captus-asm/00_subsampled_reads")}')
         log.log(f'{"":>{mar}}  {dim("A directory will be created for every sample")}')
+        log.log("")
+
+    if skipped_subsample:
+        log.log(f'{bold("WARNING:")} {len(skipped_subsample)} sample(s) will be skipped')
+        for msg in skipped_subsample:
+            log.log(msg)
         log.log("")
 
         subsample_reads_params = []
@@ -232,6 +239,12 @@ def assemble(full_command, args):
     log.log(f'{"Output directories":>{mar}}: {bold(f"{out_dir}/[Sample_name]__captus-asm/01_assembly")}')
     log.log(f'{"":>{mar}}  {dim("A directory will be created for each sample")}')
     log.log("")
+
+    if skipped_assemble:
+        log.log(f'{bold("WARNING:")} {len(skipped_assemble)} sample(s) will be skipped')
+        for msg in skipped_assemble:
+            log.log(msg)
+        log.log("")
 
     megahit_params = []
     for fastq_r1 in sorted(fastqs_to_assemble):

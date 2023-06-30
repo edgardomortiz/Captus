@@ -2972,7 +2972,7 @@ def write_gff3(hits, marker_type, out_gff_path):
     phase = "."
 
     gff = ["##gff-version 3"]
-    for ref in hits:
+    for ref in sorted(hits):
         gff.append(f"\n# {urllib.parse.quote(ref)}")
         for h in range(len(hits[ref])):
             if len(hits[ref]) == 1:

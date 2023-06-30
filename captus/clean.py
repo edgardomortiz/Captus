@@ -161,13 +161,19 @@ def clean(full_command, args):
     log.log(f'{"Trim poly-A tails":>{mar}}: {bold(args.rna)}')
     log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
     log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
-    fastqs_raw = find_and_match_fastqs(args.reads, recursive=True)
+    fastqs_raw, skipped_msgs = find_and_match_fastqs(args.reads, recursive=True)
     adaptors_trimmed_dir, adaptors_trimmed_msg = make_output_dir(Path(out_dir, "00_adaptors_trimmed"))
     log.log(f'{"Samples to trim":>{mar}}: {bold(len(fastqs_raw))}')
     log.log("")
     log.log(f'{"Output directory":>{mar}}: {bold(adaptors_trimmed_dir)}')
     log.log(f'{"":>{mar}}  {dim(adaptors_trimmed_msg)}')
     log.log("")
+
+    if skipped_msgs:
+        log.log(f'{bold("WARNING:")} {len(skipped_msgs)} sample(s) will be skipped')
+        for msg in skipped_msgs:
+            log.log(msg)
+        log.log("")
 
     if not fastqs_raw:
         quit_with_error("No FASTQ files to process. Please verify your '--reads' argument.")
@@ -211,12 +217,18 @@ def clean(full_command, args):
     log.log(f'{"ftr":>{mar}}: {bold(args.ftr)}')
     log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
     log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
-    all_fastqs_no_adaptors = find_and_match_fastqs(adaptors_trimmed_dir)
+    all_fastqs_no_adaptors, skipped_msgs = find_and_match_fastqs(adaptors_trimmed_dir)
     fastqs_no_adaptors = {k:v for (k,v) in all_fastqs_no_adaptors.items() if k in fastqs_raw}
     log.log(f'{"Samples to clean":>{mar}}: {bold(len(fastqs_no_adaptors))}')
     log.log("")
     log.log(f'{"Output directory":>{mar}}: {bold(out_dir)}')
     log.log("")
+
+    if skipped_msgs:
+        log.log(f'{bold("WARNING:")} {len(skipped_msgs)} sample(s) will be skipped')
+        for msg in skipped_msgs:
+            log.log(msg)
+        log.log("")
 
     if fastqs_no_adaptors:
         bbduk_filter_quality_params = []
@@ -287,7 +299,7 @@ def clean(full_command, args):
                     args.overwrite,
                     "BEFORE"
                 ))
-        all_clean_fastqs = find_and_match_fastqs(out_dir)
+        all_clean_fastqs, skipped_msgs = find_and_match_fastqs(out_dir)
         clean_fastqs = {k:v for (k,v) in all_clean_fastqs.items() if k in fastqs_raw}
         for fastq_r1 in sorted(clean_fastqs):
             qc_stats_params.append((
@@ -320,6 +332,12 @@ def clean(full_command, args):
         log.log(f'{"":>{mar}}  {dim(qc_stats_before_msg)}')
         log.log(f'{"AFTER cleaning":>{mar}}: {bold(qc_stats_after_dir)}')
         log.log(f'{"":>{mar}}  {dim(qc_stats_after_msg)}')
+        log.log("")
+
+    if skipped_msgs:
+        log.log(f'{bold("WARNING:")} {len(skipped_msgs)} sample(s) will be skipped')
+        for msg in skipped_msgs:
+            log.log(msg)
         log.log("")
 
         if args.debug:
