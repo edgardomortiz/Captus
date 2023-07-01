@@ -161,10 +161,10 @@ def align(full_command, args):
         extracted_sample_dirs, skipped_align = find_extracted_sample_dirs(args.captus_extractions_dir)
         log.log(f'{"Samples to process":>{mar}}: {bold(len(extracted_sample_dirs))}')
         log.log("")
-    if skipped_align:
-        log.log(f'{bold("WARNING:")} {len(skipped_align)} sample(s) will be skipped')
-        for msg in skipped_align:
-            log.log(msg)
+        if skipped_align:
+            log.log(f'{bold("WARNING:")} {len(skipped_align)} sample(s) will be skipped')
+            for msg in skipped_align:
+                log.log(msg)
         log.log("")
 
         log.log(make_output_dirtree(markers, formats, out_dir, settings.ALN_DIRS["UNAL"], mar))
