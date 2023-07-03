@@ -858,8 +858,10 @@ def find_fasta_assemblies(captus_assemblies_dir, out_dir):
         sample_dirs = list(Path(captus_assemblies_dir).resolve().rglob("*__captus-asm"))
         for sample_dir in sample_dirs:
             if settings.SEQ_NAME_SEP in f"{sample_dir}".replace("__captus-asm", ""):
+                sample_name = sample_dir.parts[-1].replace("__captus-asm", "")
                 skipped.append(f"'{sample_dir.parts[-1]}': SKIPPED, pattern"
-                               f" '{settings.SEQ_NAME_SEP}' not allowed in sample names")
+                               f" '{settings.SEQ_NAME_SEP}' not allowed in sample name"
+                               f" '{sample_name}'")
             else:
                 fastas = list(Path(sample_dir.resolve()).rglob("*/assembly.fasta"))
                 for fasta in fastas:
