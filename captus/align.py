@@ -724,8 +724,10 @@ def find_extracted_sample_dirs(captus_extractions_dir):
     skipped = []
     for sample_dir in all_sample_dirs:
         if settings.SEQ_NAME_SEP in f"{sample_dir}".replace("__captus-ext", ""):
+            sample_name = sample_dir.parts[-1].replace("__captus-ext", "")
             skipped.append(f"'{sample_dir.parts[-1]}': SKIPPED, pattern"
-                           f" '{settings.SEQ_NAME_SEP}' not allowed in sample names")
+                           f" '{settings.SEQ_NAME_SEP}' not allowed in sample name"
+                           f" '{sample_name}'")
         else:
             extracted_sample_dirs.append(sample_dir)
     if not extracted_sample_dirs:
@@ -1613,7 +1615,8 @@ def clipkit(
 
     if overwrite is True or not fasta_out.exists():
         if min_data_per_column > 0:
-            clipkit_gaps = 1 - (min_data_per_column / len(fasta_to_dict(fasta_in)))
+            num_seqs = len(fasta_to_dict(fasta_in))
+            clipkit_gaps = 1 - (min(num_seqs, min_data_per_column) / num_seqs)
         clipkit_cmd = [
             clipkit_path,
             f"{fasta_in}",
