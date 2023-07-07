@@ -1173,10 +1173,11 @@ def msa(
                     f"{fasta_in}",
                 ]
             mafft_log_file = Path(fasta_out.parent, f"{fasta_out.stem}.mafft.log")
+            with open(mafft_log_file, "w") as mafft_log:
+                mafft_log.write(f"Captus' MAFFT Command:\n  {' '.join(mafft_cmd)}"
+                                f" > {fasta_out}\n\n\n")
             with open(fasta_out, "w") as mafft_out:
-                with open(mafft_log_file, "w") as mafft_log:
-                    mafft_log.write(f"Captus' MAFFT Command:\n  {' '.join(mafft_cmd)}"
-                                    f" > {fasta_out}\n\n\n")
+                with open(mafft_log_file, "a") as mafft_log:
                     try:
                         subprocess.run(mafft_cmd, stdout=mafft_out, stderr=mafft_log,
                                        timeout=timeout)
