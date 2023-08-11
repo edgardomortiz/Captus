@@ -577,9 +577,9 @@ def scipio_path_version(scipio_path):
 
 def bioperl_get_version():
     command = ["perl", "-MBio::Root::Version", "-e" , "print $Bio::Root::Version::VERSION"]
-    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     try:
-        version = float(process.communicate()[0].decode())
+        version = process.communicate()[0].decode()
         return "BioPerl", str(version), "OK"
     except ValueError:
         return "BioPerl", "", "not found"
@@ -587,9 +587,9 @@ def bioperl_get_version():
 
 def yaml_perl_get_version():
     command = ["perl", "-MYAML", "-e" , "print $YAML::VERSION"]
-    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     try:
-        version = float(process.communicate()[0].decode())
+        version = process.communicate()[0].decode()
         return "YAML", str(version), "OK"
     except ValueError:
         return "YAML", "", "not found"

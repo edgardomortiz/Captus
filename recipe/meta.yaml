@@ -33,7 +33,8 @@ requirements:
     - mmseqs2
     - muscle >=5
     - pandas
-    - perl-bioperl-core =1.007002
+    - perl-bioperl-core
+    - perl-yaml
     - pigz
     - plotly
     - tqdm
