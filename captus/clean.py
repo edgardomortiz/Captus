@@ -340,17 +340,17 @@ def clean(full_command, args):
             log.log(msg)
         log.log("")
 
-        if args.debug:
-            tqdm_serial_run(qc_stats, qc_stats_params,
-                            f"Running {args.qc_program}",
-                            f"{args.qc_program} analysis completed",
-                            "file", args.show_less)
-        else:
-            tqdm_parallel_async_run(qc_stats, qc_stats_params,
-                                    f"Running {args.qc_program}",
-                                    f"{args.qc_program} analysis completed",
-                                    "file", concurrent, args.show_less)
-        log.log("")
+    if args.debug:
+        tqdm_serial_run(qc_stats, qc_stats_params,
+                        f"Running {args.qc_program}",
+                        f"{args.qc_program} analysis completed",
+                        "file", args.show_less)
+    else:
+        tqdm_parallel_async_run(qc_stats, qc_stats_params,
+                                f"Running {args.qc_program}",
+                                f"{args.qc_program} analysis completed",
+                                "file", concurrent, args.show_less)
+    log.log("")
 
 
     ################################################################################################
