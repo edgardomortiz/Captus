@@ -4,7 +4,7 @@
 
 [![Install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](http://bioconda.github.io/recipes/captus/README.html) [![Bioconda downloads](https://anaconda.org/bioconda/captus/badges/downloads.svg)](https://anaconda.org/bioconda/captus) [![Version in Bioconda](https://anaconda.org/bioconda/captus/badges/version.svg)](https://anaconda.org/bioconda/captus) [![Last updated](https://anaconda.org/bioconda/captus/badges/latest_release_date.svg)](https://github.com/edgardomortiz/Captus/releases)
 ___
-## Installation
+## INSTALLATION
 ### Using micromamba
 The fastest way to install `Captus` is to create an isolated software environment using `micromamba` (https://mamba.readthedocs.io/en/latest/installation.html), if you don't have `micromamba` it can very easily be installed:
 For linux with `bash` shell:
@@ -79,23 +79,25 @@ And if the program was correctly installed you will see the main help page of Ca
 ```text
 usage: captus_assembly command [options]
 
-Captus 0.9.90: Assembly of Phylogenomic Datasets from High-Throughput Sequencing data
+Captus 0.9.96: Assembly of Phylogenomic Datasets from High-Throughput Sequencing data
 
 Captus-assembly commands:
   command     Program commands (in typical order of execution)
-                clean = Trim adaptors and quality filter reads with BBTools, run
-                        FastQC on the raw and cleaned reads
-                assemble = Perform de novo assembly with MEGAHIT: Assembling reads
-                           that were cleaned with the 'clean' command is
-                           recommended, but reads cleaned elsewhere are also allowed
-                extract = Recover targeted markers with BLAT and Scipio: Extracting
-                          markers from the assembly obtained with the 'assemble'
-                          command is recommended, but any other assemblies in FASTA
-                          format are also allowed.
-                align = Align extracted markers across samples with MAFFT or MUSCLE:
-                        Marker alignment depends on the directory structure created
-                        by the 'extract' command. This step also performs paralog
-                        filtering and alignment trimming using ClipKIT
+                clean = Trim adaptors and quality filter reads with BBTools,
+                        run FastQC on the raw and cleaned reads
+                assemble = Perform de novo assembly with MEGAHIT: Assembling
+                           reads that were cleaned with the 'clean' command is
+                           recommended, but reads cleaned elsewhere are also
+                           allowed
+                extract = Recover targeted markers with BLAT and Scipio:
+                          Extracting markers from the assembly obtained with
+                          the 'assemble' command is recommended, but any other
+                          assemblies in FASTA format are also allowed
+                align = Align extracted markers across samples with MAFFT or
+                        MUSCLE: Marker alignment depends on the directory
+                        structure created by the 'extract' command. This step
+                        also performs paralog filtering and alignment trimming
+                        using ClipKIT
 
 Help:
   -h, --help  Show this help message and exit
@@ -105,7 +107,6 @@ For help on a particular command: captus_assembly command -h
 
 ERROR: Missing command
 ```
-
-## Usage
+## USAGE
 
 Documentation and tutorials available at https://edgardomortiz.github.io/captus.docs/

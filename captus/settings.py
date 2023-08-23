@@ -269,7 +269,10 @@ PROT_REFS = {
 
 # Bundled miscellaneous DNA references
 DNA_REFS = {
-    "": Path("")
+    "angiosperms353": Path(DATA_DIR, "Angiosperms353.FNA"),
+    "mega353": Path(DATA_DIR, "Mega353.FNA"),
+    "seedplantsptd": Path(DATA_DIR, "SeedPlantsPTD.FNA"),
+    "seedplantsmit": Path(DATA_DIR, "SeedPlantsMIT.FNA"),
 }
 
 # Bundled dependencies directory

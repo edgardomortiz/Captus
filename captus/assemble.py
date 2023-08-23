@@ -62,6 +62,7 @@ def assemble(full_command, args):
             " single-end. Sample names are derived from the text found before the '_R1' string."
         )
     skipped_subsample = []
+    skipped_assemble = []
     if args.sample_reads_target > 0:
         fastqs_to_subsample, skipped_subsample = find_and_match_fastqs(args.reads)
         skip_subsampling = False
@@ -152,11 +153,11 @@ def assemble(full_command, args):
         log.log(f'{"":>{mar}}  {dim("A directory will be created for every sample")}')
         log.log("")
 
-    if skipped_subsample:
-        log.log(f'{bold("WARNING:")} {len(skipped_subsample)} sample(s) will be skipped')
-        for msg in skipped_subsample:
-            log.log(msg)
-        log.log("")
+        if skipped_subsample:
+            log.log(f'{bold("WARNING:")} {len(skipped_subsample)} sample(s) will be skipped')
+            for msg in skipped_subsample:
+                log.log(msg)
+            log.log("")
 
         subsample_reads_params = []
         for fastq_r1 in sorted(fastqs_to_subsample):
