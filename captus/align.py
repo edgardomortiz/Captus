@@ -1218,6 +1218,7 @@ def msa(
             muscle_log_file = Path(fasta_out.parent, f"{fasta_out.stem}.muscle.log")
             with open(muscle_log_file, "w") as muscle_log:
                 muscle_log.write(f"Captus' MUSCLE Command:\n  {' '.join(muscle_cmd)}\n\n\n")
+            with open(muscle_log_file, "a") as muscle_log:
                 try:
                     subprocess.run(muscle_cmd, stdout=muscle_log, stderr=muscle_log,
                                    timeout=timeout)
