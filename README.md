@@ -4,6 +4,13 @@
 
 [![Install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](http://bioconda.github.io/recipes/captus/README.html) [![Bioconda downloads](https://anaconda.org/bioconda/captus/badges/downloads.svg)](https://anaconda.org/bioconda/captus) [![Version in Bioconda](https://anaconda.org/bioconda/captus/badges/version.svg)](https://anaconda.org/bioconda/captus) [![Last updated](https://anaconda.org/bioconda/captus/badges/latest_release_date.svg)](https://github.com/edgardomortiz/Captus/releases)
 ___
+### VERY IMPORTANT FOR MAC USERS!
+`Bioconda` has broken the latest build of `MEGAHIT` for macOS. Please follow the instructions below, either **Using micromamba** or **Using conda**, to install `Captus` and **AFTER** `Captus` is installed please run the following two commands to get a functional `MEGAHIT` (if you used `conda` just replace `micromamba` by `conda`):
+```text
+micromamba activate captus
+micromamba install -c bioconda megahit=1.2.9=hfbae3c0_0
+```
+---
 ## INSTALLATION
 ### Using micromamba
 The fastest way to install `Captus` is to create an isolated software environment using `micromamba` (https://mamba.readthedocs.io/en/latest/installation.html), if you don't have `micromamba` it can very easily be installed:
