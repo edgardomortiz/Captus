@@ -785,7 +785,7 @@ def build_qc_report(out_dir, qc_extras_dir):
             "read"
         ],
         as_index=False
-    ).agg(total = ("count", np.sum))
+    ).agg(total = ("count", "sum"))
     df_merged = pd.merge(df, df_grouped, on=["sample_name", "stage", "read"], how="outer")
     df_merged["freq"] = df_merged["count"] / df_merged["total"] * 100
     df = df_merged
@@ -3131,16 +3131,16 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
         ]
     ).agg(
         num_loci = ("locus", "nunique"),
-        mean_len = ("len_ungapped", np.mean),
-        total_len = ("len_ungapped", np.sum),
-        mean_gaps = ("gaps", np.mean),
-        total_gaps = ("gaps", np.sum),
-        mean_ambig = ("ambigs", np.mean),
-        mean_gc = ("gc", np.mean),
-        mean_gc_codon1 = ("gc_codon_p1", np.mean),
-        mean_gc_codon2 = ("gc_codon_p2", np.mean),
-        mean_gc_codon3 = ("gc_codon_p3", np.mean),
-        mean_copies = ("num_copies", np.mean),
+        mean_len = ("len_ungapped", "mean"),
+        total_len = ("len_ungapped", "sum"),
+        mean_gaps = ("gaps", "mean"),
+        total_gaps = ("gaps", "sum"),
+        mean_ambig = ("ambigs", "mean"),
+        mean_gc = ("gc", "mean"),
+        mean_gc_codon1 = ("gc_codon_p1", "mean"),
+        mean_gc_codon2 = ("gc_codon_p2", "mean"),
+        mean_gc_codon3 = ("gc_codon_p3", "mean"),
+        mean_copies = ("num_copies", "mean"),
     ).reset_index()
 
     var_dict = {
