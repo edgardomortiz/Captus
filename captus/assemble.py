@@ -161,10 +161,12 @@ def assemble(full_command, args):
 
         subsample_reads_params = []
         for fastq_r1 in sorted(fastqs_to_subsample):
+            in_fastq = fastq_r1
             if fastqs_to_subsample[fastq_r1]["fastq_r2"] is not None:
-                in_fastq = fastq_r1.replace("_R1", "_R#")
-            else:
-                in_fastq = fastq_r1
+                if "_R1." in in_fastq:
+                    in_fastq = fastq_r1.replace("_R1.", "_R#.")
+                elif "_R1_" in in_fastq:
+                    in_fastq = fastq_r1.replace("_R1_", "_R#_")
             subsample_reads_params.append((
                 args.reformat_path,
                 ram_MB,
@@ -330,7 +332,15 @@ def subsample_reads(
     Subsample reads using reformat.sh from BBTools
     """
     start = time.time()
+
     sample_name = "_R".join(in_fastq.split("_R")[:-1])
+    if "_R#" in in_fastq:
+        sample_name = "_R#".join(in_fastq.split("_R#")[:-1])
+    elif "_R1." in in_fastq:
+        sample_name = "_R1.".join(in_fastq.split("_R1.")[:-1])
+    elif "_R1_" in in_fastq:
+        sample_name = "_R1_".join(in_fastq.split("_R1_")[:-1])
+
     sample_subsampled_out_dir, _ = make_output_dir(
         Path(out_dir, f"{sample_name}__captus-asm", "00_subsampled_reads")
     )
@@ -363,6 +373,10 @@ def find_and_match_subsampled_fastqs(fastqs_to_subsample, out_dir):
     for fastq_r1 in fastqs_to_subsample:
         fastq_r2 = fastqs_to_subsample[fastq_r1]["fastq_r2"]
         sample_name = "_R1".join(fastq_r1.split("_R1")[:-1])
+        if "_R1." in fastq_r1:
+            sample_name = "_R1.".join(fastq_r1.split("_R1.")[:-1])
+        elif "_R1_" in fastq_r1:
+            sample_name = "_R1_".join(fastq_r1.split("_R1_")[:-1])
         sample_subsampled_out_dir = Path(out_dir, f"{sample_name}__captus-asm", "00_subsampled_reads")
         if Path(sample_subsampled_out_dir, fastq_r1).exists():
             fastqs_to_assemble[fastq_r1] = {
@@ -427,6 +441,10 @@ def megahit(
     """
     start = time.time()
     sample_name = "_R1".join(fastq_r1.split("_R1")[:-1])
+    if "_R1." in fastq_r1:
+        sample_name = "_R1.".join(fastq_r1.split("_R1.")[:-1])
+    elif "_R1_" in fastq_r1:
+        sample_name = "_R1_".join(fastq_r1.split("_R1_")[:-1])
     sample_out_dir, _ = make_output_dir(Path(out_dir, f"{sample_name}__captus-asm"))
 
     # MEGAHIT won't run if 'out_dir' already exists, it needs to create it by itself, we can only
