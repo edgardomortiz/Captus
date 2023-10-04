@@ -934,7 +934,6 @@ def summarize_qc_stats(out_dir, qc_extras_dir, qc_stats_before_dir, qc_stats_aft
                                                  "length", "count"])],
         "seq_dup_levels_data":       ["\t".join(["sample_name", "read", "stage",
                                                  "duplication_level",
-                                                 "percentage_of_deduplicated",
                                                  "percentage_of_total"])],
         "adaptor_content_data":      ["\t".join(["sample_name", "read", "stage",
                                                  "position", "Illumina_universal_adaptor",
@@ -1010,6 +1009,11 @@ def summarize_qc_stats(out_dir, qc_extras_dir, qc_stats_before_dir, qc_stats_aft
                                     qc_stats[add_to].append("\t".join(prepend + [str(length), "0.0"]))
                                 length = int(record[-2])
                             qc_stats[add_to].append("\t".join(record))
+                        elif add_to == "seq_dup_levels_data":
+                            record = line.strip("\n").split()
+                            if len(record) == 3:
+                                record = [record[0], record[2]]
+                            qc_stats[add_to].append("\t".join(prepend + record))
                         else:
                             record = "\t".join(prepend + line.strip("\n").split())
                             qc_stats[add_to].append(record)
