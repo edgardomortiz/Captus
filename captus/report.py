@@ -1188,8 +1188,13 @@ def build_qc_report(out_dir, qc_extras_dir):
     figs.append(fig)
 
     ### Sequence Duplication Level ###
-    df = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["SDUP"]),
-                       usecols=[*range(0,4), 5])
+    df = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["SDUP"]))
+    if len(df.columns) == 6:
+        if df["percentage_of_total"].isnull().all():
+            df.drop(columns="percentage_of_total", inplace=True)
+            df.rename(columns={"percentage_of_deduplicated": "percentage_of_total"}, inplace=True)
+        else:
+            df.drop(columns="percentage_of_deduplicated", inplace=True)
     df["stage"] = df["stage"].str.capitalize()
     sample_list = df["sample_name"].unique()
     dup_lev_list = df["duplication_level"].unique()
