@@ -180,10 +180,12 @@ def clean(full_command, args):
 
     bbduk_trim_adaptors_params = []
     for fastq_r1 in sorted(fastqs_raw):
+        in_fastq = fastq_r1
         if fastqs_raw[fastq_r1]["fastq_r2"] is not None:
-            in_fastq = fastq_r1.replace("_R1", "_R#")
-        else:
-            in_fastq = fastq_r1
+            if "_R1." in in_fastq:
+                in_fastq = fastq_r1.replace("_R1.", "_R#.")
+            elif "_R1_" in in_fastq:
+                in_fastq = fastq_r1.replace("_R1_", "_R#_")
         bbduk_trim_adaptors_params.append((
             args.bbduk_path,
             ram_MB,
@@ -233,10 +235,12 @@ def clean(full_command, args):
     if fastqs_no_adaptors:
         bbduk_filter_quality_params = []
         for fastq_r1 in sorted(fastqs_no_adaptors):
+            in_fastq = fastq_r1
             if fastqs_no_adaptors[fastq_r1]["fastq_r2"] is not None:
-                in_fastq = fastq_r1.replace("_R1", "_R#")
-            else:
-                in_fastq = fastq_r1
+                if "_R1." in in_fastq:
+                    in_fastq = fastq_r1.replace("_R1.", "_R#.")
+                elif "_R1_" in in_fastq:
+                    in_fastq = fastq_r1.replace("_R1_", "_R#_")
             bbduk_filter_quality_params.append((
                 args.bbduk_path,
                 ram_MB,
@@ -491,6 +495,12 @@ def bbduk_trim_adaptors(
     start = time.time()
 
     sample_name = "_R".join(in_fastq.split("_R")[:-1])
+    if "_R#" in in_fastq:
+        sample_name = "_R#".join(in_fastq.split("_R#")[:-1])
+    elif "_R1." in in_fastq:
+        sample_name = "_R1.".join(in_fastq.split("_R1.")[:-1])
+    elif "_R1_" in in_fastq:
+        sample_name = "_R1_".join(in_fastq.split("_R1_")[:-1])
 
     # Two simulaneous processes run smoother if RAM is halved for each
     ram_MB = ram_MB // 2
@@ -591,6 +601,12 @@ def bbduk_filter_quality(
     start = time.time()
 
     sample_name = "_R".join(in_fastq.split("_R")[:-1])
+    if "_R#" in in_fastq:
+        sample_name = "_R#".join(in_fastq.split("_R#")[:-1])
+    elif "_R1." in in_fastq:
+        sample_name = "_R1.".join(in_fastq.split("_R1.")[:-1])
+    elif "_R1_" in in_fastq:
+        sample_name = "_R1_".join(in_fastq.split("_R1_")[:-1])
 
     if ftr > 0: ftr -= 1
 
@@ -656,6 +672,18 @@ def qc_stats(qc_program_name, qc_program_path, in_fastq, qc_stats_out_dir, overw
 
     in_fastq_parts = in_fastq.parts[-1].split("_R")
     file_out_dir = f'{"_R".join(in_fastq_parts[:-1])}_R{in_fastq_parts[-1][0]}_fastqc'
+    if "_R1." in f"{in_fastq}":
+        in_fastq_parts = in_fastq.parts[-1].split("_R1.")
+        file_out_dir = f'{"_R1.".join(in_fastq_parts[:-1])}_R1_fastqc'
+    elif "_R1_" in f"{in_fastq}":
+        in_fastq_parts = in_fastq.parts[-1].split("_R1_")
+        file_out_dir = f'{"_R1.".join(in_fastq_parts[:-1])}_R1_fastqc'
+    elif "_R2." in f"{in_fastq}":
+        in_fastq_parts = in_fastq.parts[-1].split("_R2.")
+        file_out_dir = f'{"_R2.".join(in_fastq_parts[:-1])}_R2_fastqc'
+    elif "_R2_" in f"{in_fastq}":
+        in_fastq_parts = in_fastq.parts[-1].split("_R2_")
+        file_out_dir = f'{"_R2.".join(in_fastq_parts[:-1])}_R2_fastqc'
 
     if qc_program_name == "falco":
         qc_stats_cmd = [
@@ -680,11 +708,8 @@ def qc_stats(qc_program_name, qc_program_path, in_fastq, qc_stats_out_dir, overw
 
     qc_stats_cmd += cmd_last_part
 
-    if "_R1" in in_fastq.name:
-        idx = in_fastq.name.find("_R1") + 3
-    elif "_R2" in in_fastq.name:
-        idx = in_fastq.name.find("_R2") + 3
-    qc_stats_log_file = Path(qc_stats_out_dir, f"{in_fastq.name[:idx]}.qc_stats.log")
+    qc_stats_name = f'{Path(file_out_dir).parts[-1].replace("_fastqc", "")}'
+    qc_stats_log_file = Path(qc_stats_out_dir, f"{qc_stats_name}.qc_stats.log")
     file_name_stage = f"'{in_fastq.name}' ({stage} cleaning)"
 
     if overwrite is True or not qc_stats_log_file.exists():
