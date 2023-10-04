@@ -702,17 +702,16 @@ def qc_stats(qc_program_name, qc_program_path, in_fastq, qc_stats_out_dir, overw
         "--adapters", f"{settings.QC_ADAPTORS_LIST}",
         f"{in_fastq}"
     ]
-    mean_read_length = get_mean_read_length(in_fastq,
-                                            settings.NUM_READS_TO_CALCULATE_MEAN_READ_LENGTH)
-    if mean_read_length <= 1000: cmd_last_part = ["--nogroup"] + cmd_last_part
-
-    qc_stats_cmd += cmd_last_part
 
     qc_stats_name = f'{Path(file_out_dir).parts[-1].replace("_fastqc", "")}'
     qc_stats_log_file = Path(qc_stats_out_dir, f"{qc_stats_name}.qc_stats.log")
     file_name_stage = f"'{in_fastq.name}' ({stage} cleaning)"
 
     if overwrite is True or not qc_stats_log_file.exists():
+        mean_read_length = get_mean_read_length(in_fastq,
+                                                settings.NUM_READS_TO_CALCULATE_MEAN_READ_LENGTH)
+        if mean_read_length <= 1000: cmd_last_part = ["--nogroup"] + cmd_last_part
+        qc_stats_cmd += cmd_last_part
         shutil.rmtree(Path(qc_stats_out_dir, file_out_dir), ignore_errors=True)
         with open(qc_stats_log_file, "w") as qc_stats_log:
             subprocess.call(qc_stats_cmd, stdout=qc_stats_log, stderr=qc_stats_log)
