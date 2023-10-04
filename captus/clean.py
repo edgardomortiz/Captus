@@ -63,7 +63,7 @@ def clean(full_command, args):
     if args.skip_qc_stats:
         fastqc_version, fastqc_status = "", "not used"
         falco_version, falco_status = "", "not used"
-        intro_msg += ("QC statistics will not be analyzed after the cleaning has been completed.")
+        intro_msg = ("QC statistics will not be analyzed after the cleaning has been completed.")
     else:
         _, fastqc_version, fastqc_status = fastqc_path_version(args.fastqc_path)
         _, falco_version, falco_status = falco_path_version(args.falco_path)

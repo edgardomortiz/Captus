@@ -317,17 +317,20 @@ def find_and_match_fastqs(reads, recursive=False):
     for fastq_file in sorted(reads):
         file_name = fastq_file.name
         file_dir = fastq_file.parent
-        if "_R1" in file_name:
+        if "_R1." in file_name or "_R1_" in file_name:
             if settings.SEQ_NAME_SEP in file_name:
                 skipped.append(f"'{file_name}': SKIPPED, pattern"
                                f" '{settings.SEQ_NAME_SEP}' not allowed in filenames")
             else:
-                file_name_r2 = file_name.replace("_R1", "_R2")
+                if "_R1." in file_name:
+                    file_name_r2 = file_name.replace("_R1.", "_R2.")
+                elif "_R1_" in file_name:
+                    file_name_r2 = file_name.replace("_R1_", "_R2_")
                 if Path(file_dir, file_name_r2) in reads:
                     fastqs[file_name] = {"fastq_dir": file_dir, "fastq_r2": file_name_r2}
                 else:
                     fastqs[file_name] = {"fastq_dir": file_dir, "fastq_r2": None}
-        elif "_R2" not in file_name:
+        elif "_R2." not in file_name or "_R2_" not in file_name:
             skipped.append(f"'{file_name}': SKIPPED, pattern '_R1'"
                            f" or '_R2' not found in filename")
     return fastqs, skipped
