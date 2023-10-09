@@ -273,12 +273,14 @@ def clean(full_command, args):
         f'Now Captus will run {args.qc_program} on the raw reads as well as on the clean reads to'
         f' obtain QC statistics.'
     )
+    qc_stats_before_dir = Path(out_dir, "01_qc_stats_before")
+    qc_stats_after_dir = Path(out_dir, "02_qc_stats_after")
     if  args.skip_qc_stats:
         log.log(red("Skipping QC statistics analyses... (to enable omit '--skip_qc_stats')"))
         log.log("")
     else:
-        qc_stats_before_dir, qc_stats_before_msg = make_output_dir(Path(out_dir, "01_qc_stats_before"))
-        qc_stats_after_dir, qc_stats_after_msg = make_output_dir(Path(out_dir, "02_qc_stats_after"))
+        qc_stats_before_dir, qc_stats_before_msg = make_output_dir(qc_stats_before_dir)
+        qc_stats_after_dir, qc_stats_after_msg = make_output_dir(qc_stats_after_dir)
         if args.qc_program == "fastqc":
             qc_program_path = args.fastqc_path
         elif args.qc_program == "falco":
@@ -338,23 +340,23 @@ def clean(full_command, args):
         log.log(f'{"":>{mar}}  {dim(qc_stats_after_msg)}')
         log.log("")
 
-    if skipped_msgs:
-        log.log(f'{bold("WARNING:")} {len(skipped_msgs)} sample(s) will be skipped')
-        for msg in skipped_msgs:
-            log.log(msg)
-        log.log("")
+        if skipped_msgs:
+            log.log(f'{bold("WARNING:")} {len(skipped_msgs)} sample(s) will be skipped')
+            for msg in skipped_msgs:
+                log.log(msg)
+            log.log("")
 
-    if args.debug:
-        tqdm_serial_run(qc_stats, qc_stats_params,
-                        f"Running {args.qc_program}",
-                        f"{args.qc_program} analysis completed",
-                        "file", args.show_less)
-    else:
-        tqdm_parallel_async_run(qc_stats, qc_stats_params,
-                                f"Running {args.qc_program}",
-                                f"{args.qc_program} analysis completed",
-                                "file", concurrent, args.show_less)
-    log.log("")
+        if args.debug:
+            tqdm_serial_run(qc_stats, qc_stats_params,
+                            f"Running {args.qc_program}",
+                            f"{args.qc_program} analysis completed",
+                            "file", args.show_less)
+        else:
+            tqdm_parallel_async_run(qc_stats, qc_stats_params,
+                                    f"Running {args.qc_program}",
+                                    f"{args.qc_program} analysis completed",
+                                    "file", concurrent, args.show_less)
+        log.log("")
 
 
     ################################################################################################
