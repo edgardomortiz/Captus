@@ -1119,6 +1119,9 @@ def curate(
             ast["prop_short_exons"] = "NA"
             ast["prop_short_exons_retained"] = "NA"
             ast["len_short_exons_retained"] = "NA"
+            ast["perc_exons_retained"] = "NA"
+            ast["perc_long_exons_retained"] = "NA"
+            ast["perc_short_exons_retained"] = "NA"
 
             if cds_ids:
                 if len(cds_ids) > 1:
