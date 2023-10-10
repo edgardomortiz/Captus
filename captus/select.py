@@ -30,7 +30,7 @@ def select(full_command, args):
     out_dir, out_dir_msg = make_output_dir(args.out)
     log.logger = log.Log(Path(out_dir, "captus-design_select.log"), stdout_verbosity_level=1)
 
-    mar = 25  # Margin for aligning parameters and values
+    mar = 33  # Margin for aligning parameters and values
 
     ################################################################################################
     ############################################################################### STARTING SECTION
@@ -193,14 +193,14 @@ def filter_loci(
     log.log(f'{"":>{mar}}  {len(aln_stats)} loci found')
     log.log("")
 
-    log.log(f'{"Include paralogs":>{mar}}: {bold(include_paralogs)}')
+    log.log(f'{"Include paralogs (--par)":>{mar}}: {bold(include_paralogs)}')
     if include_paralogs is False:
         aln_stats = {k: aln_stats[k] for k in aln_stats
                      if aln_stats[k]["single_copy"] == "True"}
     log.log(f'{"":>{mar}}  {len(aln_stats)} remaining loci')
     log.log("")
 
-    log.log(f'{"Length":>{mar}}: {bold(length)} bp')
+    log.log(f'{"Length (--len)":>{mar}}: {bold(length)} bp')
     try:
         min_par, max_par = (int(par) for par in length.split(","))
     except ValueError:
@@ -211,7 +211,7 @@ def filter_loci(
     log.log(f'{"":>{mar}}  {len(aln_stats)} remaining loci')
     log.log("")
 
-    log.log(f'{"Avg. pairwise identity":>{mar}}: {bold(pairwise_identity)} %')
+    log.log(f'{"Avg. pairwise identity (--pid)":>{mar}}: {bold(pairwise_identity)} %')
     try:
         min_par, max_par = (float(par) for par in pairwise_identity.split(","))
     except ValueError:
@@ -222,7 +222,7 @@ def filter_loci(
     log.log(f'{"":>{mar}}  {len(aln_stats)} remaining loci')
     log.log("")
 
-    log.log(f'{"GC content":>{mar}}: {bold(gc_content)} %')
+    log.log(f'{"GC content (--gc)":>{mar}}: {bold(gc_content)} %')
     try:
         min_par, max_par = (float(par) for par in gc_content.split(","))
     except ValueError:
@@ -233,7 +233,7 @@ def filter_loci(
     log.log(f'{"":>{mar}}  {len(aln_stats)} remaining loci')
     log.log("")
 
-    log.log(f'{"Informative sites":>{mar}}: {bold(informative_sites)}')
+    log.log(f'{"Informative sites (--pis)":>{mar}}: {bold(informative_sites)}')
     try:
         min_par, max_par = (int(par) for par in informative_sites.split(","))
     except ValueError:
@@ -244,7 +244,7 @@ def filter_loci(
     log.log(f'{"":>{mar}}  {len(aln_stats)} remaining loci')
     log.log("")
 
-    log.log(f'{"Informativeness":>{mar}}: {bold(informativeness)} %')
+    log.log(f'{"Informativeness (--inf)":>{mar}}: {bold(informativeness)} %')
     try:
         min_par, max_par = (float(par) for par in informativeness.split(","))
     except ValueError:
@@ -255,7 +255,7 @@ def filter_loci(
     log.log(f'{"":>{mar}}  {len(aln_stats)} remaining loci')
     log.log("")
 
-    log.log(f'{"Missingness":>{mar}}: {bold(missingness)} %')
+    log.log(f'{"Missingness (--mis)":>{mar}}: {bold(missingness)} %')
     try:
         min_par, max_par = (float(par) for par in missingness.split(","))
     except ValueError:
@@ -266,7 +266,7 @@ def filter_loci(
     log.log(f'{"":>{mar}}  {len(aln_stats)} remaining loci')
     log.log("")
 
-    log.log(f'{"Min. sequences":>{mar}}: {bold(num_sequences)}')
+    log.log(f'{"Min. sequences (--seq)":>{mar}}: {bold(num_sequences)}')
     try:
         min_par = int(num_sequences)
     except ValueError:
@@ -276,7 +276,7 @@ def filter_loci(
     log.log(f'{"":>{mar}}  {len(aln_stats)} remaining loci')
     log.log("")
 
-    log.log(f'{"Min. samples":>{mar}}: {bold(num_samples)}')
+    log.log(f'{"Min. samples (--sam)":>{mar}}: {bold(num_samples)}')
     try:
         min_par = int(num_samples)
     except ValueError:
@@ -286,7 +286,7 @@ def filter_loci(
     log.log(f'{"":>{mar}}  {len(aln_stats)} remaining loci')
     log.log("")
 
-    log.log(f'{"Min. focal species":>{mar}}: {bold(num_focal_species)}')
+    log.log(f'{"Min. focal species (--fos)":>{mar}}: {bold(num_focal_species)}')
     try:
         min_par = int(num_focal_species)
     except ValueError:
@@ -296,7 +296,7 @@ def filter_loci(
     log.log(f'{"":>{mar}}  {len(aln_stats)} remaining loci')
     log.log("")
 
-    log.log(f'{"Min. outgroup species":>{mar}}: {bold(num_outgroup_species)}')
+    log.log(f'{"Min. outgroup species (--ous)":>{mar}}: {bold(num_outgroup_species)}')
     try:
         min_par = int(num_outgroup_species)
     except ValueError:
@@ -306,7 +306,7 @@ def filter_loci(
     log.log(f'{"":>{mar}}  {len(aln_stats)} remaining loci')
     log.log("")
 
-    log.log(f'{"Min. add-on samples":>{mar}}: {bold(num_addon_samples)}')
+    log.log(f'{"Min. add-on samples (--ads)":>{mar}}: {bold(num_addon_samples)}')
     try:
         min_par = int(num_addon_samples)
     except ValueError:
@@ -316,7 +316,7 @@ def filter_loci(
     log.log(f'{"":>{mar}}  {len(aln_stats)} remaining loci')
     log.log("")
 
-    log.log(f'{"Min. species":>{mar}}: {bold(num_species)}')
+    log.log(f'{"Min. species (--spp)":>{mar}}: {bold(num_species)}')
     try:
         min_par = int(num_species)
     except ValueError:
@@ -326,7 +326,7 @@ def filter_loci(
     log.log(f'{"":>{mar}}  {len(aln_stats)} remaining loci')
     log.log("")
 
-    log.log(f'{"Min. genera":>{mar}}: {bold(num_genera)}')
+    log.log(f'{"Min. genera (--gen)":>{mar}}: {bold(num_genera)}')
     try:
         min_par = int(num_genera)
     except ValueError:
@@ -336,7 +336,7 @@ def filter_loci(
     log.log(f'{"":>{mar}}  {len(aln_stats)} remaining loci')
     log.log("")
 
-    log.log(f'{"Original CDS length":>{mar}}: {bold(cds_len)} bp')
+    log.log(f'{"Original CDS length (--cdl)":>{mar}}: {bold(cds_len)} bp')
     try:
         min_par, max_par = (int(par) for par in cds_len.split(","))
     except ValueError:
@@ -348,7 +348,7 @@ def filter_loci(
     log.log(f'{"":>{mar}}  {len(aln_stats)} remaining loci')
     log.log("")
 
-    log.log(f'{"Len. long exons retained":>{mar}}: {bold(len_long_exons_retained)} bp')
+    log.log(f'{"Len. long exons retained (--llr)":>{mar}}: {bold(len_long_exons_retained)} bp')
     try:
         min_par, max_par = (int(par) for par in len_long_exons_retained.split(","))
     except ValueError:
@@ -360,7 +360,7 @@ def filter_loci(
     log.log(f'{"":>{mar}}  {len(aln_stats)} remaining loci')
     log.log("")
 
-    log.log(f'{"Len. short exons retained":>{mar}}: {bold(len_short_exons_retained)} bp')
+    log.log(f'{"Len. short exons retained (--lsr)":>{mar}}: {bold(len_short_exons_retained)} bp')
     try:
         min_par, max_par = (int(par) for par in len_short_exons_retained.split(","))
     except ValueError:
@@ -372,7 +372,7 @@ def filter_loci(
     log.log(f'{"":>{mar}}  {len(aln_stats)} remaining loci')
     log.log("")
 
-    log.log(f'{"Total CDS retained":>{mar}}: {bold(perc_exons_retained)} %')
+    log.log(f'{"Total CDS retained (--ptr)":>{mar}}: {bold(perc_exons_retained)} %')
     try:
         min_par, max_par = (float(par) for par in perc_exons_retained.split(","))
     except ValueError:
@@ -384,7 +384,7 @@ def filter_loci(
     log.log(f'{"":>{mar}}  {len(aln_stats)} remaining loci')
     log.log("")
 
-    log.log(f'{"Long exons retained":>{mar}}: {bold(perc_long_exons_retained)} %')
+    log.log(f'{"Long exons retained (--plr)":>{mar}}: {bold(perc_long_exons_retained)} %')
     try:
         min_par, max_par = (float(par) for par in perc_long_exons_retained.split(","))
     except ValueError:
@@ -396,7 +396,7 @@ def filter_loci(
     log.log(f'{"":>{mar}}  {len(aln_stats)} remaining loci')
     log.log("")
 
-    log.log(f'{"Short exons retained":>{mar}}: {bold(perc_short_exons_retained)} %')
+    log.log(f'{"Short exons retained (--psr)":>{mar}}: {bold(perc_short_exons_retained)} %')
     try:
         min_par, max_par = (float(par) for par in perc_short_exons_retained.split(","))
     except ValueError:
