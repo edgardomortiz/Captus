@@ -562,10 +562,11 @@ def extract(full_command, args):
         # When 'cl_min_identity' is set to 'auto' it becomes 90% of 'dna_min_identity' never
         # becoming less than 75%
         if args.cl_min_identity == 'auto':
-            cl_min_identity = max(settings.MMSEQS2_BLAT_DNA_IDENTITY_FACTOR * args.dna_min_identity,
+            dna_min_identity = max(args.dna_min_identity, settings.MMSEQS_MIN_AUTO_MIN_IDENTITY)
+            cl_min_identity = max(settings.MMSEQS2_BLAT_DNA_IDENTITY_FACTOR * dna_min_identity,
                                   settings.MMSEQS_MIN_AUTO_MIN_IDENTITY)
         else:
-            cl_min_identity = float(args.cl_min_identity)
+            dna_min_identity = cl_min_identity = float(args.cl_min_identity)
         if args.cluster_mode != 2: args.cl_seq_id_mode = 0
         clust_tmp_dir = make_tmp_dir_within(args.cl_tmp_dir, "captus_mmseqs2_tmp")
         fastas_to_cluster, num_leftovers = find_fasta_leftovers(fastas_to_extract)
@@ -651,7 +652,7 @@ def extract(full_command, args):
             log.log(f'{"reference":>{mar}}: {clust_ref["CLR"]["NT_msg"]}')
             if clust_ref["CLR"]["NT_path"]:
                 log.log(f'{"reference info":>{mar}}: {clust_query_info["info_msg"]}')
-                log.log(f'{"dna_min_identity":>{mar}}: {bold(args.dna_min_identity)}')
+                log.log(f'{"dna_min_identity":>{mar}}: {bold(dna_min_identity)}')
                 log.log(f'{"dna_min_coverage":>{mar}}: {bold(args.dna_min_coverage)}')
             log.log("")
             log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
@@ -664,7 +665,7 @@ def extract(full_command, args):
                                      reverse=True):
                     blat_clusters_params.append((
                         args.blat_path,
-                        args.dna_min_identity,
+                        dna_min_identity,
                         args.dna_min_coverage,
                         args.overwrite,
                         args.keep_all,
