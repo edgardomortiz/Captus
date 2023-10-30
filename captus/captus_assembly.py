@@ -955,7 +955,7 @@ class CaptusAssembly(object):
             "--cl_max_copies",
             action="store",
             default=5,
-            type=int,
+            type=float,
             dest="cl_max_copies",
             help="Maximum average number of sequences per sample in a cluster. This can exclude loci"
                  " that are extremely paralogous"
