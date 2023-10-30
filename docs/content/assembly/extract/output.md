@@ -42,7 +42,7 @@ Coding sequence in **aminoacids**. Prefixes can be `NUC`, `PTD`, or `MIT`. For d
 {{% /expand %}}
 ___
 ### 4. **`[MARKER_TYPE]_coding_NT.fna`**, **`02_NT`**
-Coding sequence in **nucleotides**. Prefixes can be `NUC`, `PTD`, or `MIT`. For details on sequence headers see [FASTA headers explanation]({{< relref "assembly/extract/output#fasta-headers-explanation" >}}).
+Coding sequence in **nucleotides**, a.k.a. CDS. Prefixes can be `NUC`, `PTD`, or `MIT`. For details on sequence headers see [FASTA headers explanation]({{< relref "assembly/extract/output#fasta-headers-explanation" >}}).
 
 {{% expand "Example" %}}
 ![NT format](/captus.docs/images/coding_NT.png?width=1000&classes=shadow)
