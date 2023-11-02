@@ -117,3 +117,7 @@ ERROR: Missing command
 ## USAGE
 
 Documentation and tutorials available at https://edgardomortiz.github.io/captus.docs/
+
+## CITATION
+
+Ortiz, E.M., A. Hoewener, G. Shigita, M. Raza, O. Maurin, A. Zuntini, F. Forest, W.J. Baker, H. Schaefer. (2023). _A novel phylogenomics pipeline revels complex pattern of reticulate evolution in Cucurbitales_. bioRxiv [https://doi.org/10.1101/2023.10.27.564367](https://doi.org/10.1101/2023.10.27.564367)
