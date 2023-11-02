@@ -42,7 +42,10 @@ setup(
         },
     include_package_data=True,
     entry_points = {
-        "console_scripts": ["captus_assembly = captus.captus_assembly:main"]
+        "console_scripts": ["captus_assembly = captus.captus_assembly:main",
+                            "captus = captus.captus_assembly:main",
+                            "captus_design = captus.captus_design:main",
+                            "captusd = captus.captus_design:main"]
         },
     license = "GPL",
     classifiers = [
@@ -50,6 +53,8 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9"
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
     ]
 )
