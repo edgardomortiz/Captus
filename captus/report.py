@@ -1905,7 +1905,7 @@ def build_assembly_report(out_dir, asm_stats_tsv):
                 if v in list(trace_name_dict.keys()):
                     name_list.append(trace_name_dict[v])
                 else:
-                    name_list.append(re.sub(".*_>=_(\d+)", r"≥\1 ", v))
+                    name_list.append(re.sub(r".*_>=_(\d+)", r"≥\1 ", v))
                 hovertemplate_list.append(hover_template_dict[key])
         if key in [
             "Contig Breakdown<br> by Length (%)",
