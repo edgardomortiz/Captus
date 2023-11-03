@@ -497,8 +497,8 @@ MMSEQS2_GAP_EXTEND = 1
 # sample (500*0.3)+21 = 171 kmers from that sequence
 MMSEQS2_KMER_PER_SEQ_SCALE = 0.3
 
-# MMseqs sensitivity set the same as default 4 (experiment increasing a little?)
-MMSEQS2_SENSITIVITY = 4.0
+# MMseqs sensitivity set at the max 7.5 (If too slow for a dataset, this can be decreased via options)
+MMSEQS2_SENSITIVITY = 7.5
 
 # A cluster must have at least this proportion of the total number of samples to be used as
 # reference

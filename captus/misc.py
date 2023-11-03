@@ -849,4 +849,4 @@ def bold_red_underline(text):
 
 
 def remove_formatting(text):
-    return re.sub('\033.*?m', '', text)
+    return re.sub(r'\033.*?m', r'', text)
