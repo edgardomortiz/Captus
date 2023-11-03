@@ -195,8 +195,8 @@ def dim(text):
 
 
 def remove_formatting(text):
-    return re.sub("\033.*?m", "", text)
+    return re.sub(r"\033.*?m", r"", text)
 
 
 def remove_dim_formatting(text):
-    return re.sub("\033\[2m", "", text)
+    return re.sub(r"\033\[2m", r"", text)
