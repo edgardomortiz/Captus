@@ -424,10 +424,12 @@ class CaptusDesign(object):
 
         filter_group = parser.add_argument_group("Filtering of markers")
         filter_group.add_argument(
-            "--par",
-            action="store_true",
-            dest="include_paralogs",
-            help="Include paralogous clusters in the selection"
+            "--cop",
+            action="store",
+            type=str,
+            dest="avg_copies",
+            default="1,1",
+            help="Average number of copies range, decimals are allowed, e.g. 1,1.5 (min,max)"
         )
         filter_group.add_argument(
             "--len",
