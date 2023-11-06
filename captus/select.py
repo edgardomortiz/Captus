@@ -464,7 +464,7 @@ def write_aln_stats(out_dir: Path, aln_stats_filtered: dict):
             tsv_out.write("\t".join(["path",
                                      "locus",
                                      "copies",
-                                     "avg_copies"
+                                     "avg_copies",
                                      "length",
                                      "gc_content",
                                      "avg_pid",
