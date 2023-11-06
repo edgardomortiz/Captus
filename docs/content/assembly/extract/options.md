@@ -203,7 +203,7 @@ ___
 ### **`--cl_sensitivity`**
 MMseqs2 sensitivity, from 1 to 7.5, only applicable when using 'easy-cluster'. Common reference points are: 1 (faster), 4 (fast), 7.5 (sens).
 
-This argument is optional, the default is **4.0**.
+This argument is optional, the default is **7.5**.
 ___
 ### **`--cl_min_identity`**
 Minimum percentage of similarity between sequences within a cluster. Accepted values are any number between 75 and 100. Since `Captus` will perform a [Miscellaneous DNA  marker extraction]({{< ref "#miscellaneous-dna-markers-blat">}}) using as reference the best representative of each cluster, it is convenient to set `--cl_min_identity` a little lower than `--dna_min_identity`.
