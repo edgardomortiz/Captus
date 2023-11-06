@@ -1015,6 +1015,68 @@ def curate(
     addon_samples: list, exons_data: dict, input_fasta_path: Path, curate_dir_path: Path,
     shared_aln_stats: list, overwrite: bool
 ):
+
+    def can_be_merged(hap: str, seq: str):
+        """
+        A sequence can be merged into the haplotype if they don't overlap or they don't differ in
+        nucleotides, ignoring gaps
+
+        Parameters
+        ----------
+        hap : str
+            The haplotype
+        seq : str
+            The sequence to be merged in the haplotype
+        """
+        if len(hap.strip("-")) == 0:
+            return True
+        hap = hap.upper()
+        seq = seq.upper()
+        for p in range(len(hap)):
+            if hap[p] == "-" or seq[p] == "-":
+                continue
+            elif hap[p] != seq[p]:
+                return False
+        return True
+
+
+    def min_copies(aln_trimmed: dict, aln_width: int):
+
+        haplos = {}
+        for seq_name in aln_trimmed:
+            sample_name = aln_trimmed[seq_name]["sample_name"]
+            if sample_name in haplos:
+                haplos[sample_name].append("-" * aln_width)
+            else:
+                haplos[sample_name] = ["-" * aln_width]
+
+        for seq_name in aln_trimmed:
+            sample_name  = aln_trimmed[seq_name]["sample_name"]
+            seq = aln_trimmed[seq_name]["sequence"]
+            if len(haplos[sample_name]) == 1:
+                haplos[sample_name][0] = seq
+            else:
+                for hap in range(len(haplos[sample_name])):
+                    if can_be_merged(haplos[sample_name][hap], seq):
+                        merged_hap = ""
+                        for pos in range(len(seq)):
+                            if haplos[sample_name][hap][pos] == "-":
+                                merged_hap += seq[pos]
+                            else:
+                                merged_hap += haplos[sample_name][hap][pos]
+                        haplos[sample_name][hap] = merged_hap
+                        break
+                    else:
+                        continue
+
+        min_copies = 0
+        for sample_name in haplos:
+            for haplo in haplos[sample_name]:
+                if len(haplo.strip("-")) > 0: min_copies += 1
+
+        return min_copies
+
+
     start = time.time()
     curated_fasta_path = Path(curate_dir_path, input_fasta_path.name)
 
@@ -1082,19 +1144,6 @@ def curate(
                     cds_ids[aln[seq_name]["cds_id"]] = seq_len_ungapped
 
         if len(aln_trimmed) > 1:
-
-            single_copy = True
-            samples = set(aln_samples)
-            overlaps = {k: ["-"] * aln_width for k in samples}
-            for seq_name in aln_trimmed:
-                seq = aln_trimmed[seq_name]["sequence"].upper()
-                for pos in range(aln_width):
-                    if overlaps[aln_trimmed[seq_name]["sample_name"]][pos] == "-":
-                        overlaps[aln_trimmed[seq_name]["sample_name"]][pos] = seq[pos]
-                    elif overlaps[aln_trimmed[seq_name]["sample_name"]][pos] != seq[pos]:
-                        single_copy = False
-                        break
-
             ast = alignment_stats(aln_trimmed, "NT", coding=False)
             ast["genera"] = len(set(aln_genera))
             ast["species"] = len(set(aln_species))
@@ -1102,7 +1151,8 @@ def curate(
             ast["outgroup"] = len(set(aln_outgroup_species))
             ast["samples"] = len(set(aln_samples))
             ast["addons"] = len(set(aln_addon_samples))
-            ast["single_copy"] = single_copy
+            ast["copies"] = min_copies(aln_trimmed, aln_width)
+            ast["avg_copies"] = ast["copies"] / ast["samples"]
             ast["cds_id"] = "NA"
             ast["exons"] = "NA"
             ast["exons_len"] = "NA"
@@ -1160,7 +1210,8 @@ def curate(
             stats = [
                 f"{curated_fasta_path}",                        # Path to curated FASTA
                 f"{curated_fasta_path.stem}",                   # Locus name
-                f"{ast['single_copy']}",                        # Is single copy marker or not
+                f"{ast['copies']}",                             # Minimum number of copies in locus
+                f"{ast['avg_copies']:.2f}",                     # Average number of copies in locus
                 f"{ast['sites']}",                              # Alignment length
                 f"{ast['gc']:.2f}",                             # % GC content
                 f"{ast['avg_pid']:.2f}",                        # % Pairwise identity
@@ -1204,7 +1255,8 @@ def write_aln_stats(out_dir: Path, shared_aln_stats: list):
         with open(stats_tsv_file, "wt") as tsv_out:
             tsv_out.write("\t".join(["path",
                                      "locus",
-                                     "single_copy",
+                                     "copies",
+                                     "avg_copies",
                                      "length",
                                      "gc_content",
                                      "avg_pid",
