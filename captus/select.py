@@ -154,7 +154,7 @@ def load_aln_stats_tsv(clusters_dir: Path):
                     record = line.strip().split()
                     aln_stats[record[1]] = {
                         "path": Path(record[0]),
-                        "avg_copies": record[3],
+                        "avg_copies": float(record[3]),
                         "length": int(record[4]),
                         "gc_content": float(record[5]),
                         "avg_pid": float(record[6]),
