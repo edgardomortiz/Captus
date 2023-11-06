@@ -3432,10 +3432,15 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
 def build_design_report(out_dir, des_stats_tsv, step):
     start = time.time()
 
-    df = pd.read_table(des_stats_tsv).fillna("NaN")
-    df.drop(columns=["path"], inplace=True)
+    df = pd.read_table(
+        des_stats_tsv,
+        usecols=range(1, 24),
+        low_memory=False,
+    ).fillna("NaN")
     if (df["cds_id"] == "NaN").all():
         var_dict = {
+            "Total copies": "copies",
+            "Mean copies": "avg_copies",
             "Length (bp)": "length",
             "GC content (%)": "gc_content",
             "Mean pairwise identity (%)": "avg_pid",
@@ -3452,23 +3457,26 @@ def build_design_report(out_dir, des_stats_tsv, step):
         }
         hovertemplate = "<br>".join([
             "Locus: <b>%{customdata[0]}</b>",
-            "Single-copy: <b>%{customdata[1]}</b>",
-            "Length: <b>%{customdata[2]:,.0f} bp</b>",
-            "GC content: <b>%{customdata[3]:,.2f}%</b>",
-            "Mean pairwise identity: <b>%{customdata[4]:.2f}%</b>",
-            "Informative sites: <b>%{customdata[5]:,.0f}</b>",
-            "Informativeness: <b>%{customdata[6]:.2f}%</b>",
-            "Missingness: <b>%{customdata[7]:,.2f}%</b>",
-            "Sequences: <b>%{customdata[8]:,.0f}</b>",
-            "Samples: <b>%{customdata[9]:,.0f}</b>",
-            "Focal species: <b>%{customdata[10]:,.0f}</b>",
-            "Outgroup species: <b>%{customdata[11]:,.0f}</b>",
-            "Add-on samples: <b>%{customdata[12]:,.0f}</b>",
-            "Species: <b>%{customdata[13]:,.0f}</b>",
-            "Genera: <b>%{customdata[14]:,.0f}</b><extra></extra>",
+            "Total copies: <b>%{customdata[1]:,.0f}</b>",
+            "Mean copies: <b>%{customdata[2]:,.2f}</b>",
+            "Length: <b>%{customdata[3]:,.0f} bp</b>",
+            "GC content: <b>%{customdata[4]:,.2f}%</b>",
+            "Mean pairwise identity: <b>%{customdata[5]:.2f}%</b>",
+            "Informative sites: <b>%{customdata[6]:,.0f}</b>",
+            "Informativeness: <b>%{customdata[7]:.2f}%</b>",
+            "Missingness: <b>%{customdata[8]:,.2f}%</b>",
+            "Sequences: <b>%{customdata[9]:,.0f}</b>",
+            "Samples: <b>%{customdata[10]:,.0f}</b>",
+            "Focal species: <b>%{customdata[11]:,.0f}</b>",
+            "Outgroup species: <b>%{customdata[12]:,.0f}</b>",
+            "Add-on samples: <b>%{customdata[13]:,.0f}</b>",
+            "Species: <b>%{customdata[14]:,.0f}</b>",
+            "Genera: <b>%{customdata[15]:,.0f}</b><extra></extra>",
         ])
     else:
         var_dict = {
+            "Total copies": "copies",
+            "Mean copies": "avg_copies",
             "Length (bp)": "length",
             "GC content (%)": "gc_content",
             "Mean pairwise identity (%)": "avg_pid",
@@ -3483,135 +3491,105 @@ def build_design_report(out_dir, des_stats_tsv, step):
             "Species": "species",
             "Genera": "genera",
             "CDS length (bp)": "cds_len",
-            "Length of long exons retained (bp)": "len_long_exons_retained",
-            "Length of short exons retained (bp)": "len_short_exons_retained",
-            "Percentage of exons retained (%)": "perc_exons_retained",
-            "Percentage of long exons retained (%)": "perc_long_exons_retained",
-            "Percentage of short exons retained (%)": "perc_short_exons_retained",
+            "Length of<br>long exons retained (bp)": "len_long_exons_retained",
+            "Length of<br>short exons retained (bp)": "len_short_exons_retained",
+            "Percentage of<br>exons retained (%)": "perc_exons_retained",
+            "Percentage of<br>long exons retained (%)": "perc_long_exons_retained",
+            "Percentage of<br>short exons retained (%)": "perc_short_exons_retained",
         }
         hovertemplate = "<br>".join([
             "Locus: <b>%{customdata[0]}</b>",
-            "Single-copy: <b>%{customdata[1]}</b>",
-            "Length: <b>%{customdata[2]:,.0f} bp</b>",
-            "GC content: <b>%{customdata[3]:,.2f}%</b>",
-            "Mean pairwise identity: <b>%{customdata[4]:.2f}%</b>",
-            "Informative sites: <b>%{customdata[5]:,.0f}</b>",
-            "Informativeness: <b>%{customdata[6]:.2f}%</b>",
-            "Missingness: <b>%{customdata[7]:,.2f}%</b>",
-            "Sequences: <b>%{customdata[8]:,.0f}</b>",
-            "Samples: <b>%{customdata[9]:,.0f}</b>",
-            "Focal species: <b>%{customdata[10]:,.0f}</b>",
-            "Outgroup species: <b>%{customdata[11]:,.0f}</b>",
-            "Add-on samples: <b>%{customdata[12]:,.0f}</b>",
-            "Species: <b>%{customdata[13]:,.0f}</b>",
-            "Genera: <b>%{customdata[14]:,.0f}</b>",
-            "CDS id: <b>%{customdata[15]}</b>",
-            "CDS length: <b>%{customdata[16]:,.0f} bp</b>",
-            "Length of long exons retained: <b>%{customdata[17]:,.0f} bp</b>",
-            "Length of short exons retained: <b>%{customdata[18]:,.0f} bp</b>",
-            "Percentage of exons retained: <b>%{customdata[19]:.2f}%</b>",
-            "Percentage of long exons retained: <b>%{customdata[20]:.2f}%</b>",
-            "Percentage of short exons retained: <b>%{customdata[21]:.2f}%</b><extra></extra>",
+            "Total copies: <b>%{customdata[1]:,.0f}</b>",
+            "Mean copies: <b>%{customdata[2]:,.2f}</b>",
+            "Length: <b>%{customdata[3]:,.0f} bp</b>",
+            "GC content: <b>%{customdata[4]:,.2f}%</b>",
+            "Mean pairwise identity: <b>%{customdata[5]:.2f}%</b>",
+            "Informative sites: <b>%{customdata[6]:,.0f}</b>",
+            "Informativeness: <b>%{customdata[7]:.2f}%</b>",
+            "Missingness: <b>%{customdata[8]:,.2f}%</b>",
+            "Sequences: <b>%{customdata[9]:,.0f}</b>",
+            "Samples: <b>%{customdata[10]:,.0f}</b>",
+            "Focal species: <b>%{customdata[11]:,.0f}</b>",
+            "Outgroup species: <b>%{customdata[12]:,.0f}</b>",
+            "Add-on samples: <b>%{customdata[13]:,.0f}</b>",
+            "Species: <b>%{customdata[14]:,.0f}</b>",
+            "Genera: <b>%{customdata[15]:,.0f}</b>",
+            "CDS id: <b>%{customdata[16]}</b>",
+            "CDS length: <b>%{customdata[17]:,.0f} bp</b>",
+            "Length of long exons retained: <b>%{customdata[18]:,.0f} bp</b>",
+            "Length of short exons retained: <b>%{customdata[19]:,.0f} bp</b>",
+            "Percentage of exons retained: <b>%{customdata[20]:.2f}%</b>",
+            "Percentage of long exons retained: <b>%{customdata[21]:.2f}%</b>",
+            "Percentage of short exons retained: <b>%{customdata[22]:.2f}%</b><extra></extra>",
         ])
-    figs = []
+
     fig = go.Figure()
-    for single_copy in sorted(df["single_copy"].unique(), reverse=True):
-        d = df.query('single_copy == @single_copy')
-        x=d[list(var_dict.values())[0]]
-        y=d[list(var_dict.values())[3]]
-        color = "#56B4E9" if single_copy == True else "#CC79A7"
-        fig.add_trace(
-            go.Histogram2dContour(
-                x=x,
-                y=y,
-                contours_coloring="fill",
-                colorscale=[
-                    [0, "rgba(8,8,8,0)"],
-                    [1, color],
-                ],
-                opacity=0.5,
-                showscale=False,
-                line_width=0.1,
-                hoverinfo="skip",
-                legendgroup=str(single_copy),
-            )
-        )
-        fig.add_trace(
-            go.Scatter(
-                x=x,
-                y=y,
-                name=str(single_copy),
-                mode="markers",
-                legendgroup=str(single_copy),
-                customdata=d,
-                hovertemplate=hovertemplate,
-                marker=dict(
-                    size=7 if len(df) < 1000 else 4,
-                    color=color,
-                    opacity=0.7,
-                    line=dict(
-                        width=1,
-                    )
+    x=df["length"]
+    y=df["informative_sites"]
+    color=df["avg_copies"]
+    fig.add_trace(
+        go.Scatter(
+            x=x,
+            y=y,
+            mode="markers",
+            showlegend=False,
+            customdata=df,
+            hovertemplate=hovertemplate,
+            marker=dict(
+                size=7 if len(df) < 1000 else 4,
+                color=color,
+                colorscale="Spectral_r",
+                colorbar=dict(
+                    ticks="outside",
+                    outlinecolor="rgb(8,8,8)",
+                    outlinewidth=1,
                 ),
-            )
+                opacity=0.7,
+                showscale=True,
+            ),
         )
-        fig.add_trace(
-            go.Histogram(
-                x=x,
-                yaxis="y2",
-                bingroup="x",
-                hovertemplate="<br>".join([
-                    "Bin: <b>%{x}</b>",
-                    "Count: <b>%{y}</b><extra></extra>",
-                ]),
-                marker=dict(
-                    color=color,
-                    opacity=0.7,
-                    line=dict(
-                        color="rgb(8,8,8)",
-                        width=1,
-                    ),
-                ),
-                legendgroup=str(single_copy),
-                showlegend=False,
-            )
+    )
+    fig.add_trace(
+        go.Histogram(
+            x=x,
+            yaxis="y2",
+            hovertemplate="<br>".join([
+                "Bin: <b>%{x}</b>",
+                "Count: <b>%{y}</b><extra></extra>",
+            ]),
+            marker=dict(
+                color="#56B4E9",
+                opacity=0.7,
+            ),
+            showlegend=False,
         )
-        fig.add_trace(
-            go.Histogram(
-                y=y,
-                xaxis="x2",
-                bingroup="y",
-                hovertemplate="<br>".join([
-                    "Bin: <b>%{y}</b>",
-                    "Count: <b>%{x}</b><extra></extra>",
-                ]),
-                marker=dict(
-                    color=color,
-                    opacity=0.7,
-                    line=dict(
-                        color="rgb(8,8,8)",
-                        width=1,
-                    ),
-                ),
-                legendgroup=str(single_copy),
-                showlegend=False,
-            )
+    )
+    fig.add_trace(
+        go.Histogram(
+            y=y,
+            xaxis="x2",
+            hovertemplate="<br>".join([
+                "Bin: <b>%{y}</b>",
+                "Count: <b>%{x}</b><extra></extra>",
+            ]),
+            marker=dict(
+                color="#56B4E9",
+                opacity=0.7,
+            ),
+            showlegend=False,
         )
-    buttonsX, buttonsY = [], []
+    )
+    buttonsX, buttonsY, buttonsColor = [], [], []
     for lab, var in var_dict.items():
-        x_list, y_list = [], []
-        for single_copy in sorted(df["single_copy"].unique(), reverse=True):
-            d = df.query('single_copy == @single_copy')
-            x = [d[var], d[var], d[var], None]
-            y = [d[var], d[var], None, d[var]]
-            x_list += x
-            y_list += y
+        x = [df[var], df[var], None]
+        y = [df[var], None, df[var]]
+        color = [df[var], "#56B4E9", "#56B4E9"]
         buttonX = dict(
             label=lab,
             method="update",
             args=[
                 dict(
-                    x=x_list,
+                    x=x,
                 ),
             ]
         )
@@ -3620,12 +3598,20 @@ def build_design_report(out_dir, des_stats_tsv, step):
             method="update",
             args=[
                 dict(
-                    y=y_list,
+                    y=y,
                 ),
             ]
         )
+        buttonColor = dict(
+            label=lab,
+            method="update",
+            args=[{
+                "marker.color": color,
+            }]
+        )
         buttonsX.append(buttonX)
         buttonsY.append(buttonY)
+        buttonsColor.append(buttonColor)
 
     updatemenus = [
             dict(
@@ -3633,7 +3619,7 @@ def build_design_report(out_dir, des_stats_tsv, step):
                 type="dropdown",
                 direction="up",
                 pad={"t": 30, "b": 10},
-                active=0,
+                active=2,
                 showactive=True,
                 x=0.475,
                 xanchor="center",
@@ -3645,14 +3631,41 @@ def build_design_report(out_dir, des_stats_tsv, step):
                 type="dropdown",
                 direction="down",
                 pad={"t": 10, "b": 10, "r": 40},
-                active=3,
+                active=5,
                 showactive=True,
                 x=0,
                 xanchor="right",
                 y=0.4625,
                 yanchor="middle"
             ),
+            dict(
+                buttons=buttonsColor,
+                type="dropdown",
+                direction="down",
+                pad={"t": 10, "b": 10},
+                active=1,
+                showactive=True,
+                x=1,
+                xanchor="left",
+                y=1,
+                yanchor="bottom"
+            ),
         ]
+    annotations = [
+        dict(
+            text="<b>Color by:</b>",
+            x=1,
+            xref="paper",
+            xanchor="right",
+            xshift=-5,
+            y=1,
+            yref="paper",
+            yanchor="top",
+            yshift=36,
+            align="right",
+            showarrow=False,
+        ),
+    ]
     if step == "cluster":
         des_html_report = Path(out_dir, "captus-design_cluster.report.html")
         title = (
@@ -3699,48 +3712,36 @@ def build_design_report(out_dir, des_stats_tsv, step):
             zeroline=True,
             domain=[0.925, 1],
         ),
-        hoverlabel=dict(
-            font_color="rgb(64,64,64)",
-            bordercolor="rgb(64,64,64)",
-        ),
-        legend=dict(
-            title=dict(
-                text="<b>Single-copy</b>",
-                side="top",
-            ),
-            itemsizing="constant",
-        ),
-        barmode="overlay",
+        bargap=0.1,
+        annotations=annotations,
         updatemenus=updatemenus,
     )
-    figs.append(fig)
     with open(des_html_report, "w") as f:
-        for fig in figs:
-            f.write(
-                fig.to_html(
-                    full_html=False,
-                    include_plotlyjs="cdn",
-                    config=dict(
-                        scrollZoom=True,
-                        toImageButtonOptions=dict(
-                            format="svg",
-                        ),
-                        modeBarButtonsToAdd=[
-                            "v1hovermode",
-                            "hoverclosest",
-                            "hovercompare",
-                            "togglehover",
-                            "togglespikelines",
-                            "drawline",
-                            "drawopenpath",
-                            "drawclosedpath",
-                            "drawcircle",
-                            "drawrect",
-                            "eraseshape",
-                        ]
+        f.write(
+            fig.to_html(
+                full_html=False,
+                include_plotlyjs="cdn",
+                config=dict(
+                    scrollZoom=True,
+                    toImageButtonOptions=dict(
+                        format="svg",
                     ),
-                )
+                    modeBarButtonsToAdd=[
+                        "v1hovermode",
+                        "hoverclosest",
+                        "hovercompare",
+                        "togglehover",
+                        "togglespikelines",
+                        "drawline",
+                        "drawopenpath",
+                        "drawclosedpath",
+                        "drawcircle",
+                        "drawrect",
+                        "eraseshape",
+                    ]
+                ),
             )
+        )
     if des_html_report.exists() and des_html_report.is_file():
         des_html_msg = dim(f"Report generated in {elapsed_time(time.time() - start)}")
     else:
