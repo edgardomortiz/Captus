@@ -1250,7 +1250,7 @@ def curate(
 def write_aln_stats(out_dir: Path, shared_aln_stats: list):
     stats_tsv_file = Path(out_dir, "captus-design_cluster.alignments.tsv")
     if not shared_aln_stats:
-        if stats_tsv_file.exists() and not file_is_empty(stats_tsv_file)
+        if stats_tsv_file.exists() and not file_is_empty(stats_tsv_file):
             return stats_tsv_file
         else:
             return None

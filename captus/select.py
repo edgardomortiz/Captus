@@ -458,7 +458,7 @@ def copy_loci(aln_stats: dict, out_dir: Path, overwrite: bool, show_more: bool):
 def write_aln_stats(out_dir: Path, aln_stats_filtered: dict):
     stats_tsv_file = Path(out_dir, "captus-design_select.alignments.tsv")
     if not aln_stats_filtered:
-        if stats_tsv_file.exists() and not file_is_empty(stats_tsv_file)
+        if stats_tsv_file.exists() and not file_is_empty(stats_tsv_file):
             return stats_tsv_file
         else:
             return None
