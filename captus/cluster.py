@@ -231,10 +231,10 @@ def cluster(full_command, args):
                   f" bp or longer than {max_seq_len} bp from FASTAs")
     if args.debug:
         tqdm_serial_run(filter_fasta, filter_params, task_title,
-                        f"Length filtering completed", "sample", show_less)
+                        "Length filtering completed", "sample", show_less)
     else:
         tqdm_parallel_async_run(filter_fasta, filter_params, task_title,
-                                f"Length filtering completed", "sample", threads_max, show_less)
+                                "Length filtering completed", "sample", threads_max, show_less)
 
     log.log("")
 
@@ -258,7 +258,7 @@ def cluster(full_command, args):
         ))
     tqdm_serial_run(dedup_fasta, dedup_params,
                     f"Deduplicating sequences from each sample at {args.dedup_threshold}% identity",
-                    f"Deduplication completed", "sample", show_less)
+                    "Deduplication completed", "sample", show_less)
     log.log("")
 
     concat_dir_path, concat_dir_msg = make_output_dir(Path(out_dir, settings.DES_DIRS["CAT"]))
@@ -757,7 +757,7 @@ def cluster_markers(
 
     start = time.time()
     log.log("")
-    log.log(bold(f"Writing clusters in FASTA format:"))
+    log.log(bold("Writing clusters in FASTA format:"))
     clusters_all = {}
     clusters_pass = {}
     if file_is_empty(cluster_tsv_path) or not cluster_tsv_path.exists():

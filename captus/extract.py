@@ -885,7 +885,7 @@ def find_and_copy_fastas(fastas, captus_assemblies_dir, overwrite, threads_max, 
     Search within a provided directory is recursive
     """
     valid_exts = settings.FASTA_VALID_EXTENSIONS
-    if type(fastas) is not list:
+    if not isinstance(fastas, list):
         fastas = [fastas]
     if len(fastas) == 1 and Path(fastas[0]).is_dir():
         fastas = [file for file in Path(fastas[0]).resolve().rglob("*")
@@ -1180,9 +1180,9 @@ def reference_info(query_dict):
     info_msg = bold(f'{num_loci:,} loci, {num_seqs:,} sequences ')
     if separators_found == num_seqs:
         if num_loci == num_seqs:
-            info_msg += dim(f'(loci names found, detected a single sequence per locus)')
+            info_msg += dim('(loci names found, detected a single sequence per locus)')
         elif num_loci < num_seqs:
-            info_msg += dim(f'(loci names found, detected multiple sequences per locus)')
+            info_msg += dim('(loci names found, detected multiple sequences per locus)')
     else:
         info_msg += dim(
             f'(locus name separator "{settings.REFERENCE_CLUSTER_SEPARATOR}" missing in '
@@ -1352,9 +1352,6 @@ def run_scipio_parallel(
     scipio_out_dir, _ = make_output_dir(scipio_out_dir)
 
     if dir_is_empty(scipio_out_dir) is True or overwrite is True:
-        manager = Manager()
-        shared_yaml_list = manager.list()
-
         # First, run BLAT only using the complete target and query files
         blat_only = True
         blat_psl = run_scipio_command(scipio_params["scipio_path"], blat_out_file,
@@ -2153,7 +2150,7 @@ def cluster_and_select_refs(
                                      min_coverage, cov_mode, cluster_mode, threads)
     log.log(clust2_message)
     log.log("")
-    log.log(bold(f"Selecting final cluster representatives:"))
+    log.log(bold("Selecting final cluster representatives:"))
     start = time.time()
     clust2_all_seqs_file = Path(clustering_dir, f"{clust2_prefix}_all_seqs.fasta")
     clust2_clusters = split_mmseqs_clusters_file(clust2_all_seqs_file)

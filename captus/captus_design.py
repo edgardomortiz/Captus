@@ -22,10 +22,10 @@ import argparse
 import sys
 
 from . import settings as settings
-from .cluster import cluster
-from .select import select
 from .bait import bait
+from .cluster import cluster
 from .misc import MyHelpFormatter, bold, red
+from .select import select
 from .version import __version__
 
 
@@ -108,7 +108,7 @@ class CaptusDesign(object):
             dest="markers_to_cluster",
             help="B|Input directory containing data to cluster. Valid extensions are: .fasta,"
                  " .fasta.gz, .fna, .fna.gz, .gff, .gff.gz, .gff3, .gff3.gz, .gtf, .gtf.gz."
-                 " Everything before he extension will be used as sample name. If a FASTA file is"
+                 " Everything before the extension will be used as sample name. If a FASTA file is"
                  " found with its corresponding annotation track in GFF, then the CDS features will"
                  " be used for clustering, otherwise, every sequence in the FASTA file will be used"
                  " for clustering. There are a few ways to provide the input filenames:\n"
@@ -774,15 +774,37 @@ class CaptusDesign(object):
                  " will overlap by at most 30 bp"
         )
         clustering_group.add_argument(
-            "--ct", "--clust_threshold",
+            "--bct", "--bait_clust_threshold",
             action="store",
             type=float,
-            dest="clust_threshold",
-            default=86,
+            dest="bait_clust_threshold",
+            default=86.0,
             help="The entire set of potential baits are finally clustered at this identity, keeping"
                  " a single centroid bait sequence per cluster. It has been shown than a bait can"
                  " hybridize with a target sequence that is at least 75%% identical, therefore do"
                  " not use clustering thresholds lower than 0.75"
+        )
+
+        ref_target_group = parser.add_argument_group("Reference target file creation")
+        ref_target_group.add_argument(
+            "--tct", "--target_clust_threshold",
+            action="store",
+            type=str,
+            dest="target_clust_threshold",
+            default="auto",
+            help="A reference target file will be created only for the baits that passed the filters"
+                 " and clustering. The reference target sequences will be clustered at this"
+                 " threshold to reduce redundancy, if set to 'auto' the same clustering threshold"
+                 " that was used for the baits will be used"
+        )
+        ref_target_group.add_argument(
+            "--tmc", "--target_min_coverage",
+            type=float,
+            dest="target_min_coverage",
+            default=75.0,
+            help="To avoid including partial sequences for a locus, only the reference target"
+                " with at least this percentage of coverage with respect of the longest target in"
+                " the locus will be retained"
         )
 
         other_group = parser.add_argument_group("Other")
@@ -801,6 +823,14 @@ class CaptusDesign(object):
             type=str,
             dest="vsearch_path",
             help="Path to VSEARCH"
+        )
+        other_group.add_argument(
+            "--mmseqs_path",
+            action="store",
+            default="mmseqs",
+            type=str,
+            dest="mmseqs_path",
+            help="Path to MMseqs2"
         )
         other_group.add_argument(
             "--ram",
