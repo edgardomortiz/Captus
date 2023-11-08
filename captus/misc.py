@@ -296,7 +296,7 @@ def find_and_match_fastqs(reads, recursive=False):
     fastqs[file_R1] = ["containing_drectory", None} for single-end files
     """
     valid_exts = settings.FASTQ_VALID_EXTENSIONS
-    if type(reads) is not list:
+    if not isinstance(reads, list):
         reads = [reads]
     if len(reads) == 1 and Path(reads[0]).is_dir():
         if recursive:
@@ -346,7 +346,7 @@ def find_and_match_fastas_gffs(markers, recursive=False):
     valid_fasta_exts = settings.FASTA_VALID_EXTENSIONS
     valid_gff_exts   = settings.GFF_VALID_EXTENSIONS
     fastas, gffs = [], []
-    if type(markers) is not list:
+    if not isinstance(markers, list):
         markers = [markers]
     if len(markers) == 1 and Path(markers[0]).is_dir():
         if recursive:
@@ -465,7 +465,7 @@ def execute_jupyter_report(out_dir, jupyter_notebook, title, prefix):
     if qc_html_report.exists() and qc_html_report.is_file():
         qc_html_msg = dim(f"Report generated in {elapsed_time(time.time() - start)}")
     else:
-        qc_html_msg = red(f"Report not generated, verify your Jupyter installation")
+        qc_html_msg = red("Report not generated, verify your Jupyter installation")
 
     return qc_html_report, qc_html_msg
 

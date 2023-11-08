@@ -22,11 +22,13 @@ from pathlib import Path
 from tqdm import tqdm
 
 from . import log, settings
-from .bioformats import bait_stats, dict_to_fasta, fasta_to_dict, resolve_iupac
+from .bioformats import (bait_stats, dict_to_fasta, fasta_to_dict, mmseqs2_cluster, resolve_iupac,
+                         split_mmseqs_clusters_file)
 from .misc import (bbtools_path_version, bold, compress_list_files, dim, dir_is_empty, elapsed_time,
                    file_is_empty, format_dep_msg, gzip_compress, has_valid_ext, make_output_dir,
-                   pigz_compress, python_library_check, quit_with_error, red, set_ram, set_threads,
-                   successful_exit, tqdm_parallel_async_run, tqdm_serial_run, vsearch_path_version)
+                   mmseqs_path_version, pigz_compress, python_library_check, quit_with_error, red,
+                   set_ram, set_threads, successful_exit, tqdm_parallel_async_run, tqdm_serial_run,
+                   vsearch_path_version)
 from .version import __version__
 
 
@@ -36,7 +38,7 @@ def bait(full_command, args):
     out_dir, out_dir_msg = make_output_dir(args.out)
     log.logger = log.Log(Path(out_dir, "captus-design_bait.log"), stdout_verbosity_level=1)
 
-    mar = 24  # Margin for aligning parameters and values
+    mar = 27  # Margin for aligning parameters and values
 
     ################################################################################################
     ############################################################################### STARTING SECTION
@@ -64,6 +66,8 @@ def bait(full_command, args):
     log.log(format_dep_msg(f'{"BBTools":>{mar}}: ', bbmap_version, bbmap_status))
     _, vsearch_version, vsearch_status = vsearch_path_version(args.vsearch_path)
     log.log(format_dep_msg(f'{"VSEARCH":>{mar}}: ', vsearch_version, vsearch_status))
+    _, mmseqs_version, mmseqs_status = mmseqs_path_version(args.mmseqs_path)
+    log.log(format_dep_msg(f'{"MMseqs2":>{mar}}: ', mmseqs_version, mmseqs_status))
     log.log("")
 
     log.log(f'{"Python libraries":>{mar}}:')
@@ -86,6 +90,10 @@ def bait(full_command, args):
     if vsearch_status == "not_found":
         quit_with_error(
             "Captus could not find VSEARCH, please provide a valid path with '--vsearch_path'"
+        )
+    if mmseqs_status == "not_found":
+        quit_with_error(
+            "Captus could not find MMseqs2, please provide a valid path with '--mmseqs_path'"
         )
 
 
@@ -206,7 +214,7 @@ def bait(full_command, args):
     ######################################################################## BAIT CLUSTERING SECTION
     log.log_section_header("Clustering and tiling baits")
     log.log_explanation(
-        "Now Captus will cluster the filtered baits at '--clust_threshold' percent identity"
+        "Now Captus will cluster the filtered baits at '--bait_clust_threshold' percent identity"
         " and tiled at '--tiling_percentage_overlap' to create the final set of baits ready to be"
         " sent for synthesis. Increase the clustering threshold to increase the final number of"
         " baits or reduce it to achieve the opposite result."
@@ -215,20 +223,58 @@ def bait(full_command, args):
     log.log(f'{"Bait length":>{mar}}: {bold(args.bait_length)}')
     log.log("")
     log.log(f'{"Tiling overlap":>{mar}}: {bold(args.tiling_percentage_overlap)}% (= {mincols} bp)')
-    log.log(f'{"Clustering id.":>{mar}}: {bold(args.clust_threshold)}%')
+    log.log(f'{"Bait clustering id.":>{mar}}: {bold(args.bait_clust_threshold)}%')
     log.log("")
     log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
     log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
     log.log("")
 
     clu_baits_dir_path, clu_baits_dir_msg = make_output_dir(Path(out_dir, settings.DES_DIRS["BAI"]))
-    log.log(f'{"Final baits directory":>{mar}}: {bold(clu_baits_dir_path)}')
+    log.log(f'{"Final baitsets directory":>{mar}}: {bold(clu_baits_dir_path)}')
     log.log(f'{"":>{mar}}  {dim(clu_baits_dir_msg)}')
     log.log("")
 
-    cluster_tile_baits(
+    clust_baits_final_path = cluster_tile_baits(
         clu_baits_dir_path, baits_filtered_gz_path, args.bait_length, args.vsearch_path,
-        mincols, args.clust_threshold, args.overwrite
+        mincols, args.bait_clust_threshold, args.overwrite
+    )
+
+
+    ################################################################################################
+    ######################################################### REFERENCE TARGET FILE CREATION SECTION
+    log.log_section_header("Creating reference target file")
+    log.log_explanation(
+        "Now Captus will prepare a reference target file that can be used for marker extraction"
+        " (e.g., with 'captus_assembly extract'). Only the loci for which baits were created will be"
+        " included. The reference target sequences will be clustered at '--target_clust_threshold'"
+        " which is set by default to the same clustering threshold used to reduce the set of baits"
+        " (i.e., '--bait_clust_threshold'). Finally, to avoid including partial sequences for any"
+        " locus, only the sequences with at least '--target_min_coverage' with respect to the"
+        " longest sequence in their locus will be retained"
+    )
+    if args.target_clust_threshold == "auto":
+        args.target_clust_threshold = args.bait_clust_threshold
+    else:
+        try:
+            args.target_clust_threshold = float(args.target_clust_threshold)
+        except ValueError:
+            quit_with_error("Please provide '--target_clust_thresold' as a number...")
+    log.log(f'{"Target clustering id.":>{mar}}: {bold(args.target_clust_threshold)}%')
+    log.log(f'{"Target min. coverage":>{mar}}: {bold(args.target_min_coverage)}%')
+    log.log("")
+    log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
+    log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
+    log.log("")
+
+    targets_dir_path, targets_dir_msg = make_output_dir(Path(out_dir, settings.DES_DIRS["TAR"]))
+    log.log(f'{"Ref. target files directory":>{mar}}: {bold(targets_dir_path)}')
+    log.log(f'{"":>{mar}}  {dim(targets_dir_msg)}')
+    log.log("")
+
+    prepare_targets(
+        targets_dir_path, clust_baits_final_path, args.mmseqs_path,
+        args.target_clust_threshold, args.target_min_coverage, fastas_auto,
+        fastas_manual, threads_max, args.overwrite, args.show_more
     )
 
 
@@ -309,21 +355,23 @@ def create_baits(
     if overwrite or (not baits_full_exons_path.exists() and not baits_full_no_exons_path.exists()):
         exons_data = find_and_merge_exon_data(cluster_dir_path)
         all_cds_ids = []
+        start = time.time()
         log.log(bold(f"Segmenting selected loci alignments into {bait_length} bp baits:"))
         tqdm_cols = min(shutil.get_terminal_size().columns, 120)
         with tqdm(total=len(fastas), ncols=tqdm_cols, unit="loci") as pbar:
             for fasta_path in fastas:
-                start = time.time()
+                inner_start = time.time()
                 fasta_in = fasta_to_dict(fasta_path)
                 cds_ids = []
                 bait_count = 1
                 baits = {}
-                locus, ext = "", ""
-                for e in settings.FASTA_VALID_EXTENSIONS:
-                    if f"{fasta_path}".lower().endswith(e.lower()):
-                        locus = f"{fasta_path.name}".rstrip(e)
-                        ext = e
+                locus = ""
+                for ext in settings.FASTA_VALID_EXTENSIONS:
+                    if f"{fasta_path}".lower().endswith(ext.lower()):
+                        locus = f"{fasta_path.name}".rstrip(ext)
                         break
+                # in case the locus name contains "-", replace by "_"
+                locus.replace(settings.REFERENCE_CLUSTER_SEPARATOR, "_")
                 for seq_name in fasta_in:
                     if settings.SEQ_NAME_SEP in seq_name:
                         sample = seq_name.split(settings.SEQ_NAME_SEP)[0]
@@ -348,7 +396,7 @@ def create_baits(
                     dict_to_fasta(baits, baits_full_exons_path, append=True)
                 else:
                     dict_to_fasta(baits, baits_full_no_exons_path, append=True)
-                msg = f"'{fasta_path.name}': processed [{elapsed_time(time.time() - start)}]"
+                msg = f"'{fasta_path.name}': processed [{elapsed_time(time.time() - inner_start)}]"
                 if show_more: tqdm.write(msg)
                 log.log(msg, print_to_screen=False)
                 pbar.update()
@@ -363,7 +411,7 @@ def create_baits(
             long_exons_fastas = find_fastas_in_dir(cluster_dir_path, settings.DES_SUFFIXES["LONG"])
             if all_cds_ids and long_exons_fastas:
                 start = time.time()
-                log.log(bold(f"Saving FASTA file with the long exons found in selected loci:"))
+                log.log(bold("Saving FASTA file with the long exons found in selected loci:"))
                 tqdm_cols = min(shutil.get_terminal_size().columns, 120)
                 with tqdm(total=len(long_exons_fastas), ncols=tqdm_cols, unit="file") as pbar:
                     inner_start = time.time()
@@ -419,7 +467,7 @@ def dereplicate_compress_baits(
     baits_to_compress = []
 
     if overwrite or (not baits_exons_gz_path.exists() and not baits_no_exons_gz_path.exists()):
-        log.log(bold(f"Dereplicating bait sequences:"))
+        log.log(bold("Dereplicating bait sequences:"))
         if baits_exons_path.exists(): baits_exons_path.unlink()
         if baits_no_exons_path.exists(): baits_no_exons_path.unlink()
         tqdm_cols = min(shutil.get_terminal_size().columns, 120)
@@ -488,7 +536,7 @@ def map_exonic_baits(
         baits_sam_log_path = Path(f"{baits_exons_mapped_path}".replace(".fasta", ".bbmap.log"))
         baits_sam_stdout_path = Path(f"{baits_exons_mapped_path}".replace(".fasta", ".stdout.log"))
         baits_sam_stderr_path = Path(f"{baits_exons_mapped_path}".replace(".fasta", ".stderr.log"))
-        log.log(bold(f"Mapping baits to long exon sequences:"))
+        log.log(bold("Mapping baits to long exon sequences:"))
         tqdm_cols = min(shutil.get_terminal_size().columns, 120)
         with tqdm(total=2, ncols=tqdm_cols, unit="task") as pbar:
 
@@ -505,7 +553,7 @@ def map_exonic_baits(
                 "sam=1.3",
                 f"fastawrap={bait_length}",
                 f"maxindel={maxindel}",
-                f"strictmaxindel=t",
+                "strictmaxindel=t",
                 f"2>{baits_sam_stdout_path}"
             ]
             with open(baits_sam_stderr_path, "w") as bbmap_err:
@@ -535,7 +583,7 @@ def map_exonic_baits(
                         if not line.startswith("@"):
                             total_baits += 1
                             record = line.split("\t")
-                            if not "S" in record[5]:
+                            if "S" not in record[5]:
                                 long_exon_baits += 1
                                 baits_fasta[record[0].split(" ")[0]] = {
                                     "sequence": record[9],
@@ -597,7 +645,7 @@ def concat_refex_mask_baits(
         baits_unmap_stderr_path = Path(f"{baits_concat_path}".replace(".fasta", "_unmap.stderr.log"))
         baits_mask_log_path = Path(f"{baits_concat_path}".replace(".fasta", "_mask.vsearch.log"))
 
-        log.log(bold(f"Excluding baits matching a given reference and masking low-complexity:"))
+        log.log(bold("Excluding baits matching a given reference and masking low-complexity:"))
         tqdm_cols = min(shutil.get_terminal_size().columns, 120)
         with tqdm(total=3, ncols=tqdm_cols, unit="task") as pbar:
 
@@ -834,11 +882,11 @@ def filter_baits(
             ))
         if debug:
             tqdm_serial_run(filter_baits_chunk, filter_params,
-                            f"Filtering baits", f"Baits filtering completed",
+                            "Filtering baits", "Baits filtering completed",
                             "file", show_less)
         else:
             tqdm_parallel_async_run(filter_baits_chunk, filter_params,
-                                    f"Filtering baits", f"Baits filtering completed",
+                                    "Filtering baits", "Baits filtering completed",
                                     "file", threads_max, show_less)
         log.log("")
 
@@ -848,7 +896,7 @@ def filter_baits(
 
         start = time.time()
         rejected_bait_paths = list(filtered_baits_dir_path.rglob("*_rejected.fasta.gz"))
-        log.log(bold(f"Concatenating rejected baits files:"))
+        log.log(bold("Concatenating rejected baits files:"))
         tqdm_cols = min(shutil.get_terminal_size().columns, 120)
         with tqdm(total=len(rejected_bait_paths), ncols=tqdm_cols, unit="file") as pbar:
             for baits_chunk_path in sorted(rejected_bait_paths):
@@ -876,7 +924,7 @@ def filter_baits(
         if not accepted_bait_paths:
             quit_with_error("No baits passed the filters, try relaxing the filtering parameters...")
         baits_accepted_unsorted_path = Path(f"{baits_accepted_path}".replace(".fasta", "_unsorted.fasta"))
-        log.log(bold(f"Concatenating accepted baits files:"))
+        log.log(bold("Concatenating accepted baits files:"))
         tqdm_cols = min(shutil.get_terminal_size().columns, 120)
         with tqdm(total=len(accepted_bait_paths), ncols=tqdm_cols, unit="file") as pbar:
             for baits_chunk_path in sorted(accepted_bait_paths):
@@ -914,22 +962,20 @@ def filter_baits(
 
 def cluster_tile_baits(
     clust_baits_dir_path: Path, baits_filtered_gz_path: Path, bait_length: int, vsearch_path: str,
-    mincols: int, clust_threshold: float, overwrite: bool
+    mincols: int, bait_clust_threshold: float, overwrite: bool
 ):
 
-    clust_baits_unsorted_file = f"baits_clust{clust_threshold:.2f}_mincols{mincols}_unsorted.fasta"
+    clust_baits_unsorted_file = f"baits_clust{bait_clust_threshold:.2f}_mincols{mincols}_unsorted.fasta"
     clust_baits_unsorted_path = Path(clust_baits_dir_path, clust_baits_unsorted_file)
-    clust_baits_final_file = f"baits_clust{clust_threshold:.2f}_mincols{mincols}.fasta"
+    clust_baits_final_file = f"baits_clust{bait_clust_threshold:.2f}_mincols{mincols}.fasta"
     clust_baits_final_path = Path(clust_baits_dir_path, clust_baits_final_file)
     clust_baits_log_path = Path(f"{clust_baits_final_path}".replace(".fasta", ".log"))
-    clust_baits_tsv_path = Path(f"{clust_baits_final_path}".replace(".fasta", ".tsv"))
-    if clust_threshold > 1.0: clust_threshold /= 100
+    if bait_clust_threshold > 1.0: bait_clust_threshold /= 100
 
     if overwrite or not clust_baits_final_path.exists():
         if clust_baits_final_path.exists(): clust_baits_final_path.unlink()
         if clust_baits_log_path.exists(): clust_baits_log_path.unlink()
-        if clust_baits_tsv_path.exists(): clust_baits_tsv_path.unlink()
-        log.log(bold(f"Clustering and tiling baits:"))
+        log.log(bold("Clustering and tiling baits:"))
         tqdm_cols = min(shutil.get_terminal_size().columns, 120)
         with tqdm(total=1, ncols=tqdm_cols, unit="task") as pbar:
             inner_start = time.time()
@@ -938,7 +984,7 @@ def cluster_tile_baits(
                 "--cluster_smallmem", f"{baits_filtered_gz_path}",
                 "--usersort",
                 "--strand", "both",
-                "--id", f"{clust_threshold}",
+                "--id", f"{bait_clust_threshold}",
                 "--mincols", f"{mincols}",
                 "--fasta_width", f"{bait_length}",
                 "--notrunclabels",
@@ -969,16 +1015,177 @@ def cluster_tile_baits(
             else:
                 loci[locus] = 1
         log.log(f"'{bold(clust_baits_final_path.name)}': {num_baits} baits covering {len(loci)} loci")
-        log.log("")
-        with open(clust_baits_tsv_path, "wt") as tsv_out:
-            tsv_out.write(f"locus\tnum_baits\n")
-            for locus in sorted(loci):
-                tsv_out.write(f"{locus}\t{loci[locus]}\n")
-        log.log(f"'{bold(clust_baits_tsv_path.name)}': saved table with number of baits per locus")
-        log.log("")
     else:
         log.log(f"'{bold(clust_baits_final_path.name)}': output"
                 f" already exists, SKIPPED bait clustering")
+    log.log("")
+
+    if clust_baits_final_path.exists() and not file_is_empty(clust_baits_final_path):
+        return clust_baits_final_path
+    else:
+        quit_with_error("The final baitset file was not created or was not found, please verify...")
+
+
+def prepare_targets(
+    targets_dir_path: Path, clust_baits_final_path: Path, mmseqs_path: str,
+    target_clust_threshold: float, target_min_coverage: float, fastas_auto: list,
+    fastas_manual: list, threads: int, overwrite: bool, show_more: bool
+):
+
+    targets_concat_path = Path(targets_dir_path, "targets_concat.fasta.gz")
+    targets_final_name = f"targets_clust{target_clust_threshold:.2f}_mincov{target_min_coverage:.2f}"
+    targets_final_path = Path(targets_dir_path, f"{targets_final_name}_for_{clust_baits_final_path.name}")
+    targets_log_path = Path(f"{targets_final_path}".replace(".fasta", ".log"))
+    targets_tsv_path = Path(f"{targets_final_path}".replace(".fasta", ".tsv"))
+    fastas = fastas_auto + fastas_manual
+    if target_clust_threshold > 1.0: target_clust_threshold /= 100
+    if target_min_coverage > 1.0: target_min_coverage /= 100
+
+    if not fastas:
+        quit_with_error("FASTAs from selected loci not found, verify the path provided...")
+
+    if overwrite or not targets_concat_path.exists() or file_is_empty(targets_concat_path):
+        if targets_concat_path.exists(): targets_concat_path.unlink()
+        start = time.time()
+        log.log(bold("Concatenating reference target sequences from selected loci:"))
+        tqdm_cols = min(shutil.get_terminal_size().columns, 120)
+        with tqdm(total=len(fastas), ncols=tqdm_cols, unit="loci") as pbar:
+            for fasta_path in fastas:
+                inner_start = time.time()
+                locus = ""
+                for ext in settings.FASTA_VALID_EXTENSIONS:
+                    if f"{fasta_path}".lower().endswith(ext.lower()):
+                        locus = f"{fasta_path.name}".rstrip(ext)
+                        break
+                # in case the locus name contains "-", replace by "_"
+                locus.replace(settings.REFERENCE_CLUSTER_SEPARATOR, "_")
+                fasta_in = fasta_to_dict(fasta_path)
+                fasta_out = {}
+                for seq_name in fasta_in:
+                    fasta_out[f"{seq_name}{settings.REFERENCE_CLUSTER_SEPARATOR}{locus}"] = {
+                        "sequence": fasta_in[seq_name]["sequence"].replace("-", ""),
+                        "description": fasta_in[seq_name]["description"]
+                    }
+                dict_to_fasta(fasta_out, targets_concat_path, append=True)
+                msg = f"'{fasta_path.name}': processed [{elapsed_time(time.time() - inner_start)}]"
+                if show_more: tqdm.write(msg)
+                log.log(msg, print_to_screen=False)
+                pbar.update()
+        log.log(bold(
+            f" \u2514\u2500\u2192 Successfully processed {len(fastas)} loci"
+            f" [{elapsed_time(time.time() - start)}]"
+        ))
+    elif targets_concat_path.exists() and not file_is_empty(targets_concat_path):
+        log.log(f"The file {targets_concat_path} will be used for reference target file creation.")
+    log.log("")
+
+    if overwrite or not targets_final_path.exists() or file_is_empty(targets_final_path):
+        if targets_final_path.exists(): targets_final_path.unlink()
+        msg_p1 = "Clustering reference target sequences at"
+        msg_p2 = f" {target_clust_threshold*100:.2f}% identity:"
+        log.log(bold(f"{msg_p1}{msg_p2}"))
+        clust_prefix = targets_final_path.stem
+        clust_tmp_dir = Path(targets_dir_path, "mmseqs2_tmp")
+        message = mmseqs2_cluster(mmseqs_path,
+                                  "easy-cluster",
+                                  targets_dir_path,
+                                  targets_concat_path,
+                                  clust_prefix,
+                                  clust_tmp_dir,
+                                  7.5,
+                                  target_clust_threshold,
+                                  1,
+                                  target_min_coverage,
+                                  1,
+                                  2,
+                                  threads)
+        log.log(message)
         log.log("")
+
+        log.log(bold("Processing clusters:"))
+        start = time.time()
+        clust_all_seqs_file = Path(targets_dir_path, f"{clust_prefix}_all_seqs.fasta")
+        clusters = split_mmseqs_clusters_file(clust_all_seqs_file)
+        max_lengths = {}
+        centroids = {}
+        tqdm_cols = min(shutil.get_terminal_size().columns, 120)
+        with tqdm(total=len(clusters), ncols=tqdm_cols, unit="cluster") as pbar:
+            for cluster in clusters:
+                locus = cluster[0].split(settings.REFERENCE_CLUSTER_SEPARATOR)[-1]
+                if locus in max_lengths:
+                    if len(cluster[1]) > max_lengths[locus]: max_lengths[locus] = len(cluster[1])
+                else:
+                    max_lengths[locus] = len(cluster[1])
+                cluster_size = len(cluster) / 2
+                centroids[cluster[0].lstrip(">")] = {
+                    "sequence": cluster[1],
+                    "description": f"[cluster_size={cluster_size}]"
+                }
+        Path(targets_dir_path, f"{clust_prefix}_rep_seq.fasta").rename(targets_log_path)
+        if centroids:
+            clust_all_seqs_file.unlink()
+            Path(targets_dir_path, f"{clust_prefix}_rep_seq.fasta").unlink()
+            Path(targets_dir_path, f"{clust_prefix}_cluster.tsv").unlink()
+        log.log(bold(
+            f" \u2514\u2500\u2192 Clusters processed: {len(centroids)} [{elapsed_time(time.time() - start)}]"
+        ))
+        log.log("")
+
+        msg_p1 = "Removing loci not represented by baits and reference target"
+        msg_p2 = f" sequences under {target_min_coverage*100:.2f}% coverage:"
+        log.log(bold(f"{msg_p1}{msg_p2}"))
+        start = time.time()
+        loci_stats = {}
+        baits_fasta = fasta_to_dict(clust_baits_final_path)
+        for bait_name in baits_fasta:
+            locus = bait_name.split(settings.SEQ_NAME_SEP)[0]
+            if locus not in loci_stats:
+                loci_stats[locus] = {
+                    "baits": 1,
+                    "targets": 0,
+                }
+            else:
+                loci_stats[locus]["baits"] += 1
+        targets_out = {}
+        baitless = {}
+        for target_name in centroids:
+            locus = target_name.split(settings.REFERENCE_CLUSTER_SEPARATOR)[-1]
+            if locus in loci_stats:
+                if (len(centroids[target_name]["sequence"])
+                    / max_lengths[locus]
+                    >= target_min_coverage):
+                    targets_out[target_name] = centroids[target_name]
+                    loci_stats[locus]["targets"] += 1
+            else:
+                baitless[locus] = {
+                    "baits": 0,
+                    "targets": 0,
+                }
+        if targets_out:
+            dict_to_fasta(targets_out, targets_final_path, sort=True)
+            log.log(
+                f"{bold(targets_final_path.name)}: reference target file"
+                f" saved [{elapsed_time(time.time() - start)}] "
+            )
+            log.log("")
+        else:
+            quit_with_error("Reference target file empty, try to relax your filtering parameters...")
+
+        log.log(bold("Saving statistics per locus present in reference target file:"))
+        start = time.time()
+        with open(targets_tsv_path, "wt") as tsv_out:
+            tsv_out.write("locus\tnum_targets\tnum_baits\n")
+            for loc in sorted(baitless):
+                tsv_out.write(f'{loc}\t{baitless[loc]["targets"]}\t{baitless[loc]["baits"]}\n')
+            for loc in sorted(loci_stats):
+                tsv_out.write(f'{loc}\t{loci_stats[loc]["targets"]}\t{loci_stats[loc]["baits"]}\n')
+        if targets_tsv_path.exists() and not file_is_empty(targets_tsv_path):
+            log.log(
+                f"{bold(targets_tsv_path.name)}: loci stats table"
+                f" saved [{elapsed_time(time.time() - start)}] "
+            )
+            log.log("")
+        else:
+            quit_with_error("Loci stats table empty, try to relax your filtering parameters...")
 
     return

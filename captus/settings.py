@@ -612,6 +612,7 @@ DES_DIRS = {
     "RAW": "01_raw",           # inside 03_baits
     "FIL": "02_filtered",      # inside 03_baits
     "BAI": "03_baitsets",      # inside 03_baits
+    "TAR": "04_targets",       # inside 03_baits
 }
 
 # Design output files
