@@ -581,24 +581,24 @@ def align_prots(s1, s2, method, scoring_matrix=PAM250):
                 val_matrix[i][0] = i * scoring_matrix["gap"]
             for i in range(len(val_matrix[0])):
                 val_matrix[0][i] = i * scoring_matrix["gap"]
-            for l in range(1, len(seq_left)):
+            for L in range(1, len(seq_left)):
                 for t in range(1, len(seq_top)):
-                    val_matrix[l][t], dir_matrix[l][t] = best_score(
-                        val_matrix, l, t, seq_left[l], seq_top[t], "nw", scoring_matrix
+                    val_matrix[L][t], dir_matrix[L][t] = best_score(
+                        val_matrix, L, t, seq_left[L], seq_top[t], "nw", scoring_matrix
                     )
             return dir_matrix
         if method == "sw":
             top_score = 0
             opt_l = 0
             opt_t = 0
-            for l in range(1, len(seq_left)):
+            for L in range(1, len(seq_left)):
                 for t in range(1, len(seq_top)):
-                    val_matrix[l][t], dir_matrix[l][t] = best_score(
-                        val_matrix, l, t, seq_left[l], seq_top[t], "sw", scoring_matrix
+                    val_matrix[L][t], dir_matrix[L][t] = best_score(
+                        val_matrix, L, t, seq_left[L], seq_top[t], "sw", scoring_matrix
                     )
-                    if val_matrix[l][t] > top_score:
-                        top_score = val_matrix[l][t]
-                        opt_l = l
+                    if val_matrix[L][t] > top_score:
+                        top_score = val_matrix[L][t]
+                        opt_l = L
                         opt_t = t
             return dir_matrix, opt_l, opt_t
 
@@ -607,21 +607,21 @@ def align_prots(s1, s2, method, scoring_matrix=PAM250):
         seq_top  = f" {seq_top}"
         traceback_nw.align_left = ""
         traceback_nw.align_top = ""
-        def stepback(dir_matrix, seq_left, seq_top, l, t):
-            if l < 0 or t < 0:
+        def stepback(dir_matrix, seq_left, seq_top, L, t):
+            if L < 0 or t < 0:
                 return
-            if dir_matrix[l][t] == 3:
-                stepback(dir_matrix, seq_left, seq_top, l-1, t-1)
+            if dir_matrix[L][t] == 3:
+                stepback(dir_matrix, seq_left, seq_top, L-1, t-1)
                 traceback_nw.align_top  += seq_top[t]
-                traceback_nw.align_left += seq_left[l]
-            elif dir_matrix[l][t] == 2:
-                stepback(dir_matrix, seq_left, seq_top, l, t-1)
+                traceback_nw.align_left += seq_left[L]
+            elif dir_matrix[L][t] == 2:
+                stepback(dir_matrix, seq_left, seq_top, L, t-1)
                 traceback_nw.align_top  += seq_top[t]
                 traceback_nw.align_left += "-"
-            elif dir_matrix[l][t] == 1:
-                stepback(dir_matrix, seq_left, seq_top, l-1, t)
+            elif dir_matrix[L][t] == 1:
+                stepback(dir_matrix, seq_left, seq_top, L-1, t)
                 traceback_nw.align_top  += "-"
-                traceback_nw.align_left += seq_left[l]
+                traceback_nw.align_left += seq_left[L]
             else:
                 return
         stepback(dir_matrix, seq_left, seq_top, len(seq_left)-1, len(seq_top)-1)
@@ -632,21 +632,21 @@ def align_prots(s1, s2, method, scoring_matrix=PAM250):
         seq_top  = f" {seq_top}"
         traceback_sw.align_left = ""
         traceback_sw.align_top = ""
-        def stepback(dir_matrix, seq_left, seq_top, l, t):
-            if l < 0 or t < 0:
+        def stepback(dir_matrix, seq_left, seq_top, L, t):
+            if L < 0 or t < 0:
                 return
-            if dir_matrix[l][t] == 3:
-                stepback(dir_matrix, seq_left, seq_top, l-1, t-1)
+            if dir_matrix[L][t] == 3:
+                stepback(dir_matrix, seq_left, seq_top, L-1, t-1)
                 traceback_sw.align_top  += seq_top[t]
-                traceback_sw.align_left += seq_left[l]
-            elif dir_matrix[l][t] == 2:
-                stepback(dir_matrix, seq_left, seq_top, l, t-1)
+                traceback_sw.align_left += seq_left[L]
+            elif dir_matrix[L][t] == 2:
+                stepback(dir_matrix, seq_left, seq_top, L, t-1)
                 traceback_sw.align_top  += seq_top[t]
                 traceback_sw.align_left += "-"
-            elif dir_matrix[l][t] == 1:
-                stepback(dir_matrix, seq_left, seq_top, l-1, t)
+            elif dir_matrix[L][t] == 1:
+                stepback(dir_matrix, seq_left, seq_top, L-1, t)
                 traceback_sw.align_top  += "-"
-                traceback_sw.align_left += seq_left[l]
+                traceback_sw.align_left += seq_left[L]
             else:
                 return
         stepback(dir_matrix, seq_left, seq_top, opt_l, opt_t)
