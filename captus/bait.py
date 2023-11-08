@@ -1057,10 +1057,9 @@ def prepare_targets(
     fastas_manual: list, threads: int, overwrite: bool, show_more: bool
 ):
 
-    targets_concat_path = Path(targets_dir_path, "targets_concat.fasta.gz")
+    targets_concat_path = Path(targets_dir_path, "targets_concat.fasta")
     targets_final_name = f"targets_clust{target_clust_threshold:.2f}_mincov{target_min_coverage:.2f}"
     targets_final_path = Path(targets_dir_path, f"{targets_final_name}_for_{clust_baits_final_path.name}")
-    targets_log_path = Path(f"{targets_final_path}".replace(".fasta", ".log"))
     targets_tsv_path = Path(f"{targets_final_path}".replace(".fasta", ".tsv"))
     fastas = fastas_auto + fastas_manual
     if target_clust_threshold > 1.0:
@@ -1152,7 +1151,10 @@ def prepare_targets(
                     "sequence": cluster[1],
                     "description": f"[cluster_size={cluster_size}]"
                 }
-        Path(targets_dir_path, f"{clust_prefix}_rep_seq.fasta").rename(targets_log_path)
+                if show_more:
+                    tqdm.write(msg)
+                log.log(msg, print_to_screen=False)
+                pbar.update()
         if centroids:
             clust_all_seqs_file.unlink()
             Path(targets_dir_path, f"{clust_prefix}_rep_seq.fasta").unlink()
@@ -1185,15 +1187,19 @@ def prepare_targets(
                 if (len(centroids[target_name]["sequence"])
                     / max_lengths[locus]
                     >= target_min_coverage):
-                    targets_out[target_name] = centroids[target_name]
                     loci_stats[locus]["targets"] += 1
+                    if locus in targets_out:
+                        targets_out[locus][target_name] = centroids[target_name]
+                    else:
+                        targets_out[locus] = {target_name: centroids[target_name]}
             else:
                 baitless[locus] = {
                     "baits": 0,
                     "targets": 0,
                 }
         if targets_out:
-            dict_to_fasta(targets_out, targets_final_path, sort=True)
+            for locus in sorted(targets_out):
+                dict_to_fasta(targets_out[locus], targets_final_path, sort=True, append=True)
             log.log(
                 f"{bold(targets_final_path.name)}: reference target file"
                 f" saved [{elapsed_time(time.time() - start)}] "

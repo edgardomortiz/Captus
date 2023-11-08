@@ -534,7 +534,8 @@ def bbduk_trim_adaptors(
         ref[0] += f",{settings.POLYA_ADAPTORS}"
         fixed += ["trimpolya=4"]
 
-    if "#" in in_fastq: fixed += ["trimpairsevenly=t", "trimbyoverlap=t"]
+    if "#" in in_fastq:
+        fixed += ["trimpairsevenly=t", "trimbyoverlap=t"]
 
     round_1_stdout_file = Path(out_dir, f"{sample_name}.stdout1.log")
     round_2_stdout_file = Path(out_dir, f"{sample_name}.stdout2.log")
@@ -610,7 +611,8 @@ def bbduk_filter_quality(
     elif "_R1_" in in_fastq:
         sample_name = "_R1_".join(in_fastq.split("_R1_")[:-1])
 
-    if ftr > 0: ftr -= 1
+    if ftr > 0:
+        ftr -= 1
 
     bbduk_cmd = [
         bbduk_path,
@@ -712,7 +714,8 @@ def qc_stats(qc_program_name, qc_program_path, in_fastq, qc_stats_out_dir, overw
     if overwrite is True or not qc_stats_log_file.exists():
         mean_read_length = get_mean_read_length(in_fastq,
                                                 settings.NUM_READS_TO_CALCULATE_MEAN_READ_LENGTH)
-        if mean_read_length <= 1000: cmd_last_part = ["--nogroup"] + cmd_last_part
+        if mean_read_length <= 1000:
+            cmd_last_part = ["--nogroup"] + cmd_last_part
         qc_stats_cmd += cmd_last_part
         shutil.rmtree(Path(qc_stats_out_dir, file_out_dir), ignore_errors=True)
         with open(qc_stats_log_file, "w") as qc_stats_log:
