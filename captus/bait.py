@@ -873,22 +873,24 @@ def filter_baits(
 
         start = time.time()
         accepted_bait_paths = list(filtered_baits_dir_path.rglob("*_accepted.fasta.gz"))
-        baits_accepted_unsort_path = Path(f"{baits_accepted_path}".replace(".fasta", "_unsort.fasta"))
+        if not accepted_bait_paths:
+            quit_with_error("No baits passed the filters, try relaxing the filtering parameters...")
+        baits_accepted_unsorted_path = Path(f"{baits_accepted_path}".replace(".fasta", "_unsorted.fasta"))
         log.log(bold(f"Concatenating accepted baits files:"))
         tqdm_cols = min(shutil.get_terminal_size().columns, 120)
-        with tqdm(total=len(rejected_bait_paths), ncols=tqdm_cols, unit="file") as pbar:
+        with tqdm(total=len(accepted_bait_paths), ncols=tqdm_cols, unit="file") as pbar:
             for baits_chunk_path in sorted(accepted_bait_paths):
                 inner_start = time.time()
                 accepted_baits = fasta_to_dict(baits_chunk_path)
                 baits_chunk_path.unlink()
-                dict_to_fasta(accepted_baits, baits_accepted_unsort_path, append=True)
+                dict_to_fasta(accepted_baits, baits_accepted_unsorted_path, append=True)
                 msg = (f"'{baits_chunk_path.name}': concatenated"
                        f" in {elapsed_time(time.time() - inner_start)}")
                 if not show_less: tqdm.write(msg)
                 log.log(msg, print_to_screen=False)
                 pbar.update()
-        baits_accepted = fasta_to_dict(baits_accepted_unsort_path)
-        baits_accepted_unsort_path.unlink()
+        baits_accepted = fasta_to_dict(baits_accepted_unsorted_path)
+        baits_accepted_unsorted_path.unlink()
         dict_to_fasta(baits_accepted, baits_accepted_path, sort=True)
         if shutil.which("pigz"):
             pigz_compress(baits_accepted_path, threads_max)
