@@ -28,11 +28,11 @@ from . import settings
 from .misc import dim, elapsed_time, red
 
 
-def normalize(l):
-    if len(l) > 0:
-        l_min = min(l)
-        l_max = max(l)
-        return [(i - l_min) / (l_max - l_min) for i in l] if l_max > l_min else 0.5
+def normalize(L):
+    if len(L) > 0:
+        l_min = min(L)
+        l_max = max(L)
+        return [(i - l_min) / (l_max - l_min) for i in L] if l_max > l_min else 0.5
     else:
         return 0.5
 
@@ -608,7 +608,7 @@ def build_qc_report(out_dir, qc_extras_dir):
         index=["sample_name", "read", "stage"], columns="quality", values="count"
     )
     col = 0
-    while df_pivot.iloc[:,col].isnull().any() == True:
+    while df_pivot.iloc[:,col].isnull().any() is True:
         df_pivot.iloc[:,col].fillna(0, inplace=True)
         col += 1
     df = df_pivot.reset_index().melt(
@@ -1488,7 +1488,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     if qc_html_report.exists() and qc_html_report.is_file():
         qc_html_msg = dim(f"Report generated in {elapsed_time(time.time() - start)}")
     else:
-        qc_html_msg = red(f"Report not generated, verify your Python environment")
+        qc_html_msg = red("Report not generated, verify your Python environment")
 
     return qc_html_report, qc_html_msg
 
@@ -1505,7 +1505,7 @@ def build_assembly_report(out_dir, asm_stats_tsv):
     else:
         filtered = True
 
-    if filtered == True:
+    if filtered is True:
         df = df.reindex(
             columns=[
                 "sample",
@@ -1682,7 +1682,7 @@ def build_assembly_report(out_dir, asm_stats_tsv):
         x=1,
         xref="paper",
         xanchor="right",
-        xshift=-200 if filtered == True else -155,
+        xshift=-200 if filtered is True else -155,
         y=1,
         yref="paper",
         yanchor="top",
@@ -1716,19 +1716,19 @@ def build_assembly_report(out_dir, asm_stats_tsv):
             "total_length",
             None,
             None,
-            "filtered_total_length" if filtered == True else None,
+            "filtered_total_length" if filtered is True else None,
         ],
         "Number of Contigs": [
             "n_contigs",
             None,
             None,
-            "filtered_n_contigs" if filtered == True else None,
+            "filtered_n_contigs" if filtered is True else None,
         ],
         "Mean Length (bp)": [
             "avg_length",
             None,
             None,
-            "filtered_avg_length" if filtered == True else None,
+            "filtered_avg_length" if filtered is True else None,
         ],
         "Median Length (bp)": [
             "median_length",
@@ -1770,7 +1770,7 @@ def build_assembly_report(out_dir, asm_stats_tsv):
             "GC_content",
             None,
             None,
-            "filtered_gc_content" if filtered == True else None,
+            "filtered_gc_content" if filtered is True else None,
         ],
         "Mean Depth (x)": [
             "avg_depth",
@@ -1791,21 +1791,21 @@ def build_assembly_report(out_dir, asm_stats_tsv):
             [
                 "Sample: <b>%{x}</b>",
                 "Total length: <b>%{y:,} bp</b>",
-                "<extra></extra>" if filtered == False else "",
+                "<extra></extra>" if filtered is False else "",
             ]
         ),
         "Number of Contigs": "<br>".join(
             [
                 "Sample: <b>%{x}</b>",
                 "Number of contigs: <b>%{y:,}</b>",
-                "<extra></extra>" if filtered == False else "",
+                "<extra></extra>" if filtered is False else "",
             ]
         ),
         "Mean Length (bp)": "<br>".join(
             [
                 "Sample: <b>%{x}</b>",
                 "Mean contig length: <b>%{y:,} bp</b>",
-                "<extra></extra>" if filtered == False else "",
+                "<extra></extra>" if filtered is False else "",
             ]
         ),
         "Median Length (bp)": (
@@ -1836,7 +1836,7 @@ def build_assembly_report(out_dir, asm_stats_tsv):
             [
                 "Sample: <b>%{x}</b>",
                 "GC content: <b>%{y:.2f}%</b>",
-                "<extra></extra>" if filtered == False else "",
+                "<extra></extra>" if filtered is False else "",
             ]
         ),
         "Mean Depth (x)": (
@@ -2015,7 +2015,7 @@ def build_assembly_report(out_dir, asm_stats_tsv):
     if asm_html_report.exists() and asm_html_report.is_file():
         asm_html_msg = dim(f"Report generated in {elapsed_time(time.time() - start)}")
     else:
-        asm_html_msg = red(f"Report not generated, verify your Python environment")
+        asm_html_msg = red("Report not generated, verify your Python environment")
 
     return asm_html_report, asm_html_msg
 
@@ -2552,7 +2552,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
     if ext_html_report.exists() and ext_html_report.is_file():
         ext_html_msg = dim(f"Report generated in {elapsed_time(time.time() - start)}")
     else:
-        ext_html_msg = red(f"Report not generated, verify your Python environment")
+        ext_html_msg = red("Report not generated, verify your Python environment")
 
     return ext_html_report, ext_html_msg
 
@@ -3425,7 +3425,7 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
     if aln_html_report.exists() and aln_html_report.is_file():
         aln_html_msg = dim(f"Report generated in {elapsed_time(time.time() - start)}")
     else:
-        aln_html_msg = red(f"Report not generated, verify your Python environment")
+        aln_html_msg = red("Report not generated, verify your Python environment")
 
     return aln_html_report, aln_html_msg
 
@@ -3745,6 +3745,6 @@ def build_design_report(out_dir, des_stats_tsv, step):
     if des_html_report.exists() and des_html_report.is_file():
         des_html_msg = dim(f"Report generated in {elapsed_time(time.time() - start)}")
     else:
-        des_html_msg = red(f"Report not generated, verify your Python environment")
+        des_html_msg = red("Report not generated, verify your Python environment")
 
     return des_html_report, des_html_msg

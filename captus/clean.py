@@ -547,7 +547,7 @@ def bbduk_trim_adaptors(
         f"mink={settings.BBDUK_ADAPTOR_ROUND1_MINK}",
         f"hdist={settings.BBDUK_ADAPTOR_ROUND1_HDIST}",
         f"stats={Path(out_dir, f'{sample_name}.round1.stats.txt')}",
-        f"tossbrokenreads=t",
+        "tossbrokenreads=t",
         f"2>{round_1_stdout_file}",
     ]
 
@@ -847,10 +847,10 @@ def summarize_bbduk_logs(out_dir, qc_extras_dir, margin):
     contaminants_summary = Path(qc_extras_dir, settings.QC_FILES["CONT"])
     with open(reads_bases_summary, "wt") as summary_out:
         summary_out.write(
-            f"sample\treads_input\tbases_input\t"
-            f"reads_trimmed_round1\treads_passed_round1\tbases_passed_round1\t"
-            f"reads_trimmed_round2\treads_passed_round2\tbases_passed_round2\t"
-            f"reads_filtered_cleaning\treads_passed_cleaning\tbases_passed_cleaning\n"
+            "sample\treads_input\tbases_input\t"
+            "reads_trimmed_round1\treads_passed_round1\tbases_passed_round1\t"
+            "reads_trimmed_round2\treads_passed_round2\tbases_passed_round2\t"
+            "reads_filtered_cleaning\treads_passed_cleaning\tbases_passed_cleaning\n"
         )
         for sample_name in sorted(stats):
             summary_out.write(

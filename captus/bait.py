@@ -195,7 +195,8 @@ def bait(full_command, args):
         ram_MB, threads_max, args.bait_length, args.keep_all, args.overwrite
     )
 
-    if baits_exons_mapped_gz_path: baits_exons_gz_path = baits_exons_mapped_gz_path
+    if baits_exons_mapped_gz_path:
+        baits_exons_gz_path = baits_exons_mapped_gz_path
 
     baits_concat_mask_gz_path = concat_refex_mask_baits(
         fil_baits_dir_path, baits_exons_gz_path, baits_no_exons_gz_path, args.exclude_reference,
@@ -307,7 +308,8 @@ def find_fastas_in_dir(cluster_dir_path: str, extension: str):
 
 
 def find_and_merge_exon_data(cluster_dir_path: Path):
-    if cluster_dir_path is None: return {}
+    if cluster_dir_path is None:
+        return {}
     tsvs = []
     if Path(cluster_dir_path).exists():
         sample_dirs = list(Path(cluster_dir_path).rglob("*__captus-clr"))
@@ -382,7 +384,8 @@ def create_baits(
                         sample = seq_name
                         seq_id = "NA"
                         des = (f'[sample={sample}] {fasta_in[seq_name]["description"]}').strip()
-                    if seq_id in exons_data: cds_ids.append(seq_id)
+                    if seq_id in exons_data:
+                        cds_ids.append(seq_id)
                     seq = fasta_in[seq_name]["sequence"].replace("-","").upper()
                     for p in range(0, len(seq) - (bait_length - 1)):
                         bait_name = f"{locus}{settings.SEQ_NAME_SEP}b{bait_count:06}"
@@ -397,7 +400,8 @@ def create_baits(
                 else:
                     dict_to_fasta(baits, baits_full_no_exons_path, append=True)
                 msg = f"'{fasta_path.name}': processed [{elapsed_time(time.time() - inner_start)}]"
-                if show_more: tqdm.write(msg)
+                if show_more:
+                    tqdm.write(msg)
                 log.log(msg, print_to_screen=False)
                 pbar.update()
         log.log(bold(
@@ -406,7 +410,8 @@ def create_baits(
         ))
         log.log("")
 
-        if long_exons_path.exists(): long_exons_path.unlink()
+        if long_exons_path.exists():
+            long_exons_path.unlink()
         if cluster_dir_path:
             long_exons_fastas = find_fastas_in_dir(cluster_dir_path, settings.DES_SUFFIXES["LONG"])
             if all_cds_ids and long_exons_fastas:
@@ -425,7 +430,8 @@ def create_baits(
                         dict_to_fasta(lef, long_exons_path, append=True)
                         msg = (f"'{fasta_path.name}': processed in"
                                f" {elapsed_time(time.time() - inner_start)}")
-                        if show_more: tqdm.write(msg)
+                        if show_more:
+                            tqdm.write(msg)
                         log.log(msg, print_to_screen=False)
                         pbar.update()
                 log.log(bold(
@@ -468,8 +474,10 @@ def dereplicate_compress_baits(
 
     if overwrite or (not baits_exons_gz_path.exists() and not baits_no_exons_gz_path.exists()):
         log.log(bold("Dereplicating bait sequences:"))
-        if baits_exons_path.exists(): baits_exons_path.unlink()
-        if baits_no_exons_path.exists(): baits_no_exons_path.unlink()
+        if baits_exons_path.exists():
+            baits_exons_path.unlink()
+        if baits_no_exons_path.exists():
+            baits_no_exons_path.unlink()
         tqdm_cols = min(shutil.get_terminal_size().columns, 120)
         with tqdm(total=2, ncols=tqdm_cols, unit="file") as pbar:
             for bait_file in [baits_full_exons_path, baits_full_no_exons_path]:
@@ -524,14 +532,17 @@ def map_exonic_baits(
 ):
     start = time.time()
 
-    if not baits_exons_gz_path or not long_exons_path: return None
+    if not baits_exons_gz_path or not long_exons_path:
+        return None
     baits_exons_mapped_path = Path(filtered_baits_dir_path, f'{settings.DES_FILES["BEXM"]}')
     baits_exons_mapped_gz_path = Path(f"{baits_exons_mapped_path}.gz")
     maxindel = math.ceil(bait_length * settings.MAX_INDEL_BAIT_PROP)
 
     if overwrite or not baits_exons_mapped_gz_path.exists():
-        if baits_exons_mapped_path.exists(): baits_exons_mapped_path.unlink()
-        if baits_exons_mapped_gz_path.exists(): baits_exons_mapped_gz_path.unlink()
+        if baits_exons_mapped_path.exists():
+            baits_exons_mapped_path.unlink()
+        if baits_exons_mapped_gz_path.exists():
+            baits_exons_mapped_gz_path.unlink()
         baits_sam_gz_path = Path(f"{baits_exons_mapped_path}".replace(".fasta", ".sam.gz"))
         baits_sam_log_path = Path(f"{baits_exons_mapped_path}".replace(".fasta", ".bbmap.log"))
         baits_sam_stdout_path = Path(f"{baits_exons_mapped_path}".replace(".fasta", ".stdout.log"))
@@ -577,7 +588,8 @@ def map_exonic_baits(
             with gzip.open(baits_sam_gz_path, "rt") as sam:
                 while 1:
                     sam_chunk = sam.readlines(10000)
-                    if not sam_chunk: break
+                    if not sam_chunk:
+                        break
                     baits_fasta = {}
                     for line in sam_chunk:
                         if not line.startswith("@"):
@@ -594,7 +606,8 @@ def map_exonic_baits(
                 pigz_compress(baits_exons_mapped_path, threads_max)
             elif shutil.which("gzip"):
                 gzip_compress(baits_exons_mapped_path)
-            if not keep_all: baits_sam_gz_path.unlink()
+            if not keep_all:
+                baits_sam_gz_path.unlink()
             if baits_exons_mapped_gz_path.exists():
                 pct_retained = long_exon_baits / total_baits * 100
                 msg = (f"'{baits_exons_mapped_gz_path.name}': {long_exon_baits:n} of {total_baits:n}"
@@ -636,8 +649,10 @@ def concat_refex_mask_baits(
     baits_mask_gz_path = Path(f"{baits_concat_path}".replace(".fasta", "_mask.fasta.gz"))
 
     if overwrite or not baits_mask_gz_path.exists():
-        if baits_mask_path.exists(): baits_mask_path.unlink()
-        if baits_mask_gz_path.exists(): baits_mask_gz_path.unlink()
+        if baits_mask_path.exists():
+            baits_mask_path.unlink()
+        if baits_mask_gz_path.exists():
+            baits_mask_gz_path.unlink()
         baits_tomap_path = Path(f"{baits_concat_path}".replace(".fasta", "_tomap.fasta.gz"))
         baits_unmap_path = Path(f"{baits_concat_path}".replace(".fasta", "_unmap.fasta.gz"))
         baits_unmap_log_path = Path(f"{baits_concat_path}".replace(".fasta", "_unmap.bbmap.log"))
@@ -786,7 +801,8 @@ def split_baits_file(
                 chunk_count = 0
                 msg = f"'{split_bait_path.name}': saved in {elapsed_time(time.time() - inner_start)}"
                 inner_start = time.time()
-                if not show_less: tqdm.write(msg)
+                if not show_less:
+                    tqdm.write(msg)
                 log.log(msg, print_to_screen=False)
                 pbar.update()
     log.log(bold(
@@ -827,7 +843,8 @@ def filter_baits_chunk(
             and bs["max_homopolymer_len"] <= max_homopolymer_length
             and bs["Ns"] <= max_Ns):
             bait_seq = bait_part[bait_name]["sequence"]
-            if keep_iupac: bait_seq = resolve_iupac(bait_seq)
+            if keep_iupac:
+                bait_seq = resolve_iupac(bait_seq)
             bait_part_accepted[bait_name] = {
                 "sequence": bait_seq,
                 "description": bait_desc,
@@ -859,8 +876,10 @@ def filter_baits(
     baits_rejected_gz_path = Path(f"{baits_rejected_path}.gz")
 
     if overwrite or not baits_accepted_gz_path.exists():
-        if baits_accepted_path.exists(): baits_accepted_path.unlink()
-        if baits_accepted_gz_path.exists(): baits_accepted_gz_path.unlink()
+        if baits_accepted_path.exists():
+            baits_accepted_path.unlink()
+        if baits_accepted_gz_path.exists():
+            baits_accepted_gz_path.unlink()
         baits_chunks_paths = split_baits_file(filtered_baits_dir_path,
                                               baits_concat_mask_gz_path,
                                               threads_max,
@@ -892,7 +911,8 @@ def filter_baits(
 
         if not keep_all:
             for baits_chunk_path in baits_chunks_paths:
-                if baits_chunk_path.exists(): baits_chunk_path.unlink()
+                if baits_chunk_path.exists():
+                    baits_chunk_path.unlink()
 
         start = time.time()
         rejected_bait_paths = list(filtered_baits_dir_path.rglob("*_rejected.fasta.gz"))
@@ -906,7 +926,8 @@ def filter_baits(
                 dict_to_fasta(rejected_baits, baits_rejected_path, append=True)
                 msg = (f"'{baits_chunk_path.name}': concatenated"
                        f" in {elapsed_time(time.time() - inner_start)}")
-                if not show_less: tqdm.write(msg)
+                if not show_less:
+                    tqdm.write(msg)
                 log.log(msg, print_to_screen=False)
                 pbar.update()
         if shutil.which("pigz"):
@@ -934,7 +955,8 @@ def filter_baits(
                 dict_to_fasta(accepted_baits, baits_accepted_unsorted_path, append=True)
                 msg = (f"'{baits_chunk_path.name}': concatenated"
                        f" in {elapsed_time(time.time() - inner_start)}")
-                if not show_less: tqdm.write(msg)
+                if not show_less:
+                    tqdm.write(msg)
                 log.log(msg, print_to_screen=False)
                 pbar.update()
         baits_accepted = fasta_to_dict(baits_accepted_unsorted_path)
@@ -970,11 +992,14 @@ def cluster_tile_baits(
     clust_baits_final_file = f"baits_clust{bait_clust_threshold:.2f}_mincols{mincols}.fasta"
     clust_baits_final_path = Path(clust_baits_dir_path, clust_baits_final_file)
     clust_baits_log_path = Path(f"{clust_baits_final_path}".replace(".fasta", ".log"))
-    if bait_clust_threshold > 1.0: bait_clust_threshold /= 100
+    if bait_clust_threshold > 1.0:
+        bait_clust_threshold /= 100
 
     if overwrite or not clust_baits_final_path.exists():
-        if clust_baits_final_path.exists(): clust_baits_final_path.unlink()
-        if clust_baits_log_path.exists(): clust_baits_log_path.unlink()
+        if clust_baits_final_path.exists():
+            clust_baits_final_path.unlink()
+        if clust_baits_log_path.exists():
+            clust_baits_log_path.unlink()
         log.log(bold("Clustering and tiling baits:"))
         tqdm_cols = min(shutil.get_terminal_size().columns, 120)
         with tqdm(total=1, ncols=tqdm_cols, unit="task") as pbar:
@@ -1038,14 +1063,17 @@ def prepare_targets(
     targets_log_path = Path(f"{targets_final_path}".replace(".fasta", ".log"))
     targets_tsv_path = Path(f"{targets_final_path}".replace(".fasta", ".tsv"))
     fastas = fastas_auto + fastas_manual
-    if target_clust_threshold > 1.0: target_clust_threshold /= 100
-    if target_min_coverage > 1.0: target_min_coverage /= 100
+    if target_clust_threshold > 1.0:
+        target_clust_threshold /= 100
+    if target_min_coverage > 1.0:
+        target_min_coverage /= 100
 
     if not fastas:
         quit_with_error("FASTAs from selected loci not found, verify the path provided...")
 
     if overwrite or not targets_concat_path.exists() or file_is_empty(targets_concat_path):
-        if targets_concat_path.exists(): targets_concat_path.unlink()
+        if targets_concat_path.exists():
+            targets_concat_path.unlink()
         start = time.time()
         log.log(bold("Concatenating reference target sequences from selected loci:"))
         tqdm_cols = min(shutil.get_terminal_size().columns, 120)
@@ -1068,7 +1096,8 @@ def prepare_targets(
                     }
                 dict_to_fasta(fasta_out, targets_concat_path, append=True)
                 msg = f"'{fasta_path.name}': processed [{elapsed_time(time.time() - inner_start)}]"
-                if show_more: tqdm.write(msg)
+                if show_more:
+                    tqdm.write(msg)
                 log.log(msg, print_to_screen=False)
                 pbar.update()
         log.log(bold(
@@ -1080,7 +1109,8 @@ def prepare_targets(
     log.log("")
 
     if overwrite or not targets_final_path.exists() or file_is_empty(targets_final_path):
-        if targets_final_path.exists(): targets_final_path.unlink()
+        if targets_final_path.exists():
+            targets_final_path.unlink()
         msg_p1 = "Clustering reference target sequences at"
         msg_p2 = f" {target_clust_threshold*100:.2f}% identity:"
         log.log(bold(f"{msg_p1}{msg_p2}"))
@@ -1113,7 +1143,8 @@ def prepare_targets(
             for cluster in clusters:
                 locus = cluster[0].split(settings.REFERENCE_CLUSTER_SEPARATOR)[-1]
                 if locus in max_lengths:
-                    if len(cluster[1]) > max_lengths[locus]: max_lengths[locus] = len(cluster[1])
+                    if len(cluster[1]) > max_lengths[locus]:
+                        max_lengths[locus] = len(cluster[1])
                 else:
                     max_lengths[locus] = len(cluster[1])
                 cluster_size = len(cluster) / 2

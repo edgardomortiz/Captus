@@ -361,7 +361,8 @@ def translate(seq, genetic_code: dict, frame=1, start_as_M=False):
 
 
     seq = seq.replace(" ", "").replace("-", "").upper()
-    if frame < 0: seq = reverse_complement(seq)
+    if frame < 0:
+        seq = reverse_complement(seq)
 
     codons = [seq[p:p + 3] for p in range(abs(frame) - 1, len(seq), 3)
               if len(seq[p:p + 3]) == 3]
@@ -381,7 +382,8 @@ def translate(seq, genetic_code: dict, frame=1, start_as_M=False):
             starts_fuzzy.append("X")
     seq_AA += unresolve_aminoacid(starts_fuzzy)
 
-    if len(codons) == 1: return seq_AA
+    if len(codons) == 1:
+        return seq_AA
 
     for codon in codons[1:-1]:
         aminos_fuzzy = []
@@ -520,12 +522,14 @@ def align_prots(s1, s2, method, scoring_matrix=PAM250):
                 if len_s2 < len_s1:
                     pid = AA_PIDS["".join(sorted(f"{s1[i+j]}{s2[j]}"))]
                     matches += pid
-                    if pid < 0.5: mismatches.append(i+j)
+                    if pid < 0.5:
+                        mismatches.append(i+j)
                     s2_aln[i+j] = s2[j]
                 else:
                     pid = AA_PIDS["".join(sorted(f"{s1[j]}{s2[i+j]}"))]
                     matches += pid
-                    if pid < 0.5: mismatches.append(i+j)
+                    if pid < 0.5:
+                        mismatches.append(i+j)
                     s1_aln[i+j] = s1[j]
             try:
                 match_rate = matches / min_len
@@ -672,7 +676,8 @@ def align_prots(s1, s2, method, scoring_matrix=PAM250):
             if "-" not in [s1_aln[i], s2_aln[i]]:
                 pid = AA_PIDS["".join(sorted(f"{s1_aln[i]}{s2_aln[i]}"))]
                 aln["matches"] += pid
-                if pid < 0.5: aln["mismatches"].append(i)
+                if pid < 0.5:
+                    aln["mismatches"].append(i)
         try:
             aln["match_rate"] = aln["matches"] / (aln_end - aln_start)
         except ZeroDivisionError:
@@ -695,7 +700,8 @@ def align_prots(s1, s2, method, scoring_matrix=PAM250):
             if "-" not in [s1_aln[i], s2_aln[i]]:
                 pid = AA_PIDS["".join(sorted(f"{s1_aln[i]}{s2_aln[i]}"))]
                 aln["matches"] += pid
-                if pid < 0.5: aln["mismatches"].append(i)
+                if pid < 0.5:
+                    aln["mismatches"].append(i)
         try:
             aln["match_rate"] = aln["matches"] / (aln_end - aln_start)
         except ZeroDivisionError:
@@ -705,7 +711,8 @@ def align_prots(s1, s2, method, scoring_matrix=PAM250):
 
 
     valid_methods = ["gapless", "nw", "sw"]
-    if method not in valid_methods: return False
+    if method not in valid_methods:
+        return False
 
     # Alignment data template:
     aln = {
@@ -774,16 +781,18 @@ def pairwise_identity(seq1: str, seq2: str, seq_type: str, ignore_internal_gaps=
             pair = "".join(sorted(f"{seq1[pos]}{seq2[pos]}"))
             if pair != "--":
                 if ignore_internal_gaps:
-                    if not "-" in pair:
+                    if "-" not in pair:
                         try:
                             matches += PIDS[pair]
                             aligned_length += 1
-                        except KeyError: continue
+                        except KeyError:
+                            continue
                 else:
                     try:
                         matches += PIDS[pair]
                         aligned_length += 1
-                    except KeyError: continue
+                    except KeyError:
+                        continue
         try:
             return (matches / aligned_length) * 100
         except ZeroDivisionError:
@@ -834,13 +843,15 @@ def site_pairwise_identity(site: str, seq_type: str):
         for ra in counts:
             try:
                 matches += ((counts[ra] * (counts[ra] - 1)) / 2) * PIDS[ra+ra]
-            except KeyError: continue
+            except KeyError:
+                continue
         i = 0
         for ra in ss_site[i:]:
             for rb in ss_site[i+1:]:
                 try:
                     matches += counts[ra] * counts[rb] * PIDS[ra+rb]
-                except KeyError: continue
+                except KeyError:
+                    continue
             i += 1
         return [(matches / combos) * 100, combos]
 
@@ -871,7 +882,8 @@ def fasta_to_dict(fasta_path):
         desc = ""
         for line in fasta_in:
             line = line.strip("\n")
-            if not line: continue
+            if not line:
+                continue
             if line.startswith(">"):
                 if seq:
                     fasta_out[name] = {
@@ -906,9 +918,11 @@ def dict_to_fasta(
         compress = True
         out_fasta_path = Path(f"{out_fasta_path}".strip(".gz"))
     action = "wt"
-    if append is True: action = "at"
+    if append is True:
+        action = "at"
     if in_fasta_dict:
-        if sort: in_fasta_dict = dict(sorted(in_fasta_dict.items(), key=lambda x: x[0]))
+        if sort:
+            in_fasta_dict = dict(sorted(in_fasta_dict.items(), key=lambda x: x[0]))
         with open(out_fasta_path, action) as fasta_out:
             for name in in_fasta_dict:
                 header = f'>{name} {in_fasta_dict[name]["description"]}'.strip()
@@ -928,7 +942,8 @@ def dict_to_fasta(
         elif shutil.which("gzip"):
             gzip_compress(out_fasta_path)
         out_fasta_path_gz = Path(out_fasta_path.parent, f"{out_fasta_path.name}.gz")
-        if out_fasta_path_gz.exists(): out_fasta_path = out_fasta_path_gz
+        if out_fasta_path_gz.exists():
+            out_fasta_path = out_fasta_path_gz
     return out_fasta_path
 
 
@@ -1054,7 +1069,8 @@ def alignment_stats(fasta_dict, aln_type, coding: bool):
 
     def pattern_type(pattern, seq_type):
         pattern = pattern.replace("-", "").upper()
-        if not pattern: return "constant"
+        if not pattern:
+            return "constant"
         r_sets = []
         if seq_type == "NT":
             r_sets = [set(NT_IUPAC[r]) for r in pattern]
@@ -1118,7 +1134,8 @@ def alignment_stats(fasta_dict, aln_type, coding: bool):
     stats["avg_copies"] = round(stats["sequences"] / stats["samples"], 2)
 
     num_sites = aligned_length(fasta_dict)
-    if not num_sites: return stats
+    if not num_sites:
+        return stats
     stats["sites"] = num_sites
 
     sites = transpose_aln(mark_terminal_gaps(fasta_dict), num_sites)
@@ -1230,14 +1247,14 @@ def sample_stats(fasta_dict, aln_type, coding):
     for sam_name in stats:
         if len(stats[sam_name]["len_gapped"]) > 1:
             for k in stats[sam_name]:
-                if type(stats[sam_name][k]) is list:
+                if isinstance(stats[sam_name][k], list):
                     try:
                         stats[sam_name][k] = f'{statistics.mean(stats[sam_name][k]):.2f}'
                     except TypeError:
                         stats[sam_name][k] = "NA"
         else:
             for k in stats[sam_name]:
-                if type(stats[sam_name][k]) is list:
+                if isinstance(stats[sam_name][k], list):
                     stats[sam_name][k] = stats[sam_name][k][0]
 
     return stats
@@ -1485,15 +1502,18 @@ def scipio_yaml_to_dict(
                         hit_num = int(line.split("_(")[1].replace("):", "")) if "_(" in line else 0
                     elif ": " in line:
                         k, v = line.split(": ")[0], ": ".join(line.split(": ")[1:])
-                        if v in nones: continue
+                        if v in nones:
+                            continue
                         if k in ints:
                             try:
                                 v = int(v)
                             except ValueError:
                                 pass
                         else:
-                            if k == "    target" and " " in v: v = v.split()[0].strip("'").strip('"')
-                            if v.startswith("'"): v = v.strip("'").replace(" ", "")
+                            if k == "    target" and " " in v:
+                                v = v.split()[0].strip("'").strip('"')
+                            if v.startswith("'"):
+                                v = v.strip("'").replace(" ", "")
                             if v.startswith("["):
                                 try:
                                     v = [int(n) for n in v[1:-1].split(", ")]
@@ -1568,10 +1588,12 @@ def scipio_yaml_to_dict(
                     inserts[pos] = "N" * (3 - outside_codons)
             for pos in range(len(mat["seq"])):
                 seq_out += mat["seq"][pos]
-                if pos in inserts: seq_out += inserts[pos]
+                if pos in inserts:
+                    seq_out += inserts[pos]
         else:
             seq_out = mat["seq"]
-        if seq_out == "": translation_out = ""
+        if seq_out == "":
+            translation_out = ""
 
         return seq_out, translation_out
 
@@ -1763,7 +1785,7 @@ def scipio_yaml_to_dict(
             mod = remove_short_terminal_exon(mod)
 
         # Simply exit if model has no exons
-        if not "exon" in mod["mat_types"]:
+        if "exon" not in mod["mat_types"]:
             return None
 
         mod_len = len(mod["mat_types"])
@@ -1905,7 +1927,7 @@ def scipio_yaml_to_dict(
                         else:
                             alns = {i: align_prots(rfs[i], prot_gap, "sw") for i in rfs}
                         # Prioritize filling gaps without skipping leading or trailing bases
-                        if (len(current_chunk) % 3 == 0 and not "*" in rfs[1]
+                        if (len(current_chunk) % 3 == 0 and "*" not in rfs[1]
                             and alns[1]["match_rate"] >= min_gap_identity):
                             lead, trail = 0, 0
                             seq_chunks = ["", mod["mat_nt"][i].upper()]
@@ -1918,7 +1940,7 @@ def scipio_yaml_to_dict(
                                                            ** alns[rf]["s1_aln"].count("*"))
                             rf, aln = max(alns.items(), key=(lambda x: x[1]["match_rate"]))
                             if (aln["match_rate"] >= min_gap_identity
-                                and not "*" in aln["s1_aln"]):
+                                and "*" not in aln["s1_aln"]):
                                 lead  = rf - 1
                                 trail = (len(current_chunk) - lead) % 3
                                 if trail > 0:
@@ -1933,7 +1955,7 @@ def scipio_yaml_to_dict(
 
             if predict and mod["mat_types"][i] == "intron?":
                 rf1 = translate(current_chunk, gencode, frame=1, start_as_M=False)
-                if len(current_chunk) % 3 == 0 and not "*" in rf1:
+                if len(current_chunk) % 3 == 0 and "*" not in rf1:
                     lead, trail = 0, 0
                     seq_chunks = ["", mod["mat_nt"][i].upper()]
 
@@ -2205,7 +2227,8 @@ def scipio_yaml_to_dict(
                             mat_nt.append(mat["seq"])
                             mat_aa.append(mat["translation"])
                             mismatches += mat["mismatchlist"]
-                            if mat["overlap"]: has_overlap = True
+                            if mat["overlap"]:
+                                has_overlap = True
                     else:
                         ref_starts.append(None)
                         ref_ends.append(None)
@@ -2258,7 +2281,8 @@ def scipio_yaml_to_dict(
                     add_separator = False if has_overlap else True
 
         mod = fix_model(mod, gencode, marker_type)
-        if not mod: return None
+        if not mod:
+            return None
 
         mod = check_gaps_and_concat_seqs(mod, gencode, predict, min_identity)
         prot_len_matched   = calc_prot_len_matched(mod)
@@ -2468,10 +2492,12 @@ def blat_misc_dna_psl_to_dict(
                 region = "wedged"
         elif ((region == "proximal" and t_strand == "+")
               or (region == "distal" and t_strand == "-")):
-            if right_flank_too_long: region = "wedged"
+            if right_flank_too_long:
+                region = "wedged"
         elif ((region == "proximal" and t_strand == "-")
               or (region == "distal" and t_strand == "+")):
-            if left_flank_too_long: region = "wedged"
+            if left_flank_too_long:
+                region = "wedged"
         return region
 
     def determine_max_overlap(contig_name):
@@ -2565,9 +2591,11 @@ def blat_misc_dna_psl_to_dict(
             len_path = len(path)
             if len_path > 1:
                 for i in range(1, len_path):
-                    if path[i]["region"] == "proximal": path[i]["region"] = "middle"
+                    if path[i]["region"] == "proximal":
+                        path[i]["region"] = "middle"
                 for i in range(len_path - 1):
-                    if path[i]["region"] == "distal": path[i]["region"] = "middle"
+                    if path[i]["region"] == "distal":
+                        path[i]["region"] = "middle"
             asm_hit = {
                 "ref_name": path[0]["ref_name"],        # full name of non-coding reference sequence
                 "ref_size": path[0]["ref_size"],           # length of non-coding reference sequence
@@ -2696,7 +2724,7 @@ def blat_misc_dna_psl_to_dict(
         strand = hit_dict["strand"]
         starts = list(hit_dict["t_start"])
         ends   = list(hit_dict["t_end"])
-        region = hit_dict["region"]
+        ## region = hit_dict["region"]
         sequence = ""
         if flanked:
             for i in range(len(starts)):
@@ -3185,8 +3213,10 @@ def mmseqs2_cluster(
     file has to be decompressed, we can compress it afterwards
     """
     start = time.time()
-    if sensitivity < 1: sensitivity = 1.0
-    if sensitivity > 7.5: sensitivity = 7.5
+    if sensitivity < 1:
+        sensitivity = 1.0
+    if sensitivity > 7.5:
+        sensitivity = 7.5
     if not 0 < min_identity <= 1:
         min_identity = min(1.0, round((abs(min_identity) / 100), 3))
     if not 0 < min_coverage <= 1:

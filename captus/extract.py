@@ -20,7 +20,6 @@ import statistics
 import subprocess
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from multiprocessing import Manager
 from pathlib import Path
 
 from tqdm import tqdm
@@ -567,7 +566,8 @@ def extract(full_command, args):
                                   settings.MMSEQS_MIN_AUTO_MIN_IDENTITY)
         else:
             dna_min_identity = cl_min_identity = float(args.cl_min_identity)
-        if args.cluster_mode != 2: args.cl_seq_id_mode = 0
+        if args.cluster_mode != 2:
+            args.cl_seq_id_mode = 0
         clust_tmp_dir = make_tmp_dir_within(args.cl_tmp_dir, "captus_mmseqs2_tmp")
         fastas_to_cluster, num_leftovers = find_fasta_leftovers(fastas_to_extract)
         num_samples = len(fastas_to_cluster)
@@ -793,7 +793,8 @@ def adjust_concurrency(concurrent, num_samples, threads_max, ram_B, ref_type):
         min_ram_b = settings.EXTRACTION_MIN_RAM_B * 3.75
     elif ref_type == "dna":
         min_ram_b = settings.EXTRACTION_MIN_RAM_B
-    if min_ram_b >= ram_B: return 1, ram_B
+    if min_ram_b >= ram_B:
+        return 1, ram_B
     if concurrent > 1:
         while ram_B // concurrent < min_ram_b:
             concurrent -= 1
@@ -1126,8 +1127,10 @@ def split_refs(query_dict, out_dir, marker_type, threads):
     else:
         cc = math.ceil(num_seqs / settings.REFS_SPLIT_CHUNK_SIZE)
         cf = math.floor(num_seqs / settings.REFS_SPLIT_CHUNK_SIZE)
-        if cc % threads != 0: cc += threads - (cc % threads)
-        if cf % threads != 0: cf += threads - (cf % threads)
+        if cc % threads != 0:
+            cc += threads - (cc % threads)
+        if cf % threads != 0:
+            cf += threads - (cf % threads)
         chunks_ceiling = max(threads, cc)
         chunks_floor = max(threads, cf)
         if (abs(settings.REFS_SPLIT_CHUNK_SIZE - (num_seqs / chunks_ceiling))
@@ -1219,8 +1222,10 @@ def scipio_coding(
     genes = {"NUC": "nuclear genes", "PTD": "plastidial genes", "MIT": "mitochondrial genes"}
 
     # Set programs' paths in case of using the bundled versions
-    if scipio_path == "bundled": scipio_path = settings.BUNDLED_SCIPIO
-    if blat_path == "bundled": blat_path = settings.BUNDLED_BLAT
+    if scipio_path == "bundled":
+        scipio_path = settings.BUNDLED_SCIPIO
+    if blat_path == "bundled":
+        blat_path = settings.BUNDLED_BLAT
 
     # Group Scipio's basic parameters, the 'sample_dir', and the 'marker_type' into a list
     scipio_params = {
@@ -1814,7 +1819,8 @@ def blat_misc_dna(
     start = time.time()
 
     # Set BLAT path in case of using the bundled version
-    if blat_path == "bundled": blat_path = settings.BUNDLED_BLAT
+    if blat_path == "bundled":
+        blat_path = settings.BUNDLED_BLAT
 
     # Create output directory
     blat_dna_out_dir  = Path(sample_dir, settings.MARKER_DIRS[marker_type])
@@ -1938,7 +1944,8 @@ def cleanup_post_extraction(
                             if line != stats_header:
                                 tsv_out.write(line)
                                 tsv_lines += 1
-        if tsv_lines == 0: tsv_out.unlink()
+        if tsv_lines == 0:
+            tsv_out.unlink()
 
         # Write FASTAs of contigs with and without hits
         names_hit_contigs = []
@@ -2115,7 +2122,8 @@ def cluster_and_select_refs(
     for cluster in passed:
         clr = f"captus{num_cluster:0{num_digits}}"
         for i in range (0, len(cluster), 2):
-            if i == 0: cluster_lenghts[clr] = len(cluster[1])
+            if i == 0:
+                cluster_lenghts[clr] = len(cluster[1])
             h = cluster[i][1:].split(settings.SEQ_NAME_SEP)
             smp, ctg = h[0], h[1]
             ref_sep = settings.REFERENCE_CLUSTER_SEPARATOR

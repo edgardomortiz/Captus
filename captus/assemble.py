@@ -12,7 +12,6 @@ details. You should have received a copy of the GNU General Public License along
 not, see <http://www.gnu.org/licenses/>.
 """
 
-import gzip
 import math
 import shutil
 import statistics
@@ -213,7 +212,8 @@ def assemble(full_command, args):
     log.log(f'{"Threads per assembly":>{mar}}: {bold(threads_per_assembly)}')
     log.log("")
 
-    if not args.preset: args.preset = "CAPSKIM"
+    if not args.preset:
+        args.preset = "CAPSKIM"
     if args.preset.upper() not in settings.MEGAHIT_PRESETS:
         invalid_preset = args.preset
         args.preset = "CAPSKIM"
@@ -221,11 +221,14 @@ def assemble(full_command, args):
     else:
         args.preset = args.preset.upper()
         log.log(f'{"preset":>{mar}}: {bold(args.preset.upper())}')
-    if not args.k_list: args.k_list = settings.MEGAHIT_PRESETS[args.preset]["k_list"]
+    if not args.k_list:
+        args.k_list = settings.MEGAHIT_PRESETS[args.preset]["k_list"]
     log.log(f'{"k_list":>{mar}}: {bold(args.k_list)}')
-    if not args.min_count: args.min_count = settings.MEGAHIT_PRESETS[args.preset]["min_count"]
+    if not args.min_count:
+        args.min_count = settings.MEGAHIT_PRESETS[args.preset]["min_count"]
     log.log(f'{"min_count":>{mar}}: {bold(args.min_count)}')
-    if not args.prune_level: args.prune_level = settings.MEGAHIT_PRESETS[args.preset]["prune_level"]
+    if not args.prune_level:
+        args.prune_level = settings.MEGAHIT_PRESETS[args.preset]["prune_level"]
     log.log(f'{"prune_level":>{mar}}: {bold(args.prune_level)}')
     log.log(f'{"merge_level":>{mar}}: {bold(args.merge_level)}')
     log.log(f'{"min_contig_len":>{mar}}: {bold(args.min_contig_len)}')
@@ -482,7 +485,8 @@ def megahit(
             "--min-contig-len", f"{adjusted_min_contig_len}",
             "--tmp-dir", f"{tmp_dir}",
         ]
-        if extra_options: megahit_command += [extra_options]
+        if extra_options:
+            megahit_command += [extra_options]
         megahit_log_file = Path(sample_out_dir, "megahit.brief.log")
         with open(megahit_log_file, "w") as megahit_log:
             megahit_log.write(f"Captus' MEGAHIT Command:\n  {' '.join(megahit_command)}\n\n\n")
@@ -598,25 +602,25 @@ def get_asm_stats(sample_megahit_out_dir):
         depths.append(float(seq.split("_cov_")[1].split("_")[0]))
 
     n_least_0bp = len(lengths)
-    n_least_1kbp = round(len(list(filter(lambda l: l >= 1000, lengths))) / n_least_0bp * 100, 3)
-    n_least_2kbp = round(len(list(filter(lambda l: l >= 2000, lengths))) / n_least_0bp * 100, 3)
-    n_least_5kbp = round(len(list(filter(lambda l: l >= 5000, lengths))) / n_least_0bp * 100, 3)
-    n_least_10kbp = round(len(list(filter(lambda l: l >= 10000, lengths))) / n_least_0bp * 100, 3)
+    n_least_1kbp = round(len(list(filter(lambda L: L >= 1000, lengths))) / n_least_0bp * 100, 3)
+    n_least_2kbp = round(len(list(filter(lambda L: L >= 2000, lengths))) / n_least_0bp * 100, 3)
+    n_least_5kbp = round(len(list(filter(lambda L: L >= 5000, lengths))) / n_least_0bp * 100, 3)
+    n_least_10kbp = round(len(list(filter(lambda L: L >= 10000, lengths))) / n_least_0bp * 100, 3)
 
     longest = max(lengths)
     shortest = min(lengths)
     s_least_0bp = sum(lengths)
-    s_least_1kbp = round(sum(list(filter(lambda l: l >= 1000, lengths))) / s_least_0bp * 100, 3)
-    s_least_2kbp = round(sum(list(filter(lambda l: l >= 2000, lengths))) / s_least_0bp * 100, 3)
-    s_least_5kbp = round(sum(list(filter(lambda l: l >= 5000, lengths))) / s_least_0bp * 100, 3)
-    s_least_10kbp = round(sum(list(filter(lambda l: l >= 10000, lengths))) / s_least_0bp * 100, 3)
+    s_least_1kbp = round(sum(list(filter(lambda L: L >= 1000, lengths))) / s_least_0bp * 100, 3)
+    s_least_2kbp = round(sum(list(filter(lambda L: L >= 2000, lengths))) / s_least_0bp * 100, 3)
+    s_least_5kbp = round(sum(list(filter(lambda L: L >= 5000, lengths))) / s_least_0bp * 100, 3)
+    s_least_10kbp = round(sum(list(filter(lambda L: L >= 10000, lengths))) / s_least_0bp * 100, 3)
     avg_length = math.ceil(statistics.mean(lengths))
     median_length = math.ceil(statistics.median(lengths))
     asm_half, size, n50 = s_least_0bp / 2, 0, 0
-    for l in sorted(lengths, reverse=True):
-        size += l
+    for L in sorted(lengths, reverse=True):
+        size += L
         if size >= asm_half:
-            n50 = l
+            n50 = L
             break
 
     gc = round(gc_count / s_least_0bp * 100, 3)
