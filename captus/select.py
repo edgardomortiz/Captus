@@ -19,8 +19,8 @@ from pathlib import Path
 from tqdm import tqdm
 
 from . import log, settings
-from .misc import (bold, dim, dir_is_empty, elapsed_time, format_dep_msg, make_output_dir,
-                   python_library_check, quit_with_error, red, successful_exit)
+from .misc import (bold, dim, dir_is_empty, elapsed_time, file_is_empty, format_dep_msg,
+                   make_output_dir, python_library_check, quit_with_error, red, successful_exit)
 from .version import __version__
 
 
@@ -434,7 +434,7 @@ def copy_loci(aln_stats: dict, out_dir: Path, overwrite: bool, show_more: bool):
     if overwrite or dir_is_empty(sel_dir):
         log.log("")
         log.log("")
-        log.log(bold(f"Copying selected loci:"))
+        log.log(bold("Copying selected loci:"))
         tqdm_cols = min(shutil.get_terminal_size().columns, 120)
         with tqdm(total=len(aln_stats), ncols=tqdm_cols, unit="loci") as pbar:
             for locus in aln_stats:
@@ -443,7 +443,8 @@ def copy_loci(aln_stats: dict, out_dir: Path, overwrite: bool, show_more: bool):
                 dst = Path(sel_dir, src.name)
                 shutil.copy(f"{src}", f"{dst}")
                 msg = f"'{src.name}': copied [{elapsed_time(time.time() - inner_start)}]"
-                if show_more: tqdm.write(msg)
+                if show_more:
+                    tqdm.write(msg)
                 log.log(msg, print_to_screen=False)
                 pbar.update()
         log.log(bold(

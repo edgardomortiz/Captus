@@ -313,7 +313,8 @@ def align(full_command, args):
                 filter_method = None
             elif args.filter_method == "both":
                 filter_method = "naive"
-        if filter_method == "none": filter_method = None
+        if filter_method == "none":
+            filter_method = None
 
         log.log(f'{"Concurrent processes":>{mar}}: {bold(concurrent)}')
         log.log(f'{"Filtering method":>{mar}}: {bold(filter_method)}')
@@ -703,7 +704,8 @@ def check_value_list(input_values: str, valid_values: dict):
     else:
         checked = ",".join([v for v in input_values.upper().split(",") if v in valid_values])
         ignored = ",".join([v for v in input_values.split(",") if v.upper() not in valid_values])
-    if ignored: ignored = f'(ignored values: {ignored})'
+    if ignored:
+        ignored = f'(ignored values: {ignored})'
 
     return checked, ignored
 
@@ -800,7 +802,7 @@ def select_filtering_refs(refs_paths, markers, formats, method):
         if "AA" in formats:
             for marker in markers:
                 if (marker in ["NUC", "PTD", "MIT"]
-                    and not marker in filtering_refs
+                    and marker not in filtering_refs
                     and refs_paths[marker]["AA_path"]):
                     filtering_refs[marker] = {"path": refs_paths[marker]["AA_path"],
                                               "marker_dir": settings.MARKER_DIRS[marker],
@@ -808,11 +810,11 @@ def select_filtering_refs(refs_paths, markers, formats, method):
         if "MA" in formats:
             for marker in markers:
                 if (marker in ["DNA", "CLR"]
-                    and not marker in filtering_refs
+                    and marker not in filtering_refs
                     and refs_paths[marker]["NT_path"]):
                     filtering_refs[marker] = {"path": refs_paths[marker]["NT_path"],
-                                            "marker_dir": settings.MARKER_DIRS[marker],
-                                            "format_dir": settings.FORMAT_DIRS["MA"]}
+                                              "marker_dir": settings.MARKER_DIRS[marker],
+                                              "format_dir": settings.FORMAT_DIRS["MA"]}
 
     return filtering_refs
 
@@ -837,7 +839,7 @@ def make_output_dirtree(markers, formats, out_dir, base_dir, margin):
     margins = [f'{"Output directory tree":>{margin}}: ', f'{"":>{margin}}  ']
     for combo in valid_combos:
         make_output_dir(Path(base_tree, combo[0], combo[1]))
-        if not combo[0] in dirs:
+        if combo[0] not in dirs:
             if combo[0] == valid_combos[-1][0]:
                 parent, fork = space, corner
             else:
@@ -982,7 +984,7 @@ def collect_sample_markers(
     for seq_name_full in fasta_in:
         # Replace connecting 'n's only for alignment, otherwise MAFFT takes forever and opens
         # enormous gaps
-        if not Path(destination).parts[-1] in [settings.FORMAT_DIRS["AA"], settings.FORMAT_DIRS["NT"]]:
+        if Path(destination).parts[-1] not in [settings.FORMAT_DIRS["AA"], settings.FORMAT_DIRS["NT"]]:
             seq_no_ns = fasta_in[seq_name_full]["sequence"].replace("n", "-")
             fasta_in[seq_name_full]["sequence"] = seq_no_ns
         # Replace stop codons by X, MAFFT automatically removes the '*' symbol
@@ -1031,7 +1033,8 @@ def add_refs(ref_path, dest_dir, shared_ref_names):
             name_parts = ref_name.split(settings.REFERENCE_CLUSTER_SEPARATOR)
             ref_out = (f"{settings.REFERENCE_CLUSTER_SEPARATOR.join(name_parts[0:-1])}"
                        f"{settings.SEQ_NAME_SEP}ref")
-            if ref_out not in shared_ref_names: shared_ref_names.append(ref_out)
+            if ref_out not in shared_ref_names:
+                shared_ref_names.append(ref_out)
             if ref_name in ref_fasta:
                 markers_in_ref.append(name_parts[-1])
                 fastas_found.append(ref_name)
@@ -1074,7 +1077,8 @@ def adjust_align_concurrency(concurrent, threads_max):
             concurrent = int(concurrent)
         except ValueError:
             quit_with_error("Invalid value for '--concurrent', set it to 'auto' or use a number")
-    if concurrent > threads_max: concurrent = min(threads_max, concurrent)
+    if concurrent > threads_max:
+        concurrent = min(threads_max, concurrent)
     threads_per_alignment = threads_max // concurrent
 
     return concurrent, threads_per_alignment
@@ -1492,7 +1496,7 @@ def filter_paralogs_informed(
             for seq_name in fasta_with_paralogs:
                 if seq_name in accepted:
                     if (seq_name.endswith(f"{settings.SEQ_NAME_SEP}ref")
-                        or not settings.SEQ_NAME_SEP in seq_name):
+                        or settings.SEQ_NAME_SEP not in seq_name):
                         fasta_without_paralogs[seq_name] = fasta_with_paralogs[seq_name]
                     else:
                         seq_name_out = settings.SEQ_NAME_SEP.join(
@@ -1555,7 +1559,7 @@ def rem_refs(refs_paths, fastas_paths, min_samples, overwrite, concurrent, debug
             name_parts = seq_name.split(settings.REFERENCE_CLUSTER_SEPARATOR)
             ref_name = (f"{settings.REFERENCE_CLUSTER_SEPARATOR.join(name_parts[0:-1])}"
                         f"{settings.SEQ_NAME_SEP}ref")
-            if not ref_name in ref_names:
+            if ref_name not in ref_names:
                 ref_names.append(ref_name)
 
     rem_refs_from_fasta_params = []
@@ -1655,7 +1659,8 @@ def clipkit(
                 for seq_name in fasta_trimmed:
                     ungapped = len(fasta_trimmed[seq_name]["sequence"].replace("-", ""))
                     aln_length = len(fasta_trimmed[seq_name]["sequence"])
-                    if ungapped > 0: ungapped_lengths.append(ungapped)
+                    if ungapped > 0:
+                        ungapped_lengths.append(ungapped)
                 if ungapped_lengths:
                     mean_ungapped = statistics.mean(ungapped_lengths)
                 else:
@@ -1700,9 +1705,11 @@ def compute_stats(shared_sam_stats, shared_aln_stats, fasta_path):
 
     aln_marker, aln_format= "", ""
     for m in settings.MARKER_DIRS:
-        if fasta_path_parts[-3] == settings.MARKER_DIRS[m]: aln_marker = m
+        if fasta_path_parts[-3] == settings.MARKER_DIRS[m]:
+            aln_marker = m
     for f in settings.FORMAT_DIRS:
-        if fasta_path_parts[-2] == settings.FORMAT_DIRS[f]: aln_format = f
+        if fasta_path_parts[-2] == settings.FORMAT_DIRS[f]:
+            aln_format = f
 
     fasta_dict = fasta_to_dict(fasta_path)
 
@@ -1710,7 +1717,7 @@ def compute_stats(shared_sam_stats, shared_aln_stats, fasta_path):
     aln_stats = alignment_stats(fasta_dict, aln_type, coding)
     aln_tsv = [[
         f"{fasta_path}",                                    # [0] alignment file location
-        f'{bool(not "untrimmed" in fasta_path_parts[-5])}', # [1] alignment was trimmed
+        f'{bool("untrimmed" not in fasta_path_parts[-5])}', # [1] alignment was trimmed
         f'{fasta_path_parts[-4].split("_")[1]}',            # [2] paralog filter applied
         f'{bool("w_refs" in fasta_path_parts[-4])}',        # [3] still with references
         aln_marker,                                         # [4] marker type

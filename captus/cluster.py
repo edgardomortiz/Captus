@@ -179,12 +179,12 @@ def cluster(full_command, args):
 
     if args.debug:
         tqdm_serial_run(import_fasta, import_params,
-                        f"Importing and preprocessing FASTAs and GFFs",
-                        f"Data import completed", "sample", show_less)
+                        "Importing and preprocessing FASTAs and GFFs",
+                        "Data import completed", "sample", show_less)
     else:
         tqdm_parallel_async_run(import_fasta, import_params,
-                                f"Importing and preprocessing FASTAs and GFFs",
-                                f"Data import completed", "sample", threads_max, show_less)
+                                "Importing and preprocessing FASTAs and GFFs",
+                                "Data import completed", "sample", threads_max, show_less)
     log.log("")
 
 
@@ -500,7 +500,8 @@ def prepare_redo(out_dir: Path, redo_from: str):
     log.log(bold(f"Deleting directories and files to redo from the '{redo_from}' stage:"))
     tqdm_cols = min(shutil.get_terminal_size().columns, 120)
     items_to_delete = len(dirs_to_delete)
-    if redo_from == "dereplication": items_to_delete += len(dereplication)
+    if redo_from == "dereplication":
+        items_to_delete += len(dereplication)
     with tqdm(total=items_to_delete, ncols=tqdm_cols, unit="items") as pbar:
         if redo_from == "dereplication":
             for del_file in dereplication:
@@ -665,8 +666,10 @@ def dedup_fasta(
                 Path(f"{result_prefix}_cluster.tsv"),
             ]
             for file in to_delete:
-                if file.exists(): file.unlink()
-            if tmp_dir.exists(): shutil.rmtree(tmp_dir, ignore_errors=True)
+                if file.exists():
+                    file.unlink()
+            if tmp_dir.exists():
+                shutil.rmtree(tmp_dir, ignore_errors=True)
         if rep_seq_path.exists():
             rep_seq_path.replace(fasta_out_path)
         if file_is_empty(fasta_out_path):
@@ -721,7 +724,8 @@ def cluster_markers(
 ):
 
     log.log(bold(f"Clustering '{fasta_concat_path.name}' at {clust_threshold}% identity:"))
-    if clust_threshold > 1: clust_threshold = clust_threshold / 100
+    if clust_threshold > 1:
+        clust_threshold = clust_threshold / 100
     cluster_prefix = "concatenated"
     cluster_tsv_path = Path(fasta_concat_path.parent, f"{cluster_prefix}_cluster.tsv")
     if overwrite is True or not cluster_tsv_path.exists() or file_is_empty(cluster_tsv_path):
@@ -781,14 +785,18 @@ def cluster_markers(
             species = []
             for member in clusters_all[centroid]:
                 sample_name = member.split(settings.SEQ_NAME_SEP)[0]
-                if sample_name not in samples: samples.append(sample_name)
+                if sample_name not in samples:
+                    samples.append(sample_name)
                 species_name = "_".join(sample_name.split("_")[0:2])
-                if species_name not in species: species.append(species_name)
+                if species_name not in species:
+                    species.append(species_name)
             if len(samples) > 1:
-                if len(species) > 1: clusters_pass[centroid] = clusters_all[centroid]
+                if len(species) > 1:
+                    clusters_pass[centroid] = clusters_all[centroid]
                 else:
                     single_species_clusters += 1
-                    if align_singletons: clusters_pass[centroid] = clusters_all[centroid]
+                    if align_singletons:
+                        clusters_pass[centroid] = clusters_all[centroid]
             else:
                 single_sample_clusters += 1
     if overwrite is True or dir_is_empty(cluster_dir_path):
@@ -837,7 +845,8 @@ def adjust_align_concurrency(concurrent, threads_max):
             concurrent = int(concurrent)
         except ValueError:
             quit_with_error("Invalid value for '--concurrent', set it to 'auto' or use a number")
-    if concurrent > threads_max: concurrent = min(threads_max, concurrent)
+    if concurrent > threads_max:
+        concurrent = min(threads_max, concurrent)
     threads_per_alignment = threads_max // concurrent
 
     return concurrent, threads_per_alignment
@@ -954,7 +963,8 @@ def mafft_assembly(
                      short_fasta_path,
                      long_aligned_fasta_path,
                      intermediate_fasta_path]:
-            if file.exists(): file.unlink()
+            if file.exists():
+                file.unlink()
         message = f"'{input_fasta_path.name}': aligned [{elapsed_time(time.time() - start)}]"
     else:
         message = dim(f"'{input_fasta_path.name}': SKIPPED (output FASTA already exists)")
@@ -1072,7 +1082,8 @@ def curate(
         min_copies = 0
         for sample_name in haplos:
             for haplo in haplos[sample_name]:
-                if len(haplo.strip("-")) > 0: min_copies += 1
+                if len(haplo.strip("-")) > 0:
+                    min_copies += 1
 
         return min_copies
 

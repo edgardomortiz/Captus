@@ -617,10 +617,10 @@ class CaptusAssembly(object):
             default=-1,
             type=int,
             dest="max_paralogs",
-            help="Maximum number of secondary hits (copies) of any particular reference marker"
-                 " allowed in the output. We recommend disabling the removal of paralogs (secondary"
-                 " hits/copies) during the 'extract' step because the 'align' step uses a more"
-                 " sophisticated filter for paralogs. -1 disables the removal of paralogs"
+            help="Maximum number of secondary hits (copies) of any particular reference target"
+                 " marker allowed in the output. We recommend disabling the removal of paralogs"
+                 " (secondary hits/copies) during the 'extract' step because the 'align' step uses a"
+                 " more sophisticated filter for paralogs. -1 disables the removal of paralogs"
         )
         output_group.add_argument(
             "--max_loci_files",
@@ -628,9 +628,9 @@ class CaptusAssembly(object):
             default=0,
             type=int,
             dest="max_loci_files",
-            help="When the number of markers in a reference file exceeds this number, Captus will"
-                 " not write a separate FASTA file per sample per marker to not overload I/O. The"
-                 " single FASTA file containing all recovered markers per sample needed by the"
+            help="When the number of markers in a reference target file exceeds this number, Captus"
+                 " will not write a separate FASTA file per sample per marker to not overload I/O."
+                 " The single FASTA file containing all recovered markers per sample needed by the"
                  " 'align' step is still produced as are the rest of output files"
         )
         output_group.add_argument(
@@ -653,10 +653,10 @@ class CaptusAssembly(object):
             default=2000,
             type=int,
             dest="max_loci_scipio_x2",
-            help="When the number of loci in a protein reference file exceeds this number, Captus"
-                 " will not run a second, more exhaustive round of Scipio. Usually the results from"
-                 " the first round are extremely similar and sufficient, the second round can become"
-                 " extremely slow as the number of reference proteins grows"
+            help="When the number of loci in a protein reference target file exceeds this number,"
+                 " Captus will not run a second, more exhaustive round of Scipio. Usually the"
+                 " results from the first round are extremely similar and sufficient, the second"
+                 " round can become extremely slow as the number of reference target proteins grows"
         )
         protein_group.add_argument(
             "--predict",
@@ -664,9 +664,10 @@ class CaptusAssembly(object):
             dest="predict",
             help="Scipio flags introns as dubious when the splice signals are not found at the"
                  " exon edges, this may indicate that there are additional aminoacids in the"
-                 " recovered protein that are not present in the reference protein. Enable this flag"
-                 " to attempt translation of these dubious introns, if the translation does not"
-                 " introduce premature stop codons they will be added to the recovered protein"
+                 " recovered protein that are not present in the reference target protein. Enable"
+                 " this flag to attempt translation of these dubious introns, if the translation"
+                 " does not introduce premature stop codons they will be added to the recovered"
+                 " protein"
         )
 
         scipio_nuc_group = parser.add_argument_group("Nuclear proteins extraction (Scipio)")
@@ -675,11 +676,11 @@ class CaptusAssembly(object):
             action="store",
             type=str,
             dest="nuc_refs",
-            help="B|Set of nuclear protein references, options are:\n"
+            help="B|Set of nuclear protein reference target sequences, options are:\n"
                  "Angiosperms353 = The original set of target proteins from Angiosperms353\n"
                  "Mega353 = The improved set of target proteins from Angiosperms353\n"
-                 "Alternatively, provide a path to a FASTA file containing your reference protein"
-                 " sequences in either nucleotide or aminoacid. When the FASTA file is in"
+                 "Alternatively, provide a path to a FASTA file containing your reference target"
+                 " protein sequences in either nucleotide or aminoacid. When the FASTA file is in"
                  " nucleotides, '--nuc_transtable' will be used to translate it to aminoacids"
         )
         scipio_nuc_group.add_argument(
@@ -699,7 +700,7 @@ class CaptusAssembly(object):
             default=0.13,
             type=float,
             dest="nuc_min_score",
-            help="Minimum Scipio score to retain hits to reference proteins."
+            help="Minimum Scipio score to retain hits to reference target proteins."
         )
         scipio_nuc_group.add_argument(
             "--nuc_min_identity",
@@ -707,7 +708,7 @@ class CaptusAssembly(object):
             default=65,
             type=float,
             dest="nuc_min_identity",
-            help="Minimum identity percentage to retain hits to reference proteins"
+            help="Minimum identity percentage to retain hits to reference target proteins"
         )
         scipio_nuc_group.add_argument(
             "--nuc_min_coverage",
@@ -715,7 +716,8 @@ class CaptusAssembly(object):
             default=20,
             type=float,
             dest="nuc_min_coverage",
-            help="Minimum coverage percentage of reference protein to consider a hit by a contig"
+            help="Minimum coverage percentage of reference target protein to consider a hit by a"
+                 " contig"
         )
 
         scipio_ptd_group = parser.add_argument_group("Plastidial proteins extraction (Scipio)")
@@ -724,10 +726,10 @@ class CaptusAssembly(object):
             action="store",
             type=str,
             dest="ptd_refs",
-            help="B|Set of plastidial protein references, options are:\n"
+            help="B|Set of plastidial protein reference target sequences, options are:\n"
                  "SeedPlantsPTD = A set of plastidial proteins for Seed Plants, curated by us\n"
-                 "Alternatively, provide a path to a FASTA file containing your reference protein"
-                 " sequences in either nucleotide or aminoacid. When the FASTA file is in"
+                 "Alternatively, provide a path to a FASTA file containing your reference target"
+                 " protein sequences in either nucleotide or aminoacid. When the FASTA file is in"
                  " nucleotides, '--ptd_transtable' will be used to translate it to aminoacids"
         )
         scipio_ptd_group.add_argument(
@@ -747,7 +749,7 @@ class CaptusAssembly(object):
             default=0.2,
             type=float,
             dest="ptd_min_score",
-            help="Minimum Scipio score to retain hits to reference proteins"
+            help="Minimum Scipio score to retain hits to reference target proteins"
         )
         scipio_ptd_group.add_argument(
             "--ptd_min_identity",
@@ -755,7 +757,7 @@ class CaptusAssembly(object):
             default=65,
             type=float,
             dest="ptd_min_identity",
-            help="Minimum identity percentage to retain hits to reference proteins"
+            help="Minimum identity percentage to retain hits to reference target proteins"
         )
         scipio_ptd_group.add_argument(
             "--ptd_min_coverage",
@@ -763,7 +765,8 @@ class CaptusAssembly(object):
             default=20,
             type=float,
             dest="ptd_min_coverage",
-            help="Minimum coverage percentage of reference protein to consider a hit by a contig"
+            help="Minimum coverage percentage of reference target protein to consider a hit by a"
+                 " contig"
         )
 
         scipio_mit_group = parser.add_argument_group("Mitochondrial proteins extraction (Scipio)")
@@ -772,10 +775,10 @@ class CaptusAssembly(object):
             action="store",
             type=str,
             dest="mit_refs",
-            help="B|Set of mitochondrial protein references, options are:\n"
+            help="B|Set of mitochondrial protein reference target sequences, options are:\n"
                  "SeedPlantsMIT = A set of mitochondrial proteins for Seed Plants, curated by us\n"
-                 "Alternatively, provide a path to a FASTA file containing your reference protein"
-                 " sequences in either nucleotide or aminoacid. When the FASTA file is in"
+                 "Alternatively, provide a path to a FASTA file containing your reference target"
+                 " protein sequences in either nucleotide or aminoacid. When the FASTA file is in"
                  " nucleotides, '--mit_transtable' will be used to translate it to aminoacids"
         )
         scipio_mit_group.add_argument(
@@ -795,7 +798,7 @@ class CaptusAssembly(object):
             default=0.2,
             type=float,
             dest="mit_min_score",
-            help="Minimum Scipio score to retain hits to reference proteins"
+            help="Minimum Scipio score to retain hits to reference target proteins"
         )
         scipio_mit_group.add_argument(
             "--mit_min_identity",
@@ -803,7 +806,7 @@ class CaptusAssembly(object):
             default=65,
             type=float,
             dest="mit_min_identity",
-            help="Minimum identity percentage to retain hits to reference proteins"
+            help="Minimum identity percentage to retain hits to reference target proteins"
         )
         scipio_mit_group.add_argument(
             "--mit_min_coverage",
@@ -811,7 +814,8 @@ class CaptusAssembly(object):
             default=20,
             type=float,
             dest="mit_min_coverage",
-            help="Minimum coverage percentage of reference protein to consider a hit by a contig"
+            help="Minimum coverage percentage of reference target protein to consider a hit by a"
+                 " contig"
         )
 
         non_coding_group = parser.add_argument_group("Miscellaneous DNA extraction (BLAT)")
@@ -820,7 +824,7 @@ class CaptusAssembly(object):
             action="store",
             type=str,
             dest="dna_refs",
-            help="Path to a FASTA nucleotide file of miscellaneous DNA references"
+            help="Path to a FASTA nucleotide file of miscellaneous DNA reference targets"
         )
         non_coding_group.add_argument(
             "--dna_min_identity",
@@ -828,7 +832,7 @@ class CaptusAssembly(object):
             default=80,
             type=float,
             dest="dna_min_identity",
-            help="Minimum identity percentage to reference sequences to retain matches"
+            help="Minimum identity percentage to reference target sequences to retain matches"
         )
         non_coding_group.add_argument(
             "--dna_min_coverage",
@@ -836,7 +840,7 @@ class CaptusAssembly(object):
             default=20,
             type=float,
             dest="dna_min_coverage",
-            help="Minimum coverage percentage of reference sequence to retain matches"
+            help="Minimum coverage percentage of reference target sequence to retain matches"
         )
 
         mmseqs2_group = parser.add_argument_group("Assemblies clustering (MMseqs2)")
@@ -845,9 +849,9 @@ class CaptusAssembly(object):
             action="store_true",
             dest="cluster_leftovers",
             help="Enable MMseqs2 clustering across samples of the contigs that had no hits to the"
-                 " reference markers. A new miscellaneous DNA reference is built from the best"
-                 " representative of each cluster in order to perform a miscellaneous DNA marker"
-                 " extraction."
+                 " reference target markers. A new miscellaneous DNA reference is built from the"
+                 " best representative of each cluster in order to perform a miscellaneous DNA"
+                 " marker extraction."
         )
         mmseqs2_group.add_argument(
             "--mmseqs2_method",
@@ -939,8 +943,8 @@ class CaptusAssembly(object):
             type=int,
             dest="cl_rep_min_len",
             help="After clustering is finished, only accept cluster representatives of at least this"
-                 " length to be part of the new miscellaneous DNA reference. Use 0 to disable this"
-                 " filter"
+                 " length to be part of the new miscellaneous DNA reference targets. Use 0 to"
+                 " disable this filter"
         )
         mmseqs2_group.add_argument(
             "--cl_min_samples",
@@ -1222,11 +1226,11 @@ class CaptusAssembly(object):
             help="B|Methods for filtering paralogous sequences:\n"
                  "naive = Only the best hit for each sample (marked as hit=00) is retained\n"
                  "informed = Only keep the copy (regardless of hit ranking) that is most similar to"
-                 " the reference sequence that was chosen most frequently among all other samples"
-                 " in the alignment"
+                 " the reference target sequence that was chosen most frequently among all other"
+                 " samples in the alignment"
                  "both = Two separate folders will be created, each containing the results from each"
                  " filtering method"
-                 "none = Skip paralog removal, just remove reference sequences from the"
+                 "none = Skip paralog removal, just remove reference target sequences from the"
                  " alignments. Useful for phylogenetic methods that allow paralogs like ASTRAL-Pro"
         )
         paralog_group.add_argument(
@@ -1236,8 +1240,9 @@ class CaptusAssembly(object):
             type=float,
             dest="tolerance",
             help="Only applicable to the 'informed' filter. If the selected copy's identity to the"
-                 " most commonly chosen reference is below this number of Standard Deviations from"
-                 " the mean, it will also be removed (the lower the number the stricter the filter)"
+                 " most commonly chosen reference target  is below this number of Standard"
+                 " Deviations from the mean, it will also be removed (the lower the number the"
+                 " stricter the filter)"
         )
 
         clipkit_group = parser.add_argument_group("ClipKIT")
@@ -1306,8 +1311,8 @@ class CaptusAssembly(object):
             help="B|Repeat analysis from a particular stage:\n"
                  "alignment = Delete all subdirectories with alignments and restart\n"
                  "filtering = Delete all subdirectories with filtered alignments and restart\n"
-                 "removal = Delete all subdirectories with alignments with references removed and"
-                 " restart\n"
+                 "removal = Delete all subdirectories with alignments with reference targets removed"
+                 " and restart\n"
                  "trimming = Delete all subdirectories with trimmed alignments and restart"
         )
         other_group.add_argument(
