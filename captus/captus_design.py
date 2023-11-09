@@ -156,7 +156,10 @@ class CaptusDesign(object):
             type=str,
             dest="clust_program",
             choices=["mmseqs", "vsearch"],
-            help="Clustering software to use for deduplication and clustering"
+            help="Clustering software to use for deduplication and clustering. We recommend MMseqs2"
+                 " over VSEARCH. VSEARCH is extremely slow with sequences longer than a few thousand"
+                 " bp, it is included for comparison purposes only and will probably be removed in"
+                 " the future"
         )
         clustering_group.add_argument(
             "--mmseqs_sensitivity",
