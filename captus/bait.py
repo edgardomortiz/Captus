@@ -485,7 +485,7 @@ def dereplicate_compress_baits(
                     pbar.update()
                 else:
                     inner_start = time.time()
-                    bait_derep_file = Path(f"{bait_file}".replace("_full", ""))
+                    bait_derep_file = Path(bait_file.parent, f"{bait_file.name}".replace("_full", ""))
                     derep_log_file = Path(f"{bait_file}".replace(".fasta", ".derep.log"))
                     derep_cmd = [
                         vsearch_path,

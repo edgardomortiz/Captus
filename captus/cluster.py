@@ -1049,9 +1049,7 @@ def curate(
                 return False
         return True
 
-
     def min_copies(aln_trimmed: dict, aln_width: int):
-
         haplos = {}
         for seq_name in aln_trimmed:
             sample_name = aln_trimmed[seq_name]["sample_name"]
@@ -1059,7 +1057,6 @@ def curate(
                 haplos[sample_name].append("-" * aln_width)
             else:
                 haplos[sample_name] = ["-" * aln_width]
-
         for seq_name in aln_trimmed:
             sample_name  = aln_trimmed[seq_name]["sample_name"]
             seq = aln_trimmed[seq_name]["sequence"]
@@ -1078,13 +1075,11 @@ def curate(
                         break
                     else:
                         continue
-
         min_copies = 0
         for sample_name in haplos:
             for haplo in haplos[sample_name]:
                 if len(haplo.strip("-")) > 0:
                     min_copies += 1
-
         return min_copies
 
 
