@@ -1147,9 +1147,13 @@ def prepare_targets(
                 else:
                     max_lengths[locus] = len(cluster[1])
                 cluster_size = len(cluster) / 2
-                centroids[cluster[0].lstrip(">")] = {
+                header = cluster[0].lstrip(">").split()
+                seq_name, description = "", ""
+                if len(header) > 1:
+                    description = " ".join(header[1:])
+                centroids[header[0]] = {
                     "sequence": cluster[1],
-                    "description": f"[cluster_size={cluster_size}]"
+                    "description": f"[cluster_size={cluster_size}] {description}"
                 }
                 if show_more:
                     tqdm.write(msg)
