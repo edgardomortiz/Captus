@@ -1140,14 +1140,14 @@ def prepare_targets(
         tqdm_cols = min(shutil.get_terminal_size().columns, 120)
         with tqdm(total=len(clusters), ncols=tqdm_cols, unit="cluster") as pbar:
             for cluster in clusters:
-                locus = cluster[0].split(settings.REFERENCE_CLUSTER_SEPARATOR)[-1]
+                header = cluster[0].lstrip(">").split()
+                locus = header[0].split(settings.REFERENCE_CLUSTER_SEPARATOR)[-1]
                 if locus in max_lengths:
                     if len(cluster[1]) > max_lengths[locus]:
                         max_lengths[locus] = len(cluster[1])
                 else:
                     max_lengths[locus] = len(cluster[1])
                 cluster_size = len(cluster) / 2
-                header = cluster[0].lstrip(">").split()
                 seq_name, description = "", ""
                 if len(header) > 1:
                     description = " ".join(header[1:])
