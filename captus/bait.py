@@ -1137,27 +1137,34 @@ def prepare_targets(
         clusters = split_mmseqs_clusters_file(clust_all_seqs_file)
         max_lengths = {}
         centroids = {}
+        subsumed = {}
         tqdm_cols = min(shutil.get_terminal_size().columns, 120)
         with tqdm(total=len(clusters), ncols=tqdm_cols, unit="cluster") as pbar:
             for cluster in clusters:
-                header = cluster[0].lstrip(">").split()
-                locus = header[0].split(settings.REFERENCE_CLUSTER_SEPARATOR)[-1]
-                if locus in max_lengths:
-                    if len(cluster[1]) > max_lengths[locus]:
-                        max_lengths[locus] = len(cluster[1])
-                else:
-                    max_lengths[locus] = len(cluster[1])
                 cluster_size = len(cluster) / 2
-                seq_name, description = "", ""
-                if len(header) > 1:
-                    description = " ".join(header[1:])
-                centroids[header[0]] = {
-                    "sequence": cluster[1],
-                    "description": f"[cluster_size={cluster_size}] {description}"
-                }
-                if show_more:
-                    tqdm.write(msg)
-                log.log(msg, print_to_screen=False)
+                cluster_locus = ""
+                for h in range(0, len(cluster), 2):
+                    header = cluster[h].lstrip(">").split()
+                    locus = header[0].split(settings.REFERENCE_CLUSTER_SEPARATOR)[-1]
+                    if h == 0:
+                        cluster_locus = locus
+                        seq_name, description = "", ""
+                        if len(header) > 1:
+                            description = " ".join(header[1:])
+                        centroids[header[h]] = {
+                            "sequence": cluster[h+1],
+                            "description": f"[cluster_size={cluster_size}] {description}"
+                        }
+                    if locus in max_lengths:
+                        if len(cluster[h+1]) > max_lengths[locus]:
+                            max_lengths[locus] = len(cluster[h+1])
+                    else:
+                        max_lengths[locus] = len(cluster[h+1])
+                    if locus != cluster_locus:
+                        if locus not in subsumed:
+                            subsumed[locus] = [cluster_locus]
+                        else:
+                            subsumed[locus].append(cluster_locus)
                 pbar.update()
         if centroids:
             clust_all_seqs_file.unlink()
@@ -1215,11 +1222,22 @@ def prepare_targets(
         log.log(bold("Saving statistics per locus present in reference target file:"))
         start = time.time()
         with open(targets_tsv_path, "wt") as tsv_out:
-            tsv_out.write("locus\tnum_targets\tnum_baits\n")
+            tsv_out.write("locus\tnum_targets\tnum_baits\tlength\tnotes\n")
+            note = ""
             for loc in sorted(baitless):
-                tsv_out.write(f'{loc}\t{baitless[loc]["targets"]}\t{baitless[loc]["baits"]}\n')
+                try:
+                    note = f'={",".join(sorted(set(subsumed[loc])))}'
+                except KeyError:
+                    note = ""
+                tsv_out.write(f'{loc}\t{baitless[loc]["targets"]}\t{baitless[loc]["baits"]}'
+                              f'\t{max_lengths[loc]}\t{note}\n')
             for loc in sorted(loci_stats):
-                tsv_out.write(f'{loc}\t{loci_stats[loc]["targets"]}\t{loci_stats[loc]["baits"]}\n')
+                try:
+                    note =  f'={",".join(sorted(set(subsumed[loc])))}'
+                except KeyError:
+                    note = ""
+                tsv_out.write(f'{loc}\t{loci_stats[loc]["targets"]}\t{loci_stats[loc]["baits"]}'
+                              f'\t{max_lengths[loc]}\t{note}\n')
         if targets_tsv_path.exists() and not file_is_empty(targets_tsv_path):
             log.log(
                 f"{bold(targets_tsv_path.name)}: loci stats table"
