@@ -727,9 +727,9 @@ def align_prots(s1, s2, method, scoring_matrix=PAM250):
         "s2_aln":     "",
     }
 
-    # Capitalize sequences
-    s1 = s1.upper()
-    s2 = s2.upper()
+    # Capitalize sequences and replace unusual
+    s1 = s1.upper().replace("U", "C").replace("O", "X")
+    s2 = s2.upper().replace("U", "C").replace("O", "X")
 
     if method == "gapless":
         return gapless(s1, s2, aln)
