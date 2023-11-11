@@ -1041,6 +1041,7 @@ def prepare_protein_refs(
                         f"WARNING: {refset_stem} contained gaps that were removed"
                         " and/or premature stops that were converted to X"
                     )
+                log.log(f"'{refset_stem}' was successfully imported")
                 aa_msg = bold(aa_path)
         elif Path(refset).is_file() and fasta_type(refset) == "invalid":
             aa_msg = red("not a valid FASTA")
