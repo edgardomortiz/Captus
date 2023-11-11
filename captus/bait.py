@@ -373,7 +373,7 @@ def create_baits(
                         locus = f"{fasta_path.name}".rstrip(ext)
                         break
                 # in case the locus name contains "-", replace by "_"
-                locus.replace(settings.REFERENCE_CLUSTER_SEPARATOR, "_")
+                locus.replace(settings.REF_CLUSTER_SEP, "_")
                 for seq_name in fasta_in:
                     if settings.SEQ_NAME_SEP in seq_name:
                         sample = seq_name.split(settings.SEQ_NAME_SEP)[0]
@@ -1085,11 +1085,11 @@ def prepare_targets(
                         locus = f"{fasta_path.name}".rstrip(ext)
                         break
                 # in case the locus name contains "-", replace by "_"
-                locus.replace(settings.REFERENCE_CLUSTER_SEPARATOR, "_")
+                locus.replace(settings.REF_CLUSTER_SEP, "_")
                 fasta_in = fasta_to_dict(fasta_path)
                 fasta_out = {}
                 for seq_name in fasta_in:
-                    fasta_out[f"{seq_name}{settings.REFERENCE_CLUSTER_SEPARATOR}{locus}"] = {
+                    fasta_out[f"{seq_name}{settings.REF_CLUSTER_SEP}{locus}"] = {
                         "sequence": fasta_in[seq_name]["sequence"].replace("-", ""),
                         "description": fasta_in[seq_name]["description"]
                     }
@@ -1145,7 +1145,7 @@ def prepare_targets(
                 cluster_locus = ""
                 for h in range(0, len(cluster), 2):
                     header = cluster[h].lstrip(">").split()
-                    locus = header[0].split(settings.REFERENCE_CLUSTER_SEPARATOR)[-1]
+                    locus = header[0].split(settings.REF_CLUSTER_SEP)[-1]
                     if h == 0:
                         cluster_locus = locus
                         seq_name, description = "", ""
@@ -1193,7 +1193,7 @@ def prepare_targets(
         targets_out = {}
         baitless = {}
         for target_name in centroids:
-            locus = target_name.split(settings.REFERENCE_CLUSTER_SEPARATOR)[-1]
+            locus = target_name.split(settings.REF_CLUSTER_SEP)[-1]
             if locus in loci_stats:
                 if (len(centroids[target_name]["sequence"])
                     / max_lengths[locus]

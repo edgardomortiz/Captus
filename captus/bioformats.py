@@ -22,13 +22,13 @@ import shutil
 import statistics
 import subprocess
 import sys
+import tarfile
 import time
 import urllib
 from pathlib import Path
 
 from . import settings
 from .misc import ElapsedTimeThread, bold, elapsed_time, gzip_compress, pigz_compress
-
 
 # Regular expression to match MEGAHIT headers assembled within Captus
 CAPTUS_MEGAHIT_HEADER_REGEX = r'^NODE_\d+_length_\d+_cov_\d+\.\d+_k_\d{2,3}_flag_\d'
@@ -2326,7 +2326,7 @@ def scipio_yaml_to_dict(
     # 'settings.REFERENCE_CLUSTER_SEPARATOR'
     refs_have_separators = True
     for prot in unfilter_models:
-        if settings.REFERENCE_CLUSTER_SEPARATOR not in prot:
+        if settings.REF_CLUSTER_SEP not in prot:
             refs_have_separators = False
             break
 
@@ -2335,7 +2335,7 @@ def scipio_yaml_to_dict(
     for prot in unfilter_models:
         for model in unfilter_models[prot]:
             if refs_have_separators:
-                ref_cluster = prot.split(settings.REFERENCE_CLUSTER_SEPARATOR)[-1]
+                ref_cluster = prot.split(settings.REF_CLUSTER_SEP)[-1]
             else:
                 ref_cluster = prot
             if ref_cluster in max_len_aa_recov:
@@ -2351,7 +2351,7 @@ def scipio_yaml_to_dict(
         accepted_models = []
         for model in unfilter_models[prot]:
             if refs_have_separators:
-                ref_cluster = prot.split(settings.REFERENCE_CLUSTER_SEPARATOR)[-1]
+                ref_cluster = prot.split(settings.REF_CLUSTER_SEP)[-1]
             else:
                 ref_cluster = prot
             frameshifts = len(set(
@@ -2385,7 +2385,7 @@ def scipio_yaml_to_dict(
         best_models = {}
         for prot in filter_models:
             if refs_have_separators:
-                ref_cluster = prot.split(settings.REFERENCE_CLUSTER_SEPARATOR)[-1]
+                ref_cluster = prot.split(settings.REF_CLUSTER_SEP)[-1]
             else:
                 ref_cluster = prot
             if ref_cluster not in best_models:
@@ -2898,7 +2898,7 @@ def blat_misc_dna_psl_to_dict(
     # recognize the name of the cluster of references of the same kind
     refs_have_separators = True
     for dna_ref in dna_hits:
-        if settings.REFERENCE_CLUSTER_SEPARATOR not in dna_ref:
+        if settings.REF_CLUSTER_SEP not in dna_ref:
             refs_have_separators = False
             break
 
@@ -2908,7 +2908,7 @@ def blat_misc_dna_psl_to_dict(
         max_len_nt_recov = {}
         for dna_ref in dna_hits:
             if refs_have_separators:
-                ref_cluster = dna_ref.split(settings.REFERENCE_CLUSTER_SEPARATOR)[-1]
+                ref_cluster = dna_ref.split(settings.REF_CLUSTER_SEP)[-1]
             else:
                 ref_cluster = dna_ref
             for hit in dna_hits[dna_ref]:
@@ -2921,7 +2921,7 @@ def blat_misc_dna_psl_to_dict(
         # Loop the object again to calculate the actual wscore
         for dna_ref in dna_hits:
             if refs_have_separators:
-                ref_cluster = dna_ref.split(settings.REFERENCE_CLUSTER_SEPARATOR)[-1]
+                ref_cluster = dna_ref.split(settings.REF_CLUSTER_SEP)[-1]
             else:
                 ref_cluster = dna_ref
             for hit in dna_hits[dna_ref]:
@@ -2939,7 +2939,7 @@ def blat_misc_dna_psl_to_dict(
         best_dna_hits = {}
         for dna_ref in dna_hits:
             if refs_have_separators:
-                ref_cluster = dna_ref.split(settings.REFERENCE_CLUSTER_SEPARATOR)[-1]
+                ref_cluster = dna_ref.split(settings.REF_CLUSTER_SEP)[-1]
             else:
                 ref_cluster = dna_ref
             if ref_cluster not in best_dna_hits:
@@ -3412,3 +3412,55 @@ def bait_stats(bait_seq, hybrid_chem, sodium_conc, formamide_conc):
     return stats
 
 
+def import_busco_odb10(odb10_tar_path: Path):
+    """
+    Import BUSCO databases to be used as reference target file for marker extraction, the BUSCO
+    databse file has to be a .tar.gz from the odb10, containing the file 'ancestral_variants' which
+    contains the aminoacid sequences representing the ortholog groups
+
+    Parameters
+    ----------
+    odb10_tar_path : Path
+        Any of the files from https://busco-data.ezlab.org/v5/data/lineages/
+
+    Returns
+    -------
+    busco_targets
+        A fasta_dict with the sequence names formatted as Captus needs them for marker extraction
+    """
+    busco_targets = {}
+    with tarfile.open(odb10_tar_path) as tf:
+        for member in tf.getmembers():
+            if Path(member.name).name == "ancestral_variants":
+                seq  = ""
+                name = ""
+                desc = ""
+                for line in tf.extractfile(member).readlines():
+                    line = line.decode().strip()
+                    if not line:
+                        continue
+                    if line.startswith(">"):
+                        if seq:
+                            busco_targets[name] = {
+                                "description": desc,
+                                "sequence": seq,
+                            }
+                            seq = ""
+                        if len(line.split()) > 1:
+                            name = line[1:].split()[0]
+                            desc = " ".join(line.split()[1:])
+                        else:
+                            name = line[1:].rstrip()
+                            desc = ""
+                        name = f'{name}{settings.REF_CLUSTER_SEP}{name.split("_")[0]}'
+                    else:
+                        seq += line
+                if seq:
+                    busco_targets[name] = {
+                        "description": desc,
+                        "sequence": seq,
+                    }
+    if busco_targets:
+        return busco_targets
+    else:
+        return None
