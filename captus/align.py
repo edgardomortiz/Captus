@@ -1030,8 +1030,8 @@ def add_refs(ref_path, dest_dir, shared_ref_names):
                     fasta_in[seq_name]["description"].split("[query=")[1].split("]")[0]
                 )
         for ref_name in set(refs_needed):
-            name_parts = ref_name.split(settings.REFERENCE_CLUSTER_SEPARATOR)
-            ref_out = (f"{settings.REFERENCE_CLUSTER_SEPARATOR.join(name_parts[0:-1])}"
+            name_parts = ref_name.split(settings.REF_CLUSTER_SEP)
+            ref_out = (f"{settings.REF_CLUSTER_SEP.join(name_parts[0:-1])}"
                        f"{settings.SEQ_NAME_SEP}ref")
             if ref_out not in shared_ref_names:
                 shared_ref_names.append(ref_out)
@@ -1439,7 +1439,7 @@ def filter_paralogs_informed(
                     else:
                         refs[ref] = 1
         best_ref_full_name = max(refs, key=refs.get)
-        s = settings.REFERENCE_CLUSTER_SEPARATOR
+        s = settings.REF_CLUSTER_SEP
         best_ref = s.join(best_ref_full_name.split(s)[:-1])
         best_ref_seq = aln[f"{best_ref}{settings.SEQ_NAME_SEP}ref"]["sequence"]
 
@@ -1556,8 +1556,8 @@ def rem_refs(refs_paths, fastas_paths, min_samples, overwrite, concurrent, debug
         else:
             continue
         for seq_name in fasta_to_dict(ref_path):
-            name_parts = seq_name.split(settings.REFERENCE_CLUSTER_SEPARATOR)
-            ref_name = (f"{settings.REFERENCE_CLUSTER_SEPARATOR.join(name_parts[0:-1])}"
+            name_parts = seq_name.split(settings.REF_CLUSTER_SEP)
+            ref_name = (f"{settings.REF_CLUSTER_SEP.join(name_parts[0:-1])}"
                         f"{settings.SEQ_NAME_SEP}ref")
             if ref_name not in ref_names:
                 ref_names.append(ref_name)

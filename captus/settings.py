@@ -233,10 +233,10 @@ SCIPIO_CONTIG_SEPARATOR = "n" * 50
 # By the presence of the '-' we can tell that the first four (4) represent protein sequences from
 # the same protein cluster '7577' that come from different species ('WIGA', 'WXVX', 'XBKS', 'XFJG').
 # The same goes for the last four (4) which belong to protein cluster '7583'
-REFERENCE_CLUSTER_SEPARATOR = "-"
+REF_CLUSTER_SEP = "-"
 
 # Bundled sets of protein references
-PROT_REFS = {
+PROT_REF_TARGETS = {
     "NUC": {
         "angiosperms353": {
             "AA": Path(DATA_DIR, "Angiosperms353.FAA"),
@@ -268,7 +268,7 @@ PROT_REFS = {
 }
 
 # Bundled miscellaneous DNA references
-DNA_REFS = {
+DNA_REF_TARGETS = {
     "angiosperms353": Path(DATA_DIR, "Angiosperms353.FNA"),
     "mega353": Path(DATA_DIR, "Mega353.FNA"),
     "seedplantsptd": Path(DATA_DIR, "SeedPlantsPTD.FNA"),
@@ -290,11 +290,14 @@ elif os_type == "Linux":
 else:
     BUNDLED_BLAT = "unknown system"
 
-# Temporary directory for split references
-REFS_SPLIT_DIR = "00_refs_split"
+# Ddirectory for storing imported reference target files
+REF_TARGETS_DIR = "00_ref_targets"
+
+# Temporary directory for splitting reference target files
+REF_TARGETS_SPLIT_DIR = "01_ref_targets_split"
 
 # Create groups of roughly this amount of sequences when splitting the reference file
-REFS_SPLIT_CHUNK_SIZE = 1000
+REF_SPLIT_CHUNK_SIZE = 1000
 
 # Extraction directories per marker type
 MARKER_DIRS = {

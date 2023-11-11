@@ -26,9 +26,9 @@ from tqdm import tqdm
 
 from . import log, settings
 from .bioformats import (blat_misc_dna_psl_to_dict, dict_to_fasta, fasta_headers_to_spades,
-                         fasta_to_dict, fasta_type, fix_premature_stops, mmseqs2_cluster,
-                         scipio_yaml_to_dict, split_mmseqs_clusters_file, translate_fasta_dict,
-                         write_gff3)
+                         fasta_to_dict, fasta_type, fix_premature_stops, import_busco_odb10,
+                         mmseqs2_cluster, scipio_yaml_to_dict, split_mmseqs_clusters_file,
+                         translate_fasta_dict, write_gff3)
 from .misc import (bioperl_get_version, blat_path_version, bold, bold_green, bold_yellow,
                    compress_list_files, dim, dir_is_empty, elapsed_time, file_is_empty,
                    format_dep_msg, has_valid_ext, make_output_dir, make_tmp_dir_within,
@@ -214,16 +214,16 @@ def extract(full_command, args):
         num_refs = 0
         if args.nuc_refs:
             num_refs += 1
-            if args.nuc_refs.lower() in settings.PROT_REFS["NUC"]:
-                args.nuc_transtable = settings.PROT_REFS["NUC"][args.nuc_refs.lower()]["transtable"]
+            if args.nuc_refs.lower() in settings.PROT_REF_TARGETS["NUC"]:
+                args.nuc_transtable = settings.PROT_REF_TARGETS["NUC"][args.nuc_refs.lower()]["transtable"]
         if args.ptd_refs:
             num_refs += 1
-            if args.ptd_refs.lower() in settings.PROT_REFS["PTD"]:
-                args.ptd_transtable = settings.PROT_REFS["PTD"][args.ptd_refs.lower()]["transtable"]
+            if args.ptd_refs.lower() in settings.PROT_REF_TARGETS["PTD"]:
+                args.ptd_transtable = settings.PROT_REF_TARGETS["PTD"][args.ptd_refs.lower()]["transtable"]
         if args.mit_refs:
             num_refs += 1
-            if args.mit_refs.lower() in settings.PROT_REFS["MIT"]:
-                args.mit_transtable = settings.PROT_REFS["MIT"][args.mit_refs.lower()]["transtable"]
+            if args.mit_refs.lower() in settings.PROT_REF_TARGETS["MIT"]:
+                args.mit_transtable = settings.PROT_REF_TARGETS["MIT"][args.mit_refs.lower()]["transtable"]
         num_prot_extractions = len(fastas_to_extract) * num_refs
 
         protein_refs = prepare_protein_refs(args.nuc_refs,
@@ -231,7 +231,8 @@ def extract(full_command, args):
                                             args.mit_refs,
                                             args.nuc_transtable,
                                             args.ptd_transtable,
-                                            args.mit_transtable)
+                                            args.mit_transtable,
+                                            out_dir)
 
         log.log("")
         if any([protein_refs["NUC"]["AA_path"],
@@ -511,7 +512,7 @@ def extract(full_command, args):
                 tqdm_parallel_async_run(cleanup_post_extraction, cleanup_params, d_msg, f_msg,
                                         "sample", cleanup_concurrent, args.show_less)
             if not args.keep_all:
-                shutil.rmtree(Path(out_dir, settings.REFS_SPLIT_DIR), ignore_errors=True)
+                shutil.rmtree(Path(out_dir, settings.REF_TARGETS_SPLIT_DIR), ignore_errors=True)
             log.log("")
 
         # Nothing to extract
@@ -949,7 +950,7 @@ def check_and_copy_found_fasta(fasta_path, valid_exts, captus_assemblies_dir, ov
 
 
 def prepare_protein_refs(
-    nuc_refset, ptd_refset, mit_refset, nuc_transtable, ptd_transtable, mit_transtable
+    nuc_refset, ptd_refset, mit_refset, nuc_transtable, ptd_transtable, mit_transtable, out_dir
 ):
     """
     Looks for bundled sets of reference proteins or verify given paths, translates FASTA file
@@ -971,9 +972,9 @@ def prepare_protein_refs(
         aa_path, nt_path, aa_msg, nt_msg = None, None, dim("not used"), dim("not used")
         if refset is None:
             return {"AA_path": aa_path, "AA_msg": aa_msg, "NT_path": nt_path, "NT_msg": nt_msg}
-        elif f"{refset}".lower() in settings.PROT_REFS[marker]:
-            aa_path = settings.PROT_REFS[marker][f"{refset}".lower()]["AA"]
-            nt_path = settings.PROT_REFS[marker][f"{refset}".lower()]["NT"]
+        elif f"{refset}".lower() in settings.PROT_REF_TARGETS[marker]:
+            aa_path = settings.PROT_REF_TARGETS[marker][f"{refset}".lower()]["AA"]
+            nt_path = settings.PROT_REF_TARGETS[marker][f"{refset}".lower()]["NT"]
             aa_msg = f"{bold(refset)} {dim(aa_path)}"
             nt_msg = f"{bold(refset)} {dim(nt_path)}"
         elif Path(refset).is_file() and fasta_type(refset) == "NT":
@@ -1019,6 +1020,28 @@ def prepare_protein_refs(
                     " and/or premature stops that were converted to X"
                 )
             aa_msg = bold(aa_path)
+        elif Path(refset).is_file() and "odb10" in refset and refset.endswith(".tar.gz"):
+            log.log(f"'{Path(refset).name}' is probaby a BUSCO lineage"
+                    " database, Captus will attempt to import it...")
+            amino_refset = import_busco_odb10(Path(refset))
+            if amino_refset is None:
+                aa_msg = red("BUSCO lineage database could not be imported")
+            else:
+                refset_dir = Path(out_dir, settings.REF_TARGETS_DIR)
+                refset_stem = Path(refset).name.replace("".join(Path(refset).suffixes), "")
+                make_output_dir(refset_dir)
+                amino_refset_fixed = fix_premature_stops(amino_refset)
+                if amino_refset_fixed is None:
+                    aa_path = Path(refset_dir, f"{refset_stem}.faa")
+                    dict_to_fasta(amino_refset, aa_path)
+                else:
+                    aa_path = Path(refset_dir, f"{refset_stem}_fixed.faa")
+                    dict_to_fasta(amino_refset_fixed, aa_path)
+                    log.log(
+                        f"WARNING: {refset_stem} contained gaps that were removed"
+                        " and/or premature stops that were converted to X"
+                    )
+                aa_msg = bold(aa_path)
         elif Path(refset).is_file() and fasta_type(refset) == "invalid":
             aa_msg = red("not a valid FASTA")
         else:
@@ -1039,8 +1062,8 @@ def prepare_dna_refs(dna_refs, cluster=False):
     nt_path, nt_msg = None, dim("not used")
     if dna_refs is None:
         return {"DNA": {"AA_path": None, "AA_msg": None, "NT_path": nt_path, "NT_msg": nt_msg}}
-    elif f"{dna_refs}".lower() in settings.DNA_REFS:
-        nt_path = settings.DNA_REFS[dna_refs.lower()].resolve()
+    elif f"{dna_refs}".lower() in settings.DNA_REF_TARGETS:
+        nt_path = settings.DNA_REF_TARGETS[dna_refs.lower()].resolve()
         nt_msg = f'{bold(dna_refs)} {dim(nt_path)}'
     elif Path(dna_refs).is_file() and fasta_type(dna_refs) == "NT":
         nt_path = Path(dna_refs).resolve()
@@ -1125,20 +1148,20 @@ def split_refs(query_dict, out_dir, marker_type, threads):
     if num_seqs < threads:
         seqs_per_chunk = num_seqs
     else:
-        cc = math.ceil(num_seqs / settings.REFS_SPLIT_CHUNK_SIZE)
-        cf = math.floor(num_seqs / settings.REFS_SPLIT_CHUNK_SIZE)
+        cc = math.ceil(num_seqs / settings.REF_SPLIT_CHUNK_SIZE)
+        cf = math.floor(num_seqs / settings.REF_SPLIT_CHUNK_SIZE)
         if cc % threads != 0:
             cc += threads - (cc % threads)
         if cf % threads != 0:
             cf += threads - (cf % threads)
         chunks_ceiling = max(threads, cc)
         chunks_floor = max(threads, cf)
-        if (abs(settings.REFS_SPLIT_CHUNK_SIZE - (num_seqs / chunks_ceiling))
-            <= abs(settings.REFS_SPLIT_CHUNK_SIZE - (num_seqs / chunks_floor))):
+        if (abs(settings.REF_SPLIT_CHUNK_SIZE - (num_seqs / chunks_ceiling))
+            <= abs(settings.REF_SPLIT_CHUNK_SIZE - (num_seqs / chunks_floor))):
             seqs_per_chunk = math.ceil(num_seqs / chunks_ceiling)
         else:
             seqs_per_chunk = math.ceil(num_seqs / chunks_floor)
-    ref_split_dir = Path(out_dir, settings.REFS_SPLIT_DIR, settings.MARKER_DIRS[marker_type])
+    ref_split_dir = Path(out_dir, settings.REF_TARGETS_SPLIT_DIR, settings.MARKER_DIRS[marker_type])
     make_output_dir(ref_split_dir)
     ref_seqs_paths = {}
     part = 1
@@ -1160,14 +1183,14 @@ def reference_info(query_dict):
 
     for seq_name in query_dict:
         total_size += len(query_dict[seq_name]["sequence"])
-        if settings.REFERENCE_CLUSTER_SEPARATOR in seq_name:
-            if len(list(filter(None, seq_name.split(settings.REFERENCE_CLUSTER_SEPARATOR)))) > 1:
+        if settings.REF_CLUSTER_SEP in seq_name:
+            if len(list(filter(None, seq_name.split(settings.REF_CLUSTER_SEP)))) > 1:
                 separators_found += 1
 
     loci_lengths = {}
     if separators_found == num_seqs:
         for seq_name in query_dict:
-            locus_name = seq_name.split(settings.REFERENCE_CLUSTER_SEPARATOR)[-1]
+            locus_name = seq_name.split(settings.REF_CLUSTER_SEP)[-1]
             if locus_name not in loci_lengths:
                 loci_lengths[locus_name] = [len(query_dict[seq_name]["sequence"])]
             else:
@@ -1188,7 +1211,7 @@ def reference_info(query_dict):
             info_msg += dim('(loci names found, detected multiple sequences per locus)')
     else:
         info_msg += dim(
-            f'(locus name separator "{settings.REFERENCE_CLUSTER_SEPARATOR}" missing in '
+            f'(locus name separator "{settings.REF_CLUSTER_SEP}" missing in '
             f'{num_seqs - separators_found} sequences, each sequence taken as a different locus)')
 
     ref_info = {
@@ -2126,7 +2149,7 @@ def cluster_and_select_refs(
                 cluster_lenghts[clr] = len(cluster[1])
             h = cluster[i][1:].split(settings.SEQ_NAME_SEP)
             smp, ctg = h[0], h[1]
-            ref_sep = settings.REFERENCE_CLUSTER_SEPARATOR
+            ref_sep = settings.REF_CLUSTER_SEP
             seq_sep = settings.SEQ_NAME_SEP
             seq_name = f"{smp}_C{(i//2)+1}{ref_sep}{clr}{seq_sep}{ctg}"
             fasta_to_recluster[seq_name] = {
@@ -2173,7 +2196,7 @@ def cluster_and_select_refs(
             ]))
             h = cluster[0][1:].split(settings.SEQ_NAME_SEP)
             seq_name = h[0]
-            clr = seq_name.split(settings.REFERENCE_CLUSTER_SEPARATOR)[-1]
+            clr = seq_name.split(settings.REF_CLUSTER_SEP)[-1]
             size = len(cluster) // 2
             seq = cluster[1]
             desc = f"[cluster_size={size}] [contig={h[1]}]"
