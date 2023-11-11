@@ -1021,7 +1021,7 @@ def prepare_protein_refs(
                 )
             aa_msg = bold(aa_path)
         elif Path(refset).is_file() and "odb10" in refset and refset.endswith(".tar.gz"):
-            log.log(f"'{Path(refset).name}' is probaby a BUSCO lineage"
+            log.log(f"'{Path(refset).name}' seems to be a BUSCO lineage"
                     " database, Captus will attempt to import it...")
             amino_refset = import_busco_odb10(Path(refset))
             if amino_refset is None:
