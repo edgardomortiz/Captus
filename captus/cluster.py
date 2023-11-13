@@ -1097,14 +1097,19 @@ def curate(
     if overwrite is True or not curated_fasta_path.exists():
         aln = fasta_to_dict(input_fasta_path)
         aln_height = len(aln)
-        aln_width  = 0
+        aln_width  = None
         num_addons = 0
         col_depth  = {}
         for seq_name in aln:
-            if aln_width == 0:
+            if aln_width is None:
                 aln_width = len(aln[seq_name]["sequence"])
                 for p in range(aln_width):
                     col_depth[p] = 0
+            else:
+                if len(aln[seq_name]["sequence"]) != aln_width:
+                    message = red(f"'{input_fasta_path.name}': FAILED"
+                                  " (sequences were not aligned)")
+                    return message
             aln[seq_name]["sample_name"] = seq_name.split(settings.SEQ_NAME_SEP)[0]
             aln[seq_name]["cds_id"] = seq_name.split(settings.SEQ_NAME_SEP)[1]
             aln[seq_name]["genus_name"] = aln[seq_name]["sample_name"].split("_")[0]
