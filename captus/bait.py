@@ -1104,7 +1104,8 @@ def prepare_targets(
             f" [{elapsed_time(time.time() - start)}]"
         ))
     elif targets_concat_path.exists() and not file_is_empty(targets_concat_path):
-        log.log(f"The file {targets_concat_path} will be used for reference target file creation.")
+        log.log(f"The file '{targets_concat_path.name}' already exists"
+                " and will be used for reference target file creation.")
     log.log("")
 
     if overwrite or not targets_final_path.exists() or file_is_empty(targets_final_path):
@@ -1153,7 +1154,7 @@ def prepare_targets(
                             description = " ".join(header[1:])
                         centroids[header[h]] = {
                             "sequence": cluster[h+1],
-                            "description": f"[cluster_size={cluster_size}] {description}"
+                            "description": f"[cluster_size={cluster_size:.0f}] {description}"
                         }
                     if locus in max_lengths:
                         if len(cluster[h+1]) > max_lengths[locus]:

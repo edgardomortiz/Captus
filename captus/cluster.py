@@ -856,6 +856,13 @@ def mafft_assembly(
     mafft_path: Path, mafft_algorithm: str, threads_per_alignment: int, timeout: int,
     input_fasta_path: Path, align_dir_path: Path, overwrite: bool
 ):
+
+    def cleanup_fastas(all_fastas: list):
+        for file in all_fastas:
+            if file.exists():
+                file.unlink()
+        return
+
     start = time.time()
 
     output_fasta_path = Path(align_dir_path, input_fasta_path.name)
@@ -865,6 +872,8 @@ def mafft_assembly(
         short_fasta_path = Path(align_dir_path, f"{input_fasta_path.stem}_S.fasta")
         long_aligned_fasta_path = Path(align_dir_path, f"{input_fasta_path.stem}_A.fasta")
         intermediate_fasta_path = Path(align_dir_path, f"{input_fasta_path.stem}_I.fasta")
+        all_fastas = [long_fasta_path, short_fasta_path,
+                      long_aligned_fasta_path, intermediate_fasta_path]
         mafft_log_file = Path(align_dir_path, f"{input_fasta_path.stem}.mafft.log")
         input_fasta = fasta_to_dict(input_fasta_path)
         long_fasta = {}
@@ -920,10 +929,12 @@ def mafft_assembly(
                         subprocess.run(mafft_long_cmd, stdout=mafft_mid_out,
                                        stderr=mafft_log, timeout=timeout)
                         if file_is_empty(mid_fasta_path):
+                            cleanup_fastas(all_fastas)
                             message = red(f"'{input_fasta_path.name}': FAILED"
                                         " alignment, empty output file")
                             return message
                     except subprocess.TimeoutExpired:
+                        cleanup_fastas(all_fastas)
                         message = red(
                             f"'{input_fasta_path.name}': FAILED alignment, timeout"
                             f" exceeded [{elapsed_time(time.time() - start)}]"
@@ -941,10 +952,12 @@ def mafft_assembly(
                         subprocess.run(mafft_add_cmd, stdout=mafft_intermediate_out,
                                        stderr=mafft_log, timeout=timeout)
                         if file_is_empty(intermediate_fasta_path):
+                            cleanup_fastas(all_fastas)
                             message = red(f"'{input_fasta_path.name}': FAILED"
                                            " alignment, empty output file")
                             return message
                     except subprocess.TimeoutExpired:
+                        cleanup_fastas(all_fastas)
                         message = red(
                             f"'{input_fasta_path.name}': FAILED alignment, timeout"
                             f" exceeded [{elapsed_time(time.time() - start)}]"
@@ -959,12 +972,7 @@ def mafft_assembly(
                 "description": input_fasta[new_seq_name]["description"],
             }
         dict_to_fasta(output_fasta, output_fasta_path)
-        for file in [long_fasta_path,
-                     short_fasta_path,
-                     long_aligned_fasta_path,
-                     intermediate_fasta_path]:
-            if file.exists():
-                file.unlink()
+        cleanup_fastas(all_fastas)
         message = f"'{input_fasta_path.name}': aligned [{elapsed_time(time.time() - start)}]"
     else:
         message = dim(f"'{input_fasta_path.name}': SKIPPED (output FASTA already exists)")
