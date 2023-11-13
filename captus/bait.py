@@ -1132,7 +1132,7 @@ def prepare_targets(
         log.log(message)
         log.log("")
 
-        log.log(bold("Processing clusters:"))
+        log.log(bold("Processing reference target sequences:"))
         start = time.time()
         clust_all_seqs_file = Path(targets_dir_path, f"{clust_prefix}_all_seqs.fasta")
         clusters = split_mmseqs_clusters_file(clust_all_seqs_file)
@@ -1140,7 +1140,7 @@ def prepare_targets(
         centroids = {}
         subsumed = {}
         tqdm_cols = min(shutil.get_terminal_size().columns, 120)
-        with tqdm(total=len(clusters), ncols=tqdm_cols, unit="cluster") as pbar:
+        with tqdm(total=len(clusters), ncols=tqdm_cols, unit="target") as pbar:
             for cluster in clusters:
                 cluster_size = len(cluster) / 2
                 cluster_locus = ""
@@ -1172,7 +1172,8 @@ def prepare_targets(
             Path(targets_dir_path, f"{clust_prefix}_rep_seq.fasta").unlink()
             Path(targets_dir_path, f"{clust_prefix}_cluster.tsv").unlink()
         log.log(bold(
-            f" \u2514\u2500\u2192 Clusters processed: {len(centroids)} [{elapsed_time(time.time() - start)}]"
+            f" \u2514\u2500\u2192 Targets processed: {len(centroids)}"
+            f" [{elapsed_time(time.time() - start)}]"
         ))
         log.log("")
 
