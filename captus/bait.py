@@ -24,11 +24,11 @@ from tqdm import tqdm
 from . import log, settings
 from .bioformats import (bait_stats, dict_to_fasta, fasta_to_dict, mmseqs2_cluster, resolve_iupac,
                          split_mmseqs_clusters_file)
-from .misc import (bbtools_path_version, bold, compress_list_files, dim, dir_is_empty, elapsed_time,
-                   file_is_empty, format_dep_msg, gzip_compress, has_valid_ext, make_output_dir,
-                   mmseqs_path_version, pigz_compress, python_library_check, quit_with_error, red,
-                   set_ram, set_threads, successful_exit, tqdm_parallel_async_run, tqdm_serial_run,
-                   vsearch_path_version)
+from .misc import (ElapsedTimeThread, bbtools_path_version, bold, compress_list_files, dim,
+                   dir_is_empty, elapsed_time, file_is_empty, format_dep_msg, gzip_compress,
+                   has_valid_ext, make_output_dir, mmseqs_path_version, pigz_compress,
+                   python_library_check, quit_with_error, red, set_ram, set_threads,
+                   successful_exit, tqdm_parallel_async_run, tqdm_serial_run, vsearch_path_version)
 from .version import __version__
 
 
@@ -1001,33 +1001,29 @@ def cluster_tile_baits(
         if clust_baits_log_path.exists():
             clust_baits_log_path.unlink()
         log.log(bold("Clustering and tiling baits:"))
-        tqdm_cols = min(shutil.get_terminal_size().columns, 120)
-        with tqdm(total=1, ncols=tqdm_cols, unit="task") as pbar:
-            inner_start = time.time()
-            clust_cmd = [
-                vsearch_path,
-                "--cluster_smallmem", f"{baits_filtered_gz_path}",
-                "--usersort",
-                "--strand", "both",
-                "--id", f"{bait_clust_threshold}",
-                "--mincols", f"{mincols}",
-                "--fasta_width", f"{bait_length}",
-                "--notrunclabels",
-                "--centroids", f"{clust_baits_unsorted_path}"
-            ]
-            with open(clust_baits_log_path, "w") as clust_log:
-                clust_log.write(f"Captus' Bait Clustering Command:\n  {' '.join(clust_cmd)}\n\n\n")
-            with open(clust_baits_log_path, "a") as clust_log:
-                subprocess.run(clust_cmd, stdout=clust_log, stdin=clust_log, stderr=clust_log)
-            if clust_baits_unsorted_path.exists() and not file_is_empty(clust_baits_unsorted_path):
-                msg = (f"'{clust_baits_final_path.name}': baits clustered"
-                       f" [{elapsed_time(time.time() - inner_start)}]")
-            else:
-                quit_with_error("No bait files were found, nothing else to process...")
-            tqdm.write(msg)
-            log.log(msg, print_to_screen=False)
-            pbar.update()
-        log.log("")
+        start = time.time()
+        clust_cmd = [
+            vsearch_path,
+            "--cluster_smallmem", f"{baits_filtered_gz_path}",
+            "--usersort",
+            "--strand", "both",
+            "--id", f"{bait_clust_threshold}",
+            "--mincols", f"{mincols}",
+            "--fasta_width", f"{bait_length}",
+            "--notrunclabels",
+            "--centroids", f"{clust_baits_unsorted_path}"
+        ]
+        vsearch_thread = ElapsedTimeThread()
+        vsearch_thread.start()
+        with open(clust_baits_log_path, "w") as clust_log:
+            clust_log.write(f"Captus' Bait Clustering Command:\n  {' '.join(clust_cmd)}\n\n\n")
+        with open(clust_baits_log_path, "a") as clust_log:
+            subprocess.run(clust_cmd, stdout=clust_log, stdin=clust_log, stderr=clust_log)
+        vsearch_thread.stop()
+        vsearch_thread.join()
+        print()
+        if not clust_baits_unsorted_path.exists() or file_is_empty(clust_baits_unsorted_path):
+            quit_with_error("No bait files were found, nothing else to process...")
         loci = {}
         baits = fasta_to_dict(clust_baits_unsorted_path)
         num_baits = len(baits)
@@ -1039,10 +1035,14 @@ def cluster_tile_baits(
                 loci[locus] += 1
             else:
                 loci[locus] = 1
-        log.log(f"'{bold(clust_baits_final_path.name)}': {num_baits} baits covering {len(loci)} loci")
+        log.log(
+            f" \u2514\u2500\u2192 '{bold(clust_baits_final_path.name)}': {num_baits}"
+            f" baits covering {len(loci)} loci [{elapsed_time(time.time() - start)}]"
+        )
     else:
-        log.log(f"'{bold(clust_baits_final_path.name)}': output"
-                f" already exists, SKIPPED bait clustering")
+        log.log(
+            f"'{bold(clust_baits_final_path.name)}': output already exists, SKIPPED bait clustering"
+        )
     log.log("")
 
     if clust_baits_final_path.exists() and not file_is_empty(clust_baits_final_path):
@@ -1104,16 +1104,16 @@ def prepare_targets(
             f" [{elapsed_time(time.time() - start)}]"
         ))
     elif targets_concat_path.exists() and not file_is_empty(targets_concat_path):
-        log.log(f"The file '{targets_concat_path.name}' already exists"
-                " and will be used for reference target file creation.")
+        log.log(
+            f"'{bold(targets_concat_path.name)}': output already exists,"
+            f" the file will be used for reference target file creation"
+        )
     log.log("")
 
     if overwrite or not targets_final_path.exists() or file_is_empty(targets_final_path):
         if targets_final_path.exists():
             targets_final_path.unlink()
-        msg_p1 = "Clustering reference target sequences at"
-        msg_p2 = f" {target_clust_threshold*100:.2f}% identity:"
-        log.log(bold(f"{msg_p1}{msg_p2}"))
+        log.log(bold( "Clustering reference target sequences:"))
         clust_prefix = targets_final_path.stem
         clust_tmp_dir = Path(targets_dir_path, "mmseqs2_tmp")
         message = mmseqs2_cluster(mmseqs_path,
@@ -1248,5 +1248,12 @@ def prepare_targets(
             log.log("")
         else:
             quit_with_error("Loci stats table empty, try to relax your filtering parameters...")
+
+    elif targets_final_path.exists() and not file_is_empty(targets_final_path):
+        log.log(
+            f"'{bold(targets_final_path.name)}': output already exists,"
+            f" SKIPPED clustering of reference target sequences"
+        )
+    log.log("")
 
     return
