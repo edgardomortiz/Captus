@@ -1057,8 +1057,8 @@ def prepare_targets(
     fastas_manual: list, threads: int, overwrite: bool, show_more: bool
 ):
 
-    targets_concat_path = Path(targets_dir_path, "targets_concat.fasta")
-    targets_final_name = f"targets_clust{target_clust_threshold:.2f}_mincov{target_min_coverage:.2f}"
+    targets_concat_path = Path(targets_dir_path, f"all_targets_for_{clust_baits_final_path.name}")
+    targets_final_name = f"targets_tct{target_clust_threshold:.2f}_tmc{target_min_coverage:.2f}"
     targets_final_path = Path(targets_dir_path, f"{targets_final_name}_for_{clust_baits_final_path.name}")
     targets_tsv_path = Path(f"{targets_final_path}".replace(".fasta", ".tsv"))
     fastas = fastas_auto + fastas_manual
@@ -1070,11 +1070,25 @@ def prepare_targets(
     if not fastas:
         quit_with_error("FASTAs from selected loci not found, verify the path provided...")
 
+    loci_baits = {}
+    loci_baitless = {}
+
     if overwrite or not targets_concat_path.exists() or file_is_empty(targets_concat_path):
         if targets_concat_path.exists():
             targets_concat_path.unlink()
         start = time.time()
-        log.log(bold("Concatenating reference target sequences from selected loci:"))
+        log.log(bold(f"Concatenating reference target sequences for '{clust_baits_final_path.name}':"))
+        baits_fasta = fasta_to_dict(clust_baits_final_path)
+        for bait_name in baits_fasta:
+            locus = bait_name.split(settings.SEQ_NAME_SEP)[0]
+            if locus not in loci_baits:
+                loci_baits[locus] = {
+                    "baits": 1,
+                    "targets": 0,
+                    "max_length": 0,
+                }
+            else:
+                loci_baits[locus]["baits"] += 1
         tqdm_cols = min(shutil.get_terminal_size().columns, 120)
         with tqdm(total=len(fastas), ncols=tqdm_cols, unit="loci") as pbar:
             for fasta_path in fastas:
@@ -1085,16 +1099,25 @@ def prepare_targets(
                         locus = f"{fasta_path.name}".rstrip(ext)
                         break
                 # in case the locus name contains "-", replace by "_"
-                locus.replace(settings.REF_CLUSTER_SEP, "_")
+                locus = locus.replace(settings.REF_CLUSTER_SEP, "_")
                 fasta_in = fasta_to_dict(fasta_path)
                 fasta_out = {}
+                max_length = 0
                 for seq_name in fasta_in:
+                    seq = fasta_in[seq_name]["sequence"].replace("-", "")
+                    if len(seq) > max_length:
+                        max_length = len(seq)
                     fasta_out[f"{seq_name}{settings.REF_CLUSTER_SEP}{locus}"] = {
-                        "sequence": fasta_in[seq_name]["sequence"].replace("-", ""),
-                        "description": fasta_in[seq_name]["description"]
+                        "sequence": seq,
+                        "description": fasta_in[seq_name]["description"],
                     }
-                dict_to_fasta(fasta_out, targets_concat_path, append=True)
-                msg = f"'{fasta_path.name}': processed [{elapsed_time(time.time() - inner_start)}]"
+                if locus in loci_baits:
+                    loci_baits[locus]["max_length"] = max_length
+                    dict_to_fasta(fasta_out, targets_concat_path, append=True)
+                    msg = f"'{fasta_path.name}': processed [{elapsed_time(time.time() - inner_start)}]"
+                else:
+                    loci_baitless[locus] = {"max_length": max_length}
+                    msg = red(f"'{fasta_path.name}': SKIPPED, locus not found in baitset")
                 if show_more:
                     tqdm.write(msg)
                 log.log(msg, print_to_screen=False)
@@ -1113,7 +1136,9 @@ def prepare_targets(
     if overwrite or not targets_final_path.exists() or file_is_empty(targets_final_path):
         if targets_final_path.exists():
             targets_final_path.unlink()
-        log.log(bold( "Clustering reference target sequences:"))
+        log.log(bold(
+            f"Clustering reference target sequences at {target_clust_threshold*100:.2f}% identity:"
+        ))
         clust_prefix = targets_final_path.stem
         clust_tmp_dir = Path(targets_dir_path, "mmseqs2_tmp")
         message = mmseqs2_cluster(mmseqs_path,
@@ -1132,114 +1157,97 @@ def prepare_targets(
         log.log(message)
         log.log("")
 
-        log.log(bold("Processing reference target sequences:"))
+        log.log(bold(
+            f"Removing reference target sequences under {target_min_coverage*100:.2f}% coverage:"
+        ))
         start = time.time()
         clust_all_seqs_file = Path(targets_dir_path, f"{clust_prefix}_all_seqs.fasta")
         clusters = split_mmseqs_clusters_file(clust_all_seqs_file)
-        max_lengths = {}
         centroids = {}
-        subsumed = {}
+        included = {}
+        includes = {}
         tqdm_cols = min(shutil.get_terminal_size().columns, 120)
         with tqdm(total=len(clusters), ncols=tqdm_cols, unit="target") as pbar:
             for cluster in clusters:
-                cluster_size = len(cluster) / 2
-                cluster_locus = ""
+                cluster_includes = []
+                cluster_header = cluster[0].lstrip(">").split()
+                cluster_locus = cluster_header[0].split(settings.REF_CLUSTER_SEP)[-1]
+                cluster_desc = " ".join(cluster_header[1:]) if len(cluster_header) > 1 else ""
                 for h in range(0, len(cluster), 2):
                     header = cluster[h].lstrip(">").split()
                     locus = header[0].split(settings.REF_CLUSTER_SEP)[-1]
-                    if h == 0:
-                        cluster_locus = locus
-                        seq_name, description = "", ""
-                        if len(header) > 1:
-                            description = " ".join(header[1:])
-                        centroids[header[h]] = {
-                            "sequence": cluster[h+1],
-                            "description": f"[cluster_size={cluster_size:.0f}] {description}"
-                        }
-                    if locus in max_lengths:
-                        if len(cluster[h+1]) > max_lengths[locus]:
-                            max_lengths[locus] = len(cluster[h+1])
-                    else:
-                        max_lengths[locus] = len(cluster[h+1])
                     if locus != cluster_locus:
-                        if locus not in subsumed:
-                            subsumed[locus] = [cluster_locus]
+                        cluster_includes.append(locus)
+                        if locus not in included:
+                            included[locus] = [cluster_locus]
                         else:
-                            subsumed[locus].append(cluster_locus)
+                            included[locus].append(cluster_locus)
+                if cluster_locus not in includes:
+                    includes[cluster_locus] = cluster_includes
+                else:
+                    includes[cluster_locus] += cluster_includes
+                description = f"[cluster_size={len(cluster) / 2:.0f}]"
+                if cluster_includes:
+                    description += f" [includes={','.join(sorted(set(cluster_includes)))}]"
+                if cluster_desc:
+                    description += cluster_desc
+                centroids[cluster_header[0]] = {
+                    "sequence": cluster[1],
+                    "description": description,
+                }
                 pbar.update()
         if centroids:
             clust_all_seqs_file.unlink()
             Path(targets_dir_path, f"{clust_prefix}_rep_seq.fasta").unlink()
             Path(targets_dir_path, f"{clust_prefix}_cluster.tsv").unlink()
-        log.log(bold(
-            f" \u2514\u2500\u2192 Targets processed: {len(centroids)}"
-            f" [{elapsed_time(time.time() - start)}]"
-        ))
-        log.log("")
-
-        msg_p1 = "Removing loci not represented by baits and reference target"
-        msg_p2 = f" sequences under {target_min_coverage*100:.2f}% coverage:"
-        log.log(bold(f"{msg_p1}{msg_p2}"))
-        start = time.time()
-        loci_stats = {}
-        baits_fasta = fasta_to_dict(clust_baits_final_path)
-        for bait_name in baits_fasta:
-            locus = bait_name.split(settings.SEQ_NAME_SEP)[0]
-            if locus not in loci_stats:
-                loci_stats[locus] = {
-                    "baits": 1,
-                    "targets": 0,
-                }
-            else:
-                loci_stats[locus]["baits"] += 1
         targets_out = {}
-        baitless = {}
         for target_name in centroids:
             locus = target_name.split(settings.REF_CLUSTER_SEP)[-1]
-            if locus in loci_stats:
-                if (len(centroids[target_name]["sequence"])
-                    / max_lengths[locus]
-                    >= target_min_coverage):
-                    loci_stats[locus]["targets"] += 1
-                    if locus in targets_out:
-                        targets_out[locus][target_name] = centroids[target_name]
-                    else:
-                        targets_out[locus] = {target_name: centroids[target_name]}
-            else:
-                baitless[locus] = {
-                    "baits": 0,
-                    "targets": 0,
-                }
+            if (len(centroids[target_name]["sequence"])
+                / loci_baits[locus]["max_length"]
+                >= target_min_coverage):
+                loci_baits[locus]["targets"] += 1
+                if locus in targets_out:
+                    targets_out[locus][target_name] = centroids[target_name]
+                else:
+                    targets_out[locus] = {target_name: centroids[target_name]}
         if targets_out:
             for locus in sorted(targets_out):
+                loci_baits[locus]["targets"] = len(targets_out[locus])
                 dict_to_fasta(targets_out[locus], targets_final_path, sort=True, append=True)
-            log.log(
-                f"{bold(targets_final_path.name)}: reference target file"
-                f" saved [{elapsed_time(time.time() - start)}] "
-            )
+            log.log(bold(
+                f" \u2514\u2500\u2192 '{bold(targets_final_path.name)}': {len(centroids)}"
+                f" reference target sequences saved [{elapsed_time(time.time() - start)}]"
+            ))
             log.log("")
         else:
             quit_with_error("Reference target file empty, try to relax your filtering parameters...")
 
-        log.log(bold("Saving statistics per locus present in reference target file:"))
+        log.log(bold("Saving reference target file statistics:"))
         start = time.time()
         with open(targets_tsv_path, "wt") as tsv_out:
-            tsv_out.write("locus\tnum_targets\tnum_baits\tlength\tnotes\n")
-            note = ""
-            for loc in sorted(baitless):
-                try:
-                    note = f'={",".join(sorted(set(subsumed[loc])))}'
-                except KeyError:
-                    note = ""
-                tsv_out.write(f'{loc}\t{baitless[loc]["targets"]}\t{baitless[loc]["baits"]}'
-                              f'\t{max_lengths[loc]}\t{note}\n')
-            for loc in sorted(loci_stats):
-                try:
-                    note =  f'={",".join(sorted(set(subsumed[loc])))}'
-                except KeyError:
-                    note = ""
-                tsv_out.write(f'{loc}\t{loci_stats[loc]["targets"]}\t{loci_stats[loc]["baits"]}'
-                              f'\t{max_lengths[loc]}\t{note}\n')
+            tsv_out.write("locus\t"
+                          "num_targets\t"
+                          "num_baits\t"
+                          "length\t"
+                          "includes\t"
+                          "included_in\n")
+            for locus in sorted(loci_baitless):
+                tsv_out.write(f'{locus}\t'
+                              '0\t'
+                              '0\t'
+                              f'{loci_baitless[locus]["max_length"]}\t'
+                              '""\t'
+                              '""\n')
+            for locus in sorted(loci_baits):
+                includes_str = ",".join(sorted(set(includes[locus]))) if locus in includes else ""
+                included_str = ",".join(sorted(set(included[locus]))) if locus in included else ""
+                tsv_out.write(f'{locus}\t'
+                              f'{loci_baits[locus]["targets"]}\t'
+                              f'{loci_baits[locus]["baits"]}\t'
+                              f'{loci_baits[locus]["max_length"]}\t'
+                              f'{includes_str}\t'
+                              f'{included_str}\n')
         if targets_tsv_path.exists() and not file_is_empty(targets_tsv_path):
             log.log(
                 f"{bold(targets_tsv_path.name)}: loci stats table"
@@ -1254,6 +1262,9 @@ def prepare_targets(
             f"'{bold(targets_final_path.name)}': output already exists,"
             f" SKIPPED clustering of reference target sequences"
         )
-    log.log("")
+        log.log("")
+
+    if targets_concat_path.exists():
+        targets_concat_path.unlink()
 
     return
