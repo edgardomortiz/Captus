@@ -794,7 +794,7 @@ class CaptusDesign(object):
             action="store",
             type=float,
             dest="bait_clust_threshold",
-            default=86.0,
+            default=98.0,
             help="The entire set of potential baits are finally clustered at this identity, keeping"
                  " a single centroid bait sequence per cluster. It has been shown than a bait can"
                  " hybridize with a target sequence that is at least 75%% identical, therefore do"
