@@ -22,7 +22,7 @@ from pathlib import Path
 from tqdm import tqdm
 
 from . import log, settings
-from .bioformats import (bait_stats, dict_to_fasta, fasta_to_dict, mmseqs2_cluster, resolve_iupac,
+from .bioformats import (bait_stats, dict_to_fasta, fasta_to_dict, mmseqs_cluster, resolve_iupac,
                          split_mmseqs_clusters_file)
 from .misc import (ElapsedTimeThread, bbtools_path_version, bold, compress_list_files, dim,
                    dir_is_empty, elapsed_time, file_is_empty, format_dep_msg, gzip_compress,
@@ -237,7 +237,7 @@ def bait(full_command, args):
 
     clust_baits_final_path = cluster_tile_baits(
         clu_baits_dir_path, baits_filtered_gz_path, args.bait_length, args.vsearch_path,
-        mincols, args.bait_clust_threshold, args.overwrite
+        mincols, args.bait_clust_threshold, args.tiling_percentage_overlap, args.overwrite
     )
 
 
@@ -984,12 +984,14 @@ def filter_baits(
 
 def cluster_tile_baits(
     clust_baits_dir_path: Path, baits_filtered_gz_path: Path, bait_length: int, vsearch_path: str,
-    mincols: int, bait_clust_threshold: float, overwrite: bool
+    mincols: int, bait_clust_threshold: float, tiling_percentage_overlap: float, overwrite: bool
 ):
 
-    clust_baits_unsorted_file = f"baits_clust{bait_clust_threshold:.2f}_mincols{mincols}_unsorted.fasta"
+    clust_baits_unsorted_file = (f"baits_bct{bait_clust_threshold:.2f}_"
+                                 f"tpo{tiling_percentage_overlap:.2f}_unsorted.fasta")
     clust_baits_unsorted_path = Path(clust_baits_dir_path, clust_baits_unsorted_file)
-    clust_baits_final_file = f"baits_clust{bait_clust_threshold:.2f}_mincols{mincols}.fasta"
+    clust_baits_final_file = (f"baits_bct{bait_clust_threshold:.2f}_"
+                              f"tpo{tiling_percentage_overlap:.2f}.fasta")
     clust_baits_final_path = Path(clust_baits_dir_path, clust_baits_final_file)
     clust_baits_log_path = Path(f"{clust_baits_final_path}".replace(".fasta", ".log"))
     if bait_clust_threshold > 1.0:
@@ -1140,8 +1142,8 @@ def prepare_targets(
             f"Clustering reference target sequences at {target_clust_threshold*100:.2f}% identity:"
         ))
         clust_prefix = targets_final_path.stem
-        clust_tmp_dir = Path(targets_dir_path, "mmseqs2_tmp")
-        message = mmseqs2_cluster(mmseqs_path,
+        clust_tmp_dir = Path(targets_dir_path, "mmseqs_tmp")
+        message = mmseqs_cluster(mmseqs_path,
                                   "easy-cluster",
                                   targets_dir_path,
                                   targets_concat_path,

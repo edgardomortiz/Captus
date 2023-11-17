@@ -185,14 +185,14 @@ ___
 ### **`-c, --cluster_leftovers`**
 Enable [`MMseqs2`](https://github.com/soedinglab/MMseqs2) clustering across samples for the contigs that had no hits to the reference markers. A new miscellaneous DNA reference is built from the best representative of each cluster in order to perform a miscellaneous DNA marker extraction.
 ___
-### **`--mmseqs2_method`**
+### **`--mmseqs_method`**
 Select [MMseqs2's clustering algorithm](https://github.com/soedinglab/mmseqs2/wiki#easy-workflows). Valid options are:
 - `easy-linclust` = Fast linear time (for huge datasets), less sensitive clustering
 - `easy-cluster` = Sensitive homology search (slower)
 
 This argument is optional, the default is **easy-linclust**.
 ___
-### **`--cluster_mode`**
+### **`--cl_mode`**
 Select [MMseqs2's clustering mode](https://github.com/soedinglab/mmseqs2/wiki#clustering-modes). Valid options are:
 - `0` = Greedy set cover
 - `1` = Connected component
@@ -268,7 +268,7 @@ If you have installed your own copies of `Scipio`, `BLAT` you can provide the fu
 
 These arguments are optional, the default is to use the **bundled** copies of these programs.
 
-### **`--mmseqs2_path`**
+### **`--mmseqs_path`**
 If you have installed your own copy of `MMSeqs2` you can provide the full path to that copy.
 
 This argument is optional, the default is **mmseqs**
@@ -278,4 +278,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (24.02.2023)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (17.11.2023)

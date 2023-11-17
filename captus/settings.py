@@ -466,7 +466,7 @@ MAX_HDD_WRITE_INSTANCES = 24
 
 # Clustering identity percentage, if '--cl_min_identity' is left as 'auto' it becomes 99% of the
 # '--dna_min_identity' value
-MMSEQS2_BLAT_DNA_IDENTITY_FACTOR = 0.99
+MMSEQS_BLAT_DNA_IDENTITY_FACTOR = 0.99
 
 # Minimum clustering identity when set to 'auto'
 MMSEQS_MIN_AUTO_MIN_IDENTITY = 75
@@ -484,24 +484,24 @@ MMSEQS_MIN_AUTO_MIN_IDENTITY = 75
 # T: -AVGTAC---  60% 100%  IGN
 #        -c 0.7    -    +    -
 #        -c 0.6    +    +    +
-MMSEQS2_COV_MODE = 1
+MMSEQS_COV_MODE = 1
 
 # Penalty for opening a gap when aligning sequences during clustering. The lower the value the
 # slower clustering becomes. Not recommended to go lower than 3, minimum possible value is 1
-MMSEQS2_GAP_OPEN = 3
+MMSEQS_GAP_OPEN = 3
 
 # Penalty for extending a gap when aligning sequences during clustering. The lower the value the
 # slower clustering becomes. Minimum possible value is 1"
-MMSEQS2_GAP_EXTEND = 1
+MMSEQS_GAP_EXTEND = 1
 
 # From MMseqs2 help:
 # Scale k-mer per sequence based on sequence length as kmer-per-seq val + scale x seqlen
 # kmer-per-seq is 21 by default, so if we set this value to 0.3 for a 500 bp sequence, MMseqs2 will
 # sample (500*0.3)+21 = 171 kmers from that sequence
-MMSEQS2_KMER_PER_SEQ_SCALE = 0.3
+MMSEQS_KMER_PER_SEQ_SCALE = 0.3
 
 # MMseqs sensitivity set at the max 7.5 (If too slow for a dataset, this can be decreased via options)
-MMSEQS2_SENSITIVITY = 7.5
+MMSEQS_SENSITIVITY = 7.5
 
 # A cluster must have at least this proportion of the total number of samples to be used as
 # reference

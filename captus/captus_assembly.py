@@ -854,7 +854,7 @@ class CaptusAssembly(object):
                  " marker extraction."
         )
         mmseqs2_group.add_argument(
-            "--mmseqs2_method",
+            "--mmseqs_method",
             action="store",
             choices=[
                 "easy-linclust",
@@ -862,7 +862,7 @@ class CaptusAssembly(object):
             ],
             default="easy-linclust",
             type=str,
-            dest="mmseqs2_method",
+            dest="mmseqs_method",
             help="B|MMseqs2 clustering algorithm, options are:\n"
                  "easy-linclust = Fast linear time (for huge datasets), less sensitive clustering\n"
                  "easy-cluster = Sensitive homology search (slower)"
@@ -870,18 +870,19 @@ class CaptusAssembly(object):
         mmseqs2_group.add_argument(
             "--cl_sensitivity",
             action="store",
-            default=settings.MMSEQS2_SENSITIVITY,
+            default=settings.MMSEQS_SENSITIVITY,
             type=float,
             dest="cl_sensitivity",
             help="MMseqs2 sensitivity, from 1 to 7.5, only applicable when using 'easy-cluster'."
                  " Common reference points are: 1 (faster), 4 (fast), 7.5 (sens)"
         )
         mmseqs2_group.add_argument(
-            "--cluster_mode",
+            "--cl_mode",
             action="store",
             default=2,
             type=int,
-            dest="cluster_mode",
+            dest="cl_mode",
+            choices=[0,1,2],
             help="B|MMseqs2 clustering mode (https://github.com/soedinglab/mmseqs2/wiki#clustering-"
                  "modes), options are:\n"
                  "0 = Greedy set cover\n"
@@ -895,7 +896,7 @@ class CaptusAssembly(object):
             type=str,
             dest="cl_min_identity",
             help="Minimum identity percentage between sequences in a cluster, when set to 'auto'"
-                 f" it becomes {settings.MMSEQS2_BLAT_DNA_IDENTITY_FACTOR:.0%}% of the '--dna_min"
+                 f" it becomes {settings.MMSEQS_BLAT_DNA_IDENTITY_FACTOR:.0%}% of the '--dna_min"
                  f"_identity' value but never less than {settings.MMSEQS_MIN_AUTO_MIN_IDENTITY}%%"
         )
         mmseqs2_group.add_argument(
@@ -921,7 +922,7 @@ class CaptusAssembly(object):
         mmseqs2_group.add_argument(
             "--cl_cov_mode",
             action="store",
-            default=settings.MMSEQS2_COV_MODE,
+            default=settings.MMSEQS_COV_MODE,
             type=int,
             dest="cl_cov_mode",
             help="MMseqs2 sequence coverage mode (https://github.com/soedinglab/mmseqs2/wiki#how-"
@@ -970,7 +971,7 @@ class CaptusAssembly(object):
             default="$HOME",
             type=str,
             dest="cl_tmp_dir",
-            help="Where to create the temporary directory 'captus_mmseqs2_tmp' for MMseqs2."
+            help="Where to create the temporary directory 'captus_mmseqs_tmp' for MMseqs2."
                  " Clustering can become slow when done on external drives, set this location to a"
                  " fast, preferably local, drive"
         )
@@ -994,11 +995,11 @@ class CaptusAssembly(object):
                  " result both in Mac and Linux)"
         )
         other_group.add_argument(
-            "--mmseqs2_path",
+            "--mmseqs_path",
             action="store",
             default="mmseqs",
             type=str,
-            dest="mmseqs2_path",
+            dest="mmseqs_path",
             help="Path to MMseqs2"
         )
         other_group.add_argument(
