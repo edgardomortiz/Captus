@@ -23,7 +23,7 @@ from tqdm import tqdm
 
 from . import log, settings
 from .bioformats import (alignment_stats, cds_from_gff, dict_to_fasta, fasta_to_dict,
-                         mmseqs2_cluster, vsearch_cluster)
+                         mmseqs_cluster, vsearch_cluster)
 from .misc import (bold, dim, dir_is_empty, elapsed_time, file_is_empty, find_and_match_fastas_gffs,
                    format_dep_msg, mafft_path_version, make_output_dir, mmseqs_path_version,
                    python_library_check, quit_with_error, red, set_ram, set_threads,
@@ -203,6 +203,7 @@ def cluster(full_command, args):
     log.log(f'{"Clustering program":>{mar}}: {bold(args.clust_program)}')
     if args.clust_program == "mmseqs":
             log.log(f'{"MMseqs2 sensitivity":>{mar}}: {bold(args.mmseqs_sensitivity)}')
+            log.log(f'{"MMseqs2 cluster mode":>{mar}}: {bold(args.mmseqs_cluster_mode)}')
     log.log(f'{"Max. sequence length":>{mar}}: {bold(max_seq_len)}')
     log.log(f'{"Min. sequence length":>{mar}}: {bold(args.bait_length)} (= bait length)')
     log.log(f'{"Strand":>{mar}}: {bold(args.strand)}')
@@ -249,6 +250,7 @@ def cluster(full_command, args):
             args.clust_program,
             args.mmseqs_path,
             args.mmseqs_sensitivity,
+            args.mmseqs_cluster_mode,
             args.vsearch_path,
             args.dedup_threshold,
             args.strand,
@@ -281,6 +283,7 @@ def cluster(full_command, args):
                     args.clust_program,
                     args.mmseqs_path,
                     args.mmseqs_sensitivity,
+                    args.mmseqs_cluster_mode,
                     args.vsearch_path,
                     args.strand,
                     args.clust_threshold,
@@ -612,8 +615,8 @@ def filter_fasta(
 
 def dedup_fasta(
     sample_name: str, sample_dir: str, fasta_path: Path, out_dir: Path, clust_program: str,
-    mmseqs_path: str, mmseqs_sensitivity: float, vsearch_path: str, dedup_threshold: float,
-    strand: str, threads_max: int, overwrite: bool, keep_all: bool
+    mmseqs_path: str, mmseqs_sensitivity: float, mmseqs_cluster_mode: int,  vsearch_path: str,
+    dedup_threshold: float, strand: str, threads_max: int, overwrite: bool, keep_all: bool
 ):
     start = time.time()
     fasta_out_path = Path(out_dir, sample_dir, f'{sample_name}{settings.DES_SUFFIXES["DEDUPED"]}')
@@ -647,13 +650,14 @@ def dedup_fasta(
                 "--seq-id-mode", "1",
                 "-c", f"{min(0.99, dedup_threshold)}",
                 "--cov-mode", "1",
-                "--cluster-mode", "2",
-                "--gap-open", f"{max(1, settings.MMSEQS2_GAP_OPEN)}",
-                "--gap-extend", f"{max(1, settings.MMSEQS2_GAP_EXTEND)}",
-                "--kmer-per-seq-scale", f"{settings.MMSEQS2_KMER_PER_SEQ_SCALE}",
+                "--cluster-mode", f"{mmseqs_cluster_mode}",
+                "--gap-open", f"{max(1, settings.MMSEQS_GAP_OPEN)}",
+                "--gap-extend", f"{max(1, settings.MMSEQS_GAP_EXTEND)}",
+                "--kmer-per-seq-scale", f"{settings.MMSEQS_KMER_PER_SEQ_SCALE}",
                 "--threads", f"{threads_max}",
-                "--cluster-reassign",
             ]
+            if mmseqs_cluster_mode != 0:
+                dedup_cmd += ["--cluster-reassign"]
         dedup_log_file = Path(f"{fasta_out_path}".replace(".fasta", ".log"))
         with open(dedup_log_file, "w") as dedup_log:
             dedup_log.write(f"Captus' Deduplication Command:\n  {' '.join(dedup_cmd)}\n\n\n")
@@ -719,8 +723,8 @@ def rehead_and_concatenate_fastas(
 
 def cluster_markers(
     fasta_concat_path: Path, cluster_dir_path: Path, clust_program: str, mmseqs_path: str,
-    mmseqs_sensitivity: float, vsearch_path: str, strand: str, clust_threshold: float,
-    align_singletons: bool, threads: int, overwrite: bool
+    mmseqs_sensitivity: float, mmseqs_cluster_mode: int, vsearch_path: str, strand: str,
+    clust_threshold: float, align_singletons: bool, threads: int, overwrite: bool
 ):
 
     log.log(bold(f"Clustering '{fasta_concat_path.name}' at {clust_threshold}% identity:"))
@@ -730,19 +734,19 @@ def cluster_markers(
     cluster_tsv_path = Path(fasta_concat_path.parent, f"{cluster_prefix}_cluster.tsv")
     if overwrite is True or not cluster_tsv_path.exists() or file_is_empty(cluster_tsv_path):
         if clust_program == "mmseqs":
-            mmseqs2_tmp_dir = Path(fasta_concat_path.parent, "mmseqs2_tmp")
-            message = mmseqs2_cluster(mmseqs_path,
+            mmseqs_tmp_dir = Path(fasta_concat_path.parent, "mmseqs_tmp")
+            message = mmseqs_cluster(mmseqs_path,
                                       "easy-cluster",
                                       Path(fasta_concat_path.parent),
                                       fasta_concat_path,
                                       cluster_prefix,
-                                      mmseqs2_tmp_dir,
+                                      mmseqs_tmp_dir,
                                       mmseqs_sensitivity,
                                       clust_threshold,
                                       1,
                                       clust_threshold,
                                       1,
-                                      2,
+                                      mmseqs_cluster_mode,
                                       threads)
         elif clust_program == "vsearch":
             message  = vsearch_cluster(vsearch_path,

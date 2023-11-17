@@ -27,7 +27,7 @@ from tqdm import tqdm
 from . import log, settings
 from .bioformats import (blat_misc_dna_psl_to_dict, dict_to_fasta, fasta_headers_to_spades,
                          fasta_to_dict, fasta_type, fix_premature_stops, import_busco_odb10,
-                         mmseqs2_cluster, scipio_yaml_to_dict, split_mmseqs_clusters_file,
+                         mmseqs_cluster, scipio_yaml_to_dict, split_mmseqs_clusters_file,
                          translate_fasta_dict, write_gff3)
 from .misc import (bioperl_get_version, blat_path_version, bold, bold_green, bold_yellow,
                    compress_list_files, dim, dir_is_empty, elapsed_time, file_is_empty,
@@ -94,7 +94,7 @@ def extract(full_command, args):
 
     if args.cluster_leftovers:
         skip_clustering = False
-        _, mmseqs_version, mmseqs_status = mmseqs_path_version(args.mmseqs2_path)
+        _, mmseqs_version, mmseqs_status = mmseqs_path_version(args.mmseqs_path)
         _, blat_version, blat_status = blat_path_version(args.blat_path)
     else:
         skip_clustering = True
@@ -563,13 +563,13 @@ def extract(full_command, args):
         # becoming less than 75%
         if args.cl_min_identity == 'auto':
             dna_min_identity = max(args.dna_min_identity, settings.MMSEQS_MIN_AUTO_MIN_IDENTITY)
-            cl_min_identity = max(settings.MMSEQS2_BLAT_DNA_IDENTITY_FACTOR * dna_min_identity,
+            cl_min_identity = max(settings.MMSEQS_BLAT_DNA_IDENTITY_FACTOR * dna_min_identity,
                                   settings.MMSEQS_MIN_AUTO_MIN_IDENTITY)
         else:
             dna_min_identity = cl_min_identity = float(args.cl_min_identity)
-        if args.cluster_mode != 2:
+        if args.cl_mode != 2:
             args.cl_seq_id_mode = 0
-        clust_tmp_dir = make_tmp_dir_within(args.cl_tmp_dir, "captus_mmseqs2_tmp")
+        clust_tmp_dir = make_tmp_dir_within(args.cl_tmp_dir, "captus_mmseqs_tmp")
         fastas_to_cluster, num_leftovers = find_fasta_leftovers(fastas_to_extract)
         num_samples = len(fastas_to_cluster)
         if args.cl_min_samples == "auto":
@@ -579,15 +579,15 @@ def extract(full_command, args):
 
         log.log(bold_yellow("  \u25BA STEP 1 OF 3: Clustering contigs across samples with MMseqs2"))
         log.log("")
-        log.log(f'{"MMseqs2 method":>{mar}}: {bold(args.mmseqs2_method)}')
-        log.log(f'{"cluster_mode":>{mar}}: {bold(args.cluster_mode)}')
+        log.log(f'{"MMseqs2 method":>{mar}}: {bold(args.mmseqs_method)}')
+        log.log(f'{"cluster_mode":>{mar}}: {bold(args.cl_mode)}')
         log.log(f'{"sensitivity":>{mar}}: {bold(args.cl_sensitivity)}')
         log.log(f'{"min_seq_id":>{mar}}: {bold(cl_min_identity)}')
         log.log(f'{"seq_id_mode":>{mar}}: {bold(args.cl_seq_id_mode)}')
         log.log(f'{"cov":>{mar}}: {bold(args.cl_min_coverage)}')
         log.log(f'{"cov_mode":>{mar}}: {bold(args.cl_cov_mode)}')
-        log.log(f'{"gap_open":>{mar}}: {bold(settings.MMSEQS2_GAP_OPEN)}')
-        log.log(f'{"gap_extend":>{mar}}: {bold(settings.MMSEQS2_GAP_EXTEND)}')
+        log.log(f'{"gap_open":>{mar}}: {bold(settings.MMSEQS_GAP_OPEN)}')
+        log.log(f'{"gap_extend":>{mar}}: {bold(settings.MMSEQS_GAP_EXTEND)}')
         log.log(f'{"max_seq_len":>{mar}}: {bold(args.cl_max_seq_len)}')
         log.log(f'{"tmp_dir":>{mar}}: {bold(clust_tmp_dir)}')
         log.log("")
@@ -620,8 +620,8 @@ def extract(full_command, args):
                                               args.show_less)
             captus_cluster_refs = cluster_and_select_refs(num_samples, cl_min_samples,
                                                           args.cl_max_copies, args.cl_rep_min_len,
-                                                          args.mmseqs2_path, args.mmseqs2_method,
-                                                          args.cluster_mode, args.cl_sensitivity,
+                                                          args.mmseqs_path, args.mmseqs_method,
+                                                          args.cl_mode, args.cl_sensitivity,
                                                           clustering_input_file, clustering_dir,
                                                           cl_min_identity, args.cl_seq_id_mode,
                                                           args.cl_min_coverage, args.cl_cov_mode,
@@ -2094,14 +2094,14 @@ def rehead_fasta_with_sample_name(sample_name, sample_fasta_path, clustering_dir
 
 
 def cluster_and_select_refs(
-    num_samples, clust_min_samples, clust_max_copies, clust_rep_min_len, mmseqs2_path,
-    mmseqs2_method, cluster_mode, cluster_sensitivity, clustering_input_file, clustering_dir,
+    num_samples, clust_min_samples, clust_max_copies, clust_rep_min_len, mmseqs_path,
+    mmseqs_method, cluster_mode, cluster_sensitivity, clustering_input_file, clustering_dir,
     min_identity, seq_id_mode, min_coverage, cov_mode, clust_tmp_dir, threads
 ):
     log.log("")
     log.log(bold(f"Initial clustering of contigs at {min_identity}% identity:"))
     clust1_prefix = f"cl{min_identity:.2f}_cov{min_coverage:.2f}"
-    clust1_message = mmseqs2_cluster(mmseqs2_path, mmseqs2_method, clustering_dir,
+    clust1_message = mmseqs_cluster(mmseqs_path, mmseqs_method, clustering_dir,
                                      clustering_input_file, clust1_prefix, clust_tmp_dir,
                                      cluster_sensitivity, min_identity, seq_id_mode,
                                      min_coverage, cov_mode, cluster_mode, threads)
@@ -2176,7 +2176,7 @@ def cluster_and_select_refs(
     min_id2 = min(min_identity + ((100 - min_identity) / 2), min_identity + 1)
     log.log(bold(f"Reducing passing clusters by re-clustering at {min_id2}% identity:"))
     clust2_prefix = f"cl{min_id2:.2f}_cov{min_coverage:.2f}"
-    clust2_message = mmseqs2_cluster(mmseqs2_path, mmseqs2_method, clustering_dir,
+    clust2_message = mmseqs_cluster(mmseqs_path, mmseqs_method, clustering_dir,
                                      clust2_input_fasta, clust2_prefix, clust_tmp_dir,
                                      cluster_sensitivity, min_id2, seq_id_mode,
                                      min_coverage, cov_mode, cluster_mode, threads)

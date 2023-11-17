@@ -38,7 +38,7 @@ class CaptusDesign(object):
         description = bold(f'Captus {__version__}:'
                            " Assembly of Phylogenomic Datasets from High-Throughput Sequencing data")
         parser=argparse.ArgumentParser(
-            usage="captus_assembly command [options]",
+            usage="captus_design command [options]",
             description=description,
             formatter_class=MyHelpFormatter,
             epilog="For help on a particular command: captus_assembly command -h",
@@ -164,11 +164,24 @@ class CaptusDesign(object):
         clustering_group.add_argument(
             "--mmseqs_sensitivity",
             action="store",
-            default=settings.MMSEQS2_SENSITIVITY,
+            default=settings.MMSEQS_SENSITIVITY,
             type=float,
             dest="mmseqs_sensitivity",
             help="MMseqs2 sensitivity, from 1 to 7.5. Common reference points are: 1 (faster),"
                  " 4 (fast), 7.5 (sens)"
+        )
+        clustering_group.add_argument(
+            "--mmseqs_cluster_mode",
+            action="store",
+            default=1,
+            type=float,
+            dest="mmseqs_cluster_mode",
+            choices=[0,1,2],
+            help="B|MMseqs2 clustering mode (https://github.com/soedinglab/mmseqs2/wiki#clustering-"
+                 "modes), options are:\n"
+                 "0 = Greedy set cover (least cohesive)\n"
+                 "1 = Connected component (most cohesive)\n"
+                 "2 = Greedy incremental (analogous to CD-HIT)"
         )
         clustering_group.add_argument(
             "--max_seq_len",

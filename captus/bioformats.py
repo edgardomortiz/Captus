@@ -3203,13 +3203,13 @@ def cds_from_gff(gff_path, fasta_path, bait_length):
     return fasta_cds, fasta_long_exons, fasta_short_exons, cds_data
 
 
-def mmseqs2_cluster(
-    mmseqs2_path, mmseqs2_method, clustering_dir, clustering_input_file, cluster_prefix,
+def mmseqs_cluster(
+    mmseqs_path, mmseqs_method, clustering_dir, clustering_input_file, cluster_prefix,
     clustering_tmp_dir, sensitivity, min_identity, seq_id_mode, min_coverage, cov_mode, cluster_mode,
     threads,
 ):
     """
-    Run MMseqs easy-linclust but perform some parameter checking/conversion before, the FASTA input
+    Run MMseqs2 easy-linclust but perform some parameter checking/conversion before, the FASTA input
     file has to be decompressed, we can compress it afterwards
     """
     start = time.time()
@@ -3223,9 +3223,9 @@ def mmseqs2_cluster(
         min_coverage = min(1.0, round((abs(min_coverage) / 100), 3))
 
     result_prefix = f"{Path(clustering_dir, cluster_prefix)}"
-    mmseqs2_cmd = [
-        mmseqs2_path,
-        mmseqs2_method,
+    mmseqs_cmd = [
+        mmseqs_path,
+        mmseqs_method,
         f"{clustering_input_file}",
         f"{result_prefix}",
         f"{clustering_tmp_dir}",
@@ -3233,25 +3233,25 @@ def mmseqs2_cluster(
         "--cov-mode", f"{cov_mode}",
         "--min-seq-id", f"{min_identity}",
         "--seq-id-mode", f"{seq_id_mode}",
-        "--gap-open", f"{max(1, settings.MMSEQS2_GAP_OPEN)}",
-        "--gap-extend", f"{max(1, settings.MMSEQS2_GAP_EXTEND)}",
+        "--gap-open", f"{max(1, settings.MMSEQS_GAP_OPEN)}",
+        "--gap-extend", f"{max(1, settings.MMSEQS_GAP_EXTEND)}",
         "--cluster-mode", f"{cluster_mode}",
-        "--kmer-per-seq-scale", f"{settings.MMSEQS2_KMER_PER_SEQ_SCALE}",
+        "--kmer-per-seq-scale", f"{settings.MMSEQS_KMER_PER_SEQ_SCALE}",
         "--threads", f"{threads}",
     ]
-    if mmseqs2_method == "easy-cluster":
-        mmseqs2_cmd += ["-s", f"{sensitivity}"]
-        if cluster_mode == 2:
-            mmseqs2_cmd += ["--cluster-reassign"]
-    mmseqs2_log_file = Path(clustering_dir, f"{cluster_prefix}_mmseqs.log")
-    mmseqs2_thread = ElapsedTimeThread()
-    mmseqs2_thread.start()
-    with open(mmseqs2_log_file, "w") as mmseqs2_log:
-        mmseqs2_log.write(f"Captus' MMseqs2 Command:\n  {' '.join(mmseqs2_cmd)}\n\n")
-    with open(mmseqs2_log_file, "a") as mmseqs2_log:
-        subprocess.run(mmseqs2_cmd, stdout=mmseqs2_log, stdin=mmseqs2_log)
-    mmseqs2_thread.stop()
-    mmseqs2_thread.join()
+    if mmseqs_method == "easy-cluster":
+        mmseqs_cmd += ["-s", f"{sensitivity}"]
+        if cluster_mode != 0:
+            mmseqs_cmd += ["--cluster-reassign"]
+    mmseqs_log_file = Path(clustering_dir, f"{cluster_prefix}_mmseqs.log")
+    mmseqs_thread = ElapsedTimeThread()
+    mmseqs_thread.start()
+    with open(mmseqs_log_file, "w") as mmseqs_log:
+        mmseqs_log.write(f"Captus' MMseqs2 Command:\n  {' '.join(mmseqs_cmd)}\n\n")
+    with open(mmseqs_log_file, "a") as mmseqs_log:
+        subprocess.run(mmseqs_cmd, stdout=mmseqs_log, stdin=mmseqs_log)
+    mmseqs_thread.stop()
+    mmseqs_thread.join()
     print()
 
     message = bold(f" \u2514\u2500\u2192 Clustering completed: [{elapsed_time(time.time() - start)}]")
