@@ -830,7 +830,7 @@ class CaptusDesign(object):
                  " sequences at least this many times, met = (num_baits * bait_length) / locus_length "
         )
         final_baits_targets.add_argument(
-            "--remove_ambiguous_loci",
+            "--ral", "--remove_ambiguous_loci",
             action="store_true",
             dest="remove_ambiguous_loci",
             help="Remove loci with reference target sequences grouped together at"
