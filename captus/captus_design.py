@@ -801,19 +801,18 @@ class CaptusDesign(object):
                  " not use clustering thresholds lower than 0.75"
         )
 
-        ref_target_group = parser.add_argument_group("Reference target file creation")
-        ref_target_group.add_argument(
+        final_baits_targets = parser.add_argument_group("Baitset and reference target file creation")
+        final_baits_targets.add_argument(
             "--tct", "--target_clust_threshold",
             action="store",
-            type=str,
+            type=float,
             dest="target_clust_threshold",
-            default="auto",
+            default=98.0,
             help="A reference target file will be created only for the baits that passed the filters"
                  " and clustering. The reference target sequences will be clustered at this"
-                 " threshold to reduce redundancy, if set to 'auto' the same clustering threshold"
-                 " that was used for the baits will be used"
+                 " threshold to reduce redundancy"
         )
-        ref_target_group.add_argument(
+        final_baits_targets.add_argument(
             "--tmc", "--target_min_coverage",
             type=float,
             dest="target_min_coverage",
@@ -821,6 +820,21 @@ class CaptusDesign(object):
             help="To avoid including partial sequences for a locus, only the reference target"
                 " with at least this percentage of coverage with respect of the longest target in"
                 " the locus will be retained"
+        )
+        final_baits_targets.add_argument(
+            "--met", "--min_expected_tiling",
+            type=float,
+            dest="min_expected_tiling",
+            default=1.5,
+            help="Retain only loci whose baits covered the length of the reference target"
+                 " sequences at least this many times, met = (num_baits * bait_length) / locus_length "
+        )
+        final_baits_targets.add_argument(
+            "--remove_ambiguous_loci",
+            action="store_true",
+            dest="remove_ambiguous_loci",
+            help="Remove loci with reference target sequences grouped together at"
+                 " '--target_clust_threshold' since their baits might map to either locus"
         )
 
         other_group = parser.add_argument_group("Other")

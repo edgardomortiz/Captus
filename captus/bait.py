@@ -231,11 +231,11 @@ def bait(full_command, args):
     log.log("")
 
     clu_baits_dir_path, clu_baits_dir_msg = make_output_dir(Path(out_dir, settings.DES_DIRS["BAI"]))
-    log.log(f'{"Final baitsets directory":>{mar}}: {bold(clu_baits_dir_path)}')
+    log.log(f'{"Clustered baitsets directory":>{mar}}: {bold(clu_baits_dir_path)}')
     log.log(f'{"":>{mar}}  {dim(clu_baits_dir_msg)}')
     log.log("")
 
-    clust_baits_final_path = cluster_tile_baits(
+    clust_baits_path = cluster_tile_baits(
         clu_baits_dir_path, baits_filtered_gz_path, args.bait_length, args.vsearch_path,
         mincols, args.bait_clust_threshold, args.tiling_percentage_overlap, args.overwrite
     )
@@ -243,7 +243,7 @@ def bait(full_command, args):
 
     ################################################################################################
     ######################################################### REFERENCE TARGET FILE CREATION SECTION
-    log.log_section_header("Creating reference target file")
+    log.log_section_header("Creating final baitset and reference target file")
     log.log_explanation(
         "Now Captus will prepare a reference target file that can be used for marker extraction"
         " (e.g., with 'captus_assembly extract'). Only the loci for which baits were created will be"
@@ -253,29 +253,26 @@ def bait(full_command, args):
         " locus, only the sequences with at least '--target_min_coverage' with respect to the"
         " longest sequence in their locus will be retained"
     )
-    if args.target_clust_threshold == "auto":
-        args.target_clust_threshold = args.bait_clust_threshold
-    else:
-        try:
-            args.target_clust_threshold = float(args.target_clust_threshold)
-        except ValueError:
-            quit_with_error("Please provide '--target_clust_thresold' as a number...")
     log.log(f'{"Target clustering id.":>{mar}}: {bold(args.target_clust_threshold)}%')
     log.log(f'{"Target min. coverage":>{mar}}: {bold(args.target_min_coverage)}%')
+    log.log(f'{"Min. expected tiling":>{mar}}: {bold(args.min_expected_tiling)}%')
+    log.log(f'{"Remove ambiguous loci":>{mar}}: {bold(args.remove_ambiguous_loci)}%')
     log.log("")
     log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
     log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
     log.log("")
 
-    targets_dir_path, targets_dir_msg = make_output_dir(Path(out_dir, settings.DES_DIRS["TAR"]))
-    log.log(f'{"Ref. target files directory":>{mar}}: {bold(targets_dir_path)}')
-    log.log(f'{"":>{mar}}  {dim(targets_dir_msg)}')
+    baits_targets_dir_path, baits_targets_dir_msg = make_output_dir(Path(out_dir,
+                                                                         settings.DES_DIRS["TAR"]))
+    log.log(f'{"Final baitsets directory":>{mar}}: {bold(baits_targets_dir_path)}')
+    log.log(f'{"":>{mar}}  {dim(baits_targets_dir_msg)}')
     log.log("")
 
     prepare_targets(
-        targets_dir_path, clust_baits_final_path, args.mmseqs_path,
-        args.target_clust_threshold, args.target_min_coverage, fastas_auto,
-        fastas_manual, threads_max, args.overwrite, args.show_more
+        baits_targets_dir_path, clust_baits_path, args.bait_length, args.mmseqs_path,
+        args.target_clust_threshold, args.target_min_coverage, args.min_expected_tiling,
+        args.remove_ambiguous_loci, fastas_auto, fastas_manual,
+        threads_max, args.overwrite, args.show_more, mar
     )
 
 
@@ -1054,14 +1051,17 @@ def cluster_tile_baits(
 
 
 def prepare_targets(
-    targets_dir_path: Path, clust_baits_final_path: Path, mmseqs_path: str,
-    target_clust_threshold: float, target_min_coverage: float, fastas_auto: list,
-    fastas_manual: list, threads: int, overwrite: bool, show_more: bool
+    baits_targets_dir_path: Path, clust_baits_path: Path, bait_length: int, mmseqs_path: str,
+    target_clust_threshold: float, target_min_coverage: float, min_expected_tiling: float,
+    remove_ambiguous_loci: bool, fastas_auto: list, fastas_manual: list,
+    threads: int, overwrite: bool, show_more: bool, margin: int
 ):
 
-    targets_concat_path = Path(targets_dir_path, f"all_targets_for_{clust_baits_final_path.name}")
+    baitset_final_name = clust_baits_path.name.replace(".fasta", "")
+    baitset_final_path = Path(baits_targets_dir_path, f"{clust_baits_path.name}")
+    targets_concat_path = Path(baits_targets_dir_path, f"{baitset_final_name}_all_targets.fasta")
     targets_final_name = f"targets_tct{target_clust_threshold:.2f}_tmc{target_min_coverage:.2f}"
-    targets_final_path = Path(targets_dir_path, f"{targets_final_name}_for_{clust_baits_final_path.name}")
+    targets_final_path = Path(baits_targets_dir_path, f"{baitset_final_name}_{targets_final_name}")
     targets_tsv_path = Path(f"{targets_final_path}".replace(".fasta", ".tsv"))
     fastas = fastas_auto + fastas_manual
     if target_clust_threshold > 1.0:
@@ -1074,13 +1074,17 @@ def prepare_targets(
 
     loci_baits = {}
     loci_baitless = {}
+    loci_passed = 0
+    targets_passed = 0
+    baits_passed = 0
+    footprint = 0
 
     if overwrite or not targets_concat_path.exists() or file_is_empty(targets_concat_path):
         if targets_concat_path.exists():
             targets_concat_path.unlink()
         start = time.time()
-        log.log(bold(f"Concatenating reference target sequences for '{clust_baits_final_path.name}':"))
-        baits_fasta = fasta_to_dict(clust_baits_final_path)
+        log.log(bold(f"Concatenating reference target sequences for '{clust_baits_path.name}':"))
+        baits_fasta = fasta_to_dict(clust_baits_path)
         for bait_name in baits_fasta:
             locus = bait_name.split(settings.SEQ_NAME_SEP)[0]
             if locus not in loci_baits:
@@ -1088,6 +1092,10 @@ def prepare_targets(
                     "baits": 1,
                     "targets": 0,
                     "max_length": 0,
+                    "includes": "",
+                    "included_in": "",
+                    "exp_tiling": 0,
+                    "removed": [],
                 }
             else:
                 loci_baits[locus]["baits"] += 1
@@ -1142,28 +1150,26 @@ def prepare_targets(
             f"Clustering reference target sequences at {target_clust_threshold*100:.2f}% identity:"
         ))
         clust_prefix = targets_final_path.stem
-        clust_tmp_dir = Path(targets_dir_path, "mmseqs_tmp")
+        clust_tmp_dir = Path(baits_targets_dir_path, "mmseqs_tmp")
         message = mmseqs_cluster(mmseqs_path,
-                                  "easy-cluster",
-                                  targets_dir_path,
-                                  targets_concat_path,
-                                  clust_prefix,
-                                  clust_tmp_dir,
-                                  7.5,
-                                  target_clust_threshold,
-                                  1,
-                                  target_min_coverage,
-                                  1,
-                                  2,
-                                  threads)
+                                 "easy-cluster",
+                                 baits_targets_dir_path,
+                                 targets_concat_path,
+                                 clust_prefix,
+                                 clust_tmp_dir,
+                                 7.5,
+                                 target_clust_threshold,
+                                 1,
+                                 target_min_coverage,
+                                 1,
+                                 2,
+                                 threads)
         log.log(message)
         log.log("")
 
-        log.log(bold(
-            f"Removing reference target sequences under {target_min_coverage*100:.2f}% coverage:"
-        ))
+        log.log(bold("Filtering reference target sequences:"))
         start = time.time()
-        clust_all_seqs_file = Path(targets_dir_path, f"{clust_prefix}_all_seqs.fasta")
+        clust_all_seqs_file = Path(baits_targets_dir_path, f"{clust_prefix}_all_seqs.fasta")
         clusters = split_mmseqs_clusters_file(clust_all_seqs_file)
         centroids = {}
         included = {}
@@ -1200,8 +1206,25 @@ def prepare_targets(
                 pbar.update()
         if centroids:
             clust_all_seqs_file.unlink()
-            Path(targets_dir_path, f"{clust_prefix}_rep_seq.fasta").unlink()
-            Path(targets_dir_path, f"{clust_prefix}_cluster.tsv").unlink()
+            Path(baits_targets_dir_path, f"{clust_prefix}_rep_seq.fasta").unlink()
+            Path(baits_targets_dir_path, f"{clust_prefix}_cluster.tsv").unlink()
+
+        for locus in loci_baits:
+            if locus in includes:
+                loci_baits[locus]["includes"] = ",".join(sorted(set(includes[locus])))
+            if locus in included:
+                loci_baits[locus]["included"] = ",".join(sorted(set(included[locus])))
+            loci_baits[locus]["exp_tiling"] = ((loci_baits[locus]["baits"] * bait_length)
+                                               / loci_baits[locus]["max_length"])
+            if remove_ambiguous_loci:
+                if loci_baits[locus]["includes"] or loci_baits[locus]["included"]:
+                    loci_baits[locus]["removed"].append("ambiguous")
+            if loci_baits[locus]["exp_tiling"] < min_expected_tiling:
+                loci_baits[locus]["removed"].append(f'tiling={loci_baits[locus]["exp_tiling"]:.2f}')
+            loci_baits[locus]["removed"] = ",".join(loci_baits[locus]["removed"])
+            if not loci_baits[locus]["removed"]:
+                footprint += loci_baits[locus]["max_length"]
+
         targets_out = {}
         for target_name in centroids:
             locus = target_name.split(settings.REF_CLUSTER_SEP)[-1]
@@ -1213,17 +1236,41 @@ def prepare_targets(
                     targets_out[locus][target_name] = centroids[target_name]
                 else:
                     targets_out[locus] = {target_name: centroids[target_name]}
+
         if targets_out:
             for locus in sorted(targets_out):
-                loci_baits[locus]["targets"] = len(targets_out[locus])
-                dict_to_fasta(targets_out[locus], targets_final_path, sort=True, append=True)
+                if not loci_baits[locus]["removed"]:
+                    loci_passed += 1
+                    loci_baits[locus]["targets"] = len(targets_out[locus])
+                    targets_passed += loci_baits[locus]["targets"]
+                    dict_to_fasta(targets_out[locus], targets_final_path, sort=True, append=True)
             log.log(bold(
-                f" \u2514\u2500\u2192 '{bold(targets_final_path.name)}': {len(centroids)}"
-                f" reference target sequences saved [{elapsed_time(time.time() - start)}]"
+                f" \u2514\u2500\u2192 '{bold(targets_final_path.name)}': {targets_passed}"
+                f" reference target sequences representing {loci_passed} loci"
+                f" saved [{elapsed_time(time.time() - start)}]"
             ))
             log.log("")
         else:
             quit_with_error("Reference target file empty, try to relax your filtering parameters...")
+
+        log.log(bold("Saving final baitset for synthesis:"))
+        start = time.time()
+        baits_out = {}
+        baits_fasta = fasta_to_dict(clust_baits_path)
+        for bait_name in baits_fasta:
+            locus = bait_name.split(settings.SEQ_NAME_SEP)[0]
+            if not loci_baits[locus]["removed"]:
+                baits_out[bait_name] = baits_fasta[bait_name]
+        dict_to_fasta(baits_out, baitset_final_path)
+        baits_passed = len(baits_out)
+        if baitset_final_path.exists() and not file_is_empty(baitset_final_path):
+            log.log(
+                f"{bold(baitset_final_path.name)}: {baits_passed} baits saved"
+                f" for synthesis [{elapsed_time(time.time() - start)}] "
+            )
+            log.log("")
+        else:
+            quit_with_error("Baitset file empty, try to relax your filtering parameters...")
 
         log.log(bold("Saving reference target file statistics:"))
         start = time.time()
@@ -1233,23 +1280,27 @@ def prepare_targets(
                           "num_baits\t"
                           "length\t"
                           "includes\t"
-                          "included_in\n")
+                          "included_in\t"
+                          "exp_tiling\t"
+                          "removed\n")
             for locus in sorted(loci_baitless):
                 tsv_out.write(f'{locus}\t'
                               '0\t'
                               '0\t'
                               f'{loci_baitless[locus]["max_length"]}\t'
                               '""\t'
-                              '""\n')
+                              '""\t'
+                              '0\t'
+                              'no baits\n')
             for locus in sorted(loci_baits):
-                includes_str = ",".join(sorted(set(includes[locus]))) if locus in includes else ""
-                included_str = ",".join(sorted(set(included[locus]))) if locus in included else ""
                 tsv_out.write(f'{locus}\t'
                               f'{loci_baits[locus]["targets"]}\t'
                               f'{loci_baits[locus]["baits"]}\t'
                               f'{loci_baits[locus]["max_length"]}\t'
-                              f'{includes_str}\t'
-                              f'{included_str}\n')
+                              f'{loci_baits[locus]["includes"]}\t'
+                              f'{loci_baits[locus]["included_in"]}\t'
+                              f'{loci_baits[locus]["exp_tiling"]:.2f}\t'
+                              f'{loci_baits[locus]["removed"]}\n')
         if targets_tsv_path.exists() and not file_is_empty(targets_tsv_path):
             log.log(
                 f"{bold(targets_tsv_path.name)}: loci stats table"
@@ -1265,6 +1316,12 @@ def prepare_targets(
             f" SKIPPED clustering of reference target sequences"
         )
         log.log("")
+
+    log.log(bold(f'{"BAITSET FEATURES:":>{margin}}'))
+    log.log(f'{"Total loci":>{margin}}: {bold(loci_passed)}')
+    log.log(f'{"Total reference targets":>{margin}}: {bold(targets_passed)}')
+    log.log(f'{"Total baits":>{margin}}: {bold(baits_passed)}')
+    log.log(f'{"Exp. capture footprint":>{margin}}: {bold(footprint)}')
 
     if targets_concat_path.exists():
         targets_concat_path.unlink()

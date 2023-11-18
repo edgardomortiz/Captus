@@ -736,18 +736,18 @@ def cluster_markers(
         if clust_program == "mmseqs":
             mmseqs_tmp_dir = Path(fasta_concat_path.parent, "mmseqs_tmp")
             message = mmseqs_cluster(mmseqs_path,
-                                      "easy-cluster",
-                                      Path(fasta_concat_path.parent),
-                                      fasta_concat_path,
-                                      cluster_prefix,
-                                      mmseqs_tmp_dir,
-                                      mmseqs_sensitivity,
-                                      clust_threshold,
-                                      1,
-                                      clust_threshold,
-                                      1,
-                                      mmseqs_cluster_mode,
-                                      threads)
+                                     "easy-cluster",
+                                     Path(fasta_concat_path.parent),
+                                     fasta_concat_path,
+                                     cluster_prefix,
+                                     mmseqs_tmp_dir,
+                                     mmseqs_sensitivity,
+                                     clust_threshold,
+                                     1,
+                                     clust_threshold,
+                                     1,
+                                     mmseqs_cluster_mode,
+                                     threads)
         elif clust_program == "vsearch":
             message  = vsearch_cluster(vsearch_path,
                                        "--cluster_fast",
