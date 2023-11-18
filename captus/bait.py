@@ -38,7 +38,7 @@ def bait(full_command, args):
     out_dir, out_dir_msg = make_output_dir(args.out)
     log.logger = log.Log(Path(out_dir, "captus-design_bait.log"), stdout_verbosity_level=1)
 
-    mar = 27  # Margin for aligning parameters and values
+    mar = 28  # Margin for aligning parameters and values
 
     ################################################################################################
     ############################################################################### STARTING SECTION
@@ -1317,11 +1317,13 @@ def prepare_targets(
         )
         log.log("")
 
-    log.log(bold(f'{"BAITSET FEATURES:":>{margin}}'))
+    log.log("")
+    log.log(bold(f'{"FINAL BAITSET FEATURES":>{margin}}:'))
     log.log(f'{"Total loci":>{margin}}: {bold(loci_passed)}')
     log.log(f'{"Total reference targets":>{margin}}: {bold(targets_passed)}')
     log.log(f'{"Total baits":>{margin}}: {bold(baits_passed)}')
     log.log(f'{"Exp. capture footprint":>{margin}}: {bold(footprint)}')
+    log.log("")
 
     if targets_concat_path.exists():
         targets_concat_path.unlink()
