@@ -1060,7 +1060,7 @@ def prepare_targets(
     baitset_final_name = f'{clust_baits_path.name.replace(".fasta", "")}_met{min_expected_tiling:.2f}'
     if remove_ambiguous_loci:
         baitset_final_name += "_noamb"
-    baitset_final_path = Path(baits_targets_dir_path, f"{clust_baits_path.name}")
+    baitset_final_path = Path(baits_targets_dir_path, f"{baitset_final_name}.fasta")
     targets_concat_path = Path(baits_targets_dir_path, f"{baitset_final_name}_all_targets.fasta")
     targets_final_name = f"targets_tct{target_clust_threshold:.2f}_tmc{target_min_coverage:.2f}.fasta"
     targets_final_path = Path(baits_targets_dir_path, f"{baitset_final_name}_{targets_final_name}")
