@@ -2102,9 +2102,9 @@ def cluster_and_select_refs(
     log.log(bold(f"Initial clustering of contigs at {min_identity}% identity:"))
     clust1_prefix = f"cl{min_identity:.2f}_cov{min_coverage:.2f}"
     clust1_message = mmseqs_cluster(mmseqs_path, mmseqs_method, clustering_dir,
-                                     clustering_input_file, clust1_prefix, clust_tmp_dir,
-                                     cluster_sensitivity, min_identity, seq_id_mode,
-                                     min_coverage, cov_mode, cluster_mode, threads)
+                                    clustering_input_file, clust1_prefix, clust_tmp_dir,
+                                    cluster_sensitivity, min_identity, seq_id_mode,
+                                    min_coverage, cov_mode, cluster_mode, threads)
     log.log(clust1_message)
     log.log("")
     msg_p1 = bold(f"Filtering clusters with fewer than {clust_min_samples} samples,")
@@ -2177,9 +2177,9 @@ def cluster_and_select_refs(
     log.log(bold(f"Reducing passing clusters by re-clustering at {min_id2}% identity:"))
     clust2_prefix = f"cl{min_id2:.2f}_cov{min_coverage:.2f}"
     clust2_message = mmseqs_cluster(mmseqs_path, mmseqs_method, clustering_dir,
-                                     clust2_input_fasta, clust2_prefix, clust_tmp_dir,
-                                     cluster_sensitivity, min_id2, seq_id_mode,
-                                     min_coverage, cov_mode, cluster_mode, threads)
+                                    clust2_input_fasta, clust2_prefix, clust_tmp_dir,
+                                    cluster_sensitivity, min_id2, seq_id_mode,
+                                    min_coverage, cov_mode, cluster_mode, threads)
     log.log(clust2_message)
     log.log("")
     log.log(bold("Selecting final cluster representatives:"))

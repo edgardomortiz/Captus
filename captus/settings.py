@@ -606,16 +606,16 @@ DES_SUFFIXES = {
 
 # Design output folders
 DES_DIRS = {
-    "CAT": "01_concatenated",  # inside 01_clustered_markers
-    "CLR": "02_clustered",     # inside 01_clustered_markers
-    "ALN": "03_aligned",       # inside 01_clustered_markers
-    "CUR": "04_curated",       # inside 01_clustered_markers
-    "AUT": "01_automatic",     # inside 02_selected_markers
-    "MAN": "02_manual",        # inside 02_selected_markers
-    "RAW": "01_raw",           # inside 03_baits
-    "FIL": "02_filtered",      # inside 03_baits
-    "BAI": "03_baitsets",      # inside 03_baits
-    "TAR": "04_targets",       # inside 03_baits
+    "CAT": "01_concatenated",      # inside 01_clustered_markers
+    "CLR": "02_clustered",         # inside 01_clustered_markers
+    "ALN": "03_aligned",           # inside 01_clustered_markers
+    "CUR": "04_curated",           # inside 01_clustered_markers
+    "AUT": "01_automatic",         # inside 02_selected_markers
+    "MAN": "02_manual",            # inside 02_selected_markers
+    "RAW": "01_raw",               # inside 03_baits
+    "FIL": "02_filtered",          # inside 03_baits
+    "BAI": "03_clustered",         # inside 03_baits
+    "TAR": "04_baits_and_targets", # inside 03_baits
 }
 
 # Design output files
