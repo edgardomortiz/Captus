@@ -1060,7 +1060,7 @@ def prepare_targets(
     baitset_final_name = clust_baits_path.name.replace(".fasta", "")
     baitset_final_path = Path(baits_targets_dir_path, f"{clust_baits_path.name}")
     targets_concat_path = Path(baits_targets_dir_path, f"{baitset_final_name}_all_targets.fasta")
-    targets_final_name = f"targets_tct{target_clust_threshold:.2f}_tmc{target_min_coverage:.2f}"
+    targets_final_name = f"targets_tct{target_clust_threshold:.2f}_tmc{target_min_coverage:.2f}.fasta"
     targets_final_path = Path(baits_targets_dir_path, f"{baitset_final_name}_{targets_final_name}")
     targets_tsv_path = Path(f"{targets_final_path}".replace(".fasta", ".tsv"))
     fastas = fastas_auto + fastas_manual
@@ -1213,11 +1213,11 @@ def prepare_targets(
             if locus in includes:
                 loci_baits[locus]["includes"] = ",".join(sorted(set(includes[locus])))
             if locus in included:
-                loci_baits[locus]["included"] = ",".join(sorted(set(included[locus])))
+                loci_baits[locus]["included_in"] = ",".join(sorted(set(included[locus])))
             loci_baits[locus]["exp_tiling"] = ((loci_baits[locus]["baits"] * bait_length)
                                                / loci_baits[locus]["max_length"])
             if remove_ambiguous_loci:
-                if loci_baits[locus]["includes"] or loci_baits[locus]["included"]:
+                if loci_baits[locus]["includes"] or loci_baits[locus]["included_in"]:
                     loci_baits[locus]["removed"].append("ambiguous")
             if loci_baits[locus]["exp_tiling"] < min_expected_tiling:
                 loci_baits[locus]["removed"].append(f'tiling={loci_baits[locus]["exp_tiling"]:.2f}')
