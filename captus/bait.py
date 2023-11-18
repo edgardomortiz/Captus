@@ -1205,6 +1205,7 @@ def prepare_targets(
                 }
                 pbar.update()
         if centroids:
+            shutil.rmtree(clust_tmp_dir, ignore_errors=True)
             clust_all_seqs_file.unlink()
             Path(baits_targets_dir_path, f"{clust_prefix}_rep_seq.fasta").unlink()
             Path(baits_targets_dir_path, f"{clust_prefix}_cluster.tsv").unlink()
@@ -1261,7 +1262,7 @@ def prepare_targets(
             locus = bait_name.split(settings.SEQ_NAME_SEP)[0]
             if not loci_baits[locus]["removed"]:
                 baits_out[bait_name] = baits_fasta[bait_name]
-        dict_to_fasta(baits_out, baitset_final_path)
+        dict_to_fasta(baits_out, baitset_final_path, shuffle=True)
         baits_passed = len(baits_out)
         if baitset_final_path.exists() and not file_is_empty(baitset_final_path):
             log.log(
@@ -1322,7 +1323,7 @@ def prepare_targets(
     log.log(f'{"Total loci":>{margin}}: {bold(loci_passed)}')
     log.log(f'{"Total reference targets":>{margin}}: {bold(targets_passed)}')
     log.log(f'{"Total baits":>{margin}}: {bold(baits_passed)}')
-    log.log(f'{"Exp. capture footprint":>{margin}}: {bold(footprint)}')
+    log.log(f'{"Max. capture footprint":>{margin}}: {bold(footprint)}')
     log.log("")
 
     if targets_concat_path.exists():

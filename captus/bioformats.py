@@ -908,7 +908,8 @@ def fasta_to_dict(fasta_path):
 
 
 def dict_to_fasta(
-    in_fasta_dict, out_fasta_path, wrap=0, sort=False, append=False, write_if_empty=False
+    in_fasta_dict, out_fasta_path, wrap=0, sort=False,
+    shuffle=False, append=False, write_if_empty=False
 ):
     """
     Saves a `in_fasta_dict` from function `fasta_to_dict()` as a FASTA file to `out_fasta_path`
@@ -923,6 +924,10 @@ def dict_to_fasta(
     if in_fasta_dict:
         if sort:
             in_fasta_dict = dict(sorted(in_fasta_dict.items(), key=lambda x: x[0]))
+        if shuffle:
+            in_fasta_dict_shuffled = list(in_fasta_dict.items())
+            random.shuffle(in_fasta_dict_shuffled)
+            in_fasta_dict = dict(in_fasta_dict_shuffled)
         with open(out_fasta_path, action) as fasta_out:
             for name in in_fasta_dict:
                 header = f'>{name} {in_fasta_dict[name]["description"]}'.strip()
