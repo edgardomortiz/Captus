@@ -6,7 +6,7 @@
 ___
 >[!WARNING]
 >### VERY IMPORTANT FOR MAC USERS!
->`Bioconda` has broken the latest build of `MEGAHIT` for macOS. Please follow the instructions below, either **Using micromamba** or **Using conda**, to install `Captus` and **AFTER** `Captus` is installed please run the following two commands to get a functional `MEGAHIT` (if you used `conda` just replace `micromamba` by >`conda`):
+>`Bioconda` has broken the latest build of `MEGAHIT` for macOS. Please follow the instructions below, either **Using micromamba** or **Using conda**, to install `Captus` and **AFTER** `Captus` is installed please run the following two commands to get a functional `MEGAHIT` (if you used `conda` just replace `micromamba` by `conda`):
 >```text
 >micromamba activate captus
 >micromamba install -c bioconda megahit=1.2.9=hfbae3c0_0
