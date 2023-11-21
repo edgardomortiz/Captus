@@ -12,6 +12,13 @@ ___
 >micromamba install -c bioconda megahit=1.2.9=hfbae3c0_0
 >```
 ---
+>[!TIP]
+>### USE BUSCO DATABASES AS REFERENCE TARGETS
+>Now Captus can parse any BUSCO lineage database and use it as reference targets. Just download one of the `.tar.gz` files from [https://busco-data.ezlab.org/v5/data/lineages/](https://busco-data.ezlab.org/v5/data/lineages/) and provide the path to `captus extract`, for example:
+>```text
+>captus extract --captus_assemblies_dir my_assemblies --nuc_refs ~/Downloads/aves_odb10.2021-02-19.tar.gz
+>```
+---
 ## INSTALLATION
 ### Using micromamba
 The fastest way to install `Captus` is to create an isolated software environment using `micromamba` (https://mamba.readthedocs.io/en/latest/installation.html), if you don't have `micromamba` it can very easily be installed:
