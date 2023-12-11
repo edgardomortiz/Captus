@@ -1369,24 +1369,30 @@ def paralog_informed_filter(
     fastas = {}
     for marker in filtering_refs:
         for fasta in fastas_paths:
-            if (fasta.parts[-2] == filtering_refs[marker]["format_dir"]
-                and fasta.parts[-3] == filtering_refs[marker]["marker_dir"]):
-                fastas[fasta.stem] = fasta
+            format_dir = filtering_refs[marker]["format_dir"]
+            marker_dir = filtering_refs[marker]["marker_dir"]
+            if fasta.parts[-2] == format_dir and fasta.parts[-3] == marker_dir:
+                if marker_dir in fastas:
+                    fastas[marker_dir][fasta.stem] = fasta
+                else:
+                    fastas[marker_dir] = {fasta.stem: fasta}
 
     filter_paralogs_informed_params = []
-    for marker_name in fastas:
-        fastas_marker = {}
-        for fasta in fastas_paths:
-            if fasta.stem == marker_name and fasta.parts[-3] == fastas[marker_name].parts[-3]:
-                fastas_marker[fasta] = fastas_paths[fasta]
-        filter_paralogs_informed_params.append((
-            shared_paralog_stats,
-            fastas[marker_name],
-            fastas_marker,
-            tolerance,
-            min_samples,
-            overwrite
-        ))
+    for marker_dir in fastas:
+        for marker_name in fastas[marker_dir]:
+            fastas_marker = {}
+            for fasta in fastas_paths:
+                if (fasta.stem == marker_name
+                    and fasta.parts[-3] == fastas[marker_dir][marker_name].parts[-3]):
+                    fastas_marker[fasta] = fastas_paths[fasta]
+            filter_paralogs_informed_params.append((
+                shared_paralog_stats,
+                fastas[marker_dir][marker_name],
+                fastas_marker,
+                tolerance,
+                min_samples,
+                overwrite
+            ))
 
     if debug:
         tqdm_serial_run(filter_paralogs_informed, filter_paralogs_informed_params,
@@ -1622,7 +1628,10 @@ def clipkit(
     if overwrite is True or not fasta_out.exists():
         if min_data_per_column > 0:
             num_seqs = len(fasta_to_dict(fasta_in))
-            clipkit_gaps = 1 - (min(num_seqs, min_data_per_column) / num_seqs)
+            if num_seqs == min_data_per_column:
+                clipkit_gaps = 1
+            else:
+                clipkit_gaps = 1 - (min(num_seqs, min_data_per_column) / num_seqs)
         clipkit_cmd = [
             clipkit_path,
             f"{fasta_in}",

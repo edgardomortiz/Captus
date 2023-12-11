@@ -1217,8 +1217,11 @@ def prepare_targets(
                 loci_baits[locus]["includes"] = ",".join(sorted(set(includes[locus])))
             if locus in included:
                 loci_baits[locus]["included_in"] = ",".join(sorted(set(included[locus])))
-            loci_baits[locus]["exp_tiling"] = ((loci_baits[locus]["baits"] * bait_length)
-                                               / loci_baits[locus]["max_length"])
+            try:
+                loci_baits[locus]["exp_tiling"] = ((loci_baits[locus]["baits"] * bait_length)
+                                                / loci_baits[locus]["max_length"])
+            except ZeroDivisionError:
+                loci_baits[locus]["exp_tiling"] = 0
             if remove_ambiguous_loci:
                 if loci_baits[locus]["includes"] or loci_baits[locus]["included_in"]:
                     loci_baits[locus]["removed"].append("ambiguous")
