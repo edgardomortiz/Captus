@@ -556,7 +556,7 @@ def extract(full_command, args):
                 "'--captus_assemblies_dir' and/or '--fastas' argument"
             )
 
-        clustering_dir, clustering_dir_msg = make_output_dir(Path(out_dir, "01_clustering_data"))
+        clustering_dir, clustering_dir_msg = make_output_dir(Path(out_dir, "02_clustering_data"))
         clustering_input_file = Path(clustering_dir, "clustering_input.fasta")
 
         # When 'cl_min_identity' is set to 'auto' it becomes 90% of 'dna_min_identity' never

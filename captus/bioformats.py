@@ -2475,23 +2475,23 @@ def blat_misc_dna_psl_to_dict(
         is partial and subsumed within a larger stretch of sequence unrelated to the query
         """
         region = ""
-        if q_end - q_start >= q_size * (1 - settings.DNA_TOLERANCE_PROP):
+        if q_end - q_start >= q_size * (1 - settings.DNA_TOLERANCE_LEN):
             region = "full"
-        elif (q_start <= q_size * settings.DNA_TOLERANCE_PROP
-              and (q_size - q_end) <= q_size * settings.DNA_TOLERANCE_PROP):
+        elif (q_start <= q_size * settings.DNA_TOLERANCE_LEN
+              and (q_size - q_end) <= q_size * settings.DNA_TOLERANCE_LEN):
             region = "full"
-        elif (q_start >= q_size * settings.DNA_TOLERANCE_PROP
-              and (q_size - q_end) >= q_size * settings.DNA_TOLERANCE_PROP):
+        elif (q_start >= q_size * settings.DNA_TOLERANCE_LEN
+              and (q_size - q_end) >= q_size * settings.DNA_TOLERANCE_LEN):
             region = "middle"
-        elif q_start <= q_size * settings.DNA_TOLERANCE_PROP:
+        elif q_start <= q_size * settings.DNA_TOLERANCE_LEN:
             region = "proximal"
-        elif (q_size - q_end) <= q_size * settings.DNA_TOLERANCE_PROP:
+        elif (q_size - q_end) <= q_size * settings.DNA_TOLERANCE_LEN:
             region = "distal"
         else:  # hit is only partial and surrounded by a large proportion of unmatched sequence
             region = "wedged"
         # Now check if the flanks in the contig are too long to be part of a multi-part hit
-        left_flank_too_long = t_start / (t_end - t_start) < settings.DNA_TOLERANCE_PROP
-        right_flank_too_long = (t_size - t_end) / (t_end - t_start) < settings.DNA_TOLERANCE_PROP
+        left_flank_too_long = t_start / (t_end - t_start) < settings.DNA_TOLERANCE_LEN
+        right_flank_too_long = (t_size - t_end) / (t_end - t_start) < settings.DNA_TOLERANCE_LEN
         if region == "middle":
             if left_flank_too_long or right_flank_too_long:
                 region = "wedged"
@@ -2571,14 +2571,14 @@ def blat_misc_dna_psl_to_dict(
         return assembly
 
     def pair_is_compatible(h1, h2, max_overlap_bp):
-        if (max(h1["identity"], h2["identity"]) * (1 - settings.DNA_TOLERANCE_PROP)
+        if (max(h1["identity"], h2["identity"]) * (1 - settings.DNA_TOLERANCE_PID)
             > min(h1["identity"], h2["identity"])):
             return False
         overlap = min(h1["q_end"][-1], h2["q_end"][-1]) - max(h1["q_start"][0], h2["q_start"][0])
         if overlap < 1:
             return True
-        if (h1["match_len"] * (1 - settings.DNA_TOLERANCE_PROP) <= overlap
-            or h2["match_len"] * (1 - settings.DNA_TOLERANCE_PROP) <= overlap):
+        if (h1["match_len"] * (1 - settings.DNA_TOLERANCE_LEN) <= overlap
+            or h2["match_len"] * (1 - settings.DNA_TOLERANCE_LEN) <= overlap):
             return False
         return bool(overlap <= max_overlap_bp)
 
@@ -2812,7 +2812,7 @@ def blat_misc_dna_psl_to_dict(
             matches += NT_PIDS["".join(sorted([n1, n2]))]
         if matches == seq_len:
             return True
-        if matches / seq_len >= (1 - settings.DNA_TOLERANCE_PROP):
+        if matches / seq_len >= (1 - settings.DNA_TOLERANCE_PID):
             return True
         if seq_len - matches <= 1.0 and seq_len <= 10:
             return True
