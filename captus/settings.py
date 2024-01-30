@@ -435,17 +435,14 @@ DNA_MAX_INSERT_PROP = 0.2
 # Absolute maximum insertion allowed in bp
 DNA_MAX_INSERT_SIZE = 200
 
-# Tolerance proportion for determining if two hits are compatible in their percentage of 'identity'
-# to the reference, or determining if they have an acceptable margin of overlap. These two
-# conditions are used to determine compatible pairs of hits during the assembly of partial hits
-# during the extraction of non-coding markers
-DNA_TOLERANCE_LEN = 0.05
+# Tolerance proportion for determining if two hits are compatible in their margin of overlap. Used
+# during the assembly of partial hits during the extraction of non-coding markers
+DNA_TOLERANCE_LEN = 0.0500
 
 # Tolerance proportion for determining if two hits are compatible in their percentage of 'identity'
-# to the reference, or determining if they have an acceptable margin of overlap. These two
-# conditions are used to determine compatible pairs of hits during the assembly of partial hits
-# during the extraction of non-coding markers
-DNA_TOLERANCE_PID = 0.02
+# to the reference. Used during the assembly of partial hits during the extraction of non-coding
+# markers (3.25% seems to perform OK across several conditions)
+DNA_TOLERANCE_PID = 0.0333
 
 # Minimum coverage for non-coding hits before attempting greedy assembly
 DNA_MIN_COVERAGE_BEFORE_ASSEMBLY = 10

@@ -431,8 +431,12 @@ def translate_fasta_dict(in_fasta_dict: dict, genetic_code_id: int, frame="guess
         translations, counts_Xs, counts_stops = [], [], []
         for f in [1, 2, 3, -1, -2, -3]:
             translation = translate(seq, genetic_code, f, start_as_M)
-            counts_Xs.append(translation.count("X"))
-            counts_stops.append(translation.count("*"))
+            Xs = translation.count("X")
+            if translation[-1] == "X": Xs -= 1
+            counts_Xs.append(Xs)
+            stops = translation.count("*")
+            if translation[-1] == "*": stops -= 1
+            counts_stops.append(stops)
             translations.append(translation)
         min_stops_idxs = [i for i in range(len(counts_stops)) if counts_stops[i] == min(counts_stops)]
         if len(min_stops_idxs) == 1:
