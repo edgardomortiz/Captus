@@ -430,7 +430,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     )
     df = df_pivot.stack(
         level=["read", "base"],
-        dropna=False,
+        future_stack=True,
     ).reset_index()
     df.sort_values(
             by=["sample_name", "stage"],
@@ -624,7 +624,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     )
     df = df_pivot.stack(
         level=["read", "quality"],
-        dropna=False,
+        future_stack=True,
     ).reset_index()
     df.sort_values(
             by=["sample_name", "stage"],
@@ -1074,8 +1074,12 @@ def build_qc_report(out_dir, qc_extras_dir):
         values="freq",
     ).reset_index()
     df = df_pivot.melt(
-        id_vars=["sample_name", "stage"],
+        id_vars=[("sample_name", ""), ("stage", "")],
         value_name="freq",
+        columns={
+            ("sample_name", ""): "sample_name",
+            ("stage", ""): "stage",
+        }
     )
     df.sort_values(
         by=["sample_name", "stage"],
@@ -1336,7 +1340,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     )
     df = df_pivot.stack(
         level=["read", "position"],
-        dropna=False,
+        future_stack=True,
     ).reset_index()
     df.sort_values(
         by=["sample_name", "stage"],
