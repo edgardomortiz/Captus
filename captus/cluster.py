@@ -970,7 +970,10 @@ def mafft_assembly(
         intermediate_fasta = fasta_to_dict(intermediate_fasta_path)
         output_fasta = {}
         for seq_name in intermediate_fasta:
-            new_seq_name = seq_name.lstrip("_R_")
+            if seq_name.startswith("_R_"):
+                new_seq_name = seq_name[3:]
+            else:
+                new_seq_name = seq_name
             output_fasta[new_seq_name] = {
                 "sequence": intermediate_fasta[seq_name]["sequence"],
                 "description": input_fasta[new_seq_name]["description"],

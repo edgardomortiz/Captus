@@ -3488,7 +3488,10 @@ def rehead_root_msa(fasta_in: Path, fasta_out: Path, outgroup: list, remove_R_=F
         aligned = {}
         aligned_w_R_ = fasta_to_dict(fasta_out)
         for seq_name in aligned_w_R_:
-            aligned[seq_name.lstrip("_R_")] = aligned_w_R_[seq_name]
+            if seq_name.startswith("_R_"):
+                aligned[seq_name[3:]] = aligned_w_R_[seq_name]
+            else:
+                aligned[seq_name] = aligned_w_R_[seq_name]
     else:
         aligned = fasta_to_dict(fasta_out)
 
