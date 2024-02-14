@@ -163,13 +163,13 @@ This argument is optional, the default is **20**.
 ___
 ## *Miscellaneous DNA markers (BLAT)*
 ___
-### **`--dna_refs`**
+### **`-d, --dna_refs`**
 Path to a FASTA nucleotide file of miscellaneous DNA references. You can include non-coding regions, complete genes (exons + introns), complete mRNAS (including UTRs), etc.
 
 This argument is optional and has no default.
 ___
 ### **`--dna_min_identity`**
-Minimum percentage of identity to the reference sequence for ahit to be retained. Accepted values are any number between 0 and 100.
+Minimum percentage of identity to the reference sequence for a hit to be retained. Accepted values are any number between 0 and 100.
 
 This argument is optional, the default is **80**.
 ___
@@ -268,14 +268,14 @@ If you have installed your own copies of `Scipio`, `BLAT` you can provide the fu
 
 These arguments are optional, the default is to use the **bundled** copies of these programs.
 
-### **`--mmseqs_path`**
-If you have installed your own copy of `MMSeqs2` you can provide the full path to that copy.
+### **`--mmseqs_path`**, **`--mafft_path`**
+If you have installed your own copy of `MMSeqs2` or `MAFFT` you can provide the full path to that copy.
 
-This argument is optional, the default is **mmseqs**
+This argument is optional, the default is **mmseqs** and **mafft** respectively.
 ___
 ### **`--ram`**, **`--threads`**, **`--concurrent`**, **`--debug`**, **`--show_less`**
 See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (17.11.2023)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (14.02.2024)

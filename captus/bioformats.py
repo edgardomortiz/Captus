@@ -3473,3 +3473,39 @@ def import_busco_odb10(odb10_tar_path: Path):
         return busco_targets
     else:
         return None
+
+
+def rehead_root_msa(fasta_in: Path, fasta_out: Path, outgroup: list, remove_R_=False):
+
+    if outgroup:
+        outgroup = outgroup.split(",")
+    else:
+        outgroup = []
+
+    unaligned = fasta_to_dict(fasta_in)
+
+    if remove_R_:
+        aligned = {}
+        aligned_w_R_ = fasta_to_dict(fasta_out)
+        for seq_name in aligned_w_R_:
+            aligned[seq_name.lstrip("_R_")] = aligned_w_R_[seq_name]
+    else:
+        aligned = fasta_to_dict(fasta_out)
+
+    reheaded = {}
+    for sample_name in outgroup:
+        for seq_name in sorted(aligned):
+            if seq_name.split(settings.SEQ_NAME_SEP)[0] == sample_name:
+                reheaded[seq_name] = {
+                    "description": unaligned[seq_name]["description"],
+                    "sequence": aligned[seq_name]["sequence"]
+                }
+    for seq_name in aligned:
+        if seq_name.split(settings.SEQ_NAME_SEP)[0] not in outgroup:
+            reheaded[seq_name] = {
+                "description": unaligned[seq_name]["description"],
+                "sequence": aligned[seq_name]["sequence"]
+            }
+    dict_to_fasta(reheaded, fasta_out)
+
+    return

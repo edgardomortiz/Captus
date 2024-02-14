@@ -1003,6 +1003,14 @@ class CaptusAssembly(object):
             help="Path to MMseqs2"
         )
         other_group.add_argument(
+            "--mafft_path",
+            action="store",
+            default="mafft",
+            type=str,
+            dest="mafft_path",
+            help="Path to MAFFT (default: mafft/mafft.bat)"
+        )
+        other_group.add_argument(
             "--ram",
             action="store",
             default="auto",

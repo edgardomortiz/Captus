@@ -27,15 +27,15 @@ from tqdm import tqdm
 from . import log, settings
 from .bioformats import (blat_misc_dna_psl_to_dict, dict_to_fasta, fasta_headers_to_spades,
                          fasta_to_dict, fasta_type, fix_premature_stops, import_busco_odb10,
-                         mmseqs_cluster, scipio_yaml_to_dict, split_mmseqs_clusters_file,
-                         translate_fasta_dict, write_gff3)
+                         mmseqs_cluster, rehead_root_msa, scipio_yaml_to_dict,
+                         split_mmseqs_clusters_file, translate_fasta_dict, write_gff3)
 from .misc import (bioperl_get_version, blat_path_version, bold, bold_green, bold_yellow,
                    compress_list_files, dim, dir_is_empty, elapsed_time, file_is_empty,
-                   format_dep_msg, has_valid_ext, make_output_dir, make_tmp_dir_within,
-                   mmseqs_path_version, python_library_check, quit_with_error, red,
-                   remove_formatting, scipio_path_version, set_ram, set_threads, successful_exit,
-                   tqdm_parallel_async_run, tqdm_parallel_nested_run, tqdm_serial_run,
-                   yaml_perl_get_version)
+                   format_dep_msg, has_valid_ext, mafft_path_version, make_output_dir,
+                   make_tmp_dir_within, mmseqs_path_version, python_library_check, quit_with_error,
+                   red, remove_formatting, scipio_path_version, set_ram, set_threads,
+                   successful_exit, tqdm_parallel_async_run, tqdm_parallel_nested_run,
+                   tqdm_serial_run, yaml_perl_get_version)
 from .version import __version__
 
 
@@ -95,6 +95,7 @@ def extract(full_command, args):
     if args.cluster_leftovers:
         skip_clustering = False
         _, mmseqs_version, mmseqs_status = mmseqs_path_version(args.mmseqs_path)
+        _, mafft_version, mafft_status = mafft_path_version(args.mafft_path)
         _, blat_version, blat_status = blat_path_version(args.blat_path)
     else:
         skip_clustering = True
@@ -108,6 +109,7 @@ def extract(full_command, args):
     log.log(format_dep_msg(f'{branch_yaml:>{mar}}: ', yaml_version, yaml_status))
     log.log(format_dep_msg(f'{"BLAT     ":>{mar}}: ', blat_version, blat_status))
     log.log(format_dep_msg(f'{"MMseqs2  ":>{mar}}: ', mmseqs_version, mmseqs_status))
+    log.log(format_dep_msg(f'{"MAFFT    ":>{mar}}: ', mafft_version, mafft_status))
     log.log("")
 
     log.log(f'{"Python libraries":>{mar}}:')
@@ -147,12 +149,24 @@ def extract(full_command, args):
         skip_clustering = True
         if skip_extraction:
             quit_with_error(
-                "MMseqs2 could not be found, please check your '--mseqs_path'. Additionally, no"
+                "MMseqs2 could not be found, please check your '--mmseqs_path'. Additionally, no"
                 " reference protein or nucleotide sets were provided for extraction."
             )
         else:
             log.log(
-                f"{bold('WARNING:')} MMseqs2 could not be found, please check your '--mseqs_path'."
+                f"{bold('WARNING:')} MMseqs2 could not be found, please check your '--mmseqs_path'."
+                " Extraction of reference protein sets will be attempted."
+            )
+    if mafft_status == "not found":
+        skip_clustering = True
+        if skip_extraction:
+            quit_with_error(
+                "MAFFT could not be found, please check your '--mafft_path'. Additionally, no"
+                " reference protein or nucleotide sets were provided for extraction."
+            )
+        else:
+            log.log(
+                f"{bold('WARNING:')} MAFFT could not be found, please check your '--mafft_path'."
                 " Extraction of reference protein sets will be attempted."
             )
 
@@ -625,7 +639,8 @@ def extract(full_command, args):
                                                           clustering_input_file, clustering_dir,
                                                           cl_min_identity, args.cl_seq_id_mode,
                                                           args.cl_min_coverage, args.cl_cov_mode,
-                                                          clust_tmp_dir, threads_max)
+                                                          clust_tmp_dir, args.mafft_path,
+                                                          threads_max, args.debug)
             log.log("")
             log.log("")
             log.log(bold_yellow(
@@ -2096,7 +2111,7 @@ def rehead_fasta_with_sample_name(sample_name, sample_fasta_path, clustering_dir
 def cluster_and_select_refs(
     num_samples, clust_min_samples, clust_max_copies, clust_rep_min_len, mmseqs_path,
     mmseqs_method, cluster_mode, cluster_sensitivity, clustering_input_file, clustering_dir,
-    min_identity, seq_id_mode, min_coverage, cov_mode, clust_tmp_dir, threads
+    min_identity, seq_id_mode, min_coverage, cov_mode, clust_tmp_dir, mafft_path, max_threads, debug
 ):
     log.log("")
     log.log(bold(f"Initial clustering of contigs at {min_identity}% identity:"))
@@ -2104,7 +2119,7 @@ def cluster_and_select_refs(
     clust1_message = mmseqs_cluster(mmseqs_path, mmseqs_method, clustering_dir,
                                     clustering_input_file, clust1_prefix, clust_tmp_dir,
                                     cluster_sensitivity, min_identity, seq_id_mode,
-                                    min_coverage, cov_mode, cluster_mode, threads)
+                                    min_coverage, cov_mode, cluster_mode, max_threads)
     log.log(clust1_message)
     log.log("")
     msg_p1 = bold(f"Filtering clusters with fewer than {clust_min_samples} samples,")
@@ -2179,7 +2194,7 @@ def cluster_and_select_refs(
     clust2_message = mmseqs_cluster(mmseqs_path, mmseqs_method, clustering_dir,
                                     clust2_input_fasta, clust2_prefix, clust_tmp_dir,
                                     cluster_sensitivity, min_id2, seq_id_mode,
-                                    min_coverage, cov_mode, cluster_mode, threads)
+                                    min_coverage, cov_mode, cluster_mode, max_threads)
     log.log(clust2_message)
     log.log("")
     log.log(bold("Selecting final cluster representatives:"))
@@ -2216,19 +2231,125 @@ def cluster_and_select_refs(
                         "description": desc,
                     }
             pbar.update()
+    log.log("")
     cluster_refs_fasta = Path(clustering_dir, f"{clust1_prefix}_captus_cluster_refs.fasta")
-    for clr in sorted(cluster_refs):
-        dict_to_fasta(cluster_refs[clr], cluster_refs_fasta, append=True)
+    check_strand_and_save_refs(cluster_refs, cluster_refs_fasta, mafft_path, max_threads, debug)
     Path(clustering_dir, f"{clust2_prefix}_all_seqs.fasta").unlink()
     Path(clustering_dir, f"{clust2_prefix}_rep_seq.fasta").unlink()
     Path(clustering_dir, f"{clust2_prefix}_cluster.tsv").unlink()
     shutil.rmtree(clust_tmp_dir, ignore_errors=True)
-    msg_p1 = bold(f" \u2514\u2500\u2192 Reference saved to {cluster_refs_fasta}")
+    msg_p1 = bold(f"Reference saved to {cluster_refs_fasta}")
     msg_p2 = bold(f" [{elapsed_time(time.time() - start)}]")
     log.log(f"{msg_p1}{msg_p2}")
     log.log("")
-    compress_list_files([clustering_input_file, clust2_input_fasta], threads)
+    compress_list_files([clustering_input_file, clust2_input_fasta], max_threads)
     return cluster_refs_fasta
+
+
+def check_strand_and_save_refs(
+    cluster_refs_unstranded: dict, cluster_refs_fasta: Path,
+    mafft_path: str, max_threads: int, debug: bool
+):
+    """
+    Takes a dictionary where the main keys are cluster names with fasta dictionaries as values and
+    aligns each one with MAFFT to verify each sequence in the cluster is in the same strand
+
+    Parameters
+    ----------
+    cluster_refs_unstranded : dict
+        Main dictionary keys are cluster names, values are Captus' fasta dictionaries
+    cluster_refs_fasta : Path
+        Destination path to save reference FASTA file
+    mafft_path : str
+        Path to MAFFT executable
+    max_threads : int
+        Maximum number of threads, used to run as many MAFFT alignments in parallel using 2 threads
+        each
+    debug : bool
+        When True the MAFFT alignments will not be parallelized
+    """
+
+    # Create temporary directories for FASTAs to align
+    tmp_unaligned_dir = Path(cluster_refs_fasta.parent, "tmp_unaligned")
+    tmp_aligned_dir = Path(cluster_refs_fasta.parent, "tmp_aligned")
+    for tmp_dir in [tmp_unaligned_dir, tmp_aligned_dir]:
+        if tmp_dir.exists():
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+        tmp_dir.mkdir(parents=True)
+
+    # Output FASTA dictionary with correctly stranded sequences
+    cluster_refs = {}
+
+    # Align non-singleton clusters with MAFFT to fix strands in cluster representatives
+    mafft_params = []
+    for clr in sorted(cluster_refs_unstranded):
+        if len(cluster_refs_unstranded[clr]) == 1:
+            for seq_name in cluster_refs_unstranded[clr]:
+                cluster_refs[seq_name] = cluster_refs_unstranded[clr][seq_name]
+        else:
+            fasta_in = Path(tmp_unaligned_dir, f"{clr}.fasta")
+            fasta_out = Path(tmp_aligned_dir, f"{clr}.fasta")
+            dict_to_fasta(cluster_refs_unstranded[clr], fasta_in)
+            mafft_params.append([
+                mafft_path,
+                fasta_in,
+                fasta_out
+            ])
+    show_less = True
+    concurrent =  max_threads//2
+    if debug:
+        tqdm_serial_run(mafft_auto_strand, mafft_params,
+                        f"Verifying cluster strands with MAFFT", "Strand verificiation completed",
+                        "cluster", show_less)
+    else:
+        tqdm_parallel_async_run(mafft_auto_strand, mafft_params,
+                                f"Verifying cluster strands with MAFFT", "Strand verificiation completed",
+                                "cluster", concurrent, show_less)
+    log.log("")
+
+    # Load aligned and correctly stranded FASTAs to add to the reference, disalign first
+    stranded_fastas = sorted(list(tmp_aligned_dir.resolve().glob("*.fasta")))
+    for stranded_fasta_path in stranded_fastas:
+        stranded_fasta = fasta_to_dict(stranded_fasta_path)
+        for seq_name in stranded_fasta:
+            cluster_refs[seq_name] = {
+                "sequence": stranded_fasta[seq_name]["sequence"].replace("-", ""),
+                "description": stranded_fasta[seq_name]["description"]
+            }
+    dict_to_fasta(cluster_refs, cluster_refs_fasta)
+
+    # Remove temporary directories
+    for tmp_dir in [tmp_unaligned_dir, tmp_aligned_dir]:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+    return
+
+
+def mafft_auto_strand(mafft_path: str, fasta_in: Path, fasta_out: Path):
+    start = time.time()
+    mafft_cmd = [
+        mafft_path,
+        "--nuc",
+        "--maxiterate", "1000",
+        "--thread", "2",
+        "--adjustdirection",
+        f"{fasta_in}"
+    ]
+    fasta_out_short = Path(*fasta_out.parts[-3:])
+    mafft_log_file = Path(fasta_out.parent, f"{fasta_out.stem}.mafft.log")
+    with open(mafft_log_file, "w") as mafft_log:
+        mafft_log.write(f"Captus' MAFFT Command:\n  {' '.join(mafft_cmd)}"
+                        f" > {fasta_out}\n\n\n")
+    with open(fasta_out, "w") as mafft_out:
+        with open(mafft_log_file, "a") as mafft_log:
+            subprocess.run(mafft_cmd, stdout=mafft_out, stderr=mafft_log)
+            if file_is_empty(fasta_out):
+                message = red(f"'{fasta_out_short}': FAILED alignment, empty output file")
+                fasta_out.unlink()
+            else:
+                rehead_root_msa(fasta_in, fasta_out, None, remove_R_=True)
+                message = f"'{fasta_out_short}': aligned [{elapsed_time(time.time() - start)}]"
+    return message
 
 
 def collect_ext_stats(out_dir):

@@ -24,7 +24,7 @@ from tqdm import tqdm
 
 from . import log, settings
 from .bioformats import (alignment_stats, dict_to_fasta, fasta_to_dict, fasta_type,
-                         pairwise_identity, sample_stats)
+                         pairwise_identity, rehead_root_msa, sample_stats)
 from .misc import (bold, clipkit_path_version, dim, dir_is_empty, elapsed_time, file_is_empty,
                    format_dep_msg, mafft_path_version, make_output_dir, muscle_path_version,
                    python_library_check, quit_with_error, red, set_ram, set_threads,
@@ -1104,31 +1104,6 @@ def fastas_origs_dests(dir_path: Path, orig_base_dir: str, dest_base_dir: str):
             fastas_to_process[origin] = destination
 
     return fastas_to_process
-
-
-def rehead_root_msa(fasta_in: Path, fasta_out: Path, outgroup: list):
-    if outgroup:
-        outgroup = outgroup.split(",")
-    else:
-        outgroup = []
-    unaligned = fasta_to_dict(fasta_in)
-    aligned = fasta_to_dict(fasta_out)
-    reheaded = {}
-    for sample_name in outgroup:
-        for seq_name in sorted(aligned):
-            if seq_name.split("__")[0] == sample_name:
-                reheaded[seq_name] = {
-                    "description": unaligned[seq_name]["description"],
-                    "sequence": aligned[seq_name]["sequence"]
-                }
-    for seq_name in aligned:
-        if seq_name.split("__")[0] not in outgroup:
-            reheaded[seq_name] = {
-                "description": unaligned[seq_name]["description"],
-                "sequence": aligned[seq_name]["sequence"]
-            }
-    dict_to_fasta(reheaded, fasta_out)
-    return
 
 
 def msa(
