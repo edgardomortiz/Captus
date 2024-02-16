@@ -100,6 +100,7 @@ def extract(full_command, args):
     else:
         skip_clustering = True
         mmseqs_version, mmseqs_status = "", "not used"
+        mafft_version, mafft_status = "", "not used"
 
     log.log(f'{"Dependencies":>{mar}}:')
     log.log(format_dep_msg(f'{"Scipio   ":>{mar}}: ', scipio_version, scipio_status))
