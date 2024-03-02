@@ -1142,7 +1142,7 @@ class CaptusAssembly(object):
             help="Maximum number of secondary hits (copies) per sample to import from the"
                  " extraction step. Large numbers of marker copies per sample can increase"
                  " alignment times. Hits (copies) are ranked from best to worst during the"
-                 " 'extract' step. -1 disables the initial removal of paralogs and aligns which"
+                 " 'extract' step. -1 disables the removal of paralogs and aligns them all, which"
                  " might be useful if you expect very high ploidy levels for example"
         )
         input_group.add_argument(
@@ -1306,6 +1306,13 @@ class CaptusAssembly(object):
         )
 
         other_group = parser.add_argument_group("Other")
+        other_group.add_argument(
+            "--collect_only",
+            action="store_true",
+            dest="collect_only",
+            help="Only collect the markers from the extraction folder and exit (skips addition of"
+                 " reference target sequences and subsequent steps)"
+        )
         other_group.add_argument(
             "--redo_from",
             action="store",

@@ -154,6 +154,9 @@ This argument is optional, the default is **0**.
 ___
 ## *Other*
 ___
+### **`--collect_only`**
+Only collect the markers from the extraction folder and exit, it skips the addition of reference target sequences and subsequent steps
+___
 ### **`--redo_from`**
 You can repeat the analysis without undoing all the steps. These are the points from which you can restart the `align` command:
 - `alignment` = Delete all subdirectories with alignments and restart.

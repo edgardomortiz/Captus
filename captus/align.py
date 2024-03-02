@@ -172,9 +172,14 @@ def align(full_command, args):
 
         collect_extracted_markers(markers, formats, args.max_paralogs, args.min_samples,
                                   extracted_sample_dirs, out_dir, settings.ALN_DIRS["UNAL"],
-                                  refs_paths, args.overwrite, show_less)
+                                  refs_paths, args.collect_only, args.overwrite, show_less)
         log.log("")
 
+        if args.collect_only:
+            successful_exit(
+                "Captus-assembly: ALIGN -> successfully completed, '--collect_only' was enabled"
+                f" [{elapsed_time(time.time() - captus_start)}]"
+            )
 
 
     ################################################################################################
@@ -858,7 +863,7 @@ def make_output_dirtree(markers, formats, out_dir, base_dir, margin):
 
 def collect_extracted_markers(
     markers, formats, max_paralogs, min_samples, extracted_sample_dirs, out_dir, base_dir,
-    refs_paths, overwrite, show_less
+    refs_paths, collect_only, overwrite, show_less
 ):
     source_files = [Path(settings.MARKER_DIRS[m], f"{m}{settings.FORMAT_SUFFIXES[f]}")
                    for m in markers.split(",") for f in formats.split(",")
@@ -894,9 +899,9 @@ def collect_extracted_markers(
 
     # Collect markers per sample's source FASTAs into a dictionary that can be updated in parallel
     fastas_per_marker = {}
-    collect_marker_names_params = []
+    collect_sample_markers_params = []
     for source_fasta_path in fastas_per_sample:
-        collect_marker_names_params.append([
+        collect_sample_markers_params.append([
             fastas_per_marker,
             source_fasta_path,
             fastas_per_sample[source_fasta_path]["sample_name"],
@@ -904,10 +909,14 @@ def collect_extracted_markers(
             fastas_per_sample[source_fasta_path]["suffix"],
             max_paralogs,
         ])
-    tqdm_serial_run(collect_sample_markers, collect_marker_names_params,
+    tqdm_serial_run(collect_sample_markers, collect_sample_markers_params,
                     "Collecting extracted markers",
                     "Collection of extracted markers finished",
                     "source", show_less)
+    if max_paralogs == -1:
+        max_paralog_rank = get_max_paralog_rank(collect_sample_markers_params)
+    else:
+        max_paralog_rank = max_paralogs
 
     # Write FASTAs compiled per marker when they have at least four samples
     log.log("")
@@ -937,36 +946,37 @@ def collect_extracted_markers(
         f" {skipped} already existed and were skipped"
     )
 
-    # Add references to all the possible collected FASTAs
-    if refs_paths is not None:
-        refs = [
-            refs_paths["NUC"]["AA_path"], refs_paths["NUC"]["NT_path"],
-            refs_paths["PTD"]["AA_path"], refs_paths["PTD"]["NT_path"],
-            refs_paths["MIT"]["AA_path"], refs_paths["MIT"]["NT_path"],
-            refs_paths["DNA"]["NT_path"], refs_paths["DNA"]["NT_path"],
-            refs_paths["CLR"]["NT_path"], refs_paths["CLR"]["NT_path"],
-        ]
-        mrks = ["NUC", "NUC", "PTD", "PTD", "MIT", "MIT", "DNA", "DNA", "CLR", "CLR"]
-        fmts = [ "AA",  "NT",  "AA",  "NT",  "AA",  "NT",  "MA",  "MF",  "MA",  "MF"]
-        add_refs_params = []
-        manager = Manager()
-        shared_ref_names = manager.list()
-        for r, m, f in zip(refs, mrks, fmts):
-            if all([r, m in markers.upper().split(","), f in formats.upper().split(",")]):
-                add_refs_params.append((
-                    r,
-                    Path(out_dir, base_dir, settings.MARKER_DIRS[m], settings.FORMAT_DIRS[f]),
-                    shared_ref_names,
-                ))
-        if bool(add_refs_params):
-            log.log("")
-            tqdm_serial_run(add_refs, add_refs_params,
-                            "Adding reference markers", "Addition of reference markers finished",
-                            "reference", show_less)
+    manager = Manager()
+    shared_ref_names = manager.list()
+    if not collect_only:
+        # Add references to all the possible collected FASTAs
+        if refs_paths is not None:
+            refs = [
+                refs_paths["NUC"]["AA_path"], refs_paths["NUC"]["NT_path"],
+                refs_paths["PTD"]["AA_path"], refs_paths["PTD"]["NT_path"],
+                refs_paths["MIT"]["AA_path"], refs_paths["MIT"]["NT_path"],
+                refs_paths["DNA"]["NT_path"], refs_paths["DNA"]["NT_path"],
+                refs_paths["CLR"]["NT_path"], refs_paths["CLR"]["NT_path"],
+            ]
+            mrks = ["NUC", "NUC", "PTD", "PTD", "MIT", "MIT", "DNA", "DNA", "CLR", "CLR"]
+            fmts = [ "AA",  "NT",  "AA",  "NT",  "AA",  "NT",  "MA",  "MF",  "MA",  "MF"]
+            add_refs_params = []
+            for r, m, f in zip(refs, mrks, fmts):
+                if all([r, m in markers.upper().split(","), f in formats.upper().split(",")]):
+                    add_refs_params.append((
+                        r,
+                        Path(out_dir, base_dir, settings.MARKER_DIRS[m], settings.FORMAT_DIRS[f]),
+                        shared_ref_names,
+                    ))
+            if bool(add_refs_params):
+                log.log("")
+                tqdm_serial_run(add_refs, add_refs_params,
+                                "Adding reference markers", "Addition of reference markers finished",
+                                "reference", show_less)
 
     # Write ASTRAL-Pro sequence to sample equivalence tsv file
     astral_pro_tsv = write_astral_pro_seq_to_sam(out_dir,
-                                                 max_paralogs,
+                                                 max_paralog_rank,
                                                  shared_ref_names,
                                                  sample_names)
     if astral_pro_tsv:
@@ -1011,6 +1021,22 @@ def collect_sample_markers(
     )
 
     return message
+
+
+def get_max_paralog_rank(collect_sample_markers_params: list):
+    max_paralog_rank = 0
+    for params in collect_sample_markers_params:
+        fasta_in = fasta_to_dict(params[1])
+        for seq_name_full in fasta_in:
+            seq_name_parts = seq_name_full.split(settings.SEQ_NAME_SEP)
+            seq_name = seq_name_parts[0]
+            if len(seq_name_parts) == 3:
+                paralog_rank = int(seq_name_parts[2])
+            else:
+                paralog_rank = 0
+            if paralog_rank > max_paralog_rank:
+                max_paralog_rank = paralog_rank
+    return max_paralog_rank
 
 
 def add_refs(ref_path, dest_dir, shared_ref_names):
