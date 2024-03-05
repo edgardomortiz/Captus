@@ -1,6 +1,6 @@
 # How to modify recipe in bioconda
 
-1. Fork bioconda-recipes in your GitHub account, if you did this in the past fetch the most recent changes and update it
+1. Fork bioconda-recipes in your GitHub account, if you did this in the past sync it and pull changes locally
 
 2. Create a branch, the name of the branch should indicate what we are doing: e.g. fix_captus_recipe
 cd path_to_bioconda-recipes
