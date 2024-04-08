@@ -1,4 +1,7 @@
-# **Captus**
+<p align="center">
+  <img src=docs/static/images/logo.svg alt=captus_logo width=500>
+</p>
+
 ### *Assembly of Phylogenomic Datasets from High-Throughput Sequencing data*
 [https://edgardomortiz.github.io/captus.docs/](https://edgardomortiz.github.io/captus.docs/)  
 
