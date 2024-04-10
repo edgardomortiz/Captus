@@ -36,7 +36,7 @@ If a help message shows up in your terminal, you are ready to go!
 
 ### Getting data
 
-Download [<i class="fas fa-file-archive"></i> this file (211 MB)](https://github.com/edgardomortiz/Captus/raw/master/tutorial_data/00_raw_reads.tar.gz) and place it in a directory where you want to run this tutorial.  
+Download [<i class="fas fa-file-archive"></i> this file (169 MB)](https://drive.google.com/uc?export=download&id=1qDwAQqMk9JTy0aHf7dKrqgEqPNXyF00J) and place it in a directory where you want to run this tutorial.  
 Then, run the following commands to unzip the archive.
 
 ```shell
@@ -184,4 +184,4 @@ To get the most out of this pipeline, such as integrating different data types a
 
 ---
 Created by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (01.10.2021)  
-Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (22.02.2023)
+Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (10.04.2024)
