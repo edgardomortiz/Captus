@@ -770,6 +770,7 @@ def prepare_refs(captus_ext_dir, margin):
             "PTD" : {"AA_path": None, "AA_msg": "not used", "NT_path": None, "NT_msg": "not used"},
             "MIT" : {"AA_path": None, "AA_msg": "not used", "NT_path": None, "NT_msg": "not used"},
             "DNA" : {"AA_path": None, "AA_msg": None,       "NT_path": None, "NT_msg": "not used"},
+            "CLR" : {"AA_path": None, "AA_msg": None,       "NT_path": None, "NT_msg": "not used"},
         }
     if not found and not not_found:
         log.log(f'{"WARNING":>{margin}}: No reference files found!')
