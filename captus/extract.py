@@ -811,7 +811,7 @@ def adjust_concurrency(concurrent, num_samples, threads_max, ram_B, ref_type):
     elif ref_type == "dna":
         min_ram_b = settings.EXTRACTION_MIN_RAM_B
     if min_ram_b >= ram_B:
-        return 1, ram_B
+        return 1, 1, ram_B
     if concurrent > 1:
         while ram_B // concurrent < min_ram_b:
             concurrent -= 1
