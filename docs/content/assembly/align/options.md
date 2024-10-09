@@ -143,14 +143,14 @@ Gappyness threshold per position. Accepted values between 0 and 1. This argument
 This argument is optional, the default is **0.9**.
 ___
 ### **`--min_data_per_column`**
-Minimum coverage of sequence as proportion of the mean of sequence lengths in the alignment, ignoring gaps. After `ClipKIT` finishes trimming columns, `Captus` will also remove short sequences below this threshold.
-
-This argument is optional, the default is **0.4**.
-___
-### **`--min_coverage`**
 Minimum number of non-missing sites per column. When this parameter is > 0, Captus will dynamically calculate a `--clipkit_gaps` threshold per alignment to keep this minimum amount of data per column.
 
 This argument is optional, the default is **0**.
+___
+### **`--min_coverage`**
+Minimum coverage of sequence as proportion of the mean of sequence lengths in the alignment, ignoring gaps. After `ClipKIT` finishes trimming columns, `Captus` will also remove short sequences below this threshold.
+
+This argument is optional, the default is **0.4**.
 ___
 ## *Other*
 ___
@@ -179,4 +179,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (30.03.2023)
+Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (09.10.2024)
