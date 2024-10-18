@@ -36,7 +36,7 @@ If a help message shows up in your terminal, you are ready to go!
 
 ### Getting data
 
-Download [<i class="fas fa-file-archive"></i> this file (169 MB)](https://drive.google.com/uc?export=download&id=1qDwAQqMk9JTy0aHf7dKrqgEqPNXyF00J) and place it in a directory where you want to run this tutorial.  
+Download [<i class="fas fa-file-archive"></i> this file (169 MB)](https://drive.usercontent.google.com/download?id=1Jq3raXEBP8D_X9yEWOh9FF3YTSq6vZAT&export=download) and place it in a directory where you want to run this tutorial.  
 Then, run the following commands to unzip the archive.
 
 ```shell
