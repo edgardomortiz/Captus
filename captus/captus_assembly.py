@@ -612,6 +612,15 @@ class CaptusAssembly(object):
             help="Output directory name"
         )
         output_group.add_argument(
+            "--disable_stitching",
+            action="store_true",
+            dest="disable_stitching",
+            help="Use only if you are sure your target loci will be found in a single contig (for"
+                 " example if you have a chromosome-level assembly), otherwise Captus tries to join"
+                 " partial matches to a target that are scattered across multiple contigs if their"
+                 " structure and overlaps are compatible"
+        )
+        output_group.add_argument(
             "--max_paralogs",
             action="store",
             default=-1,

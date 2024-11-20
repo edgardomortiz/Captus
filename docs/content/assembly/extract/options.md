@@ -41,6 +41,9 @@ Inside this directory, the extracted markers for each sample will be stored in a
 
 This argument is optinal, the default is **./03_extractions/**
 ___
+### **`--disable_stitching`**
+Use this flag only if you are sure your target loci will be found in a single contig (for example if you have a chromosome-level assembly). By default, Captus tries to join partial matches to a target that are scattered across multiple contigs if their structure and overlaps are compatible. Internally, this activates the `--single_target_hits` option for Scipio when searching for proteins.
+___
 ### **`--max_paralogs`**
 Maximum number of secondary hits (copies) of any particular reference marker allowed in the output. We recommend disabling the removal of paralogs (secondary hits/copies) during the `extract` step because the `align` step uses a more sophisticated filter for paralogs. This can be useful for exploratory runs, for example: if after an initial run allowing all paralogs we found out that the average number of secondary hits across samples is 5, we could use this number to get rid of outliers.
 

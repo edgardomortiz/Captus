@@ -2416,7 +2416,7 @@ def scipio_yaml_to_dict(
 
 
 def blat_misc_dna_psl_to_dict(
-    psl_path, target_dict, min_identity, min_coverage, marker_type, max_paralogs
+    psl_path, target_dict, min_identity, min_coverage, marker_type, disable_stitching, max_paralogs
 ):
     """
     Parse .psl from BLAT, assemble greedily the partial hits, and return the best set of hits if
@@ -2851,8 +2851,11 @@ def blat_misc_dna_psl_to_dict(
             )
             score = (matches + rep_matches - mismatches) / q_size
             wscore = score * ((matches + rep_matches + mismatches) / q_size)
-            region = determine_matching_region(q_size, q_start[0], q_end[-1],
-                                               t_size, t_start[0], t_end[-1], t_strand)
+            if disable_stitching: # prevent locus assembly across multiple contigs
+                region = "full"
+            else:
+                region = determine_matching_region(q_size, q_start[0], q_end[-1],
+                                                   t_size, t_start[0], t_end[-1], t_strand)
             gapped = not bool(region == "full")
 
             # Ignore hits with not enough coverage of the reference, or partial hits immersed in

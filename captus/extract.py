@@ -341,6 +341,7 @@ def extract(full_command, args):
         log.log("")
 
         log.log(bold(f'{"OUTPUT OPTIONS":>{mar}}:'))
+        log.log(f'{"Disable contig stitching":>{mar}}: {bold(args.disable_stitching)}')
         max_paralogs_msg = dim("(Keep all paralogs)") if args.max_paralogs == -1 else ""
         log.log(f'{"Max. paralogs":>{mar}}: {bold(args.max_paralogs)} {max_paralogs_msg}')
         loci_files_msg = ""
@@ -381,6 +382,7 @@ def extract(full_command, args):
                         nuc_query_info,
                         "NUC",
                         args.nuc_transtable,
+                        args.disable_stitching,
                         args.max_loci_files,
                         args.max_loci_scipio_x2,
                         args.max_paralogs,
@@ -406,6 +408,7 @@ def extract(full_command, args):
                         ptd_query_info,
                         "PTD",
                         args.ptd_transtable,
+                        args.disable_stitching,
                         args.max_loci_files,
                         args.max_loci_scipio_x2,
                         args.max_paralogs,
@@ -431,6 +434,7 @@ def extract(full_command, args):
                         mit_query_info,
                         "MIT",
                         args.mit_transtable,
+                        args.disable_stitching,
                         args.max_loci_files,
                         args.max_loci_scipio_x2,
                         args.max_paralogs,
@@ -452,6 +456,7 @@ def extract(full_command, args):
                         dna_query,
                         dna_query_info,
                         "DNA",
+                        args.disable_stitching,
                         args.max_loci_files,
                         args.max_paralogs
                     ))
@@ -1246,7 +1251,8 @@ def reference_info(query_dict):
 def scipio_coding(
     scipio_path, min_score, min_identity, min_coverage, blat_path, overwrite, keep_all, target_path,
     sample_dir, sample_name, query_path, query_dict, query_parts_paths, query_info, marker_type,
-    transtable, max_loci_files, max_loci_scipio_x2, max_paralogs, predict, threads, debug
+    transtable, disable_stitching, max_loci_files, max_loci_scipio_x2, max_paralogs, predict,
+    threads, debug
 ):
     """
     Perform two consecutive rounds of Scipio, the first run with mostly default settings and with a
@@ -1286,8 +1292,8 @@ def scipio_coding(
         # Use the function run_scipio() that to run Scipio and also get the name of the YAML
         # output 'yaml_out_file'
         yaml_initial_file = run_scipio_parallel(scipio_params, target_path, query_path,
-                                                query_parts_paths, overwrite, threads,
-                                                debug, stage="initial")
+                                                query_parts_paths, disable_stitching,
+                                                overwrite, threads, debug, stage="initial")
         if yaml_initial_file is None:
             message = dim(
                 f"'{sample_name}': extraction of {genes[marker_type]}"
@@ -1316,14 +1322,14 @@ def scipio_coding(
 
         # Perform final Scipio's run (more exhaustive but with fewer contigs and reference proteins)
         yaml_final_file = run_scipio_parallel(scipio_params, final_target, final_query,
-                                              query_parts_paths, overwrite, threads,
-                                              debug, stage="final")
+                                              query_parts_paths, disable_stitching,
+                                              overwrite, threads, debug, stage="final")
 
     # Run a single Scipio run when 'num_refs' exceeds 'max_loci_scipio_x2'
     else:
         yaml_final_file = run_scipio_parallel(scipio_params, target_path, query_path,
-                                              query_parts_paths, overwrite, threads,
-                                              debug, stage="single")
+                                              query_parts_paths, disable_stitching,
+                                              overwrite, threads, debug, stage="single")
 
     if yaml_final_file is None:
         message = dim(
@@ -1361,7 +1367,8 @@ def scipio_coding(
 
 
 def run_scipio_parallel(
-    scipio_params: dict, target, query, query_part_paths, overwrite, threads, debug, stage
+    scipio_params: dict, target, query, query_part_paths, disable_stitching,
+    overwrite, threads, debug, stage
 ):
     # Set output directory and files according to 'sample_dir' and 'stage'
     marker_type = scipio_params["marker_type"]
@@ -1401,8 +1408,9 @@ def run_scipio_parallel(
         blat_only = True
         blat_psl = run_scipio_command(scipio_params["scipio_path"], blat_out_file,
                                       blat_only, scipio_min_score, scipio_params["min_identity"],
-                                      scipio_params["min_coverage"], scipio_params["blat_path"],
-                                      blat_score, scipio_params["transtable"], extra_settings,
+                                      scipio_params["min_coverage"], disable_stitching,
+                                      scipio_params["blat_path"], blat_score,
+                                      scipio_params["transtable"], extra_settings,
                                       target, query, scipio_out_file, scipio_log_file)
         if not blat_psl:
             return "BLAT FAILED"
@@ -1442,6 +1450,7 @@ def run_scipio_parallel(
                 scipio_min_score,
                 scipio_params["min_identity"],
                 scipio_params["min_coverage"],
+                disable_stitching,
                 scipio_params["blat_path"],
                 blat_score,
                 scipio_params["transtable"],
@@ -1505,9 +1514,9 @@ def filter_blat_psl(psl_path_in, seq_names_set, psl_out_path):
 
 
 def run_scipio_command(
-    scipio_path, blat_out_file, blat_only, scipio_min_score, min_identity, min_coverage, blat_path,
-    blat_score, transtable, extra_settings, target_path, query_path, scipio_out_file,
-    scipio_log_file
+    scipio_path, blat_out_file, blat_only, scipio_min_score, min_identity, min_coverage,
+    disable_stitching, blat_path, blat_score, transtable, extra_settings, target_path, query_path,
+    scipio_out_file, scipio_log_file
 ):
     # Build the basic part of the command
     basic = [
@@ -1527,6 +1536,8 @@ def run_scipio_command(
         f'--transtable={transtable}',
         f'--accepted_intron_penalty={settings.SCIPIO_ACCEPTED_INTRON_PENALTY}',
     ]
+    if disable_stitching:
+        basic += ["--single_target_hits"] # Scipio finds matches in a single contig only
 
     # Finish building the command and run Scipio
     if blat_only:
@@ -1849,7 +1860,7 @@ def write_fastas_and_report(
 
 def blat_misc_dna(
     blat_path, min_identity, min_coverage, overwrite, keep_all, target_path, sample_dir, sample_name,
-    query_path, query_dict, query_info, marker_type, max_loci_files, max_paralogs
+    query_path, query_dict, query_info, marker_type, disable_stitching, max_loci_files, max_paralogs
 ):
     """
     Extract matches of miscellaneous DNA sequences by comparing the assemblies to a set of
@@ -1887,7 +1898,8 @@ def blat_misc_dna(
             subprocess.run(blat_cmd, stdout=blat_log, stderr=blat_log)
 
         dna_hits = blat_misc_dna_psl_to_dict(blat_dna_out_file, dna_target, min_identity,
-                                             min_coverage, marker_type, max_paralogs)
+                                             min_coverage, marker_type, disable_stitching,
+                                             max_paralogs)
         if not dna_hits:
             message = red(f"'{sample_name}': FAILED extraction of miscellaneous DNA markers")
             return message
