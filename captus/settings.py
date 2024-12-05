@@ -129,11 +129,8 @@ QC_FILES = {
     "ADCO": "adaptor_content.tsv",
 }
 
-# Caculate the average read length of a FASTQ with this many reads
-NUM_READS_TO_CALCULATE_MEAN_READ_LENGTH = 100000
-
-# Caculate the maximum read length of a FASTQ with this many reads
-NUM_READS_TO_CALCULATE_MAX_READ_LENGTH = 100000
+# Caculate the min, max, average read length of a FASTQ with this many reads
+NUM_READS_TO_CALCULATE_STATS = 100000
 
 # Maximum difference between percetange of A and T or C and G in the last base of a read, if the
 # difference is larger thatn this value the last base of the reads is trimmed (Illumina sequencing
@@ -178,6 +175,13 @@ MEGAHIT_MIN_THREADS = 4
 # Minimum kmer size to attempt FASTA to FASTG conversion, usually kmer sizes in the 20s produce too
 # complex graphs that are hard to visualize
 MIN_KMER_SIZE_FOR_FASTG = 31
+
+# Name of depht of coverage file for MEGAHIT and Salmon
+CONTIGS_DEPTH = "contigs_depth.tsv"
+
+# Salmon output directories names:
+SALMON_INDEX_DIR = "00_salmon_index"
+SALMON_QUANT_DIR = "01_salmon_quant"
 
 # Minimum RAM reserved a BLAT/Scipio instances in bytes (2GB)
 EXTRACTION_MIN_RAM_B = 2 * 1024 ** 3

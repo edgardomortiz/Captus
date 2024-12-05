@@ -456,6 +456,31 @@ class CaptusAssembly(object):
                  " that limit. 100.0 disables the GC filter"
         )
         megahit_group.add_argument(
+            "--disable_mapping",
+            action="store_true",
+            dest="disable_mapping",
+            help="Disable mapping the reads back to the contigs using Salmon for accurate depth"
+                 " estimation. If disabled, the approximate depth estimation given by MEGAHIT will"
+                 " be used instead"
+        )
+        megahit_group.add_argument(
+            "--min_contig_depth",
+            action="store",
+            default="auto",
+            type=str,
+            dest="min_contig_depth",
+            help="Minimum contig depth of coverage in output assembly; 'auto' will retain contigs"
+                 " with depth of coverage greater than 1.0x when '--disable_mapping' is chosen,"
+                 " otherwise it will retain only contigs of at least 1.5x. Accepted values are"
+                 " decimals greater or equal to 0. Use 0 to disable the filter"
+        )
+        megahit_group.add_argument(
+            "--redo_filtering",
+            action="store_true",
+            dest="redo_filtering",
+            help="Enable if you wish"
+        )
+        megahit_group.add_argument(
             "--tmp_dir",
             action="store",
             default="$HOME",
@@ -463,7 +488,7 @@ class CaptusAssembly(object):
             dest="tmp_dir",
             help="Location to create the temporary directory 'captus_assembly_tmp' for MEGAHIT"
                  " assembly. Sometimes, when working on external hard drives MEGAHIT will refuse to"
-                 " run unless this directory is created in an internal hard drive."
+                 " run unless this directory is created in an internal hard drive"
         )
 
         other_group = parser.add_argument_group("Other")
@@ -490,6 +515,14 @@ class CaptusAssembly(object):
             type=str,
             dest="megahit_toolkit_path",
             help="Path to MEGAHIT's toolkit"
+        )
+        other_group.add_argument(
+            "--salmon_path",
+            action="store",
+            default="salmon",
+            type=str,
+            dest="salmon_path",
+            help="Path to Salmon"
         )
         other_group.add_argument(
             "--ram",

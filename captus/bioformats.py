@@ -255,7 +255,7 @@ PAM250 = score_matrix_to_dict([
 ])
 
 
-def get_mean_read_length(fastq_path, num_reads):
+def get_read_stats(fastq_path, num_reads):
     """
     Determine mean read length to adjust MEGAHIT's '--k-list' and '--min-contig-len' accordingly
     """
@@ -276,7 +276,13 @@ def get_mean_read_length(fastq_path, num_reads):
     except gzip.BadGzipFile:
         return False
 
-    return math.ceil(statistics.mean(read_lengths))
+    read_stats = {
+        "min_read_length": min(read_lengths),
+        "max_read_length": max(read_lengths),
+        "mean_read_length": math.ceil(statistics.mean(read_lengths)),
+    }
+
+    return read_stats
 
 
 def genetic_code(genetic_code_id):

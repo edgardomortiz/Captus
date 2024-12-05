@@ -97,26 +97,37 @@ Minimum contig length in bp in output assembly.
 
 This argument is optional, the default is **auto** (= mean read length + smallest kmer in `k_list`)
 ___
-### **`--max_contig_gc`**
-Maximum GC percentage allowed per contig. Useful to filter contamination. For example, bacteria usually exceed 60% GC content while eukaryotes rarely exceed that limit. 100.0 disables the GC filter.
-
-This argument is optional, the default is **100.0** (filter disabled)
-___
 ### **`--tmp_dir`**
 MEGAHIT needs a temporary directory in an internal hard drive, otherwise it refuses to run.
 
 This argument is optional, the default is **$HOME**
 ___
+### **`--max_contig_gc`**
+Maximum GC percentage allowed per contig. Useful to filter contamination. For example, bacteria usually exceed 60% GC content while eukaryotes rarely exceed that limit. 100.0 disables the GC filter.
+
+This argument is optional, the default is **100.0** (filter disabled)
+---
+### **'--disable_mapping'**
+Disable mapping the reads back to the contigs using Salmon for accurate depth estimation. If disabled, the approximate depth estimation given by MEGAHIT will be used instead"
+---
+### **'--min_contig_depth'**
+Minimum contig depth of coverage in output assembly; 'auto' will retain contigs with depth of coverage greater than 1.0x when '--disable_mapping' is chosen, otherwise it will retain only contigs of at least 1.5x. Accepted values are decimals greater or equal to 0. Use 0 to disable the filter."
+
+This argument is optional, the default is **auto** (>=1.5x, or >1.0x when using `--disable_mapping`)
+---
+### **'--redo_filtering'**
+Enable if you want to try different values for `--max_contig_gc` or `--min_contig_depth`. Only the filtering step will be repeated
+___
 ## *Other*
 ___
-### **`--reformat_path`**, **`--megahit_path`**, **`--megahit_toolkit_path`**
-If you have installed your own copies of `reformat.sh` (from `BBTools`) or `MEGAHIT` (and its `megahit_toolkit`) you can provide the full path to those copies.
+### **`--reformat_path`**, **`--megahit_path`**, **`--megahit_toolkit_path`**, **`--salmon_path`**
+If you have installed your own copies of `reformat.sh` (from `BBTools`) or `MEGAHIT` (and its `megahit_toolkit`) or `Salmon` you can provide the full path to those copies.
 
-These arguments are optional, the defaults are **reformat.sh**, **megahit**, and **megahit_toolkit** respectively.
+These arguments are optional, the defaults are **reformat.sh**, **megahit**, **megahit_toolkit**, and **salmon** respectively.
 ___
 ### **`--ram`**, **`--threads`**, **`--concurrent`**, **`--debug`**, **`--show_less`**
 See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (30.05.2022)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (05.12.2024)

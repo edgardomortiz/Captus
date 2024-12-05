@@ -563,6 +563,16 @@ def megahit_tk_path_version(megahit_toolkit_path):
     return found_megahit_tk_path, version, "OK"
 
 
+def salmon_path_version(salmon_path):
+    found_salmon_path = shutil.which(salmon_path)
+    if found_salmon_path is None:
+        return salmon_path, "", "not found"
+    command = [found_salmon_path, "--version"]
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    version = process.communicate()[0].decode().strip("\n").split()[-1]
+    return found_salmon_path, version, "OK"
+
+
 def scipio_path_version(scipio_path):
     if scipio_path == "bundled":
         return "Scipio", "1.4.1", "OK"

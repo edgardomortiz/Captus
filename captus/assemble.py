@@ -20,11 +20,12 @@ import time
 from pathlib import Path
 
 from . import log, settings
-from .bioformats import dict_to_fasta, fasta_headers_to_spades, fasta_to_dict, get_mean_read_length
+from .bioformats import dict_to_fasta, fasta_headers_to_spades, fasta_to_dict, get_read_stats
 from .misc import (bbtools_path_version, bold, dim, elapsed_time, find_and_match_fastqs,
                    format_dep_msg, make_output_dir, make_tmp_dir_within, megahit_path_version,
-                   megahit_tk_path_version, python_library_check, quit_with_error, red, set_ram,
-                   set_threads, successful_exit, tqdm_parallel_async_run, tqdm_serial_run)
+                   megahit_tk_path_version, python_library_check, quit_with_error, red,
+                   salmon_path_version, set_ram, set_threads, successful_exit,
+                   tqdm_parallel_async_run, tqdm_serial_run)
 from .version import __version__
 
 
@@ -67,7 +68,7 @@ def assemble(full_command, args):
         skip_subsampling = False
         _, reformat_version, reformat_status = bbtools_path_version(args.reformat_path)
         intro_msg += (
-            f"MEGAHIT de novo assemblies will start after subsampling {args.sample_reads_target}"
+            f" MEGAHIT de novo assemblies will start after subsampling {args.sample_reads_target}"
             " read pairs (or single-end reads)."
         )
     else:
@@ -94,6 +95,11 @@ def assemble(full_command, args):
     _, megahit_tk_version, megahit_tk_status = megahit_tk_path_version(args.megahit_toolkit_path)
     log.log(format_dep_msg(f'{"megahit_toolkit":>{mar}}: ', megahit_tk_version, megahit_tk_status))
     log.log(format_dep_msg(f'{"BBTools":>{mar}}: ', reformat_version, reformat_status))
+    if args.disable_mapping:
+        salmon_version, salmon_status = "", "not used"
+    else:
+        _, salmon_version, salmon_status = salmon_path_version(args.salmon_path)
+    log.log(format_dep_msg(f'{"Salmon":>{mar}}: ', salmon_version, salmon_status))
     log.log("")
 
     log.log(f'{"Python libraries":>{mar}}:')
@@ -109,17 +115,24 @@ def assemble(full_command, args):
     log.log(f'{"":>{mar}}  {dim(out_dir_msg)}')
     log.log("")
 
-    if megahit_status == "not found":
-        quit_with_error(
-            "MEGAHIT could not be found, please verify you have it installed or provide the full"
-            " path to the progam with '--megahit_path'"
-        )
     if reformat_status == "not found":
         skip_subsampling = True
         log.log(
             f"{bold('WARNING:')} reformat.sh from BBTools could not be found, the reads will not be"
             " subsampled. Please verify you have it installed or provide the full path to the"
             " program with '--reformat_path'"
+        )
+    if megahit_status == "not found":
+        quit_with_error(
+            "MEGAHIT could not be found, please verify you have it installed or provide the full"
+            " path to the progam with '--megahit_path'"
+        )
+    if salmon_status == "not found":
+        args.disable_mapping = True
+        log.log(
+            f"{bold('WARNING:')} Salmon could not be found, the reads will not be mapped back to the"
+            " contigs for accurate depth of coverage estimation. Please verify you have it installed"
+            " or provide the full path to the program with '--salmon_path'"
         )
 
 
@@ -232,11 +245,25 @@ def assemble(full_command, args):
     log.log(f'{"prune_level":>{mar}}: {bold(args.prune_level)}')
     log.log(f'{"merge_level":>{mar}}: {bold(args.merge_level)}')
     log.log(f'{"min_contig_len":>{mar}}: {bold(args.min_contig_len)}')
-    log.log(f'{"max_contig_gc":>{mar}}: {bold(args.max_contig_gc)}%')
     extra_options = settings.MEGAHIT_PRESETS[args.preset]["extra_options"]
     log.log(f'{"extra_options":>{mar}}: {bold(extra_options)}')
     tmp_dir = make_tmp_dir_within(args.tmp_dir, "captus_megahit_tmp")
     log.log(f'{"tmp_dir":>{mar}}: {bold(tmp_dir)}')
+    log.log(f'{"max_contig_gc":>{mar}}: {bold(args.max_contig_gc)}%')
+    log.log(f'{"disable_mapping":>{mar}}: {bold(args.disable_mapping)}')
+    if args.min_contig_depth == "auto":
+        msg_min_contig_depth = "1.0x (auto)" if args.disable_mapping is True else "1.5 (auto)"
+    else:
+        try:
+            msg_min_contig_depth = f'{float(args.min_contig_depth)}x'
+        except ValueError:
+            quit_with_error(
+                f"'--min_contig_depth should be a decimal, you provided '{args.min_contig_depth}'"
+            )
+    log.log(f'{"min_contig_depth":>{mar}}: {bold(msg_min_contig_depth)}')
+    salmon_ran = bool(list(Path(out_dir).resolve().rglob("quant.sf")))
+    if args.disable_mapping is False and salmon_ran is False: args.redo_filtering = True
+    log.log(f'{"redo_filtering":>{mar}}: {bold(args.redo_filtering)}')
     log.log("")
     log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
     log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
@@ -254,14 +281,25 @@ def assemble(full_command, args):
 
     megahit_params = []
     for fastq_r1 in sorted(fastqs_to_assemble):
-        fastq_r2 = fastqs_to_assemble[fastq_r1]["fastq_r2"]
-        fastq_dir = fastqs_to_assemble[fastq_r1]["fastq_dir"]
+        sample_name = "_R1".join(fastq_r1.split("_R1")[:-1])
+        if "_R1." in fastq_r1:
+            sample_name = "_R1.".join(fastq_r1.split("_R1.")[:-1])
+        elif "_R1_" in fastq_r1:
+            sample_name = "_R1_".join(fastq_r1.split("_R1_")[:-1])
+        fastqs_to_assemble[fastq_r1]["sample_name"] = sample_name
+        read_stats = get_read_stats(Path(fastqs_to_assemble[fastq_r1]["fastq_dir"], fastq_r1),
+                                    settings.NUM_READS_TO_CALCULATE_STATS)
+        fastqs_to_assemble[fastq_r1]["min_read_length"] = read_stats["min_read_length"]
+        fastqs_to_assemble[fastq_r1]["max_read_length"] = read_stats["max_read_length"]
+        fastqs_to_assemble[fastq_r1]["mean_read_length"] = read_stats["mean_read_length"]
         megahit_params.append((
             args.megahit_path,
             args.megahit_toolkit_path,
-            fastq_dir,
+            fastqs_to_assemble[fastq_r1]["fastq_dir"],
             fastq_r1,
-            fastq_r2,
+            fastqs_to_assemble[fastq_r1]["fastq_r2"],
+            sample_name,
+            read_stats["mean_read_length"],
             args.k_list,
             args.min_count,
             args.prune_level,
@@ -270,7 +308,6 @@ def assemble(full_command, args):
             threads_per_assembly,
             out_dir,
             args.min_contig_len,
-            args.max_contig_gc,
             extra_options,
             tmp_dir,
             args.keep_all,
@@ -289,28 +326,80 @@ def assemble(full_command, args):
                                 "sample", concurrent, args.show_less)
     log.log("")
 
-    asm_stats_tsv = collect_asm_stats(out_dir)
+    if args.disable_mapping is False:
+        salmon_params = []
+        for fastq_r1 in sorted(fastqs_to_assemble):
+            salmon_params.append((
+                args.salmon_path,
+                fastqs_to_assemble[fastq_r1]["fastq_dir"],
+                fastq_r1,
+                fastqs_to_assemble[fastq_r1]["fastq_r2"],
+                fastqs_to_assemble[fastq_r1]["sample_name"],
+                args.k_list,
+                fastqs_to_assemble[fastq_r1]["max_read_length"],
+                threads_max,
+                out_dir,
+                args.keep_all,
+                args.overwrite
+            ))
+
+        tqdm_serial_run(salmon, salmon_params,
+                        "Depth of coverage estimation with Salmon",
+                        "Depth of coverage estimation completed",
+                        "sample", args.show_less)
+        log.log("")
+
+    filter_assembly_params = []
+    for fastq_r1 in sorted(fastqs_to_assemble):
+        filter_assembly_params.append((
+            fastqs_to_assemble[fastq_r1]["sample_name"],
+            args.max_contig_gc,
+            args.disable_mapping,
+            args.min_contig_depth,
+            args.redo_filtering,
+            out_dir,
+            args.overwrite
+        ))
+    symbol = "<"
+    if args.disable_mapping is True and args.min_contig_depth == "auto": symbol = "<="
+    filtering_msg = (f'Filtering contigs >{args.max_contig_gc}% GC and'
+                     f' {symbol}{msg_min_contig_depth} depth')
+    if args.debug:
+        tqdm_serial_run(filter_assembly, filter_assembly_params,
+                        filtering_msg,
+                        "Filtering completed",
+                        "sample", args.show_less)
+    else:
+        tqdm_parallel_async_run(filter_assembly, filter_assembly_params,
+                                filtering_msg,
+                                "Filtering completed",
+                                "sample", concurrent, args.show_less)
+    log.log("")
+
+    asm_stats_tsv, dep_stats_tsv, len_stats_tsv = collect_asm_stats(out_dir)
     if asm_stats_tsv:
         log.log(f'{"Assembly statistics":>{mar}}: {bold(asm_stats_tsv)}')
+        log.log(f'{"Depth statistics":>{mar}}: {bold(dep_stats_tsv)}')
+        log.log(f'{"Length statistics":>{mar}}: {bold(len_stats_tsv)}')
         log.log("")
-        if all([numpy_found, pandas_found, plotly_found]):
+        # if all([numpy_found, pandas_found, plotly_found]):
 
-            from .report import build_assembly_report
+        #     from .report import build_assembly_report
 
-            log.log_explanation(
-                "Generating Assembly report..."
-            )
-            asm_html_report, asm_html_msg = build_assembly_report(out_dir, asm_stats_tsv)
-            log.log(f'{"Assembly report":>{mar}}: {bold(asm_html_report)}')
-            log.log(f'{"":>{mar}}  {dim(asm_html_msg)}')
-            log.log("")
-        else:
-            log.log(
-                f"{bold('WARNING:')} Captus uses 'numpy', 'pandas', and 'plotly' to generate  an HTML"
-                " report based on the assembly statistics. At least one of these libraries could not be"
-                " found, please verify these libraries are installed and available."
-            )
-            log.log("")
+        #     log.log_explanation(
+        #         "Generating Assembly report..."
+        #     )
+        #     asm_html_report, asm_html_msg = build_assembly_report(out_dir, asm_stats_tsv)
+        #     log.log(f'{"Assembly report":>{mar}}: {bold(asm_html_report)}')
+        #     log.log(f'{"":>{mar}}  {dim(asm_html_msg)}')
+        #     log.log("")
+        # else:
+        #     log.log(
+        #         f"{bold('WARNING:')} Captus uses 'numpy', 'pandas', and 'plotly' to generate  an HTML"
+        #         " report based on the assembly statistics. At least one of these libraries could not be"
+        #         " found, please verify these libraries are installed and available."
+        #     )
+        #     log.log("")
     else:
         log.log(red("Skipping summarization step... (no assembly statistics files were produced)"))
         log.log("")
@@ -356,7 +445,7 @@ def subsample_reads(
         f"samplereadstarget={sample_reads_target}",
         f"ziplevel={settings.REFORMAT_ZIPLEVEL}"
     ]
-    reformat_log_file = Path(sample_subsampled_out_dir, f"{sample_name}.subsampling.log")
+    reformat_log_file = Path(sample_subsampled_out_dir, f"{sample_name}_subsampling.log")
     if overwrite is True or not reformat_log_file.exists():
         reformat_cmd += ["overwrite=t"]
         with open(reformat_log_file, "w") as reformat_log:
@@ -386,7 +475,7 @@ def find_and_match_subsampled_fastqs(fastqs_to_subsample, out_dir):
                 "fastq_dir": f"{sample_subsampled_out_dir}",
                 "fastq_r2": None
             }
-        if Path(sample_subsampled_out_dir, fastq_r2).exists():
+        if fastq_r2 is not None and Path(sample_subsampled_out_dir, fastq_r2).exists():
             fastqs_to_assemble[fastq_r1]["fastq_r2"] = fastq_r2
 
     return fastqs_to_assemble
@@ -435,19 +524,14 @@ def adjust_megahit_concurrency(concurrent, threads_max, ram_B, num_samples, pres
 
 
 def megahit(
-    megahit_path, megahit_toolkit_path, fastq_dir, fastq_r1, fastq_r2, k_list, min_count,
-    prune_level, merge_level, ram_B, threads, out_dir, min_contig_len, max_contig_gc, extra_options,
-    tmp_dir, keep_all, overwrite
+    megahit_path, megahit_toolkit_path, fastq_dir, fastq_r1, fastq_r2, sample_name, mean_read_length,
+    k_list, min_count, prune_level, merge_level, ram_B, threads, out_dir, min_contig_len,
+    extra_options, tmp_dir, keep_all, overwrite
 ):
     """
     De novo assembly with MEGAHIT >= v1.2.9
     """
     start = time.time()
-    sample_name = "_R1".join(fastq_r1.split("_R1")[:-1])
-    if "_R1." in fastq_r1:
-        sample_name = "_R1.".join(fastq_r1.split("_R1.")[:-1])
-    elif "_R1_" in fastq_r1:
-        sample_name = "_R1_".join(fastq_r1.split("_R1_")[:-1])
     sample_out_dir, _ = make_output_dir(Path(out_dir, f"{sample_name}__captus-asm"))
 
     # MEGAHIT won't run if 'out_dir' already exists, it needs to create it by itself, we can only
@@ -456,8 +540,6 @@ def megahit(
     if overwrite is True or not sample_megahit_out_dir.exists():
         if sample_megahit_out_dir.exists():
             shutil.rmtree(sample_megahit_out_dir, ignore_errors=True)
-        mean_read_length = get_mean_read_length(Path(fastq_dir, fastq_r1),
-                                                settings.NUM_READS_TO_CALCULATE_MEAN_READ_LENGTH)
         if mean_read_length is False:
             message = red(f"'{sample_name}': SKIPPED (FASTQ files have .gz"
                            " extension but are not compressed, please verify)")
@@ -466,15 +548,15 @@ def megahit(
                                                 settings.DELTA_MEAN_READ_LENGTH_TO_MAX_KMER_SIZE)
         adjusted_min_contig_len = adjust_megahit_min_contig_len(min_contig_len, mean_read_length,
                                                                 adjusted_k_list)
-        megahit_command = [megahit_path]
+        megahit_cmd = [megahit_path]
         if fastq_r2:
-            megahit_command += [
+            megahit_cmd += [
                 "-1", f"{Path(fastq_dir, fastq_r1)}",
                 "-2", f"{Path(fastq_dir, fastq_r2)}"
             ]
         else:
-            megahit_command += ["--read", f"{Path(fastq_dir, fastq_r1)}"]
-        megahit_command += [
+            megahit_cmd += ["--read", f"{Path(fastq_dir, fastq_r1)}"]
+        megahit_cmd += [
             "--min-count", f"{min_count}",
             "--k-list", adjusted_k_list,
             "--merge-level", merge_level,
@@ -486,17 +568,16 @@ def megahit(
             "--tmp-dir", f"{tmp_dir}",
         ]
         if extra_options:
-            megahit_command += [extra_options]
-        megahit_log_file = Path(sample_out_dir, "megahit.brief.log")
+            megahit_cmd += [extra_options]
+        megahit_log_file = Path(sample_out_dir, "megahit_brief.log")
         with open(megahit_log_file, "w") as megahit_log:
-            megahit_log.write(f"Captus' MEGAHIT Command:\n  {' '.join(megahit_command)}\n\n\n")
+            megahit_log.write(f"Captus' MEGAHIT Command:\n  {' '.join(megahit_cmd)}\n\n\n")
         with open(megahit_log_file, "a") as megahit_log:
-            subprocess.run(megahit_command, stdout=megahit_log, stderr=megahit_log)
+            subprocess.run(megahit_cmd, stdout=megahit_log, stderr=megahit_log)
         cleanup_megahit_out_dir(sample_megahit_out_dir, megahit_log_file,
                                 megahit_toolkit_path, keep_all)
-        filter_assembly_by_gc(sample_megahit_out_dir, max_contig_gc)
-        asm_stats = get_asm_stats(sample_megahit_out_dir)
-        message = f"'{sample_name}': {asm_stats} [{elapsed_time(time.time() - start)}]"
+        write_depth_coverage_tsv(sample_megahit_out_dir, "megahit")
+        message = f"'{sample_name}': assembled [{elapsed_time(time.time() - start)}]"
     else:
         message = dim(f"'{sample_name}': SKIPPED (output files already exist)")
 
@@ -529,26 +610,9 @@ def cleanup_megahit_out_dir(sample_megahit_out_dir, megahit_log_file, megahit_to
     'intermediate_contigs' directory
     """
     # Move/rename logs into place
-    megahit_log_file.replace(Path(sample_megahit_out_dir, "megahit.brief.log"))
-    Path(sample_megahit_out_dir, "log").replace(Path(sample_megahit_out_dir, "megahit.full.log"))
+    megahit_log_file.replace(Path(sample_megahit_out_dir, "megahit_brief.log"))
+    Path(sample_megahit_out_dir, "log").replace(Path(sample_megahit_out_dir, "megahit_full.log"))
     intermediate_contigs_dir = Path(sample_megahit_out_dir, "intermediate_contigs")
-
-    # Now that assembly has been optimized, the intermedite contigs don't need to be saved or
-    # processed further
-
-    # Generate 'fastg' asembly graphs for 'intermediate_contigs' and reformat FASTA headers
-    # intermediate_contigs_graphs_dir = Path(sample_megahit_out_dir, "01_intermediate_contigs_graphs")
-    # intermediate_contigs_graphs_dir.mkdir(parents=True)
-    # fastas_to_process = list(intermediate_contigs_dir.glob("*[!final].contigs.fa"))
-    # for fasta_path in fastas_to_process:
-    #     if megahit_toolkit_path:
-    #         megahit_contig2fastg(megahit_toolkit_path,
-    #                              fasta_path,
-    #                              Path(intermediate_contigs_graphs_dir, f"{fasta_path.stem}.fastg"))
-    #     fasta_reheaded, _ = fasta_headers_to_spades(fasta_to_dict(fasta_path))
-    #     dict_to_fasta(fasta_reheaded,
-    #                   Path(intermediate_contigs_graphs_dir, fasta_path.name),
-    #                   wrap=80)
 
     # Generate 'fastg' assembly graph for 'final.contigs.fa' and reformat FASTA headers
     if megahit_toolkit_path:
@@ -567,169 +631,539 @@ def cleanup_megahit_out_dir(sample_megahit_out_dir, megahit_log_file, megahit_to
         Path(sample_megahit_out_dir, "done").unlink()
         Path(sample_megahit_out_dir, "options.json").unlink()
 
-
-def filter_assembly_by_gc(sample_megahit_out_dir, max_contig_gc):
-    if max_contig_gc >= 100 or max_contig_gc <= 0:
-        return
-    assembly_path = Path(sample_megahit_out_dir, "assembly.fasta")
-    unfiltered = fasta_to_dict(assembly_path)
-    accepted = {}
-    rejected = {}
-    for seq_name in unfiltered:
-        seq = unfiltered[seq_name]["sequence"].upper().replace("-", "").replace("N", "")
-        gc = round(seq.replace("C", "G").count("G") / len(seq) * 100, 5)
-        if gc > max_contig_gc:
-            rejected[seq_name] = unfiltered[seq_name]
-        else:
-            accepted[seq_name] = unfiltered[seq_name]
-    dict_to_fasta(accepted, assembly_path, wrap=80)
-    dict_to_fasta(rejected, Path(sample_megahit_out_dir, "filtered_contigs.fasta"), wrap=80)
     return
 
 
-def get_asm_stats(sample_megahit_out_dir):
-    asm = fasta_to_dict(Path(sample_megahit_out_dir, "assembly.fasta"))
+def salmon(
+    salmon_path, fastq_dir, fastq_r1, fastq_r2, sample_name, k_list, max_read_length, threads,
+    out_dir, keep_all, overwrite
+):
+    start = time.time()
+    sample_megahit_out_dir = Path(out_dir, f"{sample_name}__captus-asm", "01_assembly")
+    assembly_fasta = Path(sample_megahit_out_dir, "assembly.fasta")
+    removed_fasta = Path(sample_megahit_out_dir, "removed_contigs.fasta")
+    sample_index_dir = Path(sample_megahit_out_dir, settings.SALMON_INDEX_DIR)
+    sample_quant_dir = Path(sample_megahit_out_dir, settings.SALMON_QUANT_DIR)
+    k_min = k_list.split(",")[0]
 
-    sample = Path(sample_megahit_out_dir).parts[-2].replace("__captus-asm", "")
+    if overwrite is True or not sample_quant_dir.exists():
+        if removed_fasta.is_file():
+            assembly = fasta_to_dict(assembly_fasta)
+            removed = fasta_to_dict(removed_fasta)
+            for seq_name in removed:
+                assembly[seq_name] = removed[seq_name]
+            dict_to_fasta(assembly, assembly_fasta, wrap=80)
+            removed_fasta.unlink()
+        if sample_index_dir.exists():
+            shutil.rmtree(sample_index_dir, ignore_errors=True)
+        if sample_quant_dir.exists():
+            shutil.rmtree(sample_quant_dir, ignore_errors=True)
+        salmon_index_cmd = [
+            salmon_path, "index",
+            "--transcripts", f'{assembly_fasta}',
+            "--index", f'{sample_index_dir}',
+            "--kmerLen", f'{k_min}',
+        ]
+        salmon_quant_cmd = [
+            salmon_path, "quant",
+            "--index", f'{sample_index_dir}',
+            "--output", f'{sample_quant_dir}',
+            "--validateMappings",
+            "--allowDovetail",
+            "--recoverOrphans",
+            "--threads", f'{threads}',
+        ]
+        if fastq_r2 is None:
+            salmon_quant_cmd += [
+                "--libType", "SF",
+                "--unmatedReads", f'{Path(fastq_dir, fastq_r1)}'
+            ]
+        else:
+            max_read_length *= 2
+            salmon_quant_cmd += [
+                "--libType", "IU",
+                "--mates1", f'{Path(fastq_dir, fastq_r1)}',
+                "--mates2", f'{Path(fastq_dir, fastq_r2)}',
+            ]
+        salmon_log_file = Path(sample_megahit_out_dir, "salmon.log")
+        with open(salmon_log_file, "w") as salmon_log:
+            salmon_log.write(f"Captus' Salmon Index Command:\n  {' '.join(salmon_index_cmd)}\n\n\n")
+        with open(salmon_log_file, "a") as salmon_log:
+            subprocess.run(salmon_index_cmd, stdout=salmon_log, stderr=salmon_log)
+        with open(salmon_log_file, "a") as salmon_log:
+            salmon_log.write(f"\n\n\nCaptus' Salmon Quant Command:\n  {' '.join(salmon_quant_cmd)}\n\n\n")
+        with open(salmon_log_file, "a") as salmon_log:
+            subprocess.run(salmon_quant_cmd, stdout=salmon_log, stderr=salmon_log)
+        cleanup_salmon_out_dirs(sample_index_dir, sample_quant_dir, keep_all)
+        write_depth_coverage_tsv(sample_megahit_out_dir, "salmon", max_read_length)
+        message = f"'{sample_name}': depth of coverage estimated [{elapsed_time(time.time() - start)}]"
+    else:
+        message = dim(f"'{sample_name}': SKIPPED (output files already exist)")
 
-    lengths = []
-    depths = []
-    gc_count = 0
-    for seq in asm:
-        lengths.append(len(asm[seq]["sequence"]))
-        gc_count += asm[seq]["sequence"].count("G")
-        gc_count += asm[seq]["sequence"].count("C")
-        depths.append(float(seq.split("_cov_")[1].split("_")[0]))
+    return message
 
-    n_least_0bp = len(lengths)
-    n_least_1kbp = round(len(list(filter(lambda L: L >= 1000, lengths))) / n_least_0bp * 100, 3)
-    n_least_2kbp = round(len(list(filter(lambda L: L >= 2000, lengths))) / n_least_0bp * 100, 3)
-    n_least_5kbp = round(len(list(filter(lambda L: L >= 5000, lengths))) / n_least_0bp * 100, 3)
-    n_least_10kbp = round(len(list(filter(lambda L: L >= 10000, lengths))) / n_least_0bp * 100, 3)
 
-    longest = max(lengths)
-    shortest = min(lengths)
-    s_least_0bp = sum(lengths)
-    s_least_1kbp = round(sum(list(filter(lambda L: L >= 1000, lengths))) / s_least_0bp * 100, 3)
-    s_least_2kbp = round(sum(list(filter(lambda L: L >= 2000, lengths))) / s_least_0bp * 100, 3)
-    s_least_5kbp = round(sum(list(filter(lambda L: L >= 5000, lengths))) / s_least_0bp * 100, 3)
-    s_least_10kbp = round(sum(list(filter(lambda L: L >= 10000, lengths))) / s_least_0bp * 100, 3)
-    avg_length = math.ceil(statistics.mean(lengths))
-    median_length = math.ceil(statistics.median(lengths))
-    asm_half, size, n50 = s_least_0bp / 2, 0, 0
-    for L in sorted(lengths, reverse=True):
-        size += L
-        if size >= asm_half:
-            n50 = L
-            break
+def cleanup_salmon_out_dirs(sample_index_dir, sample_quant_dir, keep_all):
+    """
+    Remove Salmon index and other Salmon quant unnecessary files
+    """
+    if not keep_all:
+        shutil.rmtree(sample_index_dir, ignore_errors=True)
+        shutil.rmtree(Path(sample_quant_dir, "aux_info"), ignore_errors=True)
+        shutil.rmtree(Path(sample_quant_dir, "libParams"), ignore_errors=True)
+        shutil.rmtree(Path(sample_quant_dir, "logs"), ignore_errors=True)
+        Path(sample_quant_dir, "cmd_info.json").unlink()
+        Path(sample_quant_dir, "lib_format_counts.json").unlink()
+    return
 
-    gc = round(gc_count / s_least_0bp * 100, 3)
 
-    avg_depth = round(statistics.mean(depths), 2)
-    d_least_1x = round(len(list(filter(lambda d: d >= 1, depths))) / n_least_0bp * 100, 3)
-    d_least_2x = round(len(list(filter(lambda d: d >= 2, depths))) / n_least_0bp * 100, 3)
-    d_least_5x = round(len(list(filter(lambda d: d >= 5, depths))) / n_least_0bp * 100, 3)
-    d_least_10x = round(len(list(filter(lambda d: d >= 10, depths))) / n_least_0bp * 100, 3)
+def write_depth_coverage_tsv(sample_megahit_out_dir, depth_estimator, max_read_length=150):
 
-    filt_fasta = Path(sample_megahit_out_dir, "filtered_contigs.fasta")
-    filt_n_contigs, filt_total_length, filt_avg_length, filt_gc_content = 0, 0, 0, 0
-    if filt_fasta.exists():
-        filt_asm = fasta_to_dict(Path(sample_megahit_out_dir, "filtered_contigs.fasta"))
-        filt_lengths = []
-        filt_gc_count = 0
-        for seq in filt_asm:
-            filt_lengths.append(len(filt_asm[seq]["sequence"]))
-            filt_gc_count += filt_asm[seq]["sequence"].count("G")
-            filt_gc_count += filt_asm[seq]["sequence"].count("C")
-        filt_n_contigs = len(filt_lengths)
-        filt_total_length = sum(filt_lengths)
-        filt_avg_length = math.ceil(statistics.mean(filt_lengths))
-        filt_gc_content = round(filt_gc_count / filt_total_length * 100, 3)
+    fasta_asm_file = Path(sample_megahit_out_dir, "assembly.fasta")
+    fasta_asm = fasta_to_dict(fasta_asm_file)
 
-    stats_tsv = [
-        "sample", sample,
-        "n_contigs", n_least_0bp,
-        "pct_contigs_>=_1kbp", n_least_1kbp,
-        "pct_contigs_>=_2kbp", n_least_2kbp,
-        "pct_contigs_>=_5kbp", n_least_5kbp,
-        "pct_contigs_>=_10kbp", n_least_10kbp,
-        "longest_contig", longest,
-        "shortest_contig", shortest,
-        "total_length", s_least_0bp,
-        "pct_length_>=_1kbp", s_least_1kbp,
-        "pct_length_>=_2kbp", s_least_2kbp,
-        "pct_length_>=_5kbp", s_least_5kbp,
-        "pct_length_>=_10kbp", s_least_10kbp,
-        "avg_length", avg_length,
-        "median_length", median_length,
-        "N50", n50,
-        "GC_content",gc,
-        "avg_depth", avg_depth,
-        "pct_contigs_>=_1x", d_least_1x,
-        "pct_contigs_>=_2x", d_least_2x,
-        "pct_contigs_>=_5x", d_least_5x,
-        "pct_contigs_>=_10x", d_least_10x,
-        "filtered_n_contigs", filt_n_contigs,
-        "filtered_total_length", filt_total_length,
-        "filtered_avg_length", filt_avg_length,
-        "filtered_gc_content", filt_gc_content,
+    tsv_header = [
+        "megahit_contig_name",
+        "megahit_depth",
+        "length",
+        "salmon_contig_name",
+        "salmon_num_reads",
+        "salmon_depth"
     ]
+    if depth_estimator == "megahit":
+        with open(Path(sample_megahit_out_dir, settings.CONTIGS_DEPTH), "w") as tsv_out:
+            tsv_out.write(f'{"\t".join(tsv_header)}\n')
+            for ctg_name in fasta_asm:
+                name_parts = ctg_name.split("_")
+                tsv_record = [
+                    ctg_name,
+                    f'{float(name_parts[5])}',
+                    f'{int(name_parts[3])}',
+                    "NA",
+                    "NA",
+                    "NA",
+                ]
+                tsv_out.write(f'{"\t".join(tsv_record)}\n')
+    elif depth_estimator == "salmon":
+        reheaded_fasta_asm = {}
+        salmon_quant_file = Path(sample_megahit_out_dir, settings.SALMON_QUANT_DIR, "quant.sf")
+        with open(Path(sample_megahit_out_dir, settings.CONTIGS_DEPTH), "w") as tsv_out:
+            tsv_out.write(f'{"\t".join(tsv_header)}\n')
+            with open(salmon_quant_file, "r") as quant:
+                for line in quant:
+                    if not line.startswith("Name"):
+                        record = line.strip().split()
+                        name_parts = record[0].split("_")
+                        salmon_num_reads = float(record[4])
+                        length = int(record[1])
+                        salmon_depth = round((salmon_num_reads * max_read_length / length), 4)
+                        salmon_contig_name = (f'{"_".join(name_parts[0:5])}'
+                                              f'_{salmon_depth}'
+                                              f'_{"_".join(name_parts[6:])}')
+                        tsv_record = [
+                            record[0],
+                            f'{float(name_parts[5])}',
+                            f'{length}',
+                            f'{salmon_contig_name}',
+                            f'{salmon_num_reads}',
+                            f'{salmon_depth}',
+                        ]
+                        tsv_out.write(f'{"\t".join(tsv_record)}\n')
+                        reheaded_fasta_asm[salmon_contig_name] = fasta_asm[record[0]]
+        dict_to_fasta(reheaded_fasta_asm, fasta_asm_file, wrap=80)
 
-    with open(Path(sample_megahit_out_dir, "assembly.stats.tsv"), "wt") as tsv_out:
-        for i in range(0, len(stats_tsv), 2):
-            tsv_out.write(f"{stats_tsv[i].rjust(21)} : {stats_tsv[i+1]}\n")
-    with open(Path(sample_megahit_out_dir, "assembly.stats.t.tsv"), "wt") as tsv_out:
-        tsv_out.write("\t".join(f"{stats_tsv[i+1]}" for i in range(0, len(stats_tsv), 2)) + "\n")
+    return
 
-    asm_msg = (
-        f"{s_least_0bp:,} bp in {n_least_0bp:,} contigs, from {shortest:,} to {longest:,} bp,"
-        f" avg {avg_length:,} bp, median {median_length:,} bp, N50 {n50:,} bp"
+
+def filter_assembly(
+    sample_name, max_contig_gc, disable_mapping, min_contig_depth, redo_filtering, out_dir,
+    overwrite
+):
+    start = time.time()
+    sample_megahit_out_dir = Path(out_dir, f"{sample_name}__captus-asm", "01_assembly")
+    assembly_fasta = Path(sample_megahit_out_dir, "assembly.fasta")
+    removed_fasta = Path(sample_megahit_out_dir, "removed_contigs.fasta")
+    assembly_stats_tsv = Path(sample_megahit_out_dir, "assembly_stats.tsv")
+    depth_stats_tsv = Path(sample_megahit_out_dir, "depth_stats.tsv")
+    length_stats_tsv = Path(sample_megahit_out_dir, "length_stats.tsv")
+
+    skip_gc = False
+    if max_contig_gc >= 100 or max_contig_gc <= 0:skip_gc = True
+    if min_contig_depth == "auto":
+        min_contig_depth = 1.0001 if disable_mapping is True else 1.5
+    else:
+        min_contig_depth = float(min_contig_depth)
+    skip_depth = False
+    if min_contig_depth <= 0: skip_depth = True
+
+    if overwrite is True or redo_filtering is True or not removed_fasta.is_file():
+        if removed_fasta.is_file():
+            assembly = fasta_to_dict(assembly_fasta)
+            removed = fasta_to_dict(removed_fasta)
+            for seq_name in removed:
+                assembly[seq_name] = removed[seq_name]
+            dict_to_fasta(assembly, assembly_fasta, wrap=80)
+            removed_fasta.unlink()
+        if assembly_stats_tsv.is_file(): assembly_stats_tsv.unlink()
+        if depth_stats_tsv.is_file(): depth_stats_tsv.unlink()
+        if length_stats_tsv.is_file(): length_stats_tsv.unlink()
+        unfiltered = fasta_to_dict(assembly_fasta)
+        accepted = {}
+        rejected = {}
+        for seq_name in unfiltered:
+            if skip_gc is True:
+                gc = 100
+            else:
+                seq = unfiltered[seq_name]["sequence"].upper().replace("-", "").replace("N", "")
+                gc = round(seq.replace("C", "G").count("G") / len(seq) * 100, 5)
+            if skip_depth is True:
+                depth = float("inf")
+            else:
+                depth = float(seq_name.split("_")[5])
+            if gc > max_contig_gc or depth < min_contig_depth:
+                rejected[seq_name] = unfiltered[seq_name]
+            else:
+                accepted[seq_name] = unfiltered[seq_name]
+        dict_to_fasta(accepted, assembly_fasta, wrap=80, write_if_empty=True)
+        dict_to_fasta(rejected, removed_fasta, wrap=80, write_if_empty=True)
+        message = get_asm_stats(
+            sample_name, unfiltered, accepted, assembly_stats_tsv, depth_stats_tsv, length_stats_tsv
+        )
+        message = f"{message}\n'{sample_name}': assembly filtered [{elapsed_time(time.time() - start)}]"
+    else:
+        message = dim(f"'{sample_name}': SKIPPED (output files already exist)")
+
+    return message
+
+
+def get_asm_stats(
+    sample_name, asm_before, asm_after, asm_stats_tsv_path, depth_stats_tsv_path, length_stats_tsv_path
+):
+
+    def calc_asm_stats(sample_name, asm, stage, asm_stats_tsv_path, depth_stats_tsv_path, length_stats_tsv_path):
+        """
+        4847 contigs, total 2895219 bp, min 183 bp, max 4250 bp, avg 597 bp, N50 673 bp
+        """
+        lengths = []
+        depths = []
+        depths_hist = {}
+        for k in range(5,105,5):
+            depths_hist[str(k/10)] = {"num_contigs":0, "length":0, "fraction":0}
+        for k in range(15,105,5):
+            depths_hist[str(k)] = {"num_contigs":0, "length":0, "fraction":0}
+        for k in range(150,1050,50):
+            depths_hist[str(k)] = {"num_contigs":0, "length":0, "fraction":0}
+        for k in range(1500,10500,500):
+            depths_hist[str(k)] = {"num_contigs":0, "length":0, "fraction":0}
+        depths_hist["inf"] = {"num_contigs":0, "length":0, "fraction":0}
+        lengths_hist = {}
+        for k in range(50,1050,50):
+            lengths_hist[str(k)] = {"num_contigs":0, "length":0, "fraction":0}
+        for k in range(500,10500,500):
+            lengths_hist[str(k)] = {"num_contigs":0, "length":0, "fraction":0}
+        for k in range(5000,105000,5000):
+            lengths_hist[str(k)] = {"num_contigs":0, "length":0, "fraction":0}
+        lengths_hist["inf"] = {"num_contigs":0, "length":0, "fraction":0}
+        gc_count = 0
+
+        for seq in asm:
+            length = len(asm[seq]["sequence"])
+            depth = float(seq.split("_")[5])
+            lengths.append(length)
+            depths.append(depth)
+            gc_count += asm[seq]["sequence"].count("G")
+            gc_count += asm[seq]["sequence"].count("C")
+            if depth == 0:
+                depths_hist["0.5"]["num_contigs"] += 1
+                depths_hist["0.5"]["length"] += length
+            elif depth <= 10:
+                key = str(float(math.ceil(depth/0.5)*0.5))
+                depths_hist[key]["num_contigs"] += 1
+                depths_hist[key]["length"] += length
+            elif depth <= 100:
+                key = str(math.ceil(depth/5)*5)
+                depths_hist[key]["num_contigs"] += 1
+                depths_hist[key]["length"] += length
+            elif depth <= 1000:
+                key = str(math.ceil(depth/50)*50)
+                depths_hist[key]["num_contigs"] += 1
+                depths_hist[key]["length"] += length
+            elif depth <= 10000:
+                key = str(math.ceil(depth/500)*500)
+                depths_hist[key]["num_contigs"] += 1
+                depths_hist[key]["length"] += length
+            else:
+                depths_hist[key]["num_contigs"] += 1
+                depths_hist["inf"]["length"] += length
+            if length <= 1000:
+                key = str(math.ceil(length/50)*50)
+                lengths_hist[key]["num_contigs"] += 1
+                lengths_hist[key]["length"] += length
+            elif length <= 10000:
+                key = str(math.ceil(length/500)*500)
+                lengths_hist[key]["num_contigs"] += 1
+                lengths_hist[key]["length"] += length
+            elif length <= 100000:
+                key = str(math.ceil(length/5000)*5000)
+                lengths_hist[key]["num_contigs"] += 1
+                lengths_hist[key]["length"] += length
+            else:
+                lengths_hist["inf"]["num_contigs"] += 1
+                lengths_hist["inf"]["length"] += length
+
+        num_contigs = len(asm)
+        tot_length = sum(lengths)
+        min_length = min(lengths)
+        max_length = max(lengths)
+        avg_length = math.ceil(statistics.mean(lengths))
+        med_length = math.ceil(statistics.median(lengths))
+        avg_depth = round(statistics.mean(depths), 4)
+        med_depth = round(statistics.median(depths), 4)
+        gc = round(gc_count / tot_length * 100, 3)
+        for D in depths_hist:
+            depths_hist[D]["fraction"] = round(depths_hist[D]["length"] / tot_length * 100, 3)
+        for L in lengths_hist:
+            lengths_hist[L]["fraction"] = round(lengths_hist[L]["length"] / tot_length * 100, 3)
+        p50_length, cum_length, n50, l50 = tot_length * 0.50, 0, 0, 0
+        for L in sorted(lengths, reverse=True):
+            cum_length += L
+            l50 += 1
+            if cum_length >= p50_length:
+                n50 = L
+                break
+        p75_length, cum_length, n75, l75 = tot_length * 0.75, 0, 0, 0
+        for L in sorted(lengths, reverse=True):
+            cum_length += L
+            l75 += 1
+            if cum_length >= p75_length:
+                n75 = L
+                break
+
+        num_1kbp = round(len(list(filter(lambda L: L >= 1000, lengths))) / num_contigs * 100, 3)
+        num_2kbp = round(len(list(filter(lambda L: L >= 2000, lengths))) / num_contigs * 100, 3)
+        num_5kbp = round(len(list(filter(lambda L: L >= 5000, lengths))) / num_contigs * 100, 3)
+        num_10kbp = round(len(list(filter(lambda L: L >= 10000, lengths))) / num_contigs * 100, 3)
+        num_20kbp = round(len(list(filter(lambda L: L >= 20000, lengths))) / num_contigs * 100, 3)
+        num_50kbp = round(len(list(filter(lambda L: L >= 50000, lengths))) / num_contigs * 100, 3)
+
+        len_1kbp = round(sum(list(filter(lambda L: L >= 1000, lengths))) / tot_length * 100, 3)
+        len_2kbp = round(sum(list(filter(lambda L: L >= 2000, lengths))) / tot_length * 100, 3)
+        len_5kbp = round(sum(list(filter(lambda L: L >= 5000, lengths))) / tot_length * 100, 3)
+        len_10kbp = round(sum(list(filter(lambda L: L >= 10000, lengths))) / tot_length * 100, 3)
+        len_20kbp = round(sum(list(filter(lambda L: L >= 20000, lengths))) / tot_length * 100, 3)
+        len_50kbp = round(sum(list(filter(lambda L: L >= 50000, lengths))) / tot_length * 100, 3)
+
+        asm_stats_record = [
+            sample_name,
+            stage,
+            f'{num_contigs}',
+            f'{num_1kbp}',
+            f'{num_2kbp}',
+            f'{num_5kbp}',
+            f'{num_10kbp}',
+            f'{num_20kbp}',
+            f'{num_50kbp}',
+            f'{tot_length}',
+            f'{len_1kbp}',
+            f'{len_2kbp}',
+            f'{len_5kbp}',
+            f'{len_10kbp}',
+            f'{len_20kbp}',
+            f'{len_50kbp}',
+            f'{min_length}',
+            f'{max_length}',
+            f'{avg_length}',
+            f'{med_length}',
+            f'{avg_depth}',
+            f'{med_depth}',
+            f'{gc}',
+            f'{n50}',
+            f'{n75}',
+            f'{l50}',
+            f'{l75}',
+        ]
+        with open(asm_stats_tsv_path, "a") as stats_tsv:
+            stats_tsv.write(f'{"\t".join(asm_stats_record)}\n')
+
+        with open(depth_stats_tsv_path, "a") as stats_tsv:
+            for D in depths_hist:
+                depth_stats_record = [
+                    sample_name,
+                    stage,
+                    f'{D}',
+                    f'{depths_hist[D]["length"]}',
+                    f'{depths_hist[D]["fraction"]}',
+                    f'{depths_hist[D]["num_contigs"]}',
+                ]
+                stats_tsv.write(f'{"\t".join(depth_stats_record)}\n')
+
+        with open(length_stats_tsv_path, "a") as stats_tsv:
+            for L in lengths_hist:
+                length_stats_record = [
+                    sample_name,
+                    stage,
+                    f'{L}',
+                    f'{lengths_hist[L]["length"]}',
+                    f'{lengths_hist[L]["fraction"]}',
+                    f'{lengths_hist[L]["num_contigs"]}',
+                ]
+                stats_tsv.write(f'{"\t".join(length_stats_record)}\n')
+
+
+        msg = (
+            f"'{sample_name}' {stage.upper()}: {num_contigs:,} contigs, total {tot_length:,} bp,"
+            f" min {min_length:,} bp, max {max_length:,} bp, avg {avg_length:,} bp, N50 {n50:,} bp"
+        )
+        return msg
+
+    asm_stats_header = [
+        "sample_name",
+        "stage",
+        "num_contigs",
+        "pct_contigs_1kbp",
+        "pct_contigs_2kbp",
+        "pct_contigs_5kbp",
+        "pct_contigs_10kbp",
+        "pct_contigs_20kbp",
+        "pct_contigs_50kbp",
+        "total_length",
+        "pct_length_1kbp",
+        "pct_length_2kbp",
+        "pct_length_5kbp",
+        "pct_length_10kbp",
+        "pct_length_20kbp",
+        "pct_length_50kbp",
+        "shortest_contig",
+        "longest_contig",
+        "avg_length",
+        "median_length",
+        "avg_depth",
+        "median_depth",
+        "gc",
+        "N50",
+        "N75",
+        "L50",
+        "L75",
+    ]
+    depth_stats_header = [
+        "sample_name",
+        "stage",
+        "depth_bin",
+        "length",
+        "fraction",
+        "num_contigs",
+    ]
+    length_stats_header = [
+        "sample_name",
+        "stage",
+        "length_bin",
+        "length",
+        "fraction",
+        "num_contigs",
+    ]
+    with open(asm_stats_tsv_path, "w") as stats_tsv:
+        stats_tsv.write(f'{"\t".join(asm_stats_header)}\n')
+    with open(depth_stats_tsv_path, "w") as stats_tsv:
+        stats_tsv.write(f'{"\t".join(depth_stats_header)}\n')
+    with open(length_stats_tsv_path, "w") as stats_tsv:
+        stats_tsv.write(f'{"\t".join(length_stats_header)}\n')
+
+    msg_before = calc_asm_stats(
+        sample_name, asm_before, "before", asm_stats_tsv_path, depth_stats_tsv_path,length_stats_tsv_path
+    )
+    msg_after = calc_asm_stats(
+        sample_name, asm_after, "after", asm_stats_tsv_path, depth_stats_tsv_path,length_stats_tsv_path
     )
 
-    return asm_msg
+    return f'{msg_before}\n{msg_after}'
 
 
 def collect_asm_stats(out_dir):
-    tsv_files = sorted(list(Path(out_dir).resolve().rglob("*assembly.stats.t.tsv")))
-    if not tsv_files:
-        return None
+    assembly_tsv_files = sorted(list(Path(out_dir).resolve().rglob("assembly_stats.tsv")))
+    depth_tsv_files = sorted(list(Path(out_dir).resolve().rglob("depth_stats.tsv")))
+    length_tsv_files = sorted(list(Path(out_dir).resolve().rglob("length_stats.tsv")))
+
+    assembly_stats_tsv = Path(out_dir, "captus-assembly_assemble.assembly_stats.tsv")
+    depth_stats_tsv = Path(out_dir, "captus-assembly_assemble.depth_stats.tsv")
+    length_stats_tsv = Path(out_dir, "captus-assembly_assemble.length_stats.tsv")
+
+    if not assembly_tsv_files or not depth_tsv_files or not length_tsv_files:
+        return None, None, None
     else:
-        tsv = ["\t".join([
-            "sample",
-            "n_contigs",
-            "pct_contigs_>=_1kbp",
-            "pct_contigs_>=_2kbp",
-            "pct_contigs_>=_5kbp",
-            "pct_contigs_>=_10kbp",
-            "longest_contig",
-            "shortest_contig",
+        assembly_stats_header = [
+            "sample_name",
+            "stage",
+            "num_contigs",
+            "pct_contigs_1kbp",
+            "pct_contigs_2kbp",
+            "pct_contigs_5kbp",
+            "pct_contigs_10kbp",
+            "pct_contigs_20kbp",
+            "pct_contigs_50kbp",
             "total_length",
-            "pct_length_>=_1kbp",
-            "pct_length_>=_2kbp",
-            "pct_length_>=_5kbp",
-            "pct_length_>=_10kbp",
+            "pct_length_1kbp",
+            "pct_length_2kbp",
+            "pct_length_5kbp",
+            "pct_length_10kbp",
+            "pct_length_20kbp",
+            "pct_length_50kbp",
+            "shortest_contig",
+            "longest_contig",
             "avg_length",
             "median_length",
-            "N50",
-            "GC_content",
             "avg_depth",
-            "pct_contigs_>=_1x",
-            "pct_contigs_>=_2x",
-            "pct_contigs_>=_5x",
-            "pct_contigs_>=_10x",
-            "filtered_n_contigs",
-            "filtered_total_length",
-            "filtered_avg_length",
-            "filtered_gc_content",
-        ])]
-        for file in tsv_files:
-            with open(file, "rt") as tsv_in:
-                for line in tsv_in:
-                    tsv.append(line.strip("\n"))
-        stats_tsv_file = Path(out_dir, "captus-assembly_assemble.stats.tsv")
-        with open(stats_tsv_file, "wt") as tsv_out:
-            tsv_out.write("\n".join(tsv))
-        return stats_tsv_file
+            "median_depth",
+            "gc",
+            "N50",
+            "N75",
+            "L50",
+            "L75",
+        ]
+        depth_stats_header = [
+            "sample_name",
+            "stage",
+            "depth_bin",
+            "length",
+            "fraction",
+            "num_contigs",
+        ]
+        length_stats_header = [
+            "sample_name",
+            "stage",
+            "length_bin",
+            "length",
+            "fraction",
+            "num_contigs",
+        ]
+        assembly_stats_header = f'{"\t".join(assembly_stats_header)}\n'
+        depth_stats_header = f'{"\t".join(depth_stats_header)}\n'
+        length_stats_header = f'{"\t".join(length_stats_header)}\n'
+
+        with open(assembly_stats_tsv, "w") as tsv_out:
+            tsv_out.write(assembly_stats_header)
+            for tsv in assembly_tsv_files:
+                with open(tsv, "rt") as tsv_in:
+                    for line in tsv_in:
+                        if line != assembly_stats_header:
+                            tsv_out.write(line)
+
+        with open(depth_stats_tsv, "w") as tsv_out:
+            tsv_out.write(depth_stats_header)
+            for tsv in depth_tsv_files:
+                with open(tsv, "rt") as tsv_in:
+                    for line in tsv_in:
+                        if line != depth_stats_header:
+                            tsv_out.write(line)
+
+        with open(length_stats_tsv, "w") as tsv_out:
+            tsv_out.write(length_stats_header)
+            for tsv in length_tsv_files:
+                with open(tsv, "rt") as tsv_in:
+                    for line in tsv_in:
+                        if line != length_stats_header:
+                            tsv_out.write(line)
+
+        return assembly_stats_tsv, depth_stats_tsv, length_stats_tsv
 
 
 def megahit_contig2fastg(megahit_toolkit_path, in_fasta_path, out_fastg_path):

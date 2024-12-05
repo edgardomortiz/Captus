@@ -20,7 +20,7 @@ import time
 from pathlib import Path
 
 from . import log, settings
-from .bioformats import get_mean_read_length
+from .bioformats import get_read_stats
 from .misc import (bbtools_path_version, bold, dim, elapsed_time, falco_path_version,
                    fastqc_path_version, find_and_match_fastqs, format_dep_msg, has_valid_ext,
                    make_output_dir, python_library_check, quit_with_error, red, set_ram,
@@ -436,7 +436,7 @@ def trim_AT_GC_bias(in_dir, in_fastq):
     delta exceeds 'settings.MAX_DELTA_AT', return the final lengtht to which the reads have to be
     trimmed ('max_length' - 1) or 0 if they should not be trimmed
     """
-    num_reads = settings.NUM_READS_TO_CALCULATE_MAX_READ_LENGTH
+    num_reads = settings.NUM_READS_TO_CALCULATE_READ_STATS
     max_length = 0
     nt = {"A": 0, "C": 0, "G": 0, "T": 0, "N": 0}
 
@@ -712,8 +712,8 @@ def qc_stats(qc_program_name, qc_program_path, in_fastq, qc_stats_out_dir, overw
     file_name_stage = f"'{in_fastq.name}' ({stage} cleaning)"
 
     if overwrite is True or not qc_stats_log_file.exists():
-        mean_read_length = get_mean_read_length(in_fastq,
-                                                settings.NUM_READS_TO_CALCULATE_MEAN_READ_LENGTH)
+        read_stats = get_read_stats(in_fastq, settings.NUM_READS_TO_CALCULATE_STATS)
+        mean_read_length = read_stats["mean_read_length"]
         if mean_read_length <= 1000:
             cmd_last_part = ["--nogroup"] + cmd_last_part
         qc_stats_cmd += cmd_last_part
