@@ -446,6 +446,16 @@ class CaptusAssembly(object):
                  " smallest kmer size in '--k_list'"
         )
         megahit_group.add_argument(
+            "--tmp_dir",
+            action="store",
+            default="$HOME",
+            type=str,
+            dest="tmp_dir",
+            help="Location to create the temporary directory 'captus_assembly_tmp' for MEGAHIT"
+                 " assembly. Sometimes, when working on external hard drives MEGAHIT will refuse to"
+                 " run unless this directory is created in an internal hard drive"
+        )
+        megahit_group.add_argument(
             "--max_contig_gc",
             action="store",
             default=100.0,
@@ -478,17 +488,8 @@ class CaptusAssembly(object):
             "--redo_filtering",
             action="store_true",
             dest="redo_filtering",
-            help="Enable if you wish"
-        )
-        megahit_group.add_argument(
-            "--tmp_dir",
-            action="store",
-            default="$HOME",
-            type=str,
-            dest="tmp_dir",
-            help="Location to create the temporary directory 'captus_assembly_tmp' for MEGAHIT"
-                 " assembly. Sometimes, when working on external hard drives MEGAHIT will refuse to"
-                 " run unless this directory is created in an internal hard drive"
+            help="Enable if you want to try different values for `--max_contig_gc` or"
+                 " `--min_contig_depth`. Only the filtering step will be repeated"
         )
 
         other_group = parser.add_argument_group("Other")
