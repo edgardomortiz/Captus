@@ -282,34 +282,37 @@ def extract(full_command, args):
         log.log(f'{"reference":>{mar}}: {protein_refs["NUC"]["AA_msg"]}')
         if protein_refs["NUC"]["AA_path"]:
             log.log(f'{"reference info":>{mar}}: {nuc_query_info["info_msg"]}')
+            log.log(f'{"translation table":>{mar}}: {bold(args.nuc_transtable)}')
             log.log(f'{"min_score":>{mar}}: {bold(args.nuc_min_score)}')
             nuc_min_identity = adjust_min_identity(args.nuc_min_identity, args.nuc_transtable)
             log.log(f'{"min_identity":>{mar}}: {bold(nuc_min_identity)}')
             nuc_min_coverage = adjust_min_coverage(args.nuc_min_coverage)
             log.log(f'{"min_coverage":>{mar}}: {bold(nuc_min_coverage)}')
-            log.log(f'{"translation table":>{mar}}: {bold(args.nuc_transtable)}')
+            log.log(f'{"depth_tolerance":>{mar}}: {bold(args.nuc_depth_tolerance)}')
         log.log("")
         log.log(bold(f'{"Plastidial proteins":>{mar}}:'))
         log.log(f'{"reference":>{mar}}: {protein_refs["PTD"]["AA_msg"]}')
         if protein_refs["PTD"]["AA_path"]:
             log.log(f'{"reference info":>{mar}}: {ptd_query_info["info_msg"]}')
+            log.log(f'{"translation table":>{mar}}: {bold(args.ptd_transtable)}')
             log.log(f'{"min_score":>{mar}}: {bold(args.ptd_min_score)}')
             ptd_min_identity = adjust_min_identity(args.ptd_min_identity, args.ptd_transtable)
             log.log(f'{"min_identity":>{mar}}: {bold(ptd_min_identity)}')
             ptd_min_coverage = adjust_min_coverage(args.ptd_min_coverage)
             log.log(f'{"min_coverage":>{mar}}: {bold(ptd_min_coverage)}')
-            log.log(f'{"translation table":>{mar}}: {bold(args.ptd_transtable)}')
+            log.log(f'{"depth_tolerance":>{mar}}: {bold(args.ptd_depth_tolerance)}')
         log.log("")
         log.log(bold(f'{"Mitochondrial proteins":>{mar}}:'))
         log.log(f'{"reference":>{mar}}: {protein_refs["MIT"]["AA_msg"]}')
         if protein_refs["MIT"]["AA_path"]:
             log.log(f'{"reference info":>{mar}}: {mit_query_info["info_msg"]}')
+            log.log(f'{"translation table":>{mar}}: {bold(args.mit_transtable)}')
             log.log(f'{"min_score":>{mar}}: {bold(args.mit_min_score)}')
             mit_min_identity = adjust_min_identity(args.mit_min_identity, args.mit_transtable)
             log.log(f'{"min_identity":>{mar}}: {bold(mit_min_identity)}')
             mit_min_coverage = adjust_min_coverage(args.mit_min_coverage)
             log.log(f'{"min_coverage":>{mar}}: {bold(mit_min_coverage)}')
-            log.log(f'{"translation table":>{mar}}: {bold(args.mit_transtable)}')
+            log.log(f'{"depth_tolerance":>{mar}}: {bold(args.mit_depth_tolerance)}')
         log.log("")
         log.log("")
 
@@ -337,10 +340,12 @@ def extract(full_command, args):
             log.log(f'{"reference info":>{mar}}: {dna_query_info["info_msg"]}')
             log.log(f'{"min_identity":>{mar}}: {bold(args.dna_min_identity)}')
             log.log(f'{"min_coverage":>{mar}}: {bold(args.dna_min_coverage)}')
+            log.log(f'{"depth_tolerance":>{mar}}: {bold(args.dna_depth_tolerance)}')
         log.log("")
         log.log("")
 
         log.log(bold(f'{"OUTPUT OPTIONS":>{mar}}:'))
+        log.log(f'{"Ignore depth of coverage":>{mar}}: {bold(args.ignore_depth)}')
         log.log(f'{"Disable contig stitching":>{mar}}: {bold(args.disable_stitching)}')
         max_paralogs_msg = dim("(Keep all paralogs)") if args.max_paralogs == -1 else ""
         log.log(f'{"Max. paralogs":>{mar}}: {bold(args.max_paralogs)} {max_paralogs_msg}')
@@ -382,6 +387,8 @@ def extract(full_command, args):
                         nuc_query_info,
                         "NUC",
                         args.nuc_transtable,
+                        args.ignore_depth,
+                        args.nuc_depth_tolerance,
                         args.disable_stitching,
                         args.max_loci_files,
                         args.max_loci_scipio_x2,
@@ -408,6 +415,8 @@ def extract(full_command, args):
                         ptd_query_info,
                         "PTD",
                         args.ptd_transtable,
+                        args.ignore_depth,
+                        args.ptd_depth_tolerance,
                         args.disable_stitching,
                         args.max_loci_files,
                         args.max_loci_scipio_x2,
@@ -434,6 +443,8 @@ def extract(full_command, args):
                         mit_query_info,
                         "MIT",
                         args.mit_transtable,
+                        args.ignore_depth,
+                        args.mit_depth_tolerance,
                         args.disable_stitching,
                         args.max_loci_files,
                         args.max_loci_scipio_x2,
@@ -456,6 +467,8 @@ def extract(full_command, args):
                         dna_query,
                         dna_query_info,
                         "DNA",
+                        args.ignore_depth,
+                        args.dna_depth_tolerance,
                         args.disable_stitching,
                         args.max_loci_files,
                         args.max_paralogs
@@ -1251,8 +1264,8 @@ def reference_info(query_dict):
 def scipio_coding(
     scipio_path, min_score, min_identity, min_coverage, blat_path, overwrite, keep_all, target_path,
     sample_dir, sample_name, query_path, query_dict, query_parts_paths, query_info, marker_type,
-    transtable, disable_stitching, max_loci_files, max_loci_scipio_x2, max_paralogs, predict,
-    threads, debug
+    transtable, ignore_depth, depth_tolerance, disable_stitching, max_loci_files, max_loci_scipio_x2,
+    max_paralogs, predict, threads, debug
 ):
     """
     Perform two consecutive rounds of Scipio, the first run with mostly default settings and with a
@@ -1283,7 +1296,6 @@ def scipio_coding(
         "transtable":   transtable,
         "sample_dir":   sample_dir,
         "marker_type":  marker_type,
-        "keep_all":     keep_all,
     }
 
     # Run Scipio twice if 'query_info["num_loci"]' does not exceed 'max_loci_scipio_x2'
@@ -1292,8 +1304,9 @@ def scipio_coding(
         # Use the function run_scipio() that to run Scipio and also get the name of the YAML
         # output 'yaml_out_file'
         yaml_initial_file = run_scipio_parallel(scipio_params, target_path, query_path,
-                                                query_parts_paths, disable_stitching,
-                                                overwrite, threads, debug, stage="initial")
+                                                query_parts_paths, ignore_depth, depth_tolerance,
+                                                disable_stitching,   overwrite, threads,
+                                                debug, stage="initial")
         if yaml_initial_file is None:
             message = dim(
                 f"'{sample_name}': extraction of {genes[marker_type]}"
@@ -1322,14 +1335,16 @@ def scipio_coding(
 
         # Perform final Scipio's run (more exhaustive but with fewer contigs and reference proteins)
         yaml_final_file = run_scipio_parallel(scipio_params, final_target, final_query,
-                                              query_parts_paths, disable_stitching,
-                                              overwrite, threads, debug, stage="final")
+                                              query_parts_paths, ignore_depth, depth_tolerance,
+                                              disable_stitching, overwrite, threads,
+                                              debug, stage="final")
 
     # Run a single Scipio run when 'num_refs' exceeds 'max_loci_scipio_x2'
     else:
         yaml_final_file = run_scipio_parallel(scipio_params, target_path, query_path,
-                                              query_parts_paths, disable_stitching,
-                                              overwrite, threads, debug, stage="single")
+                                              query_parts_paths, ignore_depth, depth_tolerance,
+                                              disable_stitching, overwrite, threads,
+                                              debug, stage="single")
 
     if yaml_final_file is None:
         message = dim(
@@ -1367,8 +1382,8 @@ def scipio_coding(
 
 
 def run_scipio_parallel(
-    scipio_params: dict, target, query, query_part_paths, disable_stitching,
-    overwrite, threads, debug, stage
+    scipio_params: dict, target, query, query_part_paths, ignore_depth,
+    depth_tolerance, disable_stitching, overwrite, threads, debug, stage
 ):
     # Set output directory and files according to 'sample_dir' and 'stage'
     marker_type = scipio_params["marker_type"]
@@ -1406,39 +1421,43 @@ def run_scipio_parallel(
     if dir_is_empty(scipio_out_dir) is True or overwrite is True:
         # First, run BLAT only using the complete target and query files
         blat_only = True
-        blat_psl = run_scipio_command(scipio_params["scipio_path"], blat_out_file,
-                                      blat_only, scipio_min_score, scipio_params["min_identity"],
+        blat_psl = run_scipio_command(scipio_params["scipio_path"], blat_out_file, blat_only,
+                                      scipio_min_score, scipio_params["min_identity"],
                                       scipio_params["min_coverage"], disable_stitching,
                                       scipio_params["blat_path"], blat_score,
-                                      scipio_params["transtable"], extra_settings,
-                                      target, query, scipio_out_file, scipio_log_file)
+                                      scipio_params["transtable"], extra_settings, target, query,
+                                      scipio_out_file, scipio_log_file)
         if not blat_psl:
             return "BLAT FAILED"
 
-        # Second, split the previous BLAT psl according to the reference splits
-        filter_blat_psl_params = []
+        # Second, filter hits according the depth of coverage of the contigs
+        if stage == "final" or stage == "single":
+            filter_depth_blat_psl(blat_out_file, ignore_depth, depth_tolerance)
+
+        # Third, split the previous BLAT psl according to the reference splits
+        split_blat_psl_params = []
         for query in query_part_paths:
             part = query.stem
-            filter_blat_psl_params.append((
+            split_blat_psl_params.append((
                 blat_out_file,
                 query_part_paths[query],
                 Path(scipio_out_dir, f"{part}_scipio.psl")
             ))
         psls_to_del = []
         if debug:
-            for params in filter_blat_psl_params:
-                blat_part_psl = filter_blat_psl(*params)
+            for params in split_blat_psl_params:
+                blat_part_psl = split_blat_psl(*params)
                 psls_to_del.append(blat_part_psl)
         else:
             subexecutor = ProcessPoolExecutor(max_workers=threads)
-            futures = [subexecutor.submit(filter_blat_psl, *params)
-                       for params in filter_blat_psl_params]
+            futures = [subexecutor.submit(split_blat_psl, *params)
+                       for params in split_blat_psl_params]
             for future in as_completed(futures):
                 blat_part_psl = future.result()
                 psls_to_del.append(blat_part_psl)
             subexecutor.shutdown()
 
-        # Third, run a Scipio instance on each partial file
+        # Fourth, run a Scipio instance on each partial file
         blat_only = False
         run_scipio_command_params = []
         for query in query_part_paths:
@@ -1504,7 +1523,50 @@ def run_scipio_parallel(
         return None
 
 
-def filter_blat_psl(psl_path_in, seq_names_set, psl_out_path):
+def filter_depth_blat_psl(blat_out_file: Path, ignore_depth: bool, depth_tolerance: float):
+
+    blat_unfiltered_file = Path(blat_out_file.parent,
+                                blat_out_file.name.replace(".psl", "_unfiltered.psl"))
+
+    if ignore_depth is True:
+        return
+
+    contig_names = []
+    with open(blat_out_file, "rt") as psl_in:
+        for line in psl_in:
+            contig_names.append(line.split()[13])
+    contig_names = list(set(contig_names))
+    depths = []
+    for ctg in contig_names:
+        if "_cov_" in ctg:
+            try:
+                depths.append(float(ctg.split("_cov_")[1].split("_")[0]))
+            except ValueError:
+                continue
+    if len(depths) != len(contig_names) or len(depths) == 0:
+        ignore_depth = True
+    if ignore_depth is False and len(depths) > 0:
+        psl_filtered = []
+        median_depth = statistics.median(depths)
+        min_depth = median_depth / depth_tolerance
+        max_depth = median_depth * depth_tolerance
+        with open(blat_out_file, "rt") as psl_in:
+            with open(blat_unfiltered_file, "wt") as psl_unfiltered:
+                for line in psl_in:
+                    psl_unfiltered.write(line)
+                    try:
+                        depth = float(line.split()[13].split("_cov_")[1].split("_")[0])
+                    except ValueError:
+                        depth = 0
+                    if min_depth <= depth <= max_depth:
+                        psl_filtered.append(line)
+        with open(blat_out_file, "wt") as psl_out:
+            for line in psl_filtered:
+                psl_out.write(line)
+    return
+
+
+def split_blat_psl(psl_path_in, seq_names_set, psl_out_path):
     with open(psl_out_path, "wt") as part_psl_out:
         with open(psl_path_in, "rt") as full_psl_in:
             for line in full_psl_in:
@@ -1514,9 +1576,9 @@ def filter_blat_psl(psl_path_in, seq_names_set, psl_out_path):
 
 
 def run_scipio_command(
-    scipio_path, blat_out_file, blat_only, scipio_min_score, min_identity, min_coverage,
-    disable_stitching, blat_path, blat_score, transtable, extra_settings, target_path, query_path,
-    scipio_out_file, scipio_log_file
+    scipio_path, blat_out_file, blat_only, scipio_min_score, min_identity,
+    min_coverage, disable_stitching, blat_path, blat_score, transtable,
+    extra_settings, target_path, query_path, scipio_out_file, scipio_log_file
 ):
     # Build the basic part of the command
     basic = [
@@ -1860,7 +1922,8 @@ def write_fastas_and_report(
 
 def blat_misc_dna(
     blat_path, min_identity, min_coverage, overwrite, keep_all, target_path, sample_dir, sample_name,
-    query_path, query_dict, query_info, marker_type, disable_stitching, max_loci_files, max_paralogs
+    query_path, query_dict, query_info, marker_type, ignore_depth, depth_tolerance,
+    disable_stitching, max_loci_files, max_paralogs
 ):
     """
     Extract matches of miscellaneous DNA sequences by comparing the assemblies to a set of
@@ -1896,6 +1959,9 @@ def blat_misc_dna(
             blat_log.write(f"Captus' BLAT command:\n  {' '.join(blat_cmd)}\n\n")
         with open(blat_dna_log_file, "a") as blat_log:
             subprocess.run(blat_cmd, stdout=blat_log, stderr=blat_log)
+
+        # Filter hits according the depth of coverage of the contigs
+        filter_depth_blat_psl(blat_dna_out_file, ignore_depth, depth_tolerance)
 
         dna_hits = blat_misc_dna_psl_to_dict(blat_dna_out_file, dna_target, min_identity,
                                              min_coverage, marker_type, disable_stitching,

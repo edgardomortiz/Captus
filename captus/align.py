@@ -1462,8 +1462,8 @@ def filter_paralogs_informed(
                 else:
                     sample_name = seq
                     hit_num = "00"
-                length_seq = len(aln[seq]["sequence"].replace("-", ""))
-                lenght_ref = len(best_ref_seq.replace("-", ""))
+                length_seq = len(aln[seq]["sequence"].strip("-"))
+                lenght_ref = len(best_ref_seq.strip("-"))
                 pid = pairwise_identity(best_ref_seq, aln[seq]["sequence"],
                                         fasta_model_format,
                                         ignore_internal_gaps=True)

@@ -2200,7 +2200,7 @@ def scipio_yaml_to_dict(
                     hit_ends.append(None)
                     mat_types.append("separator")
                     mat_notes.append("separator")
-                    mat_nt.append(settings.SCIPIO_CONTIG_SEPARATOR)
+                    mat_nt.append(settings.SCIPIO_CONTIG_SEP)
                     mat_aa.append(None)
                 if ctg["upstream"]:
                     ref_starts.append(None)

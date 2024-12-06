@@ -646,6 +646,12 @@ class CaptusAssembly(object):
             help="Output directory name"
         )
         output_group.add_argument(
+            "--ignore_depth",
+            action="store_true",
+            dest="ignore_depth",
+            help="Do not filter contigs based on their depth of coverage"
+        )
+        output_group.add_argument(
             "--disable_stitching",
             action="store_true",
             dest="disable_stitching",
@@ -762,6 +768,17 @@ class CaptusAssembly(object):
             help="Minimum coverage percentage of reference target protein to consider a hit by a"
                  " contig"
         )
+        scipio_nuc_group.add_argument(
+            "--nuc_depth_tolerance",
+            action="store",
+            default=20,
+            type=float,
+            dest="nuc_depth_tolerance",
+            help="Allow nuclear contigs with a minimum depth equal to the median depth divided by"
+                 " this number and a maximum depth equal to the median depth multipled by this"
+                 " number. This median depth is calculated only from the contigs with hits to the"
+                 " nuclear proteins"
+        )
 
         scipio_ptd_group = parser.add_argument_group("Plastidial proteins extraction (Scipio)")
         scipio_ptd_group.add_argument(
@@ -810,6 +827,17 @@ class CaptusAssembly(object):
             dest="ptd_min_coverage",
             help="Minimum coverage percentage of reference target protein to consider a hit by a"
                  " contig"
+        )
+        scipio_ptd_group.add_argument(
+            "--ptd_depth_tolerance",
+            action="store",
+            default=10,
+            type=float,
+            dest="ptd_depth_tolerance",
+            help="Allow plastidial contigs with a minimum depth equal to the median depth divided by"
+                 " this number and a maximum depth equal to the median depth multipled by this"
+                 " number. This median depth is calculated only from the contigs with hits to the"
+                 " plastidial proteins"
         )
 
         scipio_mit_group = parser.add_argument_group("Mitochondrial proteins extraction (Scipio)")
@@ -860,6 +888,17 @@ class CaptusAssembly(object):
             help="Minimum coverage percentage of reference target protein to consider a hit by a"
                  " contig"
         )
+        scipio_mit_group.add_argument(
+            "--mit_depth_tolerance",
+            action="store",
+            default=10,
+            type=float,
+            dest="mit_depth_tolerance",
+            help="Allow mitochondrial contigs with a minimum depth equal to the median depth divided"
+                 " by this number and a maximum depth equal to the median depth multipled by this"
+                 " number. This median depth is calculated only from the contigs with hits to the"
+                 " mitochondrial proteins"
+        )
 
         non_coding_group = parser.add_argument_group("Miscellaneous DNA extraction (BLAT)")
         non_coding_group.add_argument(
@@ -884,6 +923,17 @@ class CaptusAssembly(object):
             type=float,
             dest="dna_min_coverage",
             help="Minimum coverage percentage of reference target sequence to retain matches"
+        )
+        non_coding_group.add_argument(
+            "--dna_depth_tolerance",
+            action="store",
+            default=10,
+            type=float,
+            dest="dna_depth_tolerance",
+            help="Allow contigs with a minimum depth equal to the median depth divided by this"
+                 " number and a maximum depth equal to the median depth multipled by this number."
+                 " This median depth is calculated only from the contigs with hits to the"
+                 " miscellaneous DNA reference targets"
         )
 
         mmseqs2_group = parser.add_argument_group("Assemblies clustering (MMseqs2)")

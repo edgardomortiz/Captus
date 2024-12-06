@@ -219,7 +219,7 @@ EXTRA_CONTIG_PENALTY = 0.999
 SCIPIO_MAX_MISMATCHES = 3
 
 # Separator in between contigs from the same Scipio's hit
-SCIPIO_CONTIG_SEPARATOR = "n" * 50
+SCIPIO_CONTIG_SEP = "n" * 50
 
 # Separator between sample and protein cluster for Scipio's reference proteins. For example,
 # Angiosperms353 uses a '-', meaning that anything before the '-' is the sample name and after the
