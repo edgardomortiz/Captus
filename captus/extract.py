@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Copyright 2020-2023 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
+Copyright 2020-2024 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
 https://github.com/edgardomortiz/Captus
 
 This file is part of Captus. Captus is free software: you can redistribute it and/or modify
@@ -1366,7 +1366,8 @@ def scipio_coding(
         message = red(f"'{sample_name}': FAILED extraction of {genes[marker_type]}")
         return message
     else:
-        write_gff3(final_models, marker_type, Path(yaml_final_dir, f"{marker_type}_contigs.gff"))
+        write_gff3(final_models, marker_type, disable_stitching,
+                   Path(yaml_final_dir, f"{marker_type}_contigs.gff"))
         recovery_stats = write_fastas_and_report(
             final_models, sample_name, fasta_to_dict(target_path),
             yaml_final_dir, marker_type, overwrite, max_loci_files
@@ -1972,7 +1973,7 @@ def blat_misc_dna(
         else:
             if not keep_all:
                 Path(blat_dna_out_file).unlink()
-            write_gff3(dna_hits, marker_type, dna_gff_file)
+            write_gff3(dna_hits, marker_type, disable_stitching, dna_gff_file)
             recovery_stats = write_fastas_and_report(dna_hits, sample_name, dna_target,
                                                      blat_dna_out_dir, marker_type, overwrite,
                                                      max_loci_files)

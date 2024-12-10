@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Copyright 2020-2023 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
+Copyright 2020-2024 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
 https://github.com/edgardomortiz/Captus
 
 This file is part of Captus. Captus is free software: you can redistribute it and/or modify

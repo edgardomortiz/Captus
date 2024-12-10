@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Copyright 2020-2023 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
+Copyright 2020-2024 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
 https://github.com/edgardomortiz/Captus
 
 Captus' installation script

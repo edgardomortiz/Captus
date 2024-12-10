@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Copyright 2020-2023 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
+Copyright 2020-2024 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
 https://github.com/edgardomortiz/Captus
 
 Captus' version is stored here in a separate file so it can exist in only one place.
@@ -14,4 +14,4 @@ details. You should have received a copy of the GNU General Public License along
 not, see <http://www.gnu.org/licenses/>.
 """
 
-__version__ = '1.0.1'
+__version__ = '1.1.0'

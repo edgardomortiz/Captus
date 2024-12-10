@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Copyright 2020-2023 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
+Copyright 2020-2024 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
 https://github.com/edgardomortiz/Captus
 
 This file is part of Captus. Captus is free software: you can redistribute it and/or modify
@@ -2978,7 +2978,7 @@ def blat_misc_dna_psl_to_dict(
         return False
 
 
-def write_gff3(hits, marker_type, out_gff_path):
+def write_gff3(hits, marker_type, disable_stitching, out_gff_path):
 
     def split_coords(coords, as_strings=False):
         """
@@ -3008,6 +3008,39 @@ def write_gff3(hits, marker_type, out_gff_path):
         except ValueError:
             print(coords)
 
+    def split_coords_min_max(coords, as_strings=False):
+        """
+        Split coordinate pairs by segment and change coordinates to 1-based, closed system for GFF3
+        Get only start and end coordinate for each contig to annotate mRNA if 'disable_stitching' for
+        example
+        """
+        try:
+            changed_coords = []
+            for fragment in coords.split("\n"):
+                min_start, max_end = math.inf, 0
+                fragment_coords_strings = []
+                fragment_coords_tuples = []
+                for coord in fragment.split(","):
+                    start, end = int(coord.split("-")[0]), int(coord.split("-")[1])
+                    if start > end:
+                        if end + 1 < min_start: min_start = end + 1
+                        if start > max_end: max_end = start
+                    elif start == end:
+                        if start < min_start: min_start = start
+                        if end > max_end: max_end = end
+                    else:
+                        if start + 1 < min_start: min_start = start + 1
+                        if end > max_end: max_end = end
+                fragment_coords_strings.append(f"{min_start}-{max_end}")
+                fragment_coords_tuples.append((f"{min_start}", f"{max_end}"))
+                if as_strings:
+                    changed_coords.append(",".join(fragment_coords_strings))
+                else:
+                    changed_coords.append(fragment_coords_tuples)
+            return changed_coords
+        except ValueError:
+            print(coords)
+
     if marker_type in ["NUC", "PTD", "MIT"]:
         source = urllib.parse.quote("Captus (Scipio)")
         feature_type = urllib.parse.quote(f"protein_match:{marker_type}")
@@ -3026,16 +3059,34 @@ def write_gff3(hits, marker_type, out_gff_path):
             else:
                 h_name = urllib.parse.quote(f"{ref}{settings.SEQ_NAME_SEP}{h:02}")
                 gff.append(f"# {h_name}")
-            ref_coords = split_coords(hits[ref][h]["ref_coords"], as_strings=True)
-            hit_ids = hits[ref][h]["hit_ids"].split("\n")
-            hit_contigs = hits[ref][h]["hit_contigs"].split("\n")
-            hit_coords = split_coords(hits[ref][h]["hit_coords"])
             strands = hits[ref][h]["strand"].split("\n")
             score = f'{hits[ref][h]["score"]:.3f}'
             wscore = f"""WScore={urllib.parse.quote(f'{hits[ref][h]["wscore"]:.3f}')}"""
             cover_pct = f"""Coverage={urllib.parse.quote(f'{hits[ref][h]["coverage"]:.2f}')}"""
             ident_pct = f"""Identity={urllib.parse.quote(f'{hits[ref][h]["identity"]:.2f}')}"""
             color = f"Color={urllib.parse.quote(settings.GFF_COLORS[marker_type])}"
+            ref_coords = split_coords(hits[ref][h]["ref_coords"], as_strings=True)
+            hit_ids = hits[ref][h]["hit_ids"].split("\n")
+            hit_contigs = hits[ref][h]["hit_contigs"].split("\n")
+            if disable_stitching is True and marker_type in ["NUC", "PTD", "MIT"]:
+                ref_min_max = split_coords_min_max(hits[ref][h]["ref_coords"], as_strings=True)
+                hit_min_max = split_coords_min_max(hits[ref][h]["hit_coords"])
+                seq_id = urllib.parse.quote(hit_contigs[0])
+                strand = strands[0]
+                hit_id = f"ID={hit_ids[0]}"
+                name = f"Name={h_name}"
+                start = str(hit_min_max[0][0][0])
+                end = str(hit_min_max[0][0][1])
+                query = (
+                    f"""Query={urllib.parse.quote(f'{hits[ref][h]["ref_name"]}:{ref_min_max[0]}')}"""
+                )
+                attributes = ";".join([
+                    hit_id, name, wscore, query, cover_pct, ident_pct
+                ])
+                gff.append("\t".join([
+                    seq_id, source, "mRNA", start, end, score, strand, phase, attributes
+                ]))
+            hit_coords = split_coords(hits[ref][h]["hit_coords"])
             for c in range(len(hit_coords)):
                 seq_id = urllib.parse.quote(hit_contigs[c])
                 strand = strands[c]
