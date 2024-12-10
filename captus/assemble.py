@@ -893,7 +893,7 @@ def get_asm_stats(
                 depths_hist[key]["num_contigs"] += 1
                 depths_hist[key]["length"] += length
             else:
-                depths_hist[key]["num_contigs"] += 1
+                depths_hist["inf"]["num_contigs"] += 1
                 depths_hist["inf"]["length"] += length
             if length <= 1000:
                 key = str(math.ceil(length/50)*50)

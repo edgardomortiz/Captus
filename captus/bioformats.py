@@ -3081,7 +3081,7 @@ def write_gff3(hits, marker_type, disable_stitching, out_gff_path):
                     f"""Query={urllib.parse.quote(f'{hits[ref][h]["ref_name"]}:{ref_min_max[0]}')}"""
                 )
                 attributes = ";".join([
-                    hit_id, name, wscore, query, cover_pct, ident_pct
+                    hit_id, name, wscore, cover_pct, ident_pct, query
                 ])
                 gff.append("\t".join([
                     seq_id, source, "mRNA", start, end, score, strand, phase, attributes
@@ -3099,7 +3099,7 @@ def write_gff3(hits, marker_type, disable_stitching, out_gff_path):
                         f"""Query={urllib.parse.quote(f'{hits[ref][h]["ref_name"]}:{ref_coords[c]}')}"""
                     )
                     attributes = ";".join([
-                        hit_id, name, wscore, query, cover_pct, ident_pct, color
+                        hit_id, name, wscore, cover_pct, ident_pct, query, color
                     ])
                     gff.append("\t".join([
                         seq_id, source, feature_type, start, end, score, strand, phase, attributes
