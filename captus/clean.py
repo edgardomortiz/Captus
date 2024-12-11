@@ -85,6 +85,7 @@ def clean(full_command, args):
 
     log.log(f'{"Captus version":>{mar}}: {bold(f"v{__version__}")}')
     log.log(f'{"Command":>{mar}}: {bold(full_command)}')
+    tsv_comment = f'#Captus v{__version__}\n#Command: {full_command}\n'
     _, ram_MB, ram_GB, ram_GB_total = set_ram(args.ram)
     log.log(f'{"Max. RAM":>{mar}}: {bold(f"{ram_GB:.1f}GB")} {dim(f"(out of {ram_GB_total:.1f}GB)")}')
     threads_max, threads_total = set_threads(args.threads)
@@ -373,8 +374,9 @@ def clean(full_command, args):
     log.log(f'{"QC extras directory":>{mar}}: {bold(qc_extras_dir)}')
     log.log(f'{"":>{mar}}  {dim(qc_extras_msg)}')
     log.log("")
-    summarize_bbduk_logs(out_dir, qc_extras_dir, mar)
-    summarize_qc_stats(out_dir, qc_extras_dir, qc_stats_before_dir, qc_stats_after_dir, mar)
+    summarize_bbduk_logs(out_dir, qc_extras_dir, tsv_comment, mar)
+    summarize_qc_stats(out_dir, qc_extras_dir, qc_stats_before_dir,
+                       qc_stats_after_dir, tsv_comment, mar)
     log.log("")
 
     if all([numpy_found, pandas_found, plotly_found]):
@@ -436,7 +438,7 @@ def trim_AT_GC_bias(in_dir, in_fastq):
     delta exceeds 'settings.MAX_DELTA_AT', return the final lengtht to which the reads have to be
     trimmed ('max_length' - 1) or 0 if they should not be trimmed
     """
-    num_reads = settings.NUM_READS_TO_CALCULATE_READ_STATS
+    num_reads = settings.NUM_READS_TO_CALCULATE_STATS
     max_length = 0
     nt = {"A": 0, "C": 0, "G": 0, "T": 0, "N": 0}
 
@@ -727,7 +729,7 @@ def qc_stats(qc_program_name, qc_program_path, in_fastq, qc_stats_out_dir, overw
     return message
 
 
-def summarize_bbduk_logs(out_dir, qc_extras_dir, margin):
+def summarize_bbduk_logs(out_dir, qc_extras_dir, tsv_comment, margin):
     round1_logs = list(out_dir.rglob("*.round1.log"))
     round2_logs = list(out_dir.rglob("*.round2.log"))
     cleaning_logs = list(out_dir.rglob("*.cleaning.log"))
@@ -849,6 +851,7 @@ def summarize_bbduk_logs(out_dir, qc_extras_dir, margin):
     adaptors_round2_summary = Path(qc_extras_dir, settings.QC_FILES["ADR2"])
     contaminants_summary = Path(qc_extras_dir, settings.QC_FILES["CONT"])
     with open(reads_bases_summary, "wt") as summary_out:
+        summary_out.write(tsv_comment)
         summary_out.write(
             "sample\treads_input\tbases_input\t"
             "reads_trimmed_round1\treads_passed_round1\tbases_passed_round1\t"
@@ -872,6 +875,7 @@ def summarize_bbduk_logs(out_dir, qc_extras_dir, margin):
             )
     log.log(f'{"Reads/Bases stats":>{margin}}: {bold(reads_bases_summary)}')
     with open(adaptors_round1_summary, "wt") as summary_out:
+        summary_out.write(tsv_comment)
         samples_header = "\t".join(sample_names)
         summary_out.write(
             f"adaptor\ttotal_reads\t{samples_header}\n"
@@ -886,6 +890,7 @@ def summarize_bbduk_logs(out_dir, qc_extras_dir, margin):
             )
     log.log(f'{"Adaptors 1st round":>{margin}}: {bold(adaptors_round1_summary)}')
     with open(adaptors_round2_summary, "wt") as summary_out:
+        summary_out.write(tsv_comment)
         samples_header = "\t".join(sample_names)
         summary_out.write(
             f"adaptor\ttotal_reads\t{samples_header}\n"
@@ -900,6 +905,7 @@ def summarize_bbduk_logs(out_dir, qc_extras_dir, margin):
             )
     log.log(f'{"Adaptors 2nd round":>{margin}}: {bold(adaptors_round2_summary)}')
     with open(contaminants_summary, "wt") as summary_out:
+        summary_out.write(tsv_comment)
         samples_header = "\t".join(sample_names)
         summary_out.write(
             f"contaminant\ttotal_reads\t{samples_header}\n"
@@ -915,7 +921,9 @@ def summarize_bbduk_logs(out_dir, qc_extras_dir, margin):
     log.log(f'{"Contaminants":>{margin}}: {bold(contaminants_summary)}')
 
 
-def summarize_qc_stats(out_dir, qc_extras_dir, qc_stats_before_dir, qc_stats_after_dir, margin):
+def summarize_qc_stats(
+    out_dir, qc_extras_dir, qc_stats_before_dir, qc_stats_after_dir, tsv_comment, margin
+):
     """
     Summarize FastQC or Falco reports into a nice multisample .html
     """
@@ -1024,35 +1032,42 @@ def summarize_qc_stats(out_dir, qc_extras_dir, qc_stats_before_dir, qc_stats_aft
 
     per_base_seq_qual = Path(qc_extras_dir, settings.QC_FILES["PBSQ"])
     with open(per_base_seq_qual, "wt") as stats_out:
+        stats_out.write(tsv_comment)
         stats_out.write("\n".join(qc_stats["per_base_seq_qual_data"]))
     log.log(f'{"Per base seq. qual.":>{margin}}: {bold(per_base_seq_qual)}')
 
     per_seq_qual_scores = Path(qc_extras_dir, settings.QC_FILES["PSQS"])
     with open(per_seq_qual_scores, "wt") as stats_out:
+        stats_out.write(tsv_comment)
         stats_out.write("\n".join(qc_stats["per_seq_qual_scores_data"]))
     log.log(f'{"Per seq. qual. scores":>{margin}}: {bold(per_seq_qual_scores)}')
 
     per_base_seq_content = Path(qc_extras_dir, settings.QC_FILES["PBSC"])
     with open(per_base_seq_content, "wt") as stats_out:
+        stats_out.write(tsv_comment)
         stats_out.write("\n".join(qc_stats["per_base_seq_content_data"]))
     log.log(f'{"Per base seq. content":>{margin}}: {bold(per_base_seq_content)}')
 
     per_seq_gc_content = Path(qc_extras_dir, settings.QC_FILES["PSGC"])
     with open(per_seq_gc_content, "wt") as stats_out:
+        stats_out.write(tsv_comment)
         stats_out.write("\n".join(qc_stats["per_seq_gc_content_data"]))
     log.log(f'{"Per seq. GC content":>{margin}}: {bold(per_seq_gc_content)}')
 
     seq_len_dist = Path(qc_extras_dir, settings.QC_FILES["SLEN"])
     with open(seq_len_dist, "wt") as stats_out:
+        stats_out.write(tsv_comment)
         stats_out.write("\n".join(qc_stats["seq_len_dist_data"]))
     log.log(f'{"Seq. length distr.":>{margin}}: {bold(seq_len_dist)}')
 
     seq_dup_levels = Path(qc_extras_dir, settings.QC_FILES["SDUP"])
     with open(seq_dup_levels, "wt") as stats_out:
+        stats_out.write(tsv_comment)
         stats_out.write("\n".join(qc_stats["seq_dup_levels_data"]))
     log.log(f'{"Seq. duplication":>{margin}}: {bold(seq_dup_levels)}')
 
     adaptor_content = Path(qc_extras_dir, settings.QC_FILES["ADCO"])
     with open(adaptor_content, "wt") as stats_out:
+        stats_out.write(tsv_comment)
         stats_out.write("\n".join(qc_stats["adaptor_content_data"]))
     log.log(f'{"Adaptor content":>{margin}}: {bold(adaptor_content)}')

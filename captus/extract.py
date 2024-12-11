@@ -74,6 +74,7 @@ def extract(full_command, args):
 
     log.log(f'{"Captus version":>{mar}}: {bold(f"v{__version__}")}')
     log.log(f'{"Command":>{mar}}: {bold(full_command)}')
+    tsv_comment = f'#Captus v{__version__}\n#Command: {full_command}\n'
     ram_B, ram_MB, ram_GB, ram_GB_total = set_ram(args.ram)
     log.log(f'{"Max. RAM":>{mar}}: {bold(f"{ram_GB:.1f}GB")} {dim(f"(out of {ram_GB_total:.1f}GB)")}')
     threads_max, threads_total = set_threads(args.threads)
@@ -288,7 +289,8 @@ def extract(full_command, args):
             log.log(f'{"min_identity":>{mar}}: {bold(nuc_min_identity)}')
             nuc_min_coverage = adjust_min_coverage(args.nuc_min_coverage)
             log.log(f'{"min_coverage":>{mar}}: {bold(nuc_min_coverage)}')
-            log.log(f'{"depth_tolerance":>{mar}}: {bold(args.nuc_depth_tolerance)}')
+            nuc_dt_msg = depth_tolerance_msg(args.nuc_depth_tolerance, "NUC")
+            log.log(f'{"depth_tolerance":>{mar}}: {nuc_dt_msg}')
         log.log("")
         log.log(bold(f'{"Plastidial proteins":>{mar}}:'))
         log.log(f'{"reference":>{mar}}: {protein_refs["PTD"]["AA_msg"]}')
@@ -300,7 +302,8 @@ def extract(full_command, args):
             log.log(f'{"min_identity":>{mar}}: {bold(ptd_min_identity)}')
             ptd_min_coverage = adjust_min_coverage(args.ptd_min_coverage)
             log.log(f'{"min_coverage":>{mar}}: {bold(ptd_min_coverage)}')
-            log.log(f'{"depth_tolerance":>{mar}}: {bold(args.ptd_depth_tolerance)}')
+            ptd_dt_msg = depth_tolerance_msg(args.ptd_depth_tolerance, "PTD")
+            log.log(f'{"depth_tolerance":>{mar}}: {ptd_dt_msg}')
         log.log("")
         log.log(bold(f'{"Mitochondrial proteins":>{mar}}:'))
         log.log(f'{"reference":>{mar}}: {protein_refs["MIT"]["AA_msg"]}')
@@ -312,7 +315,8 @@ def extract(full_command, args):
             log.log(f'{"min_identity":>{mar}}: {bold(mit_min_identity)}')
             mit_min_coverage = adjust_min_coverage(args.mit_min_coverage)
             log.log(f'{"min_coverage":>{mar}}: {bold(mit_min_coverage)}')
-            log.log(f'{"depth_tolerance":>{mar}}: {bold(args.mit_depth_tolerance)}')
+            mit_dt_msg = depth_tolerance_msg(args.mit_depth_tolerance, "MIT")
+            log.log(f'{"depth_tolerance":>{mar}}: {mit_dt_msg}')
         log.log("")
         log.log("")
 
@@ -340,7 +344,8 @@ def extract(full_command, args):
             log.log(f'{"reference info":>{mar}}: {dna_query_info["info_msg"]}')
             log.log(f'{"min_identity":>{mar}}: {bold(args.dna_min_identity)}')
             log.log(f'{"min_coverage":>{mar}}: {bold(args.dna_min_coverage)}')
-            log.log(f'{"depth_tolerance":>{mar}}: {bold(args.dna_depth_tolerance)}')
+            dna_dt_msg = depth_tolerance_msg(args.dna_depth_tolerance, "DNA")
+            log.log(f'{"depth_tolerance":>{mar}}: {dna_dt_msg}')
         log.log("")
         log.log("")
 
@@ -376,8 +381,6 @@ def extract(full_command, args):
                         nuc_min_identity,
                         args.nuc_min_coverage,
                         args.blat_path,
-                        args.overwrite,
-                        args.keep_all,
                         fastas_to_extract[sample]["assembly_path"],
                         fastas_to_extract[sample]["sample_dir"],
                         sample,
@@ -395,7 +398,10 @@ def extract(full_command, args):
                         args.max_paralogs,
                         args.predict,
                         prot_threads,
-                        args.debug
+                        tsv_comment,
+                        args.debug,
+                        args.overwrite,
+                        args.keep_all
                     ))
                 if protein_refs["PTD"]["AA_path"]:
                     scipio_params.append((
@@ -404,8 +410,6 @@ def extract(full_command, args):
                         ptd_min_identity,
                         args.ptd_min_coverage,
                         args.blat_path,
-                        args.overwrite,
-                        args.keep_all,
                         fastas_to_extract[sample]["assembly_path"],
                         fastas_to_extract[sample]["sample_dir"],
                         sample,
@@ -423,7 +427,10 @@ def extract(full_command, args):
                         args.max_paralogs,
                         args.predict,
                         prot_threads,
-                        args.debug
+                        tsv_comment,
+                        args.debug,
+                        args.overwrite,
+                        args.keep_all,
                     ))
                 if protein_refs["MIT"]["AA_path"]:
                     scipio_params.append((
@@ -432,8 +439,6 @@ def extract(full_command, args):
                         mit_min_identity,
                         args.mit_min_coverage,
                         args.blat_path,
-                        args.overwrite,
-                        args.keep_all,
                         fastas_to_extract[sample]["assembly_path"],
                         fastas_to_extract[sample]["sample_dir"],
                         sample,
@@ -451,15 +456,16 @@ def extract(full_command, args):
                         args.max_paralogs,
                         args.predict,
                         prot_threads,
-                        args.debug
+                        tsv_comment,
+                        args.debug,
+                        args.overwrite,
+                        args.keep_all,
                     ))
                 if dna_ref["DNA"]["NT_path"]:
                     blat_params.append((
                         args.blat_path,
                         args.dna_min_identity,
                         args.dna_min_coverage,
-                        args.overwrite,
-                        args.keep_all,
                         fastas_to_extract[sample]["assembly_path"],
                         fastas_to_extract[sample]["sample_dir"],
                         sample,
@@ -471,12 +477,16 @@ def extract(full_command, args):
                         args.dna_depth_tolerance,
                         args.disable_stitching,
                         args.max_loci_files,
-                        args.max_paralogs
+                        args.max_paralogs,
+                        tsv_comment,
+                        args.overwrite,
+                        args.keep_all
                     ))
                 cleanup_params.append((
                     sample,
                     fastas_to_extract[sample]["sample_dir"],
                     fastas_to_extract[sample]["assembly_path"],
+                    tsv_comment,
                     args.keep_all,
                     args.overwrite,
                     skip_clustering
@@ -689,6 +699,8 @@ def extract(full_command, args):
                 log.log(f'{"reference info":>{mar}}: {clust_query_info["info_msg"]}')
                 log.log(f'{"dna_min_identity":>{mar}}: {bold(dna_min_identity)}')
                 log.log(f'{"dna_min_coverage":>{mar}}: {bold(args.dna_min_coverage)}')
+                clr_dt_msg = depth_tolerance_msg(args.dna_depth_tolerance, "CLR")
+                log.log(f'{"depth_tolerance":>{mar}}: {clr_dt_msg}')
             log.log("")
             log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
             log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
@@ -702,8 +714,6 @@ def extract(full_command, args):
                         args.blat_path,
                         dna_min_identity,
                         args.dna_min_coverage,
-                        args.overwrite,
-                        args.keep_all,
                         fastas_to_extract[sample]["assembly_path"],
                         fastas_to_extract[sample]["sample_dir"],
                         sample,
@@ -711,8 +721,14 @@ def extract(full_command, args):
                         clust_query,
                         clust_query_info,
                         "CLR",
+                        args.ignore_depth,
+                        args.dna_depth_tolerance,
+                        args.disable_stitching,
                         args.max_loci_files,
-                        args.max_paralogs
+                        args.max_paralogs,
+                        tsv_comment,
+                        args.overwrite,
+                        args.keep_all
                     ))
                 log.log(f'{"Extractions to process":>{mar}}: {bold(len(blat_clusters_params))}')
                 log.log("")
@@ -746,6 +762,7 @@ def extract(full_command, args):
                         sample,
                         fastas_to_extract[sample]["sample_dir"],
                         fastas_to_extract[sample]["assembly_path"],
+                        tsv_comment,
                         args.keep_all,
                         True, # overwrite
                         skip_clustering,
@@ -778,7 +795,7 @@ def extract(full_command, args):
         "Now Captus will collect the extraction statistics from each sample to compile a"
         " comprehensive table and a HTML report for visualization of extraction statistics."
     )
-    ext_stats_tsv = collect_ext_stats(out_dir)
+    ext_stats_tsv = collect_ext_stats(out_dir, tsv_comment)
     if ext_stats_tsv:
         log.log(f'{"Extraction statistics":>{mar}}: {bold(ext_stats_tsv)}')
         log.log("")
@@ -1261,11 +1278,17 @@ def reference_info(query_dict):
     return ref_info
 
 
+def depth_tolerance_msg(depth_tolerance, marker_type):
+    msg = bold(f'{depth_tolerance} ')
+    msg += dim(f'(min = median {marker_type} contig depth / {depth_tolerance}, ')
+    msg += dim(f'max = median {marker_type} contig depth x {depth_tolerance})')
+    return msg
+
 def scipio_coding(
-    scipio_path, min_score, min_identity, min_coverage, blat_path, overwrite, keep_all, target_path,
-    sample_dir, sample_name, query_path, query_dict, query_parts_paths, query_info, marker_type,
-    transtable, ignore_depth, depth_tolerance, disable_stitching, max_loci_files, max_loci_scipio_x2,
-    max_paralogs, predict, threads, debug
+    scipio_path, min_score, min_identity, min_coverage, blat_path, target_path, sample_dir,
+    sample_name, query_path, query_dict, query_parts_paths, query_info, marker_type, transtable,
+    ignore_depth, depth_tolerance, disable_stitching, max_loci_files, max_loci_scipio_x2,
+    max_paralogs, predict, threads, tsv_comment, debug, overwrite, keep_all
 ):
     """
     Perform two consecutive rounds of Scipio, the first run with mostly default settings and with a
@@ -1366,12 +1389,12 @@ def scipio_coding(
         message = red(f"'{sample_name}': FAILED extraction of {genes[marker_type]}")
         return message
     else:
-        write_gff3(final_models, marker_type, disable_stitching,
+        write_gff3(final_models, marker_type, disable_stitching, tsv_comment,
                    Path(yaml_final_dir, f"{marker_type}_contigs.gff"))
-        recovery_stats = write_fastas_and_report(
-            final_models, sample_name, fasta_to_dict(target_path),
-            yaml_final_dir, marker_type, overwrite, max_loci_files
-        )
+        recovery_stats = write_fastas_and_report(final_models, sample_name,
+                                                 fasta_to_dict(target_path),
+                                                 yaml_final_dir, marker_type, max_loci_files,
+                                                 tsv_comment, overwrite)
         message = (
             f"'{sample_name}': recovered {recovery_stats['num_loci']:,} {genes[marker_type]}"
             f' ({recovery_stats["num_loci"] / query_info["num_loci"]:.1%} of {query_info["num_loci"]:,}),'
@@ -1648,7 +1671,7 @@ def filter_query_and_target(query_dict, target_dict, yaml_initial_dir, initial_m
 
 
 def write_fastas_and_report(
-    hits, sample_name, target_dict, out_dir, marker_type, overwrite, max_loci_files
+    hits, sample_name, target_dict, out_dir, marker_type, max_loci_files, tsv_comment, overwrite
 ):
     """
     Take a 'hits' dictionary from coding or miscellaneous DNA extraction and produce FASTA outputs
@@ -1849,6 +1872,7 @@ def write_fastas_and_report(
 
     # Write statistics table
     with open(Path(out_dir, f"{marker_type}_recovery_stats.tsv"), "w") as stats_out:
+        stats_out.write(tsv_comment)
         stats_out.write(stats_header + "\n" + "\n".join(stats) + "\n")
 
     # Write multi-sequence FASTAs and setup directories for locus-wise files, only prepare a
@@ -1922,9 +1946,9 @@ def write_fastas_and_report(
 
 
 def blat_misc_dna(
-    blat_path, min_identity, min_coverage, overwrite, keep_all, target_path, sample_dir, sample_name,
+    blat_path, min_identity, min_coverage, target_path, sample_dir, sample_name,
     query_path, query_dict, query_info, marker_type, ignore_depth, depth_tolerance,
-    disable_stitching, max_loci_files, max_paralogs
+    disable_stitching, max_loci_files, max_paralogs, tsv_comment, overwrite, keep_all
 ):
     """
     Extract matches of miscellaneous DNA sequences by comparing the assemblies to a set of
@@ -1975,8 +1999,8 @@ def blat_misc_dna(
                 Path(blat_dna_out_file).unlink()
             write_gff3(dna_hits, marker_type, disable_stitching, dna_gff_file)
             recovery_stats = write_fastas_and_report(dna_hits, sample_name, dna_target,
-                                                     blat_dna_out_dir, marker_type, overwrite,
-                                                     max_loci_files)
+                                                     blat_dna_out_dir, marker_type,
+                                                     max_loci_files, tsv_comment, overwrite)
             message = (
                 f"'{sample_name}': recovered {recovery_stats['num_loci']:,} DNA markers"
                 f' ({recovery_stats["num_loci"] / query_info["num_loci"]:.1%} of'
@@ -1996,7 +2020,8 @@ def blat_misc_dna(
 
 
 def cleanup_post_extraction(
-    sample_name, sample_dir, assembly_path, keep_all, overwrite, skip_clustering, cluster=False
+    sample_name, sample_dir, assembly_path, tsv_comment,
+    keep_all, overwrite, skip_clustering, cluster=False
 ):
     """
     Concatenate all '.gff' from extraction folders to make a master annotation file and a single
@@ -2027,11 +2052,13 @@ def cleanup_post_extraction(
         gff_lines = 0
         with open(gff_file, "wt") as gff_out:
             gff_out.write("##gff-version 3\n")
+            gff_out.write(f'#{tsv_comment.split("\n")[0]}\n')
+            gff_out.write(f'#{tsv_comment.split("\n")[1]}\n')
             if sample_gffs:
                 for gff in sorted(sample_gffs):
                     with open(gff, "rt") as gff_in:
                         for line in gff_in:
-                            if line != "##gff-version 3\n":
+                            if not line.startswith("##"):
                                 gff_out.write(line)
                                 gff_lines += 1
 
@@ -2055,12 +2082,13 @@ def cleanup_post_extraction(
                             if tsv.parts[-2] != settings.MARKER_DIRS["CLR"]]
         tsv_lines = 0
         with open(stats_file, "wt") as tsv_out:
+            tsv_out.write(tsv_comment)
             tsv_out.write(stats_header)
             if sample_stats:
                 for table in sorted(sample_stats):
                     with open(table, "rt") as stats_in:
                         for line in stats_in:
-                            if line != stats_header:
+                            if not line.startswith("#") and line != stats_header:
                                 tsv_out.write(line)
                                 tsv_lines += 1
         if tsv_lines == 0:
@@ -2432,7 +2460,7 @@ def mafft_auto_strand(mafft_path: str, fasta_in: Path, fasta_out: Path):
     return message
 
 
-def collect_ext_stats(out_dir):
+def collect_ext_stats(out_dir, tsv_comment):
     # Resolve each sample extraction subdirectory to follow symlinks correctly
     ext_dirs = sorted(p.resolve() for p in list(Path(out_dir).rglob("*__captus-ext")))
     samples_stats = []
@@ -2445,10 +2473,11 @@ def collect_ext_stats(out_dir):
         stats_file_out = Path(out_dir, "captus-assembly_extract.stats.tsv")
         header = "\t".join(settings.EXT_STATS_HEADER) + "\n"
         with open(stats_file_out, "wt") as tsv_out:
+            tsv_out.write(tsv_comment)
             tsv_out.write(header)
             for tsv in samples_stats:
                 with open(tsv, "rt") as tsv_in:
                     for line in tsv_in:
-                        if line != header:
+                        if not line.startswith("#") and line != header:
                             tsv_out.write(line)
         return stats_file_out

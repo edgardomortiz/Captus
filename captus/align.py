@@ -54,6 +54,7 @@ def align(full_command, args):
 
     log.log(f'{"Captus version":>{mar}}: {bold(f"v{__version__}")}')
     log.log(f'{"Command":>{mar}}: {bold(full_command)}')
+    tsv_comment = f'#Captus v{__version__}\n#Command: {full_command}\n'
     _, _, ram_GB, ram_GB_total = set_ram(args.ram)
     log.log(f'{"Max. RAM":>{mar}}: {bold(f"{ram_GB:.1f}GB")} {dim(f"(out of {ram_GB_total:.1f}GB)")}')
     threads_max, threads_total = set_threads(args.threads)
@@ -376,7 +377,7 @@ def align(full_command, args):
             paralog_informed_filter(shared_paralog_stats, fastas_to_filter, filtering_refs,
                                     args.tolerance, args.min_samples, args.overwrite,
                                     concurrent, args.debug, show_less)
-            paralog_stats_tsv = write_paralog_stats(out_dir, shared_paralog_stats)
+            paralog_stats_tsv = write_paralog_stats(out_dir, tsv_comment, shared_paralog_stats)
             log.log("")
             log.log(f'{"Paralog statistics":>{mar}}: {bold(paralog_stats_tsv)}')
             log.log("")
@@ -597,8 +598,8 @@ def align(full_command, args):
                                 "alignment", concurrent, show_less)
     log.log("")
 
-    aln_stats_tsv = write_aln_stats(out_dir, shared_aln_stats)
-    sam_stats_tsv = write_sam_stats(out_dir, shared_sam_stats)
+    aln_stats_tsv = write_aln_stats(out_dir, tsv_comment, shared_aln_stats)
+    sam_stats_tsv = write_sam_stats(out_dir, tsv_comment, shared_sam_stats)
     if aln_stats_tsv:
         log.log(f'{"Alignment statistics":>{mar}}: {bold(aln_stats_tsv)}')
         log.log(f'{"Sample statistics":>{mar}}: {bold(sam_stats_tsv)}')
@@ -1533,12 +1534,13 @@ def filter_paralogs_informed(
     return "\n".join(messages)
 
 
-def write_paralog_stats(out_dir, shared_paralog_stats):
+def write_paralog_stats(out_dir, tsv_comment, shared_paralog_stats):
     if not shared_paralog_stats:
         return red("No paralogs were found...")
     else:
         stats_tsv_file = Path(out_dir, "captus-assembly_align.paralogs.tsv")
         with open(stats_tsv_file, "wt") as tsv_out:
+            tsv_out.write(tsv_comment)
             tsv_out.write("\t".join(["marker_type",
                                      "format_filtered",
                                      "locus",
@@ -1777,12 +1779,13 @@ def compute_stats(shared_sam_stats, shared_aln_stats, fasta_path):
     return message
 
 
-def write_aln_stats(out_dir, shared_aln_stats):
+def write_aln_stats(out_dir, tsv_comment, shared_aln_stats):
     if not shared_aln_stats:
         return None
     else:
         stats_tsv_file = Path(out_dir, "captus-assembly_align.alignments.tsv")
         with open(stats_tsv_file, "wt") as tsv_out:
+            tsv_out.write(tsv_comment)
             tsv_out.write("\t".join(["path",
                                      "trimmed",
                                      "paralog_filter",
@@ -1810,12 +1813,13 @@ def write_aln_stats(out_dir, shared_aln_stats):
         return stats_tsv_file
 
 
-def write_sam_stats(out_dir, shared_sam_stats):
+def write_sam_stats(out_dir, tsv_comment, shared_sam_stats):
     if not shared_sam_stats:
         return None
     else:
         stats_tsv_file = Path(out_dir, "captus-assembly_align.samples.tsv")
         with open(stats_tsv_file, "wt") as tsv_out:
+            tsv_out.write(tsv_comment)
             tsv_out.write("\t".join(["sample",
                                      "stage_marker_format",
                                      "locus",

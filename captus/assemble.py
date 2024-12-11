@@ -83,6 +83,7 @@ def assemble(full_command, args):
 
     log.log(f'{"Captus version":>{mar}}: {bold(f"v{__version__}")}')
     log.log(f'{"Command":>{mar}}: {bold(full_command)}')
+    tsv_comment = f'#Captus v{__version__}\n#Command: {full_command}\n'
     ram_B, ram_MB, ram_GB, ram_GB_total = set_ram(args.ram)
     log.log(f'{"Max. RAM":>{mar}}: {bold(f"{ram_GB:.1f}GB")} {dim(f"(out of {ram_GB_total:.1f}GB)")}')
     threads_max, threads_total = set_threads(args.threads)
@@ -310,6 +311,7 @@ def assemble(full_command, args):
             args.min_contig_len,
             extra_options,
             tmp_dir,
+            tsv_comment,
             args.keep_all,
             args.overwrite
         ))
@@ -339,6 +341,7 @@ def assemble(full_command, args):
                 fastqs_to_assemble[fastq_r1]["max_read_length"],
                 threads_max,
                 out_dir,
+                tsv_comment,
                 args.keep_all,
                 args.overwrite
             ))
@@ -358,6 +361,7 @@ def assemble(full_command, args):
             args.min_contig_depth,
             args.redo_filtering,
             out_dir,
+            tsv_comment,
             args.overwrite
         ))
     symbol = "<"
@@ -376,7 +380,7 @@ def assemble(full_command, args):
                                 "sample", concurrent, args.show_less)
     log.log("")
 
-    asm_stats_tsv, dep_stats_tsv, len_stats_tsv = collect_asm_stats(out_dir)
+    asm_stats_tsv, dep_stats_tsv, len_stats_tsv = collect_asm_stats(out_dir, tsv_comment)
     if asm_stats_tsv:
         log.log(f'{"Assembly statistics":>{mar}}: {bold(asm_stats_tsv)}')
         log.log(f'{"Depth statistics":>{mar}}: {bold(dep_stats_tsv)}')
@@ -526,7 +530,7 @@ def adjust_megahit_concurrency(concurrent, threads_max, ram_B, num_samples, pres
 def megahit(
     megahit_path, megahit_toolkit_path, fastq_dir, fastq_r1, fastq_r2, sample_name, mean_read_length,
     k_list, min_count, prune_level, merge_level, ram_B, threads, out_dir, min_contig_len,
-    extra_options, tmp_dir, keep_all, overwrite
+    extra_options, tmp_dir, tsv_comment, keep_all, overwrite
 ):
     """
     De novo assembly with MEGAHIT >= v1.2.9
@@ -576,7 +580,7 @@ def megahit(
             subprocess.run(megahit_cmd, stdout=megahit_log, stderr=megahit_log)
         cleanup_megahit_out_dir(sample_megahit_out_dir, megahit_log_file,
                                 megahit_toolkit_path, keep_all)
-        write_depth_coverage_tsv(sample_megahit_out_dir, "megahit")
+        write_depth_coverage_tsv(sample_megahit_out_dir, "megahit", tsv_comment)
         message = f"'{sample_name}': assembled [{elapsed_time(time.time() - start)}]"
     else:
         message = dim(f"'{sample_name}': SKIPPED (output files already exist)")
@@ -636,7 +640,7 @@ def cleanup_megahit_out_dir(sample_megahit_out_dir, megahit_log_file, megahit_to
 
 def salmon(
     salmon_path, fastq_dir, fastq_r1, fastq_r2, sample_name, k_list, max_read_length, threads,
-    out_dir, keep_all, overwrite
+    out_dir, tsv_comment, keep_all, overwrite
 ):
     start = time.time()
     sample_megahit_out_dir = Path(out_dir, f"{sample_name}__captus-asm", "01_assembly")
@@ -695,7 +699,7 @@ def salmon(
         with open(salmon_log_file, "a") as salmon_log:
             subprocess.run(salmon_quant_cmd, stdout=salmon_log, stderr=salmon_log)
         cleanup_salmon_out_dirs(sample_index_dir, sample_quant_dir, keep_all)
-        write_depth_coverage_tsv(sample_megahit_out_dir, "salmon", max_read_length)
+        write_depth_coverage_tsv(sample_megahit_out_dir, "salmon", tsv_comment, max_read_length)
         message = f"'{sample_name}': depth of coverage estimated [{elapsed_time(time.time() - start)}]"
     else:
         message = dim(f"'{sample_name}': SKIPPED (output files already exist)")
@@ -717,7 +721,9 @@ def cleanup_salmon_out_dirs(sample_index_dir, sample_quant_dir, keep_all):
     return
 
 
-def write_depth_coverage_tsv(sample_megahit_out_dir, depth_estimator, max_read_length=150):
+def write_depth_coverage_tsv(
+    sample_megahit_out_dir, depth_estimator, tsv_comment, max_read_length=150
+):
 
     fasta_asm_file = Path(sample_megahit_out_dir, "assembly.fasta")
     fasta_asm = fasta_to_dict(fasta_asm_file)
@@ -732,6 +738,7 @@ def write_depth_coverage_tsv(sample_megahit_out_dir, depth_estimator, max_read_l
     ]
     if depth_estimator == "megahit":
         with open(Path(sample_megahit_out_dir, settings.CONTIGS_DEPTH), "w") as tsv_out:
+            tsv_out.write(tsv_comment)
             tsv_out.write(f'{"\t".join(tsv_header)}\n')
             for ctg_name in fasta_asm:
                 name_parts = ctg_name.split("_")
@@ -748,6 +755,7 @@ def write_depth_coverage_tsv(sample_megahit_out_dir, depth_estimator, max_read_l
         reheaded_fasta_asm = {}
         salmon_quant_file = Path(sample_megahit_out_dir, settings.SALMON_QUANT_DIR, "quant.sf")
         with open(Path(sample_megahit_out_dir, settings.CONTIGS_DEPTH), "w") as tsv_out:
+            tsv_out.write(tsv_comment)
             tsv_out.write(f'{"\t".join(tsv_header)}\n')
             with open(salmon_quant_file, "r") as quant:
                 for line in quant:
@@ -776,8 +784,8 @@ def write_depth_coverage_tsv(sample_megahit_out_dir, depth_estimator, max_read_l
 
 
 def filter_assembly(
-    sample_name, max_contig_gc, disable_mapping, min_contig_depth, redo_filtering, out_dir,
-    overwrite
+    sample_name, max_contig_gc, disable_mapping, min_contig_depth,
+    redo_filtering, out_dir, tsv_comment, overwrite
 ):
     start = time.time()
     sample_megahit_out_dir = Path(out_dir, f"{sample_name}__captus-asm", "01_assembly")
@@ -826,9 +834,8 @@ def filter_assembly(
                 accepted[seq_name] = unfiltered[seq_name]
         dict_to_fasta(accepted, assembly_fasta, wrap=80, write_if_empty=True)
         dict_to_fasta(rejected, removed_fasta, wrap=80, write_if_empty=True)
-        message = get_asm_stats(
-            sample_name, unfiltered, accepted, assembly_stats_tsv, depth_stats_tsv, length_stats_tsv
-        )
+        message = get_asm_stats(sample_name, unfiltered, accepted, assembly_stats_tsv,
+                                depth_stats_tsv, length_stats_tsv, tsv_comment)
         message = f"{message}\n'{sample_name}': assembly filtered [{elapsed_time(time.time() - start)}]"
     else:
         message = dim(f"'{sample_name}': SKIPPED (output files already exist)")
@@ -837,10 +844,13 @@ def filter_assembly(
 
 
 def get_asm_stats(
-    sample_name, asm_before, asm_after, asm_stats_tsv_path, depth_stats_tsv_path, length_stats_tsv_path
+    sample_name, asm_before, asm_after, asm_stats_tsv_path,
+    depth_stats_tsv_path, length_stats_tsv_path, tsv_comment
 ):
 
-    def calc_asm_stats(sample_name, asm, stage, asm_stats_tsv_path, depth_stats_tsv_path, length_stats_tsv_path):
+    def calc_asm_stats(
+        sample_name, asm, stage, asm_stats_tsv_path, depth_stats_tsv_path, length_stats_tsv_path
+    ):
         """
         4847 contigs, total 2895219 bp, min 183 bp, max 4250 bp, avg 597 bp, N50 673 bp
         """
@@ -1062,10 +1072,13 @@ def get_asm_stats(
         "num_contigs",
     ]
     with open(asm_stats_tsv_path, "w") as stats_tsv:
+        stats_tsv.write(tsv_comment)
         stats_tsv.write(f'{"\t".join(asm_stats_header)}\n')
     with open(depth_stats_tsv_path, "w") as stats_tsv:
+        stats_tsv.write(tsv_comment)
         stats_tsv.write(f'{"\t".join(depth_stats_header)}\n')
     with open(length_stats_tsv_path, "w") as stats_tsv:
+        stats_tsv.write(tsv_comment)
         stats_tsv.write(f'{"\t".join(length_stats_header)}\n')
 
     msg_before = calc_asm_stats(
@@ -1078,7 +1091,7 @@ def get_asm_stats(
     return f'{msg_before}\n{msg_after}'
 
 
-def collect_asm_stats(out_dir):
+def collect_asm_stats(out_dir, tsv_comment):
     assembly_tsv_files = sorted(list(Path(out_dir).resolve().rglob("assembly_stats.tsv")))
     depth_tsv_files = sorted(list(Path(out_dir).resolve().rglob("depth_stats.tsv")))
     length_tsv_files = sorted(list(Path(out_dir).resolve().rglob("length_stats.tsv")))
@@ -1140,27 +1153,30 @@ def collect_asm_stats(out_dir):
         length_stats_header = f'{"\t".join(length_stats_header)}\n'
 
         with open(assembly_stats_tsv, "w") as tsv_out:
+            tsv_out.write(tsv_comment)
             tsv_out.write(assembly_stats_header)
             for tsv in assembly_tsv_files:
                 with open(tsv, "rt") as tsv_in:
                     for line in tsv_in:
-                        if line != assembly_stats_header:
+                        if not line.startswith("#") and line != assembly_stats_header:
                             tsv_out.write(line)
 
         with open(depth_stats_tsv, "w") as tsv_out:
+            tsv_out.write(tsv_comment)
             tsv_out.write(depth_stats_header)
             for tsv in depth_tsv_files:
                 with open(tsv, "rt") as tsv_in:
                     for line in tsv_in:
-                        if line != depth_stats_header:
+                        if not line.startswith("#") and line != depth_stats_header:
                             tsv_out.write(line)
 
         with open(length_stats_tsv, "w") as tsv_out:
+            tsv_out.write(tsv_comment)
             tsv_out.write(length_stats_header)
             for tsv in length_tsv_files:
                 with open(tsv, "rt") as tsv_in:
                     for line in tsv_in:
-                        if line != length_stats_header:
+                        if not line.startswith("#") and line != length_stats_header:
                             tsv_out.write(line)
 
         return assembly_stats_tsv, depth_stats_tsv, length_stats_tsv

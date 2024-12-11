@@ -2978,7 +2978,7 @@ def blat_misc_dna_psl_to_dict(
         return False
 
 
-def write_gff3(hits, marker_type, disable_stitching, out_gff_path):
+def write_gff3(hits, marker_type, disable_stitching, tsv_comment, out_gff_path):
 
     def split_coords(coords, as_strings=False):
         """
@@ -3050,7 +3050,9 @@ def write_gff3(hits, marker_type, disable_stitching, out_gff_path):
 
     phase = "."
 
-    gff = ["##gff-version 3"]
+    gff = ["##gff-version 3",
+           f'#{tsv_comment.split("\n")[0]}',
+           f'#{tsv_comment.split("\n")[1]}']
     for ref in sorted(hits):
         gff.append(f"\n# {urllib.parse.quote(ref)}")
         for h in range(len(hits[ref])):

@@ -193,7 +193,7 @@ def main():
 
     with open(paralog_file, "rt") as par_in:
         for line in par_in:
-            if not line.startswith("marker_type"):
+            if not line.startswith("#") and not line.startswith("marker_type"):
                 record = line.split()
                 marker_type = record[0]
                 format_filtered = record[1]
