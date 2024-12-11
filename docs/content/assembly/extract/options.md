@@ -41,6 +41,9 @@ Inside this directory, the extracted markers for each sample will be stored in a
 
 This argument is optinal, the default is **./03_extractions/**
 ___
+### **`--ignore_depth`**
+Do not filter contigs based on their depth of coverage (default behavior before version 1.1.0).
+___
 ### **`--disable_stitching`**
 Use this flag only if you are sure your target loci will be found in a single contig (for example if you have a chromosome-level assembly). By default, Captus tries to join partial matches to a target that are scattered across multiple contigs if their structure and overlaps are compatible. Internally, this activates the `--single_target_hits` option for Scipio when searching for proteins.
 ___
@@ -102,6 +105,11 @@ Minimum percentage of coverage of the reference protein for a hit to be retained
 
 This argument is optional, the default is **20**.
 ___
+### **`--nuc_depth_tolerance`**
+Allow nuclear contigs with a minimum depth equal to the median depth divided by this number and a maximum depth equal to the median depth multipled by this number. This median depth is calculated only from the contigs with hits to the nuclear proteins.
+
+This argument is optional, the default is **20**.
+___
 ## *Plastidial proteins (Scipio)*
 ___
 ### **`-p, --ptd_refs`**
@@ -132,6 +140,11 @@ ___
 Minimum percentage of coverage of the reference protein for a hit to be retained. Accepted values are any number between 0 and 100. For more details, read [<i class="fab fa-readme"></i> Scipio's settings](https://www.webscipio.org/help/webscipio#setting).
 
 This argument is optional, the default is **20**.
+___
+### **`--ptd_depth_tolerance`**
+Allow plastidial contigs with a minimum depth equal to the median depth divided by this number and a maximum depth equal to the median depth multipled by this number. This median depth is calculated only from the contigs with hits to the plastidial proteins.
+
+This argument is optional, the default is **10**.
 ___
 ## *Mitochondrial proteins (Scipio)*
 ___
@@ -164,6 +177,11 @@ Minimum percentage of coverage of the reference protein for a hit to be retained
 
 This argument is optional, the default is **20**.
 ___
+### **`--mit_depth_tolerance`**
+Allow mitochondrial contigs with a minimum depth equal to the median depth divided by this number and a maximum depth equal to the median depth multipled by this number. This median depth is calculated only from the contigs with hits to the mitochondrial proteins.
+
+This argument is optional, the default is **10**.
+___
 ## *Miscellaneous DNA markers (BLAT)*
 ___
 ### **`-d, --dna_refs`**
@@ -180,6 +198,11 @@ ___
 Minimum percetange of coverage of the reference sequence for a hit to be retained. Accepted values are any number between 0 and 100.
 
 This argument is optional, the default is **20**.
+___
+### **`--dna_min_coverage`**
+Allow contigs with a minimum depth equal to the median depth divided by this number and a maximum depth equal to the median depth multipled by this number. This median depth is calculated only from the contigs with hits to the miscellaneous DNA reference targets.
+
+This argument is optional, the default is **10**.
 ___
 ## *Assemblies clustering (MMSeqs2)*
 Most contigs in your assemblies will not contain hits to your references, that means that many potentially useful markers usually remain unused and unexplored. With this feature you can cluster your unused contigs across samples to find new markers that can complement your phylogenomic dataset.
@@ -281,4 +304,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (14.02.2024)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (11.12.2024)
