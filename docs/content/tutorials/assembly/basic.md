@@ -29,7 +29,7 @@ conda activate captus
 Check if `Captus` is installed:
 
 ```shell
-captus_assembly -h
+captus -h
 ```
 
 If a help message shows up in your terminal, you are ready to go!
@@ -61,7 +61,7 @@ Since `Captus` automatically recognizes sample name and library layout (single-e
 Run the following command to perform a cleaning with default settings on all FASTQ files in the `00_raw_reads` directory:
 
 ```shell
-captus_assembly clean -r 00_raw_reads
+captus clean -r 00_raw_reads
 ```
 
 - **`-r`** : Path to directory containing FASTQ files.
@@ -82,7 +82,7 @@ Next, we would like to assemble the clean reads into contigs using the `assemble
 Run the following command to perform *de novo* assembly for all four samples with default settings optimized for targeted-capture and genome skimming data.
 
 ```shell
-captus_assembly assemble -r 01_clean_reads
+captus assemble -r 01_clean_reads
 ```
 
 - **`-r`** : Path to directory containing cleaned FASTQ files.
@@ -105,7 +105,7 @@ We would like to extract the target gene sequences from the contigs assembled in
 Run the following command to extract the sequences of all `Angiosperms353` loci from all four samples:
 
 ```shell
-captus_assembly extract -a 02_assemblies -n Angiosperms353
+captus extract -a 02_assemblies -n Angiosperms353
 ```
 
 - **`-a`** : Path to the output directory from the `assemble` command.
@@ -142,7 +142,7 @@ The final step of the `captus_assembly` pipeline is to perform multiple sequence
 Run the following command to align the sequences extracted in the previous step, as well as to trim gappy ends and filter out paralogs from the alignments:
 
 ```shell
-captus_assembly align -e 03_extractions
+captus align -e 03_extractions
 ```
 
 - **`-e`** : Path to the output directory from the `extract` command.
@@ -154,7 +154,7 @@ The command will create `04_alignments` directory with the following structure:
 Of these, `02_aligned_untrimmed` and `03_aligned_trimmed` directories (highlighted in the image above) store a series of untrimmed and trimmed alignments in multi-FASTA format, respectively.  
 Since the structure of the output directory is a bit complicated, we recommend that you take a look at [<i class="fab fa-readme"></i> Output Files]({{< ref "assembly/align/output">}}) and [<i class="fab fa-readme"></i> HTML Report]({{< ref "assembly/align/report">}}).
 
-## 5. Phylogenetic inference
+## 5. Phylogenetic Inference
 
 ---
 One of the most typical analyses after the `captus_assembly` pipeline would be phylogenetic tree inference.  
@@ -184,4 +184,4 @@ To get the most out of this pipeline, such as integrating different data types a
 
 ---
 Created by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (01.10.2021)  
-Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (10.04.2024)
+Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (14.12.2024)

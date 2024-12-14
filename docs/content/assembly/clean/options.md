@@ -105,7 +105,7 @@ Select the program for obtaining the statistics from your FASTQ files. Both prog
 - `Falco`
 - `FastQC`
 
-This argument is optional, the default is **Falco**.
+This argument is optional, the default is **FastQC**.
 ___
 ### **`--skip_qc_stats`**
 This flag disables the `Falco` or `FastQC` analysis, keep in mind that the final HTML report can't be created without the results from this analysis.
@@ -123,4 +123,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (29.05.2022)
+Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (14.12.2024)
