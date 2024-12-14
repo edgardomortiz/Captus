@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Copyright 2020-2023 Gentaro Shigita (gentaro.shigita@tum.de)
+Copyright 2020-2025 Gentaro Shigita (gentaro.shigita@tum.de)
 https://github.com/edgardomortiz/Captus
 
 This file is part of Captus. Captus is free software: you can redistribute it and/or modify
@@ -40,11 +40,11 @@ def build_qc_report(out_dir, qc_extras_dir):
     start = time.time()
 
     ### Summary table ###
-    df1 = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["REBA"]))
-    df2 = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["PSQS"]))
-    df3 = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["SLEN"]))
-    df4 = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["PSGC"]))
-    df5 = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["ADCO"]))
+    df1 = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["REBA"]), comment="#")
+    df2 = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["PSQS"]), comment="#")
+    df3 = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["SLEN"]), comment="#")
+    df4 = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["PSGC"]), comment="#")
+    df5 = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["ADCO"]), comment="#")
 
     # Output reads/bases%
     df1["reads_passed_cleaning_%"] = df1["reads_passed_cleaning"] / df1["reads_input"] * 100
@@ -187,8 +187,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     fig.update_layout(
         font_family="Arial",
         title_text=(
-            "<b>Captus-assembly: Clean (Quality Control Report)<br>"
-            "1. Summary Table</b><br>"
+            "<b>1. Summary Table</b><br>"
             "<sup>(Source: 03_qc_extras/"
             + ", ".join([
                 settings.QC_FILES["REBA"],
@@ -206,8 +205,11 @@ def build_qc_report(out_dir, qc_extras_dir):
     figs.append(fig)
 
     ### Stats on reads/bases ###
-    df = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["REBA"]),
-                       usecols=[*range(0,3),4,5,7,8,10,11])
+    df = pd.read_table(
+        Path(qc_extras_dir, settings.QC_FILES["REBA"]),
+        usecols=[*range(0,3),4,5,7,8,10,11],
+        comment="#",
+    )
 
     df["reads_input_%"] = 100
     df["bases_input_%"] = 100
@@ -397,7 +399,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     figs.append(fig)
 
     ### Per Base Quality ###
-    df = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["PBSQ"]))
+    df = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["PBSQ"]), comment="#")
     df["stage"] = df["stage"].str.capitalize()
 
     # Covert Phred64 to Phred33
@@ -595,7 +597,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     figs.append(fig)
 
     ### Per Read Quality ###
-    df = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["PSQS"]))
+    df = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["PSQS"]), comment="#")
     df["stage"] = df["stage"].str.capitalize()
 
     # Convert Phred64 to Phred33
@@ -744,7 +746,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     figs.append(fig)
 
     ### Read Length Distribution ###
-    df = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["SLEN"]))
+    df = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["SLEN"]), comment="#")
     stage_list = df["stage"].unique()
     read_list = df["read"].unique()
     length_range = range(
@@ -918,7 +920,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     figs.append(fig)
 
     ### Per Base Nucleotide Content ###
-    df = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["PBSC"]))
+    df = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["PBSC"]), comment="#")
     df["stage"] = df["stage"].str.capitalize()
 
     color_dict = {
@@ -994,8 +996,8 @@ def build_qc_report(out_dir, qc_extras_dir):
 
     # For single-end
     else:
+        fig = go.Figure()
         for N in ["A", "T", "G", "C"]:
-            fig = go.Figure()
             fig.add_trace(
                 go.Heatmap(
                     x=df["base"],
@@ -1039,6 +1041,8 @@ def build_qc_report(out_dir, qc_extras_dir):
         yaxis=dict(title="Sample - Stage"),
         legend=dict(
             title_text="Nucleotide",
+            itemclick=False,
+            itemdoubleclick=False,
         ),
         height=180 + 30 * len(sample_list),
         plot_bgcolor="rgb(8,8,8)",
@@ -1062,7 +1066,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     figs.append(fig)
 
     ### Per Read GC Content ###
-    df = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["PSGC"]))
+    df = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["PSGC"]), comment="#")
     df["stage"] = df["stage"].str.capitalize()
     df_grouped = df.groupby(["sample_name", "read", "stage"], as_index=False)["count"].sum()
     df_merged = pd.merge(df, df_grouped, on=["sample_name", "read", "stage"], how="outer")
@@ -1193,7 +1197,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     figs.append(fig)
 
     ### Sequence Duplication Level ###
-    df = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["SDUP"]))
+    df = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["SDUP"]), comment="#")
     if len(df.columns) == 6:
         if df["percentage_of_total"].isnull().all():
             df.drop(columns="percentage_of_total", inplace=True)
@@ -1332,7 +1336,7 @@ def build_qc_report(out_dir, qc_extras_dir):
     figs.append(fig)
 
     ### Adapter Content ###
-    df = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["ADCO"]))
+    df = pd.read_table(Path(qc_extras_dir, settings.QC_FILES["ADCO"]), comment="#")
     df["stage"] = df["stage"].str.capitalize()
     df["Total adapter content"] = df.iloc[:,4:].sum(axis=1)
     df_pivot = df.pivot(
@@ -1480,8 +1484,41 @@ def build_qc_report(out_dir, qc_extras_dir):
             "eraseshape",
         ]
     )
+    report_title = "Captus-assembly: Clean (Quality Control Report)"
+    with open(Path(qc_extras_dir, settings.QC_FILES["REBA"]), "r") as f:
+        version = f.readline().lstrip("#")
+        command = f.readline().lstrip("#")
+    html_header = f"""
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+                body {{
+                    font-family: Arial, sans-serif;
+                    margin: 50px;
+                }}
+                pre {{
+                    background-color: #292929;
+                    padding: 20px;
+                    border: 1px solid #ddd;
+                    border-radius: 10px;
+                    overflow-x: auto;
+                }}
+                code {{
+                    font-family: Menlo, Courier, monospace;
+                    font-size: 10pt;
+                    color: #FFF;
+                }}
+            </style>
+        </head>
+        <body>
+            <h2>{report_title}</h2>
+            <pre><code>Version: {version}{command}</code></pre>
+        </body>
+    """
     qc_html_report = Path(out_dir, "captus-assembly_clean.report.html")
     with open(qc_html_report, "w") as f:
+        f.write(html_header)
         for fig in figs:
             f.write(
                 fig.to_html(
@@ -1498,107 +1535,56 @@ def build_qc_report(out_dir, qc_extras_dir):
     return qc_html_report, qc_html_msg
 
 
-def build_assembly_report(out_dir, asm_stats_tsv):
+def build_assembly_report(out_dir, asm_stats_tsv, len_stats_tsv, dep_stats_tsv):
     start = time.time()
 
-    ### Table ###
-    # Load datatable
-    df = pd.read_table(asm_stats_tsv)
-
-    if df["filtered_n_contigs"].max() == 0:
-        filtered = False
-    else:
-        filtered = True
-
-    if filtered is True:
-        df = df.reindex(
-            columns=[
-                "sample",
-                "total_length",
-                "filtered_total_length",
-                "n_contigs",
-                "filtered_n_contigs",
-                "avg_length",
-                "N50",
-                "longest_contig",
-                "shortest_contig",
-                "pct_contigs_>=_1kbp",
-                "GC_content",
-                "filtered_gc_content",
-                "avg_depth",
-            ],
-        )
-        df.rename(
-            columns={
-                "sample": "Sample",
-                "total_length": "Total Length Passed (bp)",
-                "filtered_total_length": "Total Length Removed (bp)",
-                "n_contigs": "Number of Contigs Passed",
-                "filtered_n_contigs": "Number of Contigs Removed",
-                "avg_length": "Mean Length (bp)",
-                "N50": "Contig N50 (bp)",
-                "longest_contig": "Longest Contig (bp)",
-                "shortest_contig": "Shortest Contig (bp)",
-                "pct_contigs_>=_1kbp": "≥1 kbp Contigs (%)",
-                "GC_content": "GC Content Passed (%)",
-                "filtered_gc_content": "GC Content Removed (%)",
-                "avg_depth": "Mean Depth (x)",
-            },
-            inplace=True,
-        )
-        format = [
-            None,
-            ",",
-            ",",
-            ",",
-            ",",
-            ",",
-            ",",
-            ",",
-            ",",
-            ".2f",
+    ### Summary table ###
+    df = pd.read_table(
+        asm_stats_tsv,
+        comment="#"
+    )
+    df.query(
+        expr='stage == "after"',
+        inplace=True,
+    )
+    df = df.reindex(
+        columns=[
+            "sample_name",
+            "num_contigs",
+            "total_length",
+            "shortest_contig",
+            "longest_contig",
+            "N50",
+            "L50",
+            "gc",
+            "avg_depth",
         ]
-    else:
-        df = df.reindex(
-            columns=[
-                "sample",
-                "total_length",
-                "n_contigs",
-                "avg_length",
-                "N50",
-                "longest_contig",
-                "shortest_contig",
-                "pct_contigs_>=_1kbp",
-                "GC_content",
-                "avg_depth",
-            ],
-        )
-        df.rename(
-            columns={
-                "sample": "Sample",
-                "total_length": "Total Length (bp)",
-                "n_contigs": "Number of Contigs",
-                "avg_length": "Mean Length (bp)",
-                "N50": "Contig N50 (bp)",
-                "longest_contig": "Longest Contig (bp)",
-                "shortest_contig": "Shortest Contig (bp)",
-                "pct_contigs_>=_1kbp": "≥1 kbp Contigs (%)",
-                "GC_content": "GC Content(%)",
-                "avg_depth": "Mean Depth (x)",
-            },
-            inplace=True,
-        )
-        format = [
-            None,
-            ",",
-            ",",
-            ",",
-            ",",
-            ",",
-            ",",
-            ".2f",
-        ]
-
+    )
+    df.rename(
+        columns={
+            "sample_name": "Sample",
+            "num_contigs": "#Contigs",
+            "total_length": "Total Length (bp)",
+            "shortest_contig": "Shortest Contig (bp)",
+            "longest_contig": "Longest Contig (bp)",
+            "N50": "N50 (bp)",
+            "L50": "L50",
+            "gc": "GC Content (%)",
+            "avg_depth": "Mean Depth (x)",
+        },
+        inplace=True,
+    )
+    format = [
+        None,
+        ",",
+        ",",
+        ",",
+        ",",
+        ",",
+        ",",
+        ".2f",
+        ",.2f",
+    ]
     sample_list = df["Sample"].unique()
 
     colorscale = [
@@ -1687,7 +1673,7 @@ def build_assembly_report(out_dir, asm_stats_tsv):
         x=1,
         xref="paper",
         xanchor="right",
-        xshift=-200 if filtered is True else -155,
+        xshift=-155,
         y=1,
         yref="paper",
         yanchor="top",
@@ -1699,8 +1685,7 @@ def build_assembly_report(out_dir, asm_stats_tsv):
     fig.update_layout(
         font_family="Arial",
         title_text=(
-            "<b>Captus-assembly: Assemble (<i>De Novo</i> Assembly Report)<br>"
-            "1. Summary Table</b><br>"
+            "<b>1. Summary Table</b><br>"
             "<sup>(Source: "
             + str(asm_stats_tsv.name)
             + ")</sup>"
@@ -1711,44 +1696,20 @@ def build_assembly_report(out_dir, asm_stats_tsv):
     )
     figs.append(fig)
 
-    ### Bar plot ###
-    # Load datatable
-    df = pd.read_table(asm_stats_tsv)
-
-    # Variables available as drop-down menu
+    ### Bar ###
     var_dict = {
+        "#Contigs": [
+            "num_contigs",
+            None,
+            None,
+            None,
+            None,
+            None,
+        ],
         "Total Length (bp)": [
             "total_length",
             None,
             None,
-            "filtered_total_length" if filtered is True else None,
-        ],
-        "Number of Contigs": [
-            "n_contigs",
-            None,
-            None,
-            "filtered_n_contigs" if filtered is True else None,
-        ],
-        "Mean Length (bp)": [
-            "avg_length",
-            None,
-            None,
-            "filtered_avg_length" if filtered is True else None,
-        ],
-        "Median Length (bp)": [
-            "median_length",
-            None,
-            None,
-            None,
-        ],
-        "Contig N50 (bp)": [
-            "N50",
-            None,
-            None,
-            None,
-        ],
-        "Longest Contig (bp)": [
-            "longest_contig",
             None,
             None,
             None,
@@ -1758,126 +1719,206 @@ def build_assembly_report(out_dir, asm_stats_tsv):
             None,
             None,
             None,
+            None,
+            None,
         ],
-        "Contig Breakdown<br> by Length (%)": [
-            "pct_contigs_>=_1kbp",
-            "pct_contigs_>=_2kbp",
-            "pct_contigs_>=_5kbp",
-            "pct_contigs_>=_10kbp",
+        "Longest Contig (bp)": [
+            "longest_contig",
+            None,
+            None,
+            None,
+            None,
+            None,
         ],
-        "Length Breakdown<br> by Contig Length (%)": [
-            "pct_length_>=_1kbp",
-            "pct_length_>=_2kbp",
-            "pct_length_>=_5kbp",
-            "pct_length_>=_10kbp",
+        "N50 (bp)": [
+            "N50",
+            None,
+            None,
+            None,
+            None,
+            None,
+        ],
+        "N75 (bp)": [
+            "N75",
+            None,
+            None,
+            None,
+            None,
+            None,
+        ],
+        "L50": [
+            "L50",
+            None,
+            None,
+            None,
+            None,
+            None,
+        ],
+        "L75": [
+            "L75",
+            None,
+            None,
+            None,
+            None,
+            None,
+        ],
+        "Mean Length (bp)": [
+            "avg_length",
+            None,
+            None,
+            None,
+            None,
+            None,
+        ],
+        "Median Length (bp)": [
+            "median_length",
+            None,
+            None,
+            None,
+            None,
+            None,
+        ],
+        "Contig Breakdown by Length (%)": [
+            "pct_contigs_1kbp",
+            "pct_contigs_2kbp",
+            "pct_contigs_5kbp",
+            "pct_contigs_10kbp",
+            "pct_contigs_20kbp",
+            "pct_contigs_50kbp",
+        ],
+        "Length Breakdown by Contig Length (%)": [
+            "pct_length_1kbp",
+            "pct_length_2kbp",
+            "pct_length_5kbp",
+            "pct_length_10kbp",
+            "pct_length_20kbp",
+            "pct_length_50kbp",
         ],
         "GC Content (%)": [
-            "GC_content",
+            "gc",
             None,
             None,
-            "filtered_gc_content" if filtered is True else None,
+            None,
+            None,
+            None,
         ],
         "Mean Depth (x)": [
             "avg_depth",
             None,
             None,
             None,
+            None,
+            None,
         ],
-        "Contig Breakdown<br> by Depth (%)": [
-            "pct_contigs_>=_1x",
-            "pct_contigs_>=_2x",
-            "pct_contigs_>=_5x",
-            "pct_contigs_>=_10x",
+        "Median Depth (x)": [
+            "median_depth",
+            None,
+            None,
+            None,
+            None,
+            None,
         ],
     }
-
     hover_template_dict = {
-        "Total Length (bp)": "<br>".join(
-            [
-                "Sample: <b>%{x}</b>",
-                "Total length: <b>%{y:,} bp</b>",
-                "<extra></extra>" if filtered is False else "",
-            ]
-        ),
-        "Number of Contigs": "<br>".join(
-            [
-                "Sample: <b>%{x}</b>",
-                "Number of contigs: <b>%{y:,}</b>",
-                "<extra></extra>" if filtered is False else "",
-            ]
-        ),
-        "Mean Length (bp)": "<br>".join(
-            [
-                "Sample: <b>%{x}</b>",
-                "Mean contig length: <b>%{y:,} bp</b>",
-                "<extra></extra>" if filtered is False else "",
-            ]
-        ),
-        "Median Length (bp)": (
-            "Sample: <b>%{x}</b><br>" +
-            "Median contig length: <b>%{y:,} bp</b><extra></extra>"
-        ),
-        "Contig N50 (bp)": (
-            "Sample: <b>%{x}</b><br>" +
-            "Contig N50: <b>%{y:,} bp</b><extra></extra>"
-        ),
-        "Longest Contig (bp)": (
-            "Sample: <b>%{x}</b><br>" +
-            "Longest contig length: <b>%{y:,} bp</b><extra></extra>"
-        ),
-        "Shortest Contig (bp)": (
-            "Sample: <b>%{x}</b><br>" +
-            "Shortest contig length: <b>%{y:,} bp</b><extra></extra>"
-        ),
-        "Contig Breakdown<br> by Length (%)": (
-            "Sample: <b>%{x}</b><br>" +
-            "Proportion of contigs: <b>%{y:.2f}%</b>"
-        ),
-        "Length Breakdown<br> by Contig Length (%)": (
-            "Sample: <b>%{x}</b><br>" +
-            "Proportion of length: <b>%{y:.2f}%</b>"
-        ),
-        "GC Content (%)": "<br>".join(
-            [
-                "Sample: <b>%{x}</b>",
-                "GC content: <b>%{y:.2f}%</b>",
-                "<extra></extra>" if filtered is False else "",
-            ]
-        ),
-        "Mean Depth (x)": (
-            "Sample: <b>%{x}</b><br>" +
-            "Mean depth: <b>%{y:.2f}x</b><extra></extra>"
-        ),
-        "Contig Breakdown<br> by Depth (%)": (
-            "Sample: <b>%{x}</b><br>" +
-            "Proportion of contigs: <b>%{y:.2f}%</b>"
-        ),
+        "#Contigs": "<br>".join([
+            "<b>%{y}</b>",
+            "#Contigs: <b>%{x:,}</b>",
+            "<extra></extra>"
+        ]),
+        "Total Length (bp)": "<br>".join([
+            "<b>%{y}</b>",
+            "Total length: <b>%{x:,} bp</b>",
+            "<extra></extra>"
+        ]),
+        "Shortest Contig (bp)": "<br>".join([
+            "<b>%{y}</b>",
+            "Shortest contig: <b>%{x:,} bp</b>",
+            "<extra></extra>"
+        ]),
+        "Longest Contig (bp)": "<br>".join([
+            "<b>%{y}</b>",
+            "Longest contig: <b>%{x:,} bp</b>",
+            "<extra></extra>"
+        ]),
+        "N50 (bp)": "<br>".join([
+            "<b>%{y}</b>",
+            "N50: <b>%{x:,} bp</b>",
+            "<extra></extra>"
+        ]),
+        "N75 (bp)": "<br>".join([
+            "<b>%{y}</b>",
+            "N75: <b>%{x:,} bp</b>",
+            "<extra></extra>"
+        ]),
+        "L50": "<br>".join([
+            "<b>%{y}</b>",
+            "L50: <b>%{x:,}</b>",
+            "<extra></extra>"
+        ]),
+        "L75": "<br>".join([
+            "<b>%{y}</b>",
+            "L75: <b>%{x:,}</b>",
+            "<extra></extra>"
+        ]),
+        "Mean Length (bp)": "<br>".join([
+            "<b>%{y}</b>",
+            "Mean length: <b>%{x:,} bp</b>",
+            "<extra></extra>"
+        ]),
+        "Median Length (bp)": "<br>".join([
+            "<b>%{y}</b>",
+            "Median length: <b>%{x:,} bp</b>",
+            "<extra></extra>"
+        ]),
+        "Contig Breakdown by Length (%)": "<br>".join([
+            "<b>%{y}</b>",
+            "Proportion: <b>%{x:.2f}%</b>"
+        ]),
+        "Length Breakdown by Contig Length (%)": "<br>".join([
+            "<b>%{y}</b>",
+            "Proportion: <b>%{x:.2f}%</b>"
+        ]),
+        "GC Content (%)": "<br>".join([
+                "<b>%{y}</b>",
+                "GC content: <b>%{x:.2f}%</b>",
+                "<extra></extra>"
+        ]),
+        "Mean Depth (x)": "<br>".join([
+                "<b>%{y}</b>",
+                "Mean depth: <b>%{x:,.2f} x</b>",
+                "<extra></extra>"
+        ]),
+        "Median Depth (x)": "<br>".join([
+                "<b>%{y}</b>",
+                "Median depth: <b>%{x:,.2f} x</b>",
+                "<extra></extra>"
+        ]),
     }
-
-    trace_name_dict = {
-        "n_contigs": "Passed",
-        "filtered_n_contigs": "Removed",
-        "total_length": "Passed",
-        "filtered_total_length": "Removed",
-        "avg_length": "Passed",
-        "filtered_avg_length": "Removed",
-        "GC_content": "Passed",
-        "filtered_gc_content": "Removed",
-    }
-
     colors = [
         "#56B4E9",
         "#009E73",
         "#E69F00",
-        "#CC79A7"
+        "#CC79A7",
+        "#0072B2",
+        "#D55E00",
     ]
+    df = pd.read_table(
+        asm_stats_tsv,
+        comment="#"
+    )
+    df.sort_values(
+        by=["sample_name", "stage"],
+        ascending=[False, True],
+        inplace=True,
+    )
+    df["stage"] = df["stage"].str.capitalize()
 
-    # Create figure
     fig = go.Figure()
     for i in range(len(list(var_dict.values())[0])):
         if var_dict[list(var_dict.keys())[0]][i] is None:
             fig.add_trace(
                 go.Bar(
+                    orientation="h",
                     marker_color=colors[i],
                     marker_line_color="rgb(8,8,8)",
                 )
@@ -1885,16 +1926,15 @@ def build_assembly_report(out_dir, asm_stats_tsv):
         else:
             fig.add_trace(
                 go.Bar(
-                    x=df["sample"],
-                    y=df[var_dict[list(var_dict.keys())[0]][i]],
-                    name=trace_name_dict[var_dict[list(var_dict.keys())[0]][i]],
+                    x=df[var_dict[list(var_dict.keys())[0]][i]],
+                    y=[df["sample_name"], df["stage"]],
+                    orientation="h",
                     marker_color=colors[i],
                     marker_line_color="rgb(8,8,8)",
+                    marker_line_width=0.25,
                     hovertemplate=hover_template_dict[list(var_dict.keys())[0]],
                 )
             )
-
-    # Dropdown setting
     buttons = []
     for key, values in var_dict.items():
         x_list, y_list, name_list, hovertemplate_list = [], [], [], []
@@ -1905,38 +1945,20 @@ def build_assembly_report(out_dir, asm_stats_tsv):
                 name_list.append(None)
                 hovertemplate_list.append(None)
             else:
-                x_list.append(df["sample"])
-                y_list.append(df[v])
-                if v in list(trace_name_dict.keys()):
-                    name_list.append(trace_name_dict[v])
-                else:
-                    name_list.append(re.sub(r".*_>=_(\d+)", r"≥\1 ", v))
+                x_list.append(df[v])
+                y_list.append([df["sample_name"], df["stage"]])
+                if v.startswith("pct_") :
+                    name_list.append(re.sub(r".*_(\d+)", r"≥\1 ", v))
                 hovertemplate_list.append(hover_template_dict[key])
-        if key in [
-            "Contig Breakdown<br> by Length (%)",
-            "Length Breakdown<br> by Contig Length (%)",
-            "Contig Breakdown<br> by Depth (%)"
-        ]:
-            barmode = "overlay"
-        elif key in [
-            "Mean Length (bp)",
-            "GC Content (%)",
-        ]:
-            barmode = "group"
-        else:
-            barmode = "stack"
         button = dict(
             label=key,
-            method="update",
+            method="restyle",
             args=[
                 dict(
                     x=x_list,
                     y=y_list,
                     name=name_list,
                     hovertemplate=hovertemplate_list,
-                ),
-                dict(
-                    barmode=barmode,
                 )
             ]
         )
@@ -1946,18 +1968,16 @@ def build_assembly_report(out_dir, asm_stats_tsv):
         dict(
             buttons=buttons,
             type="dropdown",
-            direction="down",
-            pad={"t": 10, "b": 10, "r": 50},
+            direction="up",
+            pad={"t": 30, "b": 10},
             showactive=True,
-            x=0,
-            xanchor="right",
-            y=0.5,
-            yanchor="middle"
+            x=0.5,
+            xanchor="center",
+            y=0,
+            yanchor="top"
         )
     ]
-    # Layout setting
     fig.update_layout(
-        plot_bgcolor="rgb(8,8,8)",
         font_family="Arial",
         title_text=(
             "<b>2. Visual Stats</b><br>"
@@ -1965,25 +1985,278 @@ def build_assembly_report(out_dir, asm_stats_tsv):
             + str(asm_stats_tsv.name)
             + ")</sup>"
         ),
-        yaxis=dict(
-            gridcolor="rgb(64,64,64)",
+        xaxis=dict(
             ticks="outside",
+            tickson="labels",
+            gridcolor="rgb(64,64,64)",
             zeroline=False,
         ),
-        xaxis=dict(
-            title="Sample",
-            showgrid=False,
+        yaxis=dict(
+            title="Sample - Stage",
             ticks="outside",
+            dtick=1,
+            tickson="labels",
+            showdividers=False,
+            showgrid=False,
         ),
         hoverlabel=dict(
             font_color="rgb(64,64,64)",
             bordercolor="rgb(64,64,64)",
         ),
-        barmode="stack",
-        legend=dict(
-            traceorder="normal",
+        barmode="overlay",
+        bargap=0,
+        height=180 + 30 * len(sample_list),
+        plot_bgcolor="rgb(8,8,8)",
+        updatemenus=updatemenus,
+    )
+    figs.append(fig)
+
+    ### Length distribution ###
+    df = pd.read_table(
+        len_stats_tsv,
+        comment="#"
+    )
+    min_length = min(df.loc[df["length"] > 0, "length_bin"].to_list())
+    max_length = max(df.loc[df["length"] > 0, "length_bin"].to_list())
+    df.query(
+        expr='length_bin >= @min_length & length_bin <= @max_length',
+        inplace=True,
+    )
+    df["stage"] = df["stage"].str.capitalize()
+    df["length_bin"] = df["length_bin"].apply(lambda x: f"≤{int(x)}")
+    df.sort_values(
+        by=["sample_name", "stage"],
+        ascending=[True, False],
+        inplace=True,
+    )
+    fig = go.Figure()
+    fig.add_trace(
+        go.Heatmap(
+            x=df["length_bin"],
+            y=[df["sample_name"], df["stage"]],
+            z=df["length"],
+            coloraxis="coloraxis",
+            customdata=df,
+            hovertemplate="<br>".join([
+                "<b>%{y}</b>",
+                "Length bin: <b>%{x} bp</b>",
+                "Length: <b>%{customdata[3]:,.0f} bp</b>",
+                "Fraction: <b>%{customdata[4]:.2f}%</b>",
+                "#Contigs: <b>%{customdata[5]:,.0f}</b><extra></extra>",
+            ]),
+            hoverongaps=False,
+            ygap=1,
+        )
+    )
+    var_dict = {
+        "Length (bp)": "length",
+        "Fraction (%)": "fraction",
+        "#Contigs": "num_contigs",
+    }
+    buttons = []
+    for key, value in var_dict.items():
+        button = dict(
+            label=key,
+            method="restyle",
+            args=[{"z": [df[value]]}],
+        )
+        buttons.append(button)
+    updatemenus = [
+        dict(
+            buttons=buttons,
+            type="dropdown",
+            direction="down",
+            pad=dict(t=10, b=10),
+            x=1,
+            xanchor="left",
+            y=1,
+            yanchor="bottom",
+        )
+    ]
+    annotations = [
+        dict(
+            text="<b>Variable:</b>",
+            x=1,
+            xref="paper",
+            xanchor="right",
+            xshift=-5,
+            y=1,
+            yref="paper",
+            yanchor="top",
+            yshift=36,
+            align="right",
+            showarrow=False,
         ),
-        # height=180 + 15 * len(sample_list),
+    ]
+    fig.update_layout(
+        font_family="Arial",
+        title_text=(
+            "<b>3. Length Distribution</b><br>"
+            "<sup>(Source: "
+            + str(len_stats_tsv.name)
+            + ")</sup>"
+        ),
+        xaxis=dict(
+            type="category",
+            title="Length (bp)",
+            linecolor="black",
+            ticks="outside",
+            tickson="boundaries",
+            matches="x",
+            gridcolor="rgb(64,64,64)",
+            zeroline=False,
+        ),
+        yaxis=dict(
+            title="Sample - Stage",
+            autorange="reversed",
+            linecolor="black",
+            ticks="outside",
+            dtick=1,
+            tickson="labels",
+            showdividers=False,
+            gridcolor="rgb(64,64,64)",
+        ),
+        coloraxis=dict(
+            colorscale="Spectral_r",
+            colorbar=dict(
+                lenmode="pixels",
+                len=200 if len(sample_list) > 7 else 120,
+                outlinecolor="rgb(8,8,8)",
+                outlinewidth=1,
+                ticks="outside",
+                yanchor="top",
+                y=1,
+            )
+        ),
+        height=180 + 30 * len(sample_list),
+        plot_bgcolor="rgb(8,8,8)",
+        annotations=annotations,
+        updatemenus=updatemenus,
+    )
+    figs.append(fig)
+
+    ### Depth distribution ###
+    df = pd.read_table(
+        dep_stats_tsv,
+        comment="#"
+    )
+    min_depth = min(df.loc[df["length"] > 0, "depth_bin"].to_list())
+    max_depth = max(df.loc[df["length"] > 0, "depth_bin"].to_list())
+    df.query(
+        expr='depth_bin >= @min_depth & depth_bin <= @max_depth',
+        inplace=True,
+    )
+    df["stage"] = df["stage"].str.capitalize()
+    df["depth_bin"] = df["depth_bin"].apply(
+        lambda x: f"≤{int(x)}" if x % 1 == 0 else f"≤{x}"
+    )
+    df.sort_values(
+        by=["sample_name", "stage"],
+        ascending=[True, False],
+        inplace=True,
+    )
+    fig = go.Figure()
+    fig.add_trace(
+        go.Heatmap(
+            x=df["depth_bin"],
+            y=[df["sample_name"], df["stage"]],
+            z=df["length"],
+            coloraxis="coloraxis",
+            customdata=df,
+            hovertemplate="<br>".join([
+                "<b>%{y}</b>",
+                "Depth bin: <b>%{x} x</b>",
+                "Length: <b>%{customdata[3]:,.0f} bp</b>",
+                "Fraction: <b>%{customdata[4]:.2f}%</b>",
+                "#Contigs: <b>%{customdata[5]:,.0f}</b><extra></extra>",
+            ]),
+            hoverongaps=False,
+            ygap=1,
+        )
+    )
+    var_dict = {
+        "Length (bp)": "length",
+        "Fraction (%)": "fraction",
+        "#Contigs": "num_contigs",
+    }
+    buttons = []
+    for key, value in var_dict.items():
+        button = dict(
+            label=key,
+            method="restyle",
+            args=[{"z": [df[value]]}],
+        )
+        buttons.append(button)
+    updatemenus = [
+        dict(
+            buttons=buttons,
+            type="dropdown",
+            direction="down",
+            pad=dict(t=10, b=10),
+            x=1,
+            xanchor="left",
+            y=1,
+            yanchor="bottom",
+        )
+    ]
+    annotations = [
+        dict(
+            text="<b>Variable:</b>",
+            x=1,
+            xref="paper",
+            xanchor="right",
+            xshift=-5,
+            y=1,
+            yref="paper",
+            yanchor="top",
+            yshift=36,
+            align="right",
+            showarrow=False,
+        ),
+    ]
+    fig.update_layout(
+        font_family="Arial",
+        title_text=(
+            "<b>4. Depth Distribution</b><br>"
+            "<sup>(Source: "
+            + str(dep_stats_tsv.name)
+            + ")</sup>"
+        ),
+        xaxis=dict(
+            type="category",
+            title="Depth (x)",
+            linecolor="black",
+            ticks="outside",
+            tickson="boundaries",
+            matches="x",
+            gridcolor="rgb(64,64,64)",
+            zeroline=False,
+        ),
+        yaxis=dict(
+            title="Sample - Stage",
+            autorange="reversed",
+            linecolor="black",
+            ticks="outside",
+            dtick=1,
+            tickson="labels",
+            showdividers=False,
+            gridcolor="rgb(64,64,64)",
+        ),
+        coloraxis=dict(
+            colorscale="Spectral_r",
+            colorbar=dict(
+                lenmode="pixels",
+                len=200 if len(sample_list) > 7 else 120,
+                outlinecolor="rgb(8,8,8)",
+                outlinewidth=1,
+                ticks="outside",
+                yanchor="top",
+                y=1,
+            )
+        ),
+        height=180 + 30 * len(sample_list),
+        plot_bgcolor="rgb(8,8,8)",
+        annotations=annotations,
         updatemenus=updatemenus,
     )
     figs.append(fig)
@@ -2007,8 +2280,41 @@ def build_assembly_report(out_dir, asm_stats_tsv):
             "eraseshape",
         ]
     )
+    report_title = "Captus-assembly: Assemble (<i>De Novo</i> Assembly Report)"
+    with open(asm_stats_tsv, "r") as f:
+        version = f.readline().lstrip("#")
+        command = f.readline().lstrip("#")
+    html_header = f"""
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+                body {{
+                    font-family: Arial, sans-serif;
+                    margin: 50px;
+                }}
+                pre {{
+                    background-color: #292929;
+                    padding: 20px;
+                    border: 1px solid #ddd;
+                    border-radius: 10px;
+                    overflow-x: auto;
+                }}
+                code {{
+                    font-family: Menlo, Courier, monospace;
+                    font-size: 10pt;
+                    color: #FFF;
+                }}
+            </style>
+        </head>
+        <body>
+            <h2>{report_title}</h2>
+            <pre><code>Version: {version}{command}</code></pre>
+        </body>
+    """
     asm_html_report = Path(out_dir, "captus-assembly_assemble.report.html")
     with open(asm_html_report, "w") as f:
+        f.write(html_header)
         for fig in figs:
             f.write(
                 fig.to_html(
@@ -2033,6 +2339,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
         ext_stats_tsv,
         low_memory=False,
         usecols=[*range(0,22)],
+        comment="#",
     )
     df.sort_values(
         by=["sample_name", "marker_type", "locus"],
@@ -2042,6 +2349,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
     df_best = df[df["hit"] == 0].reset_index(drop=True).fillna("NA")
     df_best["hit"] = df.groupby(["sample_name", "marker_type", "locus"], as_index=False).count()["hit"]
     df_best["ref_len_unit"] = np.where(df_best["ref_type"] == "prot", "aa", "bp")
+    df_best["frameshifts"] = df_best["frameshifts"].astype(str)
     df_best.loc[df_best["frameshifts"] == "NA", "n_frameshifts"] = 0
     df_best.loc[df_best["frameshifts"] != "NA", "n_frameshifts"] = df_best["frameshifts"].str.count(",") + 1
     # Define variables
@@ -2450,35 +2758,15 @@ def build_extraction_report(out_dir, ext_stats_tsv):
                 showarrow=False,
             ),
         ]
-
-        # Layout setting
-        if i == 0:
-            if len(marker_type) == 1:
-                title = (
-                        "<b>Captus-assembly: Extract (Marker Recovery Report)</b><br>"
-                        "<sup>(Source: "
-                        + str(ext_stats_tsv.name)
-                        + ")</sup>"
-                )
-            else:
-                title = (
-                        "<b>Captus-assembly: Extract (Marker Recovery Report)<br>"
-                        "1. Marker Type: "
-                        + marker
-                        + "</b><br><sup>(Source: "
-                        + str(ext_stats_tsv.name)
-                        + ")</sup>"
-                )
-        else:
-            title = (
-                "<b>"
-                + str(i + 1)
-                + ". Marker Type: "
-                + marker
-                + "</b><br><sup>(Source: "
-                + str(ext_stats_tsv.name)
-                + ")</sup>"
-            )
+        title = (
+            "<b>"
+            + str(i + 1)
+            + ". Marker Type: "
+            + marker
+            + "</b><br><sup>(Source: "
+            + str(ext_stats_tsv.name)
+            + ")</sup>"
+        )
         fig.update_layout(
             font_family="Arial",
             plot_bgcolor="rgb(8,8,8)",
@@ -2544,8 +2832,41 @@ def build_extraction_report(out_dir, ext_stats_tsv):
             "eraseshape",
         ]
     )
+    report_title = "Captus-assembly: Extract (Marker Recovery Report)"
+    with open(ext_stats_tsv, "r") as f:
+        version = f.readline().lstrip("#")
+        command = f.readline().lstrip("#")
+    html_header = f"""
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+                body {{
+                    font-family: Arial, sans-serif;
+                    margin: 50px;
+                }}
+                pre {{
+                    background-color: #292929;
+                    padding: 20px;
+                    border: 1px solid #ddd;
+                    border-radius: 10px;
+                    overflow-x: auto;
+                }}
+                code {{
+                    font-family: Menlo, Courier, monospace;
+                    font-size: 10pt;
+                    color: #FFF;
+                }}
+            </style>
+        </head>
+        <body>
+            <h2>{report_title}</h2>
+            <pre><code>Version: {version}{command}</code></pre>
+        </body>
+    """
     ext_html_report = Path(out_dir, "captus-assembly_extract.report.html")
     with open(ext_html_report, "w") as f:
+        f.write(html_header)
         for fig in figs:
             f.write(
                 fig.to_html(
@@ -2565,7 +2886,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
 def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
     start = time.time()
 
-    df = pd.read_table(aln_stats_tsv)
+    df = pd.read_table(aln_stats_tsv, comment="#")
     df["stage"] = df["trimmed"].astype("str").str.cat([df["paralog_filter"], df["with_refs"].astype("str")], sep="-")
     marker_type_list = df["marker_type"].unique()
 
@@ -2737,8 +3058,7 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
         font_family="Arial",
         plot_bgcolor="rgb(8,8,8)",
         title=(
-            "<b>Captus-assembly: Align (Alignment Report)<br>"
-            + "1. Stats Comparison at Each Processing Step"
+            "<b>1. Stats Comparison at Each Processing Step"
             + "</b><br><sup>(Source: "
             + str(aln_stats_tsv.name)
             + ")</sup>"
@@ -3123,7 +3443,7 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
         )
         figs.append(fig)
 
-    df = pd.read_table(sam_stats_tsv)
+    df = pd.read_table(sam_stats_tsv, comment="#")
     df = df[~df["stage_marker_format"].str.contains("_w_refs")]
     df["gaps"] = df["len_gapped"] - df["len_ungapped"]
     df[["stage", "filter", "marker", "format"]] = df["stage_marker_format"].str.split(" / ", expand=True)
@@ -3397,10 +3717,42 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
             updatemenus=updatemenus,
         )
         figs.append(fig)
-
+    report_title = "Captus-assembly: Align (Alignment Report)"
+    with open(aln_stats_tsv, "r") as f:
+        version = f.readline().lstrip("#")
+        command = f.readline().lstrip("#")
+    html_header = f"""
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+                body {{
+                    font-family: Arial, sans-serif;
+                    margin: 50px;
+                }}
+                pre {{
+                    background-color: #292929;
+                    padding: 20px;
+                    border: 1px solid #ddd;
+                    border-radius: 10px;
+                    overflow-x: auto;
+                }}
+                code {{
+                    font-family: Menlo, Courier, monospace;
+                    font-size: 10pt;
+                    color: #FFF;
+                }}
+            </style>
+        </head>
+        <body>
+            <h2>{report_title}</h2>
+            <pre><code>Version: {version}{command}</code></pre>
+        </body>
+    """
     # Save plot in html
     aln_html_report = Path(out_dir, "captus-assembly_align.report.html")
     with open(aln_html_report, "w") as f:
+        f.write(html_header)
         for i, fig in enumerate(figs):
             f.write(
                 fig.to_html(
@@ -3441,6 +3793,7 @@ def build_design_report(out_dir, des_stats_tsv, step):
         des_stats_tsv,
         usecols=range(1, 24),
         low_memory=False,
+        comment="#",
     ).fillna("NaN")
     if (df["cds_id"] == "NaN").all():
         var_dict = {
@@ -3671,22 +4024,12 @@ def build_design_report(out_dir, des_stats_tsv, step):
             showarrow=False,
         ),
     ]
-    if step == "cluster":
-        des_html_report = Path(out_dir, "captus-design_cluster.report.html")
-        title = (
-            "<b>Captus-design: Cluster (Alignment Report)</b><br>"
-            + "<sup>(Source: "
-            + str(des_stats_tsv.name)
-            + ")</sup>"
-        )
-    elif step == "select":
-        des_html_report = Path(out_dir, "captus-design_select.report.html")
-        title = (
-            "<b>Captus-design: Select (Alignment Report)</b><br>"
-            + "<sup>(Source: "
-            + str(des_stats_tsv.name)
-            + ")</sup>"
-        )
+    title = (
+        "<b>1. Bivariate Plot</b><br>"
+        + "<sup>(Source: "
+        + str(des_stats_tsv.name)
+        + ")</sup>"
+    )
     fig.update_layout(
         font_family="Arial",
         plot_bgcolor="rgb(8,8,8)",
@@ -3721,7 +4064,45 @@ def build_design_report(out_dir, des_stats_tsv, step):
         annotations=annotations,
         updatemenus=updatemenus,
     )
+    if step == "cluster":
+        report_title = "Captus-design: Cluster (Alignment Report)"
+        des_html_report = Path(out_dir, "captus-design_cluster.report.html")
+    elif step == "select":
+        report_title = "Captus-design: Select (Alignment Report)"
+        des_html_report = Path(out_dir, "captus-design_select.report.html")
+    with open(des_stats_tsv, "r") as f:
+        version = f.readline().lstrip("#")
+        command = f.readline().lstrip("#")
+    html_header = f"""
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+                body {{
+                    font-family: Arial, sans-serif;
+                    margin: 50px;
+                }}
+                pre {{
+                    background-color: #292929;
+                    padding: 20px;
+                    border: 1px solid #ddd;
+                    border-radius: 10px;
+                    overflow-x: auto;
+                }}
+                code {{
+                    font-family: Menlo, Courier, monospace;
+                    font-size: 10pt;
+                    color: #FFF;
+                }}
+            </style>
+        </head>
+        <body>
+            <h2>{report_title}</h2>
+            <pre><code>Version: {version}{command}</code></pre>
+        </body>
+    """
     with open(des_html_report, "w") as f:
+        f.write(html_header)
         f.write(
             fig.to_html(
                 full_html=False,
