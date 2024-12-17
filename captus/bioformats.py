@@ -3049,10 +3049,10 @@ def write_gff3(hits, marker_type, disable_stitching, tsv_comment, out_gff_path):
         feature_type = urllib.parse.quote(f"nucleotide_match:{marker_type}")
 
     phase = "."
-
+    tsv_comment_lines = tsv_comment.split("\n")
     gff = ["##gff-version 3",
-           f'#{tsv_comment.split("\n")[0]}',
-           f'#{tsv_comment.split("\n")[1]}']
+           f'#{tsv_comment_lines[0]}',
+           f'#{tsv_comment_lines[1]}']
     for ref in sorted(hits):
         gff.append(f"\n# {urllib.parse.quote(ref)}")
         for h in range(len(hits[ref])):
