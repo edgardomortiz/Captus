@@ -95,15 +95,16 @@ captus_assembly
 
 And if the program was correctly installed you will see the main help page of Captus:
 ```text
-usage: captus_assembly command [options]
+usage: captus command [options]
 
-Captus 1.0.0: Assembly of Phylogenomic Datasets from High-Throughput Sequencing data
+Captus 1.1.0: Assembly of Phylogenomic Datasets from High-Throughput Sequencing data
 
 Captus-assembly commands:
   command     Program commands (in typical order of execution)
                 clean = Trim adaptors and quality filter reads with BBTools,
                         run FastQC on the raw and cleaned reads
-                assemble = Perform de novo assembly with MEGAHIT: Assembling
+                assemble = Perform de novo assembly with MEGAHIT and estimate
+                           contig depth of coverage with Salmon: Assembling
                            reads that were cleaned with the 'clean' command is
                            recommended, but reads cleaned elsewhere are also
                            allowed

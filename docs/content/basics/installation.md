@@ -39,25 +39,28 @@ And that is all! Notice that the beginning of your prompt should have changed fr
 
 Just to verify it is correctly installed try typing `captus_assembly --help`, if everything went OK you should see the following output in the terminal:
 ```console
-usage: captus_assembly command [options]
+usage: captus command [options]
 
-Captus 1.0.0: Assembly of Phylogenomic Datasets from High-Throughput Sequencing data
+Captus 1.1.0: Assembly of Phylogenomic Datasets from High-Throughput Sequencing data
 
 Captus-assembly commands:
   command     Program commands (in typical order of execution)
-                clean = Trim adaptors and quality filter reads with BBTools, run
-                        FastQC on the raw and cleaned reads
-                assemble = Perform de novo assembly with MEGAHIT: Assembling reads
-                           that were cleaned with the 'clean' command is
-                           recommended, but reads cleaned elsewhere are also allowed
-                extract = Recover targeted markers with BLAT and Scipio: Extracting
-                          markers from the assembly obtained with the 'assemble'
-                          command is recommended, but any other assemblies in FASTA
-                          format are also allowed.
-                align = Align extracted markers across samples with MAFFT or MUSCLE:
-                        Marker alignment depends on the directory structure created
-                        by the 'extract' command. This step also performs paralog
-                        filtering and alignment trimming using ClipKIT
+                clean = Trim adaptors and quality filter reads with BBTools,
+                        run FastQC on the raw and cleaned reads
+                assemble = Perform de novo assembly with MEGAHIT and estimate
+                           contig depth of coverage with Salmon: Assembling
+                           reads that were cleaned with the 'clean' command is
+                           recommended, but reads cleaned elsewhere are also
+                           allowed
+                extract = Recover targeted markers with BLAT and Scipio:
+                          Extracting markers from the assembly obtained with
+                          the 'assemble' command is recommended, but any other
+                          assemblies in FASTA format are also allowed
+                align = Align extracted markers across samples with MAFFT or
+                        MUSCLE: Marker alignment depends on the directory
+                        structure created by the 'extract' command. This step
+                        also performs paralog filtering and alignment trimming
+                        using ClipKIT
 
 Help:
   -h, --help  Show this help message and exit
