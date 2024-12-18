@@ -2023,7 +2023,7 @@ def build_assembly_report(out_dir, asm_stats_tsv, len_stats_tsv, dep_stats_tsv):
         inplace=True,
     )
     df["stage"] = df["stage"].str.capitalize()
-    df["length_bin"] = df["length_bin"].apply(lambda x: f"≤{int(x)}")
+    df["length_bin"] = df["length_bin"].apply(lambda x: f"≤{int(x)}" if x <= 100000  else ">100000")
     df.sort_values(
         by=["sample_name", "stage"],
         ascending=[True, False],
@@ -2148,7 +2148,7 @@ def build_assembly_report(out_dir, asm_stats_tsv, len_stats_tsv, dep_stats_tsv):
     )
     df["stage"] = df["stage"].str.capitalize()
     df["depth_bin"] = df["depth_bin"].apply(
-        lambda x: f"≤{int(x)}" if x % 1 == 0 else f"≤{x}"
+        lambda x: f"≤{int(x)}" if x % 1 == 0 else f"≤{x}" if x <= 10000 else ">10000"
     )
     df.sort_values(
         by=["sample_name", "stage"],
