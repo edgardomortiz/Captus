@@ -10,9 +10,8 @@ source:
   sha256: {{ sha256 }}
 
 build:
-  number: 1
+  number: 3
   noarch: python
-  script: "{{ PYTHON }} -m pip install . --ignore-installed -vv"
   run_exports:
     - {{ pin_subpackage("captus", max_pin="x.x") }}
 
@@ -22,7 +21,6 @@ requirements:
     - python >=3.6
     - pip
     - setuptools
-
   run:
     - python >=3.6
     - pip
@@ -40,6 +38,7 @@ requirements:
     - perl-yaml
     - pigz
     - plotly
+    - salmon >=1.10.1
     - tqdm
     - vsearch
 
