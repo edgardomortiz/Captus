@@ -83,7 +83,8 @@ Documentation and tutorials are available at [https://edgardomortiz.github.io/ca
 >
 > ### Extract BUSCO
 >
-> Since v1.0.1, `Captus` supports the use of any BUSCO lineage dataset as reference targets for extraction. Just download one of the `.tar.gz` files from [https://busco-data.ezlab.org/v5/data/lineages](https://busco-data.ezlab.org/v5/data/lineages) and provide the path to `captus extract`.  
+> Since v1.0.1, `Captus` supports the use of any BUSCO lineage dataset as reference targets for extraction. Just download one of the `.tar.gz` files from [https://busco-data.ezlab.org/v5/data/lineages](https://busco-data.ezlab.org/v5/data/lineages) and provide the path to `captus extract`.
+>
 > For example:
 >
 > ```text
