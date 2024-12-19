@@ -7,10 +7,10 @@ pre = '<i class="fas fa-dna"></i> '
 For this example we will use the directory `01_clean_reads` previously created with the [`clean` module]({{< ref "assembly/clean/output">}}). We run the following `Captus` command to assemble our cleaned reads:
 
 ```console
-captus_assembly assemble --reads 01_clean_reads --sample_reads_target 1000000 --max_contig_gc 60.0
+captus assemble --reads 01_clean_reads --sample_reads_target 1000000 --max_contig_gc 60.0
 ```
 
-We are including the option [`--sample_reads_target 1000000`]({{< ref "assembly/assemble/options#--sample_reads_target" >}}) to show the expected output even though this option will not be very commonly used. Additionally, the option `--max_contig_gc 60.0` is used to filter contigs with GC content over 60% after assembly, only when this option is used the file `filtered_contigs.fasta` is produced.
+We are including the option [`--sample_reads_target 1000000`]({{< ref "assembly/assemble/options#--sample_reads_target" >}}) to show the expected output even though this option will not be very commonly used. Additionally, the option `--max_contig_gc 60.0` is used to filter contigs with GC content over 60% after assembly, the filtered contigs are always saved to `removed_contigs.fasta` in case the filtering has to be repeated after changing the thresholds.
 
 After the run is finished we should see a new directory called `02_assemblies` with the following structure and files:
 
@@ -43,41 +43,46 @@ The assembly graph in [FASTG format](http://fastg.sourceforge.net/FASTG_Spec_v1.
 ![FASTG in Bandage](/captus.docs/images/fastg_in_bandage.png?width=1000&classes=shadow)
 {{% /expand %}}
 ___
-### 6. **`filtered_contigs.fasta`**
-This file in **only** created when the option `--max_contig_gc` is used, `Captus` will place any contig exceeding the specified GC content in this FASTA-formatted file (same format as in **4**).
+### 6. **`removed_contigs.fasta`**
+This file is created after the filtering by GC and/or depth is finished (same format as in **4**).
 ___
-### 7. **`assembly.stats.tsv`**, **`assembly.stats.t.tsv`**
-Assembly statistics, the `assembly.stats.t.tsv` is just a transposed version of `assembly.stats.tsv`:
+### 7. **`assembly_stats.tsv`**
+Assembly statistics, before and after filtering:
 
 {{% expand "Example" %}}
 **`assembly.stats.tsv`**
-```text
-              sample : GenusA_speciesA_CAP
-           n_contigs : 1830
- pct_contigs_>=_1kbp : 33.661
- pct_contigs_>=_2kbp : 11.694
- pct_contigs_>=_5kbp : 1.749
-pct_contigs_>=_10kbp : 0.984
-      longest_contig : 26676
-     shortest_contig : 183
-        total_length : 2041738
-  pct_length_>=_1kbp : 70.061
-  pct_length_>=_2kbp : 42.875
-  pct_length_>=_5kbp : 18.15
- pct_length_>=_10kbp : 13.836
-          avg_length : 1116
-       median_length : 659
-                 N50 : 1648
-          GC_content : 39.028
-           avg_depth : 24.1
-   pct_contigs_>=_1x : 100.0
-   pct_contigs_>=_2x : 70.109
-   pct_contigs_>=_5x : 49.563
-  pct_contigs_>=_10x : 38.47
-```
+|Column|Description|
+|-|-|
+|**sample_name**|Name of the sample|
+|**stage**|Before or After filtering|
+|**num_contigs**|Number of contigs|
+|**pct_contigs_1kbp**|Percentage of contigs over 1kbp|
+|**pct_contigs_2kbp**|Percentage of contigs over 2kbp|
+|**pct_contigs_5kbp**|Percentage of contigs over 5kbp|
+|**pct_contigs_10kbp**|Percentage of contigs over 10kbp|
+|**pct_contigs_20kbp**|Percentage of contigs over 20kbp|
+|**pct_contigs_50kbp**|Percentage of contigs over 50kbp|
+|**total_length**|Cumulative length of all contigs in bp|
+|**pct_lengt_1kbp**|Percentage of total assembly length in contigs over 1kbp|
+|**pct_lengt_2kbp**|Percentage of total assembly length in contigs over 2kbp|
+|**pct_lengt_5kbp**|Percentage of total assembly length in contigs over 5kbp|
+|**pct_lengt_10kbp**|Percentage of total assembly length in contigs over 10kbp|
+|**pct_lengt_20kbp**|Percentage of total assembly length in contigs over 20kbp|
+|**pct_lengt_50kbp**|Percentage of total assembly length in contigs over 50kbp|
+|**shortest_contig**|Length of shortest contig in bp|
+|**longest_contig**|Length of longest contig in bp|
+|**avg_length**|Average contig length in bp|
+|**median_length**|Median contig length in bp|
+|**avg_depth**|Average contig depth|
+|**median_depth**|Median contig depth|
+|**gc**|Average contig GC content|
+|**N50**|Assembly N50 in bp|
+|**N75**|Assembly N75 in bp|
+|**L50**|Assembly L50 in number of contigs|
+|**L75**|Assembly L75 in number of contigs|
 {{% /expand %}}
 ___
-### 8. **`megahit.brief.log`**, **`megahit.full.log`**
+### 8. **`megahit_brief.log`**, **`megahit_full.log`**
 `MEGAHIT` program logs, the _brief_ version contains just the screen output from each `MEGAHIT` run.
 
 {{% expand "Example" %}}
@@ -144,46 +149,53 @@ Captus' MEGAHIT Command:
 ```
 {{% /expand %}}
 ___
-### 9. **`captus-assembly_assemble.stats.tsv`**
-Statistics tab-separated-values table compiled across all assembled samples.
+### 9. **`captus-assembly_assemble.assembly_stats.tsv`**
+Statistics tab-separated-values table compiled across all assembled samples before and after filtering.
 
 {{% expand "Information included in the table" %}}
 |Column|Description|
 |-|-|
-|**sample**|Name of the sample|
-|**n_contigs**|Number of contigs|
-|**pct_contigs_>=_1kbp**|Percentage of contigs over 1kbp|
-|**pct_contigs_>=_2kbp**|Percentage of contigs over 2kbp|
-|**pct_contigs_>=_5kbp**|Percentage of contigs over 5kbp|
-|**pct_contigs_>=_10kbp**|Percentage of contigs over 10kbp|
-|**longest_contig**|Length of longest contig in bp|
-|**shortest_contig**|Length of shortest contig in bp|
+|**sample_name**|Name of the sample|
+|**stage**|Before or After filtering|
+|**num_contigs**|Number of contigs|
+|**pct_contigs_1kbp**|Percentage of contigs over 1kbp|
+|**pct_contigs_2kbp**|Percentage of contigs over 2kbp|
+|**pct_contigs_5kbp**|Percentage of contigs over 5kbp|
+|**pct_contigs_10kbp**|Percentage of contigs over 10kbp|
+|**pct_contigs_20kbp**|Percentage of contigs over 20kbp|
+|**pct_contigs_50kbp**|Percentage of contigs over 50kbp|
 |**total_length**|Cumulative length of all contigs in bp|
-|**pct_length_>=_1kbp**|Percentage of total assembly length in contigs over 1kbp|
-|**pct_length_>=_2kbp**|Percentage of total assembly length in contigs over 2kbp|
-|**pct_length_>=_5kbp**|Percentage of total assembly length in contigs over 5kbp|
-|**pct_length_>=_10kbp**|Percentage of total assembly length in contigs over 10kbp|
+|**pct_lengt_1kbp**|Percentage of total assembly length in contigs over 1kbp|
+|**pct_lengt_2kbp**|Percentage of total assembly length in contigs over 2kbp|
+|**pct_lengt_5kbp**|Percentage of total assembly length in contigs over 5kbp|
+|**pct_lengt_10kbp**|Percentage of total assembly length in contigs over 10kbp|
+|**pct_lengt_20kbp**|Percentage of total assembly length in contigs over 20kbp|
+|**pct_lengt_50kbp**|Percentage of total assembly length in contigs over 50kbp|
+|**shortest_contig**|Length of shortest contig in bp|
+|**longest_contig**|Length of longest contig in bp|
 |**avg_length**|Average contig length in bp|
 |**median_length**|Median contig length in bp|
-|**N50**|Assembly N50 in bp|
-|**GC_content**|Average contig GC content|
 |**avg_depth**|Average contig depth|
-|**pct_contigs_>=_1x**|Percentage of contigs over 1x depth|
-|**pct_contigs_>=_2x**|Percentage of contigs over 2x depth|
-|**pct_contigs_>=_5x**|Percentage of contigs over 5x depth|
-|**pct_contigs_>=_10x**|Percentage of contigs over 10x depth|
-|**filtered_n_contigs**||
-|**filtered_total_length**||
-|**filtered_avg_length**||
-|**filtered_gc_content**||
+|**median_depth**|Median contig depth|
+|**gc**|Average contig GC content|
+|**N50**|Assembly N50 in bp|
+|**N75**|Assembly N75 in bp|
+|**L50**|Assembly L50 in number of contigs|
+|**L75**|Assembly L75 in number of contigs|
 {{% /expand %}}
 ___
-### 10. **`captus-assembly_assemble.report.html`**
+### 10. **`captus-assembly_assemble.depth_stats.tsv`**
 This is the final [Assembly report]({{< ref "assembly/assemble/report">}}), summarizing statistics across all samples assembled.
 ___
-### 11. **`captus-assembly_assemble.log`**
+### 11. **`captus-assembly_assemble.length_stats.tsv`**
+This is the final [Assembly report]({{< ref "assembly/assemble/report">}}), summarizing statistics across all samples assembled.
+___
+### 12. **`captus-assembly_assemble.log`**
 This is the log from `Captus`, it contains the command used and all the information shown during the run. If the option `--show_less` was enabled, the log will also contain all the extra detailed information that was hidden during the run.
+___
+### 13. **`captus-assembly_assemble.report.html`**
+This is the final [Assembly report]({{< ref "assembly/assemble/report">}}), summarizing statistics across all samples assembled.
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (29.05.2022)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (18.12.2024)

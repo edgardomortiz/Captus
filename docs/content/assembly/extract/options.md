@@ -8,7 +8,7 @@ pre = '<i class="fas fa-cog"></i> '
 ___
 To show all available options and their default values you can type in your terminal:
 ```console
-captus_assembly extract --help
+captus extract --help
 ```
 
 ___
@@ -304,4 +304,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (11.12.2024)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (18.12.2024)

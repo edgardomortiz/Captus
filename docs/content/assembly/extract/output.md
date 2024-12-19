@@ -7,7 +7,7 @@ pre = '<i class="fas fa-dna"></i> '
 For this example we will use the directory `02_assemblies` previously created with the [`assemble` module]({{< ref "assembly/assemble/output">}}). We run the following `Captus` command to search and extract our reference markers from the assemblies:
 
 ```console
-captus_assembly extract -a 02_assemblies \
+captus extract -a 02_assemblies \
 -n Angiosperms353 \
 -p SeedPlantsPTD \
 -m SeedPlantsMIT \
@@ -281,4 +281,4 @@ As you can see, **Sample name**, **Locus name**, and **Paralog ranking** are sep
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (03.06.2022)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (18.12.2024)

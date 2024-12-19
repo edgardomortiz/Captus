@@ -11,7 +11,7 @@ Imagine we start with a directory called `00_raw_reads` with the following conte
 We have a samples with different data types, to distinguish them we added `_CAP` to the samples where hybridization-capture was used, `_WGS` for high-coverage whole genome sequencing, `_RNA` for RNA-Seq reads, and `_GSK` for genome skimming data (notice also the difference in file sizes). For this example, we only want to clean the samples in red rectangles corresponding to capture data. We run the following `Captus` command:
 
 ```console
-captus_assembly clean --reads ./00_raw_reads/*_CAP_R?.fq.gz
+captus clean --reads ./00_raw_reads/*_CAP_R?.fq.gz
 ```
 
 Notice we are using default settings, the only required argument is the location of the raw reads. The output was written to a new directory called `01_clean_reads`. Let's take a look at the contents:
@@ -221,4 +221,4 @@ This directory contains all the tab-separated-values tables needed to build the 
 {{% /expand %}}
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (30.05.2022)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (18.12.2024)

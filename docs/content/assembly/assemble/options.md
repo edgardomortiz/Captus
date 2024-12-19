@@ -8,7 +8,7 @@ pre = '<i class="fas fa-cog"></i> '
 ___
 To show all available options and their default values you can type in your terminal:
 ```console
-captus_assembly assemble --help
+captus assemble --help
 ```
 
 ___
@@ -95,28 +95,28 @@ ___
 ### **`--min_contig_len`**
 Minimum contig length in bp in output assembly.
 
-This argument is optional, the default is **auto** (= mean read length + smallest kmer in `k_list`)
+This argument is optional, the default is **auto** (= mean read length + smallest kmer in `k_list`).
 ___
 ### **`--tmp_dir`**
 MEGAHIT needs a temporary directory in an internal hard drive, otherwise it refuses to run.
 
-This argument is optional, the default is **$HOME**
+This argument is optional, the default is **$HOME**. 
 ___
 ### **`--max_contig_gc`**
 Maximum GC percentage allowed per contig. Useful to filter contamination. For example, bacteria usually exceed 60% GC content while eukaryotes rarely exceed that limit. 100.0 disables the GC filter.
 
-This argument is optional, the default is **100.0** (filter disabled)
----
-### **'--disable_mapping'**
-Disable mapping the reads back to the contigs using Salmon for accurate depth estimation. If disabled, the approximate depth estimation given by MEGAHIT will be used instead"
----
-### **'--min_contig_depth'**
-Minimum contig depth of coverage in output assembly; 'auto' will retain contigs with depth of coverage greater than 1.0x when '--disable_mapping' is chosen, otherwise it will retain only contigs of at least 1.5x. Accepted values are decimals greater or equal to 0. Use 0 to disable the filter."
+This argument is optional, the default is **100.0** (filter disabled).
+___
+### **`--disable_mapping`**
+Disable mapping the reads back to the contigs using Salmon for accurate depth estimation. If disabled, the approximate depth estimation given by MEGAHIT will be used instead.
+___
+### **`--min_contig_depth`**
+Minimum contig depth of coverage in output assembly; 'auto' will retain contigs with depth of coverage greater than 1.0x when '--disable_mapping' is chosen, otherwise it will retain only contigs of at least 1.5x. Accepted values are decimals greater or equal to 0. Use 0 to disable the filter.
 
-This argument is optional, the default is **auto** (>=1.5x, or >1.0x when using `--disable_mapping`)
----
-### **'--redo_filtering'**
-Enable if you want to try different values for `--max_contig_gc` or `--min_contig_depth`. Only the filtering step will be repeated
+This argument is optional, the default is **auto** (>=1.5x, or >1.0x when using `--disable_mapping`).
+___
+### **`--redo_filtering`**
+Enable if you want to try different values for `--max_contig_gc` or `--min_contig_depth`. Only the filtering step will be repeated.
 ___
 ## *Other*
 ___
@@ -130,4 +130,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (05.12.2024)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (18.12.2024)

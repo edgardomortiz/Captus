@@ -7,7 +7,7 @@ pre = '<i class="fas fa-dna"></i> '
 For this example we will use the directory `03_extractions` previously created with the [`extract` module]({{< ref "assembly/extract/output">}}). We run the following `Captus` command to collect markers across samples and align them:
 
 ```console
-captus_assembly align align -e 03_extractions_CAP/ -o 04_alignments_CAP -m ALL -f ALL
+captus align -e 03_extractions_CAP/ -o 04_alignments_CAP -m ALL -f ALL
 ```
 
 After the run is finished we should see a new directory called `04_alignments` with the following structure and files:
@@ -187,4 +187,4 @@ This is the log from `Captus`, it contains the command used and all the informat
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (31.05.2022)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (18.12.2024)

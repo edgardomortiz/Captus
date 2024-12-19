@@ -37,7 +37,7 @@ conda activate captus
 ```
 And that is all! Notice that the beginning of your prompt should have changed from`(base)$` to `(captus)$` as we activate the environment.  
 
-Just to verify it is correctly installed try typing `captus_assembly --help`, if everything went OK you should see the following output in the terminal:
+Just to verify it is correctly installed try typing `captus --help`, if everything went OK you should see the following output in the terminal:
 ```console
 usage: captus command [options]
 
@@ -74,31 +74,35 @@ ___
 
 You will have to install all the the dependencies separately yourself:
 
-`Captus` was written for `python >= v3.7`, the only required library is `tqdm` but if you want to produce the HTML reports you will also need `pandas` and `plotly`
+`Captus` was written for `python >= v3.6`, the only required library is `tqdm` but if you want to produce the HTML reports you will also need `pandas` and `plotly`
 
 - `BBTools` (https://jgi.doe.gov/data-and-tools/bbtools/)
 
-- `Falco` (https://github.com/smithlabcode/falco) or `FastQC` (https://www.bioinformatics.babraham.ac.uk/projects/fastqc/)
-
-- `MEGAHIT` (https://github.com/voutcn/megahit)
-
-- **\*** `Scipio` (https://www.webscipio.org/)
-
 - `BioPerl` (https://bioperl.org/)
 
-- `YAML` (https://metacpan.org/pod/YAML)
-
-- **\*** `BLAT >= 36x7` (http://hgdownload.soe.ucsc.edu/admin/exe/)
-
-- `MMseqs2` (https://github.com/soedinglab/MMseqs2)
-
-- `MAFFT` (https://mafft.cbrc.jp/alignment/software/)
-
-- `MUSCLE` (https://www.drive5.com/muscle/)
+- `BLAT >= 36x7` (http://hgdownload.soe.ucsc.edu/admin/exe/) **\***
 
 - `ClipKIT` (https://github.com/JLSteenwyk/ClipKIT)
 
+- `FastQC` (https://www.bioinformatics.babraham.ac.uk/projects/fastqc/) or `Falco` (https://github.com/smithlabcode/falco)
+
+- `MAFFT` (https://mafft.cbrc.jp/alignment/software/)
+
+- `MEGAHIT` (https://github.com/voutcn/megahit)
+
+- `MMseqs2` (https://github.com/soedinglab/MMseqs2)
+
+- `MUSCLE` (https://www.drive5.com/muscle/)
+
 - `pigz` (https://zlib.net/pigz/)
+
+- `Salmon` (https://github.com/COMBINE-lab/salmon)
+
+- `Scipio` (https://www.webscipio.org/) **\***
+
+- `VSEARCH` (https://github.com/torognes/vsearch)
+
+- `YAML` (https://metacpan.org/pod/YAML)
 
 **\*** Bundled with `Captus`
 
@@ -111,8 +115,8 @@ pip install .
 ```
 
 {{% notice tip %}}
-If you don't want to install `Captus` you can simply add the directory where you cloned the repository to your system `$PATH` and use `captus_assembly-runner.py` instead of `captus_assembly`
+If you don't want to install `Captus` you can simply add the directory where you cloned the repository to your system `$PATH` and use `captus_assembly-runner.py` instead of `captus`
 {{% /notice %}}
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../more/credits/#edgardo-m-ortiz">}}) (21.11.2023)
+Last modified by [Edgardo M. Ortiz]({{< ref "../more/credits/#edgardo-m-ortiz">}}) (19.12.2024)

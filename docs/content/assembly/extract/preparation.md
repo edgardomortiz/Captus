@@ -38,9 +38,9 @@ And here, some examples or **invalid** FASTA filenames:
 - `Malus_spontánea.fna.gz`, the sample name contains and accent `á`, it is better to change it to `Malus_spontanea.fna.gz`
 {{% /expand %}}
 ___
-### *Reference datasets formatting*
+### *Reference target datasets formatting*
 
-Most importantly, in order to extract markers, the sequences in your reference datasets have to follow a simple naming convention if you want to take advantage of using multiple reference sequences per locus and our paralog filtering method. When multiple reference sequences per locus are found in the reference dataset, `Captus` will decide during the extraction which of those references matches your assembly best based on similarity and total recovered length percentage.
+Most importantly, in order to extract markers, the sequences in your reference target datasets have to follow a simple naming convention if you want to take advantage of using multiple reference sequences per locus and our paralog filtering method. When multiple reference sequences per locus are found in the reference dataset, `Captus` will decide during the extraction which of those references matches your assembly best based on similarity and total recovered length percentage.
 
 Here is an example of a reference protein dataset that has **two loci** (called *accD* and *cemA*) with **five** reference sequences each (probably coming from different taxa to expand phylogenetic coverage). Coding sequences can be provided in either aminoacid or nucleotide. [Miscellaneous DNA markers]({{< ref "/assembly/extract/options#--dna_refs">}}) references can only contain nucleotide sequences.
 
