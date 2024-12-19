@@ -3,41 +3,31 @@ title = "Installation"
 weight = 15
 +++
 
-### *The easy way (recommended)*
+### Using conda/mamba (recommended)
 
-The simplest way to install `Captus` is to create an isolated software environment using `conda`, if you don't have `conda` we recommend to install `miniconda` from [https://docs.conda.io/en/latest/miniconda.html](https://docs.conda.io/en/latest/miniconda.html). Once you have `conda` installed in your system you need to configure your channels:
-```bash
-conda config --prepend channels bioconda
-conda config --prepend channels conda-forge
-conda config --show channels
+`Captus` is available as a [conda package](https://anaconda.org/bioconda/captus). If you have `conda` [<i class="fas fa-question-circle fa-sm"></i>](https://docs.conda.io/projects/conda/en/latest/index.html) or `mamba` [<i class="fas fa-question-circle fa-sm"></i>](https://mamba.readthedocs.io/en/latest/index.html) installed, you can easily create a new environment and install `Captus` with all dependencies using the following command:
+
+```shell
+conda create -n captus -c bioconda -c conda-forge captus
 ```
 
-The last command should show your current channels, the order matters:
-```bash
-channels:
-  - conda-forge
-  - bioconda
-  - defaults
-```
+{{% notice warning "Important for macOS users" %}}
+One of the builds of the latest version of `MEGAHIT` (v1.2.9) on `Bioconda` is broken. To ensure you install a functional one, please specify the build number as follows:
 
-Now we are ready to create a separate environment for Captus:
-```bash
-conda create -n captus captus
-```
-
-`conda` sometimes takes too long to find and configure dependencies, if that happens we recommend installing `mamba` first, and installing `Captus` with it:
-```bash
-conda install mamba
-mamba create -n captus captus
-```
-
-Once `Captus` is installed in its own environment, let's activate it:
 ```console
-conda activate captus
+conda create -n captus -c bioconda -c conda-forge captus megahit=1.2.9=hfbae3c0_0
 ```
-And that is all! Notice that the beginning of your prompt should have changed from`(base)$` to `(captus)$` as we activate the environment.  
 
-Just to verify it is correctly installed try typing `captus --help`, if everything went OK you should see the following output in the terminal:
+{{% /notice %}}
+Check that `Captus` was correctly installed:
+
+```shell
+conda activate captus
+captus -h
+```
+
+If the program was correctly installed, you will see the following help message:
+
 ```console
 usage: captus command [options]
 
@@ -70,53 +60,54 @@ For help on a particular command: captus_assembly command -h
 ```
 
 ___
-### *The manual way*
 
-You will have to install all the the dependencies separately yourself:
+### Manual installation
 
-`Captus` was written for `python >= v3.6`, the only required library is `tqdm` but if you want to produce the HTML reports you will also need `pandas` and `plotly`
+If you are unable to use `conda`/`mamba` for any reason, you will need to manually install all the dependencies listed below:
 
-- `BBTools` (https://jgi.doe.gov/data-and-tools/bbtools/)
+|Dependency|Version|URL|
+|-|-|-|
+|`Python` |>=3.6|<https://www.python.org>|
+|`BBTools`||<https://jgi.doe.gov/data-and-tools/bbtools>|
+|`BioPerl`||<https://bioperl.org>|
+|`ClipKIT`|>=1.3.0|<https://github.com/JLSteenwyk/ClipKIT>|
+|`Falco`|>=0.3.0|<https://github.com/smithlabcode/falco>|
+|`FastQC`||<https://www.bioinformatics.babraham.ac.uk/projects/fastqc>|
+|`MAFFT`||<https://mafft.cbrc.jp/alignment/software>|
+|`MEGAHIT`|1.2.9|<https://github.com/voutcn/megahit>|
+|`MMseqs2`||<https://github.com/soedinglab/MMseqs2>|
+|`MUSCLE`|>=5.1|<https://www.drive5.com/muscle>|
+|`pandas`|>=2.1.0|<https://pandas.pydata.org>|
+|`Plotly`||<https://github.com/plotly/plotly.py>|
+|`pigz`||<https://zlib.net/pigz>|
+|`Salmon`|>=1.10.0|<https://github.com/COMBINE-lab/salmon>|
+|`tqdm`||<https://github.com/tqdm/tqdm>|
+|`VSEARCH`||<https://github.com/torognes/vsearch>|
+|`YAML`||<https://metacpan.org/pod/YAML>|
 
-- `BioPerl` (https://bioperl.org/)
+**\*** The following two dependencies are bundled with `Captus`, so no additional installation is required.
 
-- `BLAT >= 36x7` (http://hgdownload.soe.ucsc.edu/admin/exe/) **\***
+|Dependency|Version|URL|
+|-|-|-|
+|`BLAT`|37x1|<http://hgdownload.soe.ucsc.edu/admin/exe>|
+|`Scipio`|1.4.1|<https://www.webscipio.org>|
 
-- `ClipKIT` (https://github.com/JLSteenwyk/ClipKIT)
+Once you have all the dependencies installed, you can proceed to clone the repository and install `Captus` as follows:
 
-- `FastQC` (https://www.bioinformatics.babraham.ac.uk/projects/fastqc/) or `Falco` (https://github.com/smithlabcode/falco)
-
-- `MAFFT` (https://mafft.cbrc.jp/alignment/software/)
-
-- `MEGAHIT` (https://github.com/voutcn/megahit)
-
-- `MMseqs2` (https://github.com/soedinglab/MMseqs2)
-
-- `MUSCLE` (https://www.drive5.com/muscle/)
-
-- `pigz` (https://zlib.net/pigz/)
-
-- `Salmon` (https://github.com/COMBINE-lab/salmon)
-
-- `Scipio` (https://www.webscipio.org/) **\***
-
-- `VSEARCH` (https://github.com/torognes/vsearch)
-
-- `YAML` (https://metacpan.org/pod/YAML)
-
-**\*** Bundled with `Captus`
-
-Once you have all the dependencies installed you can proceed to clone the repository and install `Captus` as described before:
-
-```console
+```shell
 git clone https://github.com/edgardomortiz/Captus.git
 cd Captus
 pip install .
+captus -h
 ```
 
-{{% notice tip %}}
-If you don't want to install `Captus` you can simply add the directory where you cloned the repository to your system `$PATH` and use `captus_assembly-runner.py` instead of `captus`
-{{% /notice %}}
+Alternatively, you can run `Captus` using the wrapper script `captus_assembly-runner.py` as follows:
+
+```shell
+git clone https://github.com/edgardomortiz/Captus.git
+./Captus/captus_assembly-runner.py -h
+```
+
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../more/credits/#edgardo-m-ortiz">}}) (19.12.2024)
+Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (19.12.2024)

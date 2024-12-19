@@ -25,7 +25,7 @@ conda create -n captus -c bioconda -c conda-forge captus
 >
 > ### Important for macOS users
 >
-> One of the builds of the latest version of `MEGAHIT` (v.1.2.9) on `Bioconda` is broken. To ensure you install a functional one, please specify the build number as follows:
+> One of the builds of the latest version of `MEGAHIT` (v1.2.9) on `Bioconda` is broken. To ensure you install a functional one, please specify the build number as follows:
 >
 > ```shell
 > conda create -n captus -c bioconda -c conda-forge captus megahit=1.2.9=hfbae3c0_0
@@ -73,7 +73,7 @@ For help on a particular command: captus_assembly command -h
 
 ### Manual installation
 
-If you are unable to use conda/mamba for any reason, you will need to install all dependencies manually. Please refer to the [documentation](https://edgardomortiz.github.io/captus.docs/basics/installation/#manual-installation) for details.
+If you are unable to use `conda`/`mamba` for any reason, you will need to install all dependencies manually. Please refer to the [documentation](https://edgardomortiz.github.io/captus.docs/basics/installation/#manual-installation) for details.
 
 ## USAGE
 
