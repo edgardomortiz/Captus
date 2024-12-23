@@ -199,7 +199,7 @@ Minimum percetange of coverage of the reference sequence for a hit to be retaine
 
 This argument is optional, the default is **20**.
 ___
-### **`--dna_min_coverage`**
+### **`--dna_depth_tolerance`**
 Allow contigs with a minimum depth equal to the median depth divided by this number and a maximum depth equal to the median depth multipled by this number. This median depth is calculated only from the contigs with hits to the miscellaneous DNA reference targets.
 
 This argument is optional, the default is **10**.
