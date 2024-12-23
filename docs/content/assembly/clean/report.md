@@ -13,11 +13,11 @@ To assess the quality of raw reads and how it is improved by the cleaning, the `
 Although both programs generate informative reports, they are in separate files for each sample, each read direction (for paired-end), and before and after cleaning.
 This makes it tedious to review every report, and can lead to overlook some serious problems, such as residual low-quality bases or adaptor sequences, contamination of different samples, and improper setting of cleaning parameters.
 
-`Captus` summarizes the information in those disparate reports into a single HTML file. All you need to do is open `captus-assembly_clean.report.html` with your browser (internet connection required) to get a quick overview on all your samples, both reads (for paired-end), and before and after cleaning!
+`Captus` summarizes the information in those disparate reports into a single HTML file. All you need to do is open `captus-clean_report.html` with your browser (internet connection required) to get a quick overview on all your samples, both reads (for paired-end), and before and after cleaning!
 
 {{% notice tip %}}
 
-- The entire report is based on tables stored in the [`03_qc_extras`]({{< relref "assembly/clean/output#8-03_qc_extras" >}}) directory.
+- The entire report is based on tables stored in the [`03_qc_extras`]({{< relref "assembly/clean/output#6-03_qc_extras" >}}) directory.
 - All tables and plots in the report are interactive powered by [`Plotly`](https://plotly.com/python).  
 Visit the following sites once to take full advantage of its interactivity:
 
@@ -30,15 +30,17 @@ Visit the following sites once to take full advantage of its interactivity:
 ---
 The report comprises the following nine sections:
 
-1. [Summary Table](#1-summary-table)
-2. [Stats on Reads/Bases](#2-stats-on-readsbases)
-3. [Per Base Quality](#3-per-base-quality)
-4. [Per Read Quality](#4-per-read-quality)
-5. [Read Length Distribution](#5-read-length-distribution)
-6. [Per Base Nucleotide Content](#6-per-base-nucleotide-content)
-7. [Per Read GC Content](#7-per-read-gc-content)
-8. [Sequence Duplication Level](#8-sequence-duplication-level)
-9. [Adaptor Content](#9-adaptor-content)
+- [Concept](#concept)
+- [Contents](#contents)
+  - [1. Summary Table](#1-summary-table)
+  - [2. Stats on Reads/Bases](#2-stats-on-readsbases)
+  - [3. Per Base Quality](#3-per-base-quality)
+  - [4. Per Read Quality](#4-per-read-quality)
+  - [5. Read Length Distribution](#5-read-length-distribution)
+  - [6. Per Base Nucleotide Content](#6-per-base-nucleotide-content)
+  - [7. Per Read GC Content](#7-per-read-gc-content)
+  - [8. Sequence Duplication Level](#8-sequence-duplication-level)
+  - [9. Adaptor Content](#9-adaptor-content)
 
 A brief description and interactive example of each section is given below.  
 By switching the tabs at the top of each plot, you can compare the plot produced by `Captus` with the corresponding plot from [`FastQC`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc).
@@ -221,4 +223,4 @@ For more details, read [<i class="fab fa-readme"></i> FastQC documentation](http
 
 ---
 Created by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (11.08.2021)  
-Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (22.02.2023)
+Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (23.12.2024)

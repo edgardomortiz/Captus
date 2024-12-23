@@ -73,7 +73,7 @@ ___
 ### 15. **`02_matches_flanked`**
 This directory contains the alignments of DNA sequence matches (`MF` in the figure above) including flanks and intervening segments not present in the references for the extracted markers gathered across samples. One FASTA file per marker, with extension `.fna`.
 ___
-### 16. **`captus-assembly_align.paralogs.tsv`**
+### 16. **`captus-align_paralogs.tsv`**
 A tab-separated-values table recording which copy was selected during the `informed` filtering of paralogs.
 
 {{% expand "Information included in the table" %}}
@@ -92,7 +92,7 @@ A tab-separated-values table recording which copy was selected during the `infor
 |**accepted**|Whether the copy is accepted (`TRUE`) or not (`FALSE`).|
 {{% /expand %}}
 ___
-### 17. **`captus-assembly_align.alignments.tsv`**
+### 17. **`captus-align_alignments.tsv`**
 A tab-separated-values table recording alignment statistics for each of the alignments produced.
 
 {{% expand "Information included in the table" %}}
@@ -123,7 +123,7 @@ A tab-separated-values table recording alignment statistics for each of the alig
 |**gc_codon_p3**||
 {{% /expand %}}
 ___
-### 18. **`captus-assembly_align.samples.tsv`**
+### 18. **`captus-align_samples.tsv`**
 A tab-separated-values table recording sample statistics across the different filtering and trimming stages, as well as marker types and formats.
 
 {{% expand "Information included in the table" %}}
@@ -146,7 +146,7 @@ A tab-separated-values table recording sample statistics across the different fi
 |**num_copies**|Number of copies in the alignment.|
 {{% /expand %}}
 ___
-### 19. **`captus-assembly_align.astral-pro.tsv`**
+### 19. **`captus-align_astral-pro.tsv`**
 ASTRAL-Pro requires a tab-separated-values file for mapping the names of the paralog sequence names (first column) to the name of the sample (second column). `Captus` produces this file automatically.
 
 {{% expand "Example" %}}
@@ -179,12 +179,12 @@ GenusD_speciesD_CAP__05	GenusD_speciesD_CAP
 ```
 {{% /expand %}}
 ___
-### 20. **`captus-assembly_align.report.html`**
+### 20. **`captus-align_report.html`**
 This is the final [Aligment report]({{< ref "assembly/align/report">}}), summarizing alignment statistics across all processing stages, marker types, and formats.
 ___
-### 21. **`captus-assembly_align.log`**
+### 21. **`captus-align.log`**
 This is the log from `Captus`, it contains the command used and all the information shown during the run. Even if the option `--show_more` was disabled, the log will contain all the extra detailed information that was hidden during the run.
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (18.12.2024)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (23.12.2024)

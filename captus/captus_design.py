@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Copyright 2020-2024 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
+Copyright 2020-2025 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
 https://github.com/edgardomortiz/Captus
 
 This is the control program for the bait design pipeline of Captus.

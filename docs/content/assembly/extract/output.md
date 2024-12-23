@@ -98,7 +98,35 @@ ___
 ### 9. **`[MARKER_TYPE]_recovery_stats.tsv`**
 Tab-separated-values table with marker recovery statistics, these are concatenated across marker types and samples and summarized in the final [Marker Recovery report]({{< ref "assembly/extract/report">}}). Prefixes can be `NUC`, `PTD`, or `MIT`.
 
-For more information on the table see [26. captus-assembly_extract.stats.tsv]({{< relref "assembly/extract/output#26-captus-assembly_extractstatstsv" >}})
+{{% expand "Information included in the table" %}}
+|Column|Description|
+|-|-|
+|**sample_name**|Name of the sample.|
+|**marker_type**|Type of marker. Possible values are `NUC`, `PTD`, `MIT`, `DNA`, or `CLR`.|
+|**locus**|Name of the locus.|
+|**ref_name**|Name of the reference selected for the locus. Relevant when the reference contains multiple sequences per locus like in Angiosperms353 for example.|
+|**ref_coords**|Match coordinates with respect to the reference, each segment is expressed as `[start]-[end]`, segments within the same contig are separated by `,`, and segments in different contigs are separated by `;`. For example: `1-47;48-354,355-449` indicates that a contig contained a segment matching reference coordinates `1-49` and a different contig matched two segments, `48-354` and `355-449` respectively.|
+|**ref_type**|Whether the reference is an aminoacid (`prot`) or nucleotide (`nucl`) sequence.|
+|**ref_len_matched**|Number of residues matched in the reference.|
+|**hit**|Paralog ranking, `00` is assigned to the best hit, secondary hits start at `01`.|
+|**pct_recovered**|Percentage of the total length of the reference sequence that was matched.|
+|**pct_identity**|Percentage of sequence identity between the hit and the reference sequence.|
+|**score**|Inspired by `Scipio`'s score: `(matches - mismatches) / reference length`.|
+|**wscore**|Weighted score. When the reference contains multiple sequences per locus, the best-matching reference is decided after normalizing their recovered length across references in the locus and multiplying that value by their respective `score`, thus producing the `wscore`. Finally `wscore` is also penalized by the number of frameshifts (if the marker is coding) and number of contigs used in the assembly of the hit.|
+|**hit_len**|Number of residues matched in the sample's contig(s) plus the length of the flanking sequence.|
+|**cds_len**|If `ref_type` is `prot` this number represents the number of residues corresponding to coding sequence (i.e. exons). If the `ref_type` is `nucl` this field shows `NA`.|
+|**intron_len**|If `ref_type` is `prot` this number represents the number of residues corresponding to intervening non-coding sequence segments (i.e. introns). If the `ref_type` is `nucl` this field shows `NA`.|
+|**flanks_len**|Number of residues included in the flanking sequence.|
+|**frameshifts**|Positions of the corrected frameshifts in the output sequence. If the `ref_type` is `nucl` this field shows `NA`.|
+|**hit_contigs**|Number of contigs used to assemble the hit.|
+|**hit_l50**|Least number of contigs in the hit that contain 50% of the recovered length.|
+|**hit_l90**|Least number of contigs in the hit that contain 90% of the recovered length.|
+|**hit_lg50**|Least number of contigs in the hit that contain 50% of the reference locus length.|
+|**hit_lg90**|Least number of contigs in the hit that contain 90% of the reference locus length.|
+|**ctg_names**|Name of the contigs used in the reconstruction of the hit. Example: `NODE_6256_length_619_cov_3.0000_k_169_flag_1;NODE_3991_length_1778_cov_19.0000_k_169_flag_1`, for a hit where two contigs were used.|
+|**ctg_strands**|Contig strands (`+` or `-`) provided in the same order as `ctg_names`. Example: `+;-` indicates that the contig `NODE_6256_length_619_cov_3.0000_k_169_flag_1` was matched in the positive strand while the contig `NODE_3991_length_1778_cov_19.0000_k_169_flag_1` was matched in the ngeative strand.|
+|**ctg_coords**|Match coordinates with respect to the contigs in the sample's assembly. Each segment is expressed as `[start]-[end]`, segments within the same contig are separated by `,`, and segments in different contigs are separated by `;` which are provided in the same order as `ctg_names` and `ctg_strands`. Example: `303-452;694-1626,301-597` indicates that a single segment was matched in contig `NODE_6256_length_619_cov_3.0000_k_169_flag_1` in the `+` strand with coordinates `303-452`, while two segments were matched in contig `NODE_3991_length_1778_cov_19.0000_k_169_flag_1` in the `-` strand with coordinates `694-1626` and `301-597` respectively.|
+{{% /expand %}}
 ___
 ### 10. **`[MARKER_TYPE]_scipio_final.log`**
 Log of the second Scipio's run, where best references have already been selected (when using multi-sequence per locus references) and only the contigs that had hits durin Scipio's initial run are used. Prefixes can be `NUC`, `PTD`, or `MIT`.
@@ -149,7 +177,35 @@ ___
 ### 17. **`[MARKER_TYPE]_recovery_stats.tsv`**
 Tab-separated-values table with marker recovery statistics, these are concatenated across marker types and samples and summarized in the final [Marker Recovery report]({{< ref "assembly/extract/report">}}). Prefixes can be `DNA` or `CLR`.
 
-For more information on the table see [26. captus-assembly_extract.stats.tsv]({{< relref "assembly/extract/output#26-captus-assembly_extractstatstsv" >}})
+{{% expand "Information included in the table" %}}
+|Column|Description|
+|-|-|
+|**sample_name**|Name of the sample.|
+|**marker_type**|Type of marker. Possible values are `NUC`, `PTD`, `MIT`, `DNA`, or `CLR`.|
+|**locus**|Name of the locus.|
+|**ref_name**|Name of the reference selected for the locus. Relevant when the reference contains multiple sequences per locus like in Angiosperms353 for example.|
+|**ref_coords**|Match coordinates with respect to the reference, each segment is expressed as `[start]-[end]`, segments within the same contig are separated by `,`, and segments in different contigs are separated by `;`. For example: `1-47;48-354,355-449` indicates that a contig contained a segment matching reference coordinates `1-49` and a different contig matched two segments, `48-354` and `355-449` respectively.|
+|**ref_type**|Whether the reference is an aminoacid (`prot`) or nucleotide (`nucl`) sequence.|
+|**ref_len_matched**|Number of residues matched in the reference.|
+|**hit**|Paralog ranking, `00` is assigned to the best hit, secondary hits start at `01`.|
+|**pct_recovered**|Percentage of the total length of the reference sequence that was matched.|
+|**pct_identity**|Percentage of sequence identity between the hit and the reference sequence.|
+|**score**|Inspired by `Scipio`'s score: `(matches - mismatches) / reference length`.|
+|**wscore**|Weighted score. When the reference contains multiple sequences per locus, the best-matching reference is decided after normalizing their recovered length across references in the locus and multiplying that value by their respective `score`, thus producing the `wscore`. Finally `wscore` is also penalized by the number of frameshifts (if the marker is coding) and number of contigs used in the assembly of the hit.|
+|**hit_len**|Number of residues matched in the sample's contig(s) plus the length of the flanking sequence.|
+|**cds_len**|If `ref_type` is `prot` this number represents the number of residues corresponding to coding sequence (i.e. exons). If the `ref_type` is `nucl` this field shows `NA`.|
+|**intron_len**|If `ref_type` is `prot` this number represents the number of residues corresponding to intervening non-coding sequence segments (i.e. introns). If the `ref_type` is `nucl` this field shows `NA`.|
+|**flanks_len**|Number of residues included in the flanking sequence.|
+|**frameshifts**|Positions of the corrected frameshifts in the output sequence. If the `ref_type` is `nucl` this field shows `NA`.|
+|**hit_contigs**|Number of contigs used to assemble the hit.|
+|**hit_l50**|Least number of contigs in the hit that contain 50% of the recovered length.|
+|**hit_l90**|Least number of contigs in the hit that contain 90% of the recovered length.|
+|**hit_lg50**|Least number of contigs in the hit that contain 50% of the reference locus length.|
+|**hit_lg90**|Least number of contigs in the hit that contain 90% of the reference locus length.|
+|**ctg_names**|Name of the contigs used in the reconstruction of the hit. Example: `NODE_6256_length_619_cov_3.0000_k_169_flag_1;NODE_3991_length_1778_cov_19.0000_k_169_flag_1`, for a hit where two contigs were used.|
+|**ctg_strands**|Contig strands (`+` or `-`) provided in the same order as `ctg_names`. Example: `+;-` indicates that the contig `NODE_6256_length_619_cov_3.0000_k_169_flag_1` was matched in the positive strand while the contig `NODE_3991_length_1778_cov_19.0000_k_169_flag_1` was matched in the ngeative strand.|
+|**ctg_coords**|Match coordinates with respect to the contigs in the sample's assembly. Each segment is expressed as `[start]-[end]`, segments within the same contig are separated by `,`, and segments in different contigs are separated by `;` which are provided in the same order as `ctg_names` and `ctg_strands`. Example: `303-452;694-1626,301-597` indicates that a single segment was matched in contig `NODE_6256_length_619_cov_3.0000_k_169_flag_1` in the `+` strand with coordinates `303-452`, while two segments were matched in contig `NODE_3991_length_1778_cov_19.0000_k_169_flag_1` in the `-` strand with coordinates `694-1626` and `301-597` respectively.|
+{{% /expand %}}
 ___
 ### 18. **`[MARKER_TYPE]_blat_search.log`**
 Log of BLAT's run. Prefixes can be `DNA` or `CLR`.
@@ -171,7 +227,35 @@ ___
 ### 22. **`[SAMPLE_NAME]_recovery_stats.tsv`**
 Unified tab-separated-values table with marker recovery statistics from ALL the marker types found in the sample, these are concatenated across samples and summarized in the final [Marker Recovery report]({{< ref "assembly/extract/report">}}).
 
-For more information on the table see [26. captus-assembly_extract.stats.tsv]({{< relref "assembly/extract/output#26-captus-assembly_extractstatstsv" >}})
+{{% expand "Information included in the table" %}}
+|Column|Description|
+|-|-|
+|**sample_name**|Name of the sample.|
+|**marker_type**|Type of marker. Possible values are `NUC`, `PTD`, `MIT`, `DNA`, or `CLR`.|
+|**locus**|Name of the locus.|
+|**ref_name**|Name of the reference selected for the locus. Relevant when the reference contains multiple sequences per locus like in Angiosperms353 for example.|
+|**ref_coords**|Match coordinates with respect to the reference, each segment is expressed as `[start]-[end]`, segments within the same contig are separated by `,`, and segments in different contigs are separated by `;`. For example: `1-47;48-354,355-449` indicates that a contig contained a segment matching reference coordinates `1-49` and a different contig matched two segments, `48-354` and `355-449` respectively.|
+|**ref_type**|Whether the reference is an aminoacid (`prot`) or nucleotide (`nucl`) sequence.|
+|**ref_len_matched**|Number of residues matched in the reference.|
+|**hit**|Paralog ranking, `00` is assigned to the best hit, secondary hits start at `01`.|
+|**pct_recovered**|Percentage of the total length of the reference sequence that was matched.|
+|**pct_identity**|Percentage of sequence identity between the hit and the reference sequence.|
+|**score**|Inspired by `Scipio`'s score: `(matches - mismatches) / reference length`.|
+|**wscore**|Weighted score. When the reference contains multiple sequences per locus, the best-matching reference is decided after normalizing their recovered length across references in the locus and multiplying that value by their respective `score`, thus producing the `wscore`. Finally `wscore` is also penalized by the number of frameshifts (if the marker is coding) and number of contigs used in the assembly of the hit.|
+|**hit_len**|Number of residues matched in the sample's contig(s) plus the length of the flanking sequence.|
+|**cds_len**|If `ref_type` is `prot` this number represents the number of residues corresponding to coding sequence (i.e. exons). If the `ref_type` is `nucl` this field shows `NA`.|
+|**intron_len**|If `ref_type` is `prot` this number represents the number of residues corresponding to intervening non-coding sequence segments (i.e. introns). If the `ref_type` is `nucl` this field shows `NA`.|
+|**flanks_len**|Number of residues included in the flanking sequence.|
+|**frameshifts**|Positions of the corrected frameshifts in the output sequence. If the `ref_type` is `nucl` this field shows `NA`.|
+|**hit_contigs**|Number of contigs used to assemble the hit.|
+|**hit_l50**|Least number of contigs in the hit that contain 50% of the recovered length.|
+|**hit_l90**|Least number of contigs in the hit that contain 90% of the recovered length.|
+|**hit_lg50**|Least number of contigs in the hit that contain 50% of the reference locus length.|
+|**hit_lg90**|Least number of contigs in the hit that contain 90% of the reference locus length.|
+|**ctg_names**|Name of the contigs used in the reconstruction of the hit. Example: `NODE_6256_length_619_cov_3.0000_k_169_flag_1;NODE_3991_length_1778_cov_19.0000_k_169_flag_1`, for a hit where two contigs were used.|
+|**ctg_strands**|Contig strands (`+` or `-`) provided in the same order as `ctg_names`. Example: `+;-` indicates that the contig `NODE_6256_length_619_cov_3.0000_k_169_flag_1` was matched in the positive strand while the contig `NODE_3991_length_1778_cov_19.0000_k_169_flag_1` was matched in the ngeative strand.|
+|**ctg_coords**|Match coordinates with respect to the contigs in the sample's assembly. Each segment is expressed as `[start]-[end]`, segments within the same contig are separated by `,`, and segments in different contigs are separated by `;` which are provided in the same order as `ctg_names` and `ctg_strands`. Example: `303-452;694-1626,301-597` indicates that a single segment was matched in contig `NODE_6256_length_619_cov_3.0000_k_169_flag_1` in the `+` strand with coordinates `303-452`, while two segments were matched in contig `NODE_3991_length_1778_cov_19.0000_k_169_flag_1` in the `-` strand with coordinates `694-1626` and `301-597` respectively.|
+{{% /expand %}}
 ___
 ### 23. **`leftover_contigs.fasta.gz`**
 This file contains the subset of the contigs assembled by `MEGAHIT` that had no hit to the reference markers. The file is compressed to save space. These are the contigs that are used for clustering across samples in order to discover additional homologous markers.
@@ -179,7 +263,7 @@ ___
 ### 24. **`leftover_contigs_after_custering.fasta.gz`**
 This file contains the subset of the contigs assembled by `MEGAHIT` that had no hit to the reference markers or even to the newly discovered markers derived from clusterin. The file is compressed to save space.
 ___
-### 25. **`captus-assembly_extract.refs.json`**
+### 25. **`captus-extract_refs.json`**
 This file stores the paths to all the references used for extraction. This file is necessary so the alignment step can correctly add the references to the final alignments to be used as guides.
 
 {{% expand "Example" %}}
@@ -219,7 +303,7 @@ This file stores the paths to all the references used for extraction. This file 
 ```
 {{% /expand %}}
 ___
-### 26. **`captus-assembly_extract.stats.tsv`**
+### 26. **`captus-extract_stats.tsv`**
 Unified tab-separated-values table with marker recovery statistics from ALL the markers found in ALL the samples, this table is used to create the final [Marker Recovery report]({{< ref "assembly/extract/report">}}). Even though the report is quite useful for visualization you might need to do more complex statistical analysis, this table is the most appropriate output file for such analyses.
 
 {{% expand "Information included in the table" %}}
@@ -252,10 +336,10 @@ Unified tab-separated-values table with marker recovery statistics from ALL the 
 |**ctg_coords**|Match coordinates with respect to the contigs in the sample's assembly. Each segment is expressed as `[start]-[end]`, segments within the same contig are separated by `,`, and segments in different contigs are separated by `;` which are provided in the same order as `ctg_names` and `ctg_strands`. Example: `303-452;694-1626,301-597` indicates that a single segment was matched in contig `NODE_6256_length_619_cov_3.0000_k_169_flag_1` in the `+` strand with coordinates `303-452`, while two segments were matched in contig `NODE_3991_length_1778_cov_19.0000_k_169_flag_1` in the `-` strand with coordinates `694-1626` and `301-597` respectively.|
 {{% /expand %}}
 ___
-### 27. **`captus-assembly_extract.report.html`**
+### 27. **`captus-extract_report.html`**
 This is the final [Marker Recovery report]({{< ref "assembly/extract/report">}}), summarizing marker extraction statistics across all samples and marker types.
 ___
-### 28. **`captus-assembly_extract.log`**
+### 28. **`captus-extract.log`**
 This is the log from `Captus`, it contains the command used and all the information shown during the run. If the option `--show_less` was enabled, the log will also contain all the extra detailed information that was hidden during the run.
 ___
 ### 29. **`clust_id##.##_cov##.##_captus_clusters_refs.fasta`**
@@ -281,4 +365,4 @@ As you can see, **Sample name**, **Locus name**, and **Paralog ranking** are sep
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (18.12.2024)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (23.12.2024)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Copyright 2020-2024 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
+Copyright 2020-2025 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
 https://github.com/edgardomortiz/Captus
 
 This file is part of Captus. Captus is free software: you can redistribute it and/or modify
@@ -143,8 +143,8 @@ def main():
     )
     args = parser.parse_args()
 
-    aln_log_file = Path(args.captus_alignments_dir, "captus-assembly_align.log")
-    paralog_file = Path(args.captus_alignments_dir, "captus-assembly_align.paralogs.tsv")
+    aln_log_file = Path(args.captus_alignments_dir, "captus-align.log")
+    paralog_file = Path(args.captus_alignments_dir, "captus-align_paralogs.tsv")
 
     targets_paths = {
         "NUC": {"AA_path": None, "AA_fasta": None, "AA_names": [], "NT_path": None, "NT_fasta": None, "NT_names": []},

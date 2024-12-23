@@ -11,13 +11,13 @@ plotly = true
 **No successful marker extractions can be achieved without successful assemblies**. Even though this `assemble` module offers presets tuned for different data types, it is recommendable to repeat this step some times with different parameters to find optimal settings for your own data.
 
 `Captus` assists you in this tedious process by automatically generating a useful report for assembly evaluation.  
-Just open `captus-assembly_assemble.report.html` with your browser (internet connection required) to get general assembly statistics across all your samples!
+Just open `captus-assemble_report.html` with your browser (internet connection required) to get general assembly statistics across all your samples!
 {{% notice tip %}}
 
 - The entire report is based on data stored in the following three files:
-  - [`captus-assembly_assemble.assembly_stats.tsv`]({{< relref "assembly/assemble/output#9-captus-assembly_assemblestatstsv" >}})
-  - [`captus-assembly_assemble.depth_stats.tsv`]({{< relref "assembly/assemble/output" >}})
-  - [`captus-assembly_assemble.length_stats.tsv`]({{< relref "assembly/assemble/output" >}})
+  - [`captus-assemble.assembly_stats.tsv`]({{< relref "assembly/assemble/output#14-captus-assemble_assembly_statstsv" >}})
+  - [`captus-assemble.depth_stats.tsv`]({{< relref "assembly/assemble/output#15-captus-assemble_depth_statstsv" >}})
+  - [`captus-assemble.length_stats.tsv`]({{< relref "assembly/assemble/output#16-captus-assemble_length_statstsv" >}})
 - All tables and plots in the report are interactive powered by [`Plotly`](https://plotly.com/python).  
 Visit the following sites once to take full advantage of its interactivity:
 
@@ -129,4 +129,4 @@ Feature:
 
 ---
 Created by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (11.08.2021)  
-Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (16.12.2024)
+Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (23.12.2024)

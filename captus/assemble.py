@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Copyright 2020-2024 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
+Copyright 2020-2025 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
 https://github.com/edgardomortiz/Captus
 
 This file is part of Captus. Captus is free software: you can redistribute it and/or modify
@@ -33,7 +33,7 @@ def assemble(full_command, args):
 
     captus_start = time.time()
     out_dir, out_dir_msg = make_output_dir(args.out)
-    log.logger = log.Log(Path(args.out, "captus-assembly_assemble.log"), stdout_verbosity_level=1)
+    log.logger = log.Log(Path(args.out, "captus-assemble.log"), stdout_verbosity_level=1)
 
     mar = 21  # Margin for aligning parameters and values
 
@@ -1021,7 +1021,7 @@ def get_asm_stats(
 
 
         msg = (
-            f"'{sample_name}' {stage.upper()}: {num_contigs:,} contigs, total {tot_length:,} bp,"
+            f"'{sample_name}': {stage.upper()} {num_contigs:,} contigs, total {tot_length:,} bp,"
             f" min {min_length:,} bp, max {max_length:,} bp, avg {avg_length:,} bp, N50 {n50:,} bp"
         )
         return msg
@@ -1096,9 +1096,9 @@ def collect_asm_stats(out_dir, tsv_comment):
     depth_tsv_files = sorted(list(Path(out_dir).resolve().rglob("depth_stats.tsv")))
     length_tsv_files = sorted(list(Path(out_dir).resolve().rglob("length_stats.tsv")))
 
-    assembly_stats_tsv = Path(out_dir, "captus-assembly_assemble.assembly_stats.tsv")
-    depth_stats_tsv = Path(out_dir, "captus-assembly_assemble.depth_stats.tsv")
-    length_stats_tsv = Path(out_dir, "captus-assembly_assemble.length_stats.tsv")
+    assembly_stats_tsv = Path(out_dir, "captus-assemble_assembly_stats.tsv")
+    depth_stats_tsv = Path(out_dir, "captus-assemble_depth_stats.tsv")
+    length_stats_tsv = Path(out_dir, "captus-assemble_length_stats.tsv")
 
     if not assembly_tsv_files or not depth_tsv_files or not length_tsv_files:
         return None, None, None

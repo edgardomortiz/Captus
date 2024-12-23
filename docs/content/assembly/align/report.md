@@ -12,12 +12,12 @@ This `align` module generates several sets of alignments that are ready-to-use i
 Each alignment set differs from one another in the following four respects: 1) whether they are trimmed, 2) which [paralog filter <i class="fas fa-question-circle fa-sm"></i>]({{< relref "assembly/align/options#paralog-filtering" >}}) is applied, 3) whether they contain reference sequences, and 4) in which [formats <i class="fas fa-question-circle fa-sm"></i>]({{< relref "assembly/align/options#-f---formats" >}}).
 Thus, **it is important to understand the differences between each alignment set and carefully evaluate their quality in order to decide which alignment set to use for subsequent analyses**.
 
-Open the report `captus-assembly_align.report.html` with your browser (internet connection required) to explore and compare general alignment statistics for each locus and each sample!
+Open the report `captus-align_report.html` with your browser (internet connection required) to explore and compare general alignment statistics for each locus and each sample!
 {{% notice style="tip" title="Tips" %}}
 
 - The entire report is based on data stored in the following two files:
-  - [`captus-assembly_align.alignments.tsv`]({{< relref "assembly/align/output#17-captus-assembly_alignalignmentstsv" >}})
-  - [`captus-assembly_align.samples.tsv`]({{< relref "assembly/align/output#18-captus-assembly_alignsamplestsv" >}})
+  - [`captus-align.alignments.tsv`]({{< relref "assembly/align/output#17-captus-align_alignmentstsv" >}})
+  - [`captus-align.samples.tsv`]({{< relref "assembly/align/output#18-captus-align_samplestsv" >}})
 - All tables and plots in the report are interactive powered by [`Plotly`](https://plotly.com/python).  
 Visit the following sites once to take full advantage of its interactivity:
 

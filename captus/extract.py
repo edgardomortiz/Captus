@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Copyright 2020-2024 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
+Copyright 2020-2025 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
 https://github.com/edgardomortiz/Captus
 
 This file is part of Captus. Captus is free software: you can redistribute it and/or modify
@@ -43,7 +43,7 @@ def extract(full_command, args):
 
     captus_start = time.time()
     out_dir, out_dir_msg = make_output_dir(args.out)
-    log.logger = log.Log(Path(args.out, "captus-assembly_extract.log"), stdout_verbosity_level=1)
+    log.logger = log.Log(Path(args.out, "captus-extract.log"), stdout_verbosity_level=1)
     mar = 25  # Margin for aligning parameters and values
 
     ################################################################################################
@@ -1997,7 +1997,7 @@ def blat_misc_dna(
         else:
             if not keep_all:
                 Path(blat_dna_out_file).unlink()
-            write_gff3(dna_hits, marker_type, disable_stitching, dna_gff_file)
+            write_gff3(dna_hits, marker_type, disable_stitching, tsv_comment, dna_gff_file)
             recovery_stats = write_fastas_and_report(dna_hits, sample_name, dna_target,
                                                      blat_dna_out_dir, marker_type,
                                                      max_loci_files, tsv_comment, overwrite)
@@ -2470,7 +2470,7 @@ def collect_ext_stats(out_dir, tsv_comment):
     if not samples_stats:
         return None
     else:
-        stats_file_out = Path(out_dir, "captus-assembly_extract.stats.tsv")
+        stats_file_out = Path(out_dir, "captus-extract_stats.tsv")
         header = "\t".join(settings.EXT_STATS_HEADER) + "\n"
         with open(stats_file_out, "wt") as tsv_out:
             tsv_out.write(tsv_comment)

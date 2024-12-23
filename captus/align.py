@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Copyright 2020-2024 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
+Copyright 2020-2025 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
 https://github.com/edgardomortiz/Captus
 
 This file is part of Captus. Captus is free software: you can redistribute it and/or modify
@@ -36,7 +36,7 @@ def align(full_command, args):
 
     captus_start = time.time()
     out_dir, out_dir_msg = make_output_dir(args.out)
-    log.logger = log.Log(Path(args.out, "captus-assembly_align.log"), stdout_verbosity_level=1)
+    log.logger = log.Log(Path(args.out, "captus-align.log"), stdout_verbosity_level=1)
 
     mar = 26  # Margin for aligning parameters and values
 
@@ -1538,7 +1538,7 @@ def write_paralog_stats(out_dir, tsv_comment, shared_paralog_stats):
     if not shared_paralog_stats:
         return red("No paralogs were found...")
     else:
-        stats_tsv_file = Path(out_dir, "captus-assembly_align.paralogs.tsv")
+        stats_tsv_file = Path(out_dir, "captus-align_paralogs.tsv")
         with open(stats_tsv_file, "wt") as tsv_out:
             tsv_out.write(tsv_comment)
             tsv_out.write("\t".join(["marker_type",
@@ -1783,7 +1783,7 @@ def write_aln_stats(out_dir, tsv_comment, shared_aln_stats):
     if not shared_aln_stats:
         return None
     else:
-        stats_tsv_file = Path(out_dir, "captus-assembly_align.alignments.tsv")
+        stats_tsv_file = Path(out_dir, "captus-align_alignments.tsv")
         with open(stats_tsv_file, "wt") as tsv_out:
             tsv_out.write(tsv_comment)
             tsv_out.write("\t".join(["path",
@@ -1817,7 +1817,7 @@ def write_sam_stats(out_dir, tsv_comment, shared_sam_stats):
     if not shared_sam_stats:
         return None
     else:
-        stats_tsv_file = Path(out_dir, "captus-assembly_align.samples.tsv")
+        stats_tsv_file = Path(out_dir, "captus-align_samples.tsv")
         with open(stats_tsv_file, "wt") as tsv_out:
             tsv_out.write(tsv_comment)
             tsv_out.write("\t".join(["sample",

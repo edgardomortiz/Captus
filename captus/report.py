@@ -1516,7 +1516,7 @@ def build_qc_report(out_dir, qc_extras_dir):
             <pre><code>Version: {version}{command}</code></pre>
         </body>
     """
-    qc_html_report = Path(out_dir, "captus-assembly_clean.report.html")
+    qc_html_report = Path(out_dir, "captus-clean_report.html")
     with open(qc_html_report, "w") as f:
         f.write(html_header)
         for fig in figs:
@@ -2312,7 +2312,7 @@ def build_assembly_report(out_dir, asm_stats_tsv, len_stats_tsv, dep_stats_tsv):
             <pre><code>Version: {version}{command}</code></pre>
         </body>
     """
-    asm_html_report = Path(out_dir, "captus-assembly_assemble.report.html")
+    asm_html_report = Path(out_dir, "captus-assemble_report.html")
     with open(asm_html_report, "w") as f:
         f.write(html_header)
         for fig in figs:
@@ -2864,7 +2864,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
             <pre><code>Version: {version}{command}</code></pre>
         </body>
     """
-    ext_html_report = Path(out_dir, "captus-assembly_extract.report.html")
+    ext_html_report = Path(out_dir, "captus-extract_report.html")
     with open(ext_html_report, "w") as f:
         f.write(html_header)
         for fig in figs:
@@ -3750,7 +3750,7 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
         </body>
     """
     # Save plot in html
-    aln_html_report = Path(out_dir, "captus-assembly_align.report.html")
+    aln_html_report = Path(out_dir, "captus-align_report.html")
     with open(aln_html_report, "w") as f:
         f.write(html_header)
         for i, fig in enumerate(figs):
@@ -4066,10 +4066,10 @@ def build_design_report(out_dir, des_stats_tsv, step):
     )
     if step == "cluster":
         report_title = "Captus-design: Cluster (Alignment Report)"
-        des_html_report = Path(out_dir, "captus-design_cluster.report.html")
+        des_html_report = Path(out_dir, "captus-cluster_report.html")
     elif step == "select":
         report_title = "Captus-design: Select (Alignment Report)"
-        des_html_report = Path(out_dir, "captus-design_select.report.html")
+        des_html_report = Path(out_dir, "captus-select_report.html")
     with open(des_stats_tsv, "r") as f:
         version = f.readline().lstrip("#")
         command = f.readline().lstrip("#")

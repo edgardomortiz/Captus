@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Copyright 2020-2024 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
+Copyright 2020-2025 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
 https://github.com/edgardomortiz/Captus
 
-This module contains hard-coded settings for Captus-assembly
+This module contains hard-coded settings for Captus
 
 This file is part of Captus. Captus is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by the Free Software Foundation,
@@ -336,7 +336,7 @@ FORMAT_DIRS = {
 TRANSLATED_REF_SUFFIX = ".captus.faa"
 
 # JSON with paths to references filename
-JSON_REFS = "captus-assembly_extract.refs.json"
+JSON_REFS = "captus-extract_refs.json"
 
 # Valid combinations of marker directories and format directories
 VALID_MARKER_FORMAT_COMBO =  [(m, f) for m in ["NUC","PTD","MIT"] for f in ["AA","NT","GE","GF"]]
@@ -598,7 +598,7 @@ SEQ_NAME_SEP = "__"
 
 # File name for sequence-to-sample equivalence table used by ASTRAL-Pro to analyze trees that
 # include paralogs
-ASTRAL_PRO_EQ = "captus-assembly_align.astral-pro.tsv"
+ASTRAL_PRO_EQ = "captus-align_astral-pro.tsv"
 
 # Import data for clustering file names
 DES_SUFFIXES = {

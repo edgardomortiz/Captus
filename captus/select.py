@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Copyright 2020-2024 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
+Copyright 2020-2025 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
 https://github.com/edgardomortiz/Captus
 
 This file is part of Captus. Captus is free software: you can redistribute it and/or modify
@@ -28,7 +28,7 @@ def select(full_command, args):
 
     captus_start = time.time()
     out_dir, out_dir_msg = make_output_dir(args.out)
-    log.logger = log.Log(Path(out_dir, "captus-design_select.log"), stdout_verbosity_level=1)
+    log.logger = log.Log(Path(out_dir, "captus-select.log"), stdout_verbosity_level=1)
 
     mar = 33  # Margin for aligning parameters and values
 
@@ -145,7 +145,7 @@ def select(full_command, args):
 
 def load_aln_stats_tsv(clusters_dir: Path):
     start = time.time()
-    aln_stats_tsv_path = Path(clusters_dir, "captus-design_cluster.alignments.tsv")
+    aln_stats_tsv_path = Path(clusters_dir, "captus-cluster_alignments.tsv")
     if aln_stats_tsv_path.exists():
         aln_stats = {}
         with open(aln_stats_tsv_path, "rt") as stats:
@@ -457,7 +457,7 @@ def copy_loci(aln_stats: dict, out_dir: Path, overwrite: bool, show_more: bool):
 
 
 def write_aln_stats(out_dir: Path, aln_stats_filtered: dict):
-    stats_tsv_file = Path(out_dir, "captus-design_select.alignments.tsv")
+    stats_tsv_file = Path(out_dir, "captus-select_alignments.tsv")
     if not aln_stats_filtered:
         if stats_tsv_file.exists() and not file_is_empty(stats_tsv_file):
             return stats_tsv_file

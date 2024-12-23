@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Copyright 2020-2024 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
+Copyright 2020-2025 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
 https://github.com/edgardomortiz/Captus
 
 This file is part of Captus. Captus is free software: you can redistribute it and/or modify
@@ -35,7 +35,7 @@ def cluster(full_command, args):
 
     captus_start = time.time()
     out_dir, out_dir_msg = make_output_dir(args.out)
-    log.logger = log.Log(Path(out_dir, "captus-design_cluster.log"), stdout_verbosity_level=1)
+    log.logger = log.Log(Path(out_dir, "captus-cluster.log"), stdout_verbosity_level=1)
 
     mar = 23  # Margin for aligning parameters and values
 
@@ -1274,7 +1274,7 @@ def curate(
 
 
 def write_aln_stats(out_dir: Path, shared_aln_stats: list):
-    stats_tsv_file = Path(out_dir, "captus-design_cluster.alignments.tsv")
+    stats_tsv_file = Path(out_dir, "captus-cluster_alignments.tsv")
     if not shared_aln_stats:
         if stats_tsv_file.exists() and not file_is_empty(stats_tsv_file):
             return stats_tsv_file

@@ -12,10 +12,10 @@ The output from this `extract` module, such as **how many loci are recovered, in
 However, collecting, summarizing, and visualizing such important information can be backbreaking, especially in a phylo"genomic" project which typically employs hundreds or even thousands of samples and loci.  
 
 Don't worry, `Captus` automatically generates an informative report!
-Open `captus-assembly_extract.report.html` with your browser (internet connection required) to explore your extraction result at various scales, from the global level to the single sample or single locus level.
+Open `captus-extract_report.html` with your browser (internet connection required) to explore your extraction result at various scales, from the global level to the single sample or single locus level.
 {{% notice tip %}}
 
-- The entire report is based on data stored in [`captus-assembly_extract.stats.tsv`]({{< relref "assembly/extract/output#26-captus-assembly_extractstatstsv" >}}).
+- The entire report is based on data stored in [`captus-extract_stats.tsv`]({{< relref "assembly/extract/output#26-captus-extract_statstsv" >}}).
 - All tables and plots in the report are interactive powered by [`Plotly`](https://plotly.com/python).  
 Visit the following sites once to take full advantage of its interactivity:
 
@@ -58,7 +58,7 @@ Hover mouse cursor over the heatmap to see detailed information about each singl
 |**Recovered length**|Percentage of reference sequence length recovered, calcurated as (`Ref len matched` / Reference sequence length) * 100|%|
 |**Identity**|Sequence identity of the recovered sequence to the reference sequence|%|
 |**Score**|Score inspired by [`Scipio`](https://www.webscipio.org/help/webscipio#setting), calculated as (matches - mismatches) / reference sequence length|-|
-|**Weighted score**|Weighted `score` to address multiple reference sequences per locus<br>(for details, read [<i class="fab fa-readme"></i> Information included in the table]({{< relref "assembly/extract/output#26-captus-assembly_extractstatstsv" >}}))|-|
+|**Weighted score**|Weighted `score` to address multiple reference sequences per locus<br>(for details, read [<i class="fab fa-readme"></i> Information included in the table]({{< relref "assembly/extract/output#26-captus-extract_statstsv" >}}))|-|
 |**Hit length**|Length of sequence recovered|bp|
 |**CDS length**|Total length of coding sequences (CDS) recovered (always `NA` when the `ref_type` is `nucl`)|bp|
 |**Intron length**|Total length of introns recovered (always `NA` when the `ref_type` is `nucl`)|bp|
@@ -85,7 +85,7 @@ Switch this dropdown to change the variable to be shown as a heatmap among the f
 |**Identity**|Sequence identity of the recovered sequence to the reference sequence|%|
 |**Total Hits (Copies)**|Number of hits found (Values greater than 1 imply the presence of paralogs)|-|
 |**Score**|Score inspired by [`Scipio`](https://www.webscipio.org/help/webscipio#setting), calculated as (matches - mismatches) / reference sequence length|-|
-|**Weighted Score**|Weighted `score` to address multiple reference sequences per locus<br>(for details, read [<i class="fab fa-readme"></i> Information included in the table]({{< relref "assembly/extract/output#26-captus-assembly_extractstatstsv" >}}))|-|
+|**Weighted Score**|Weighted `score` to address multiple reference sequences per locus<br>(for details, read [<i class="fab fa-readme"></i> Information included in the table]({{< relref "assembly/extract/output#26-captus-extract_statstsv" >}}))|-|
 |**Number of Frameshifts**|Number of corrected frameshifts in the extracted sequence<br>(always `0` if the reference sequence is in nucleotide)|-|
 |**Contigs in Best Hit**|Number of contigs used to assemble the best hit|-|
 |**Best Hit L50**|Least number of contigs in best hit that contain 50% of the best hit's recovered length|-|
