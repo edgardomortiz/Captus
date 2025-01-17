@@ -613,7 +613,7 @@ def fix_premature_stops(in_fasta_dict: dict):
     out_fasta_dict = {}
     for seq_name in in_fasta_dict:
         seq_out = (
-            f"{in_fasta_dict[seq_name]['sequence'][:-1].replace('*', 'X')"
+            f"{in_fasta_dict[seq_name]['sequence'][:-1].replace('*', 'X')}"
             f"{in_fasta_dict[seq_name]['sequence'][-1]}"
         )
         seq_out = seq_out.replace(" ", "").replace("-", "")
