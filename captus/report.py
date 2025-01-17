@@ -2016,8 +2016,8 @@ def build_assembly_report(out_dir, asm_stats_tsv, len_stats_tsv, dep_stats_tsv):
         len_stats_tsv,
         comment="#"
     )
-    min_length = min(df.loc[df["length"] > 0, "length_bin"].to_list())
-    max_length = max(df.loc[df["length"] > 0, "length_bin"].to_list())
+    min_length = min(df.loc[df["length"] > 0, "length_bin"].to_list())  # noqa: F841
+    max_length = max(df.loc[df["length"] > 0, "length_bin"].to_list())  # noqa: F841
     df.query(
         expr='length_bin >= @min_length & length_bin <= @max_length',
         inplace=True,
@@ -2140,8 +2140,8 @@ def build_assembly_report(out_dir, asm_stats_tsv, len_stats_tsv, dep_stats_tsv):
         dep_stats_tsv,
         comment="#"
     )
-    min_depth = min(df.loc[df["length"] > 0, "depth_bin"].to_list())
-    max_depth = max(df.loc[df["length"] > 0, "depth_bin"].to_list())
+    min_depth = min(df.loc[df["length"] > 0, "depth_bin"].to_list())  # noqa: F841
+    max_depth = max(df.loc[df["length"] > 0, "depth_bin"].to_list())  # noqa: F841
     df.query(
         expr='depth_bin >= @min_depth & depth_bin <= @max_depth',
         inplace=True,

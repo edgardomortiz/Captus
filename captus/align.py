@@ -23,17 +23,39 @@ from pathlib import Path
 from tqdm import tqdm
 
 from . import log, settings
-from .bioformats import (alignment_stats, dict_to_fasta, fasta_to_dict, fasta_type,
-                         pairwise_identity, rehead_root_msa, sample_stats)
-from .misc import (bold, clipkit_path_version, dim, dir_is_empty, elapsed_time, file_is_empty,
-                   format_dep_msg, mafft_path_version, make_output_dir, muscle_path_version,
-                   python_library_check, quit_with_error, red, set_ram, set_threads,
-                   successful_exit, tqdm_parallel_async_run, tqdm_serial_run)
+from .bioformats import (
+    alignment_stats,
+    dict_to_fasta,
+    fasta_to_dict,
+    fasta_type,
+    pairwise_identity,
+    rehead_root_msa,
+    sample_stats,
+)
+from .misc import (
+    bold,
+    clipkit_path_version,
+    dim,
+    dir_is_empty,
+    elapsed_time,
+    file_is_empty,
+    format_dep_msg,
+    mafft_path_version,
+    make_output_dir,
+    muscle_path_version,
+    python_library_check,
+    quit_with_error,
+    red,
+    set_ram,
+    set_threads,
+    successful_exit,
+    tqdm_parallel_async_run,
+    tqdm_serial_run,
+)
 from .version import __version__
 
 
 def align(full_command, args):
-
     captus_start = time.time()
     out_dir, out_dir_msg = make_output_dir(args.out)
     log.logger = log.Log(Path(args.out, "captus-align.log"), stdout_verbosity_level=1)
@@ -48,65 +70,67 @@ def align(full_command, args):
         f" extracted markers across all samples in '{args.captus_extractions_dir}' and group them by"
         " marker. Then Captus will align each marker using MAFFT or MUSCLE. If given, the reference"
         " loci are also included as alignment guides and removed after alignment",
-        extra_empty_lines_after=0
+        extra_empty_lines_after=0,
     )
     log.log_explanation("For more information, please see https://github.com/edgardomortiz/Captus")
 
-    log.log(f'{"Captus version":>{mar}}: {bold(f"v{__version__}")}')
-    log.log(f'{"Command":>{mar}}: {bold(full_command)}')
-    tsv_comment = f'#Captus v{__version__}\n#Command: {full_command}\n'
+    log.log(f"{'Captus version':>{mar}}: {bold(f'v{__version__}')}")
+    log.log(f"{'Command':>{mar}}: {bold(full_command)}")
+    tsv_comment = f"#Captus v{__version__}\n#Command: {full_command}\n"
     _, _, ram_GB, ram_GB_total = set_ram(args.ram)
-    log.log(f'{"Max. RAM":>{mar}}: {bold(f"{ram_GB:.1f}GB")} {dim(f"(out of {ram_GB_total:.1f}GB)")}')
+    log.log(
+        f"{'Max. RAM':>{mar}}: {bold(f'{ram_GB:.1f}GB')} {dim(f'(out of {ram_GB_total:.1f}GB)')}"
+    )
     threads_max, threads_total = set_threads(args.threads)
-    log.log(f'{"Max. Threads":>{mar}}: {bold(threads_max)} {dim(f"(out of {threads_total})")}')
+    log.log(f"{'Max. Threads':>{mar}}: {bold(threads_max)} {dim(f'(out of {threads_total})')}")
     log.log("")
 
-    log.log(f'{"Dependencies":>{mar}}:')
+    log.log(f"{'Dependencies':>{mar}}:")
     mafft_path, mafft_version, mafft_status = mafft_path_version(args.mafft_path)
     muscle_path, muscle_version, muscle_status = muscle_path_version(args.muscle_path)
     if args.align_method.startswith("mafft"):
-        log.log(format_dep_msg(f'{"MAFFT":>{mar}}: ', mafft_version, mafft_status))
-        log.log(format_dep_msg(f'{"MUSCLE":>{mar}}: ', "", "not used"))
+        log.log(format_dep_msg(f"{'MAFFT':>{mar}}: ", mafft_version, mafft_status))
+        log.log(format_dep_msg(f"{'MUSCLE':>{mar}}: ", "", "not used"))
     if args.align_method.startswith("muscle"):
-        log.log(format_dep_msg(f'{"MAFFT":>{mar}}: ', "", "not used"))
-        log.log(format_dep_msg(f'{"MUSCLE":>{mar}}: ', muscle_version, muscle_status))
+        log.log(format_dep_msg(f"{'MAFFT':>{mar}}: ", "", "not used"))
+        log.log(format_dep_msg(f"{'MUSCLE':>{mar}}: ", muscle_version, muscle_status))
     clipkit_path, clipkit_version, clipkit_status = clipkit_path_version(args.clipkit_path)
-    log.log(format_dep_msg(f'{"ClipKIT":>{mar}}: ', clipkit_version, clipkit_status))
+    log.log(format_dep_msg(f"{'ClipKIT':>{mar}}: ", clipkit_version, clipkit_status))
     log.log("")
 
-    log.log(f'{"Python libraries":>{mar}}:')
+    log.log(f"{'Python libraries':>{mar}}:")
     numpy_found, numpy_version, numpy_status = python_library_check("numpy")
     pandas_found, pandas_version, pandas_status = python_library_check("pandas")
     plotly_found, plotly_version, plotly_status = python_library_check("plotly")
-    log.log(format_dep_msg(f'{"numpy":>{mar}}: ', numpy_version, numpy_status))
-    log.log(format_dep_msg(f'{"pandas":>{mar}}: ', pandas_version, pandas_status))
-    log.log(format_dep_msg(f'{"plotly":>{mar}}: ', plotly_version, plotly_status))
+    log.log(format_dep_msg(f"{'numpy':>{mar}}: ", numpy_version, numpy_status))
+    log.log(format_dep_msg(f"{'pandas':>{mar}}: ", pandas_version, pandas_status))
+    log.log(format_dep_msg(f"{'plotly':>{mar}}: ", plotly_version, plotly_status))
     log.log("")
 
-    log.log(f'{"Output directory":>{mar}}: {bold(out_dir)}')
-    log.log(f'{"":>{mar}}  {dim(out_dir_msg)}')
+    log.log(f"{'Output directory':>{mar}}: {bold(out_dir)}")
+    log.log(f"{'':>{mar}}  {dim(out_dir_msg)}")
     log.log("")
 
     skip_collection = False
-    skip_alignment  = False
-    skip_filtering  = False
-    skip_removal    = False
+    skip_alignment = False
+    skip_filtering = False
+    skip_removal = False
     if args.redo_from:
-        log.log(f'{"Redo from":>{mar}}: {bold(args.redo_from)}')
-        if args.redo_from.lower()   == "alignment":
+        log.log(f"{'Redo from':>{mar}}: {bold(args.redo_from)}")
+        if args.redo_from.lower() == "alignment":
             skip_collection = True
         elif args.redo_from.lower() == "filtering":
             skip_collection = True
-            skip_alignment  = True
+            skip_alignment = True
         elif args.redo_from.lower() == "removal":
             skip_collection = True
-            skip_alignment  = True
-            skip_filtering  = True
+            skip_alignment = True
+            skip_filtering = True
         elif args.redo_from.lower() == "trimming":
             skip_collection = True
-            skip_alignment  = True
-            skip_filtering  = True
-            skip_removal    = True
+            skip_alignment = True
+            skip_filtering = True
+            skip_removal = True
         prepare_redo(out_dir, args.redo_from)
         log.log("")
 
@@ -129,7 +153,6 @@ def align(full_command, args):
             " '--clipkit_path'"
         )
 
-
     ################################################################################################
     ############################################################################# COLLECTING SECTION
     log.log_section_header("Collecting Extracted Markers")
@@ -146,24 +169,30 @@ def align(full_command, args):
     show_less = not args.show_more
     refs_paths = prepare_refs(args.captus_extractions_dir, mar)
     if skip_collection:
-        log.log(red(
-            f"Skipping the marker collection step because you used '--redo_from {args.redo_from}'"
-        ))
+        log.log(
+            red(
+                f"Skipping the marker collection step because you used '--redo_from {args.redo_from}'"
+            )
+        )
         log.log("")
     else:
-        log.log(f'{"Markers to collect":>{mar}}: {bold(markers)} {dim(markers_ignored)}')
-        log.log(f'{"Alignment formats":>{mar}}: {bold(formats)} {dim(formats_ignored)}')
+        log.log(f"{'Markers to collect':>{mar}}: {bold(markers)} {dim(markers_ignored)}")
+        log.log(f"{'Alignment formats':>{mar}}: {bold(formats)} {dim(formats_ignored)}")
         max_paralogs_msg = dim("(Collect all paralogs)") if args.max_paralogs == -1 else ""
-        log.log(f'{"Max. paralogs to collect":>{mar}}: {bold(args.max_paralogs)} {max_paralogs_msg}')
-        log.log(f'{"Min. samples to align":>{mar}}: {bold(args.min_samples)}')
+        log.log(
+            f"{'Max. paralogs to collect':>{mar}}: {bold(args.max_paralogs)} {max_paralogs_msg}"
+        )
+        log.log(f"{'Min. samples to align':>{mar}}: {bold(args.min_samples)}")
         log.log("")
-        log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
-        log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
-        extracted_sample_dirs, skipped_align = find_extracted_sample_dirs(args.captus_extractions_dir)
-        log.log(f'{"Samples to process":>{mar}}: {bold(len(extracted_sample_dirs))}')
+        log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
+        log.log(f"{'Keep all files':>{mar}}: {bold(args.keep_all)}")
+        extracted_sample_dirs, skipped_align = find_extracted_sample_dirs(
+            args.captus_extractions_dir
+        )
+        log.log(f"{'Samples to process':>{mar}}: {bold(len(extracted_sample_dirs))}")
         log.log("")
         if skipped_align:
-            log.log(f'{bold("WARNING:")} {len(skipped_align)} sample(s) will be skipped')
+            log.log(f"{bold('WARNING:')} {len(skipped_align)} sample(s) will be skipped")
             for msg in skipped_align:
                 log.log(msg)
         log.log("")
@@ -171,9 +200,19 @@ def align(full_command, args):
         log.log(make_output_dirtree(markers, formats, out_dir, settings.ALN_DIRS["UNAL"], mar))
         log.log("")
 
-        collect_extracted_markers(markers, formats, args.max_paralogs, args.min_samples,
-                                  extracted_sample_dirs, out_dir, settings.ALN_DIRS["UNAL"],
-                                  refs_paths, args.collect_only, args.overwrite, show_less)
+        collect_extracted_markers(
+            markers,
+            formats,
+            args.max_paralogs,
+            args.min_samples,
+            extracted_sample_dirs,
+            out_dir,
+            settings.ALN_DIRS["UNAL"],
+            refs_paths,
+            args.collect_only,
+            args.overwrite,
+            show_less,
+        )
         log.log("")
 
         if args.collect_only:
@@ -181,7 +220,6 @@ def align(full_command, args):
                 "Captus-assembly: ALIGN -> successfully completed, '--collect_only' was enabled"
                 f" [{elapsed_time(time.time() - captus_start)}]"
             )
-
 
     ################################################################################################
     ############################################################################## ALIGNMENT SECTION
@@ -192,9 +230,11 @@ def align(full_command, args):
         " including the references and a separate one with the references removed. "
     )
     if skip_alignment:
-        log.log(red(
-            f"Skipping the marker alignment step because you used '--redo_from {args.redo_from}'"
-        ))
+        log.log(
+            red(
+                f"Skipping the marker alignment step because you used '--redo_from {args.redo_from}'"
+            )
+        )
         log.log("")
     elif args.align_method.startswith("mafft") and mafft_status == "not found":
         quit_with_error(
@@ -210,28 +250,37 @@ def align(full_command, args):
         )
     else:
         concurrent, threads_per_alignment = adjust_align_concurrency(args.concurrent, threads_max)
-        log.log(f'{"Concurrent alignments":>{mar}}: {bold(concurrent)}')
-        log.log(f'{"Threads per alignment":>{mar}}: {bold(threads_per_alignment)}')
+        log.log(f"{'Concurrent alignments':>{mar}}: {bold(concurrent)}")
+        log.log(f"{'Threads per alignment':>{mar}}: {bold(threads_per_alignment)}")
         log.log("")
-        log.log(f'{"Algorithm":>{mar}}: {bold(args.align_method)}'
-                f' {dim(settings.ALIGN_ALGORITHMS[args.align_method]["aka"])}')
-        log.log(f'{"Timeout":>{mar}}: {bold(args.timeout)}'
-                f' {dim(f"[{elapsed_time(args.timeout)}]")}')
-        log.log(f'{"Codon-align CDS":>{mar}}: {bold(not(args.disable_codon_align))}')
-        log.log(f'{"Outgroup":>{mar}}: {bold(args.outgroup)}')
+        log.log(
+            f"{'Algorithm':>{mar}}: {bold(args.align_method)}"
+            f" {dim(settings.ALIGN_ALGORITHMS[args.align_method]['aka'])}"
+        )
+        log.log(
+            f"{'Timeout':>{mar}}: {bold(args.timeout)} {dim(f'[{elapsed_time(args.timeout)}]')}"
+        )
+        log.log(f"{'Codon-align CDS':>{mar}}: {bold(not (args.disable_codon_align))}")
+        log.log(f"{'Outgroup':>{mar}}: {bold(args.outgroup)}")
         log.log("")
-        log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
-        log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
-        fastas_to_align = fastas_origs_dests(out_dir,
-                                             settings.ALN_DIRS["UNAL"],
-                                             Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFR"]))
-        log.log(f'{"FASTAs to align":>{mar}}: {bold(len(fastas_to_align))}')
+        log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
+        log.log(f"{'Keep all files':>{mar}}: {bold(args.keep_all)}")
+        fastas_to_align = fastas_origs_dests(
+            out_dir,
+            settings.ALN_DIRS["UNAL"],
+            Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFR"]),
+        )
+        log.log(f"{'FASTAs to align':>{mar}}: {bold(len(fastas_to_align))}")
         log.log("")
-        log.log(make_output_dirtree(markers,
-                                    formats,
-                                    out_dir,
-                                    Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFR"]),
-                                    mar))
+        log.log(
+            make_output_dirtree(
+                markers,
+                formats,
+                out_dir,
+                Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFR"]),
+                mar,
+            )
+        )
         log.log("")
 
         aa_origs, aa_dests = [], []
@@ -241,8 +290,11 @@ def align(full_command, args):
                 if fasta_orig.parts[-2] == settings.FORMAT_DIRS["AA"]:
                     aa_origs.append(fasta_orig)
                     aa_dests.append(fastas_to_align[fasta_orig])
-                    nt_equiv = Path(str(fasta_orig).replace(
-                        settings.FORMAT_DIRS["AA"], settings.FORMAT_DIRS["NT"]).replace(".faa", ".fna"))
+                    nt_equiv = Path(
+                        str(fasta_orig)
+                        .replace(settings.FORMAT_DIRS["AA"], settings.FORMAT_DIRS["NT"])
+                        .replace(".faa", ".fna")
+                    )
                     if nt_equiv in fastas_to_align:
                         nt_origs.append(nt_equiv)
                         nt_dests.append(fastas_to_align[nt_equiv])
@@ -259,44 +311,58 @@ def align(full_command, args):
         for aa_orig, aa_dest, nt_orig, nt_dest in zip(aa_origs, aa_dests, nt_origs, nt_dests):
             fasta_origs = list(filter(None, [aa_orig, nt_orig]))
             fasta_dests = list(filter(None, [aa_dest, nt_dest]))
-            align_params.append((
-                mafft_path,
-                muscle_path,
-                args.align_method,
-                threads_per_alignment,
-                args.timeout,
-                args.outgroup,
-                fasta_origs,
-                fasta_dests,
-                args.min_samples,
-                args.overwrite,
-            ))
+            align_params.append(
+                (
+                    mafft_path,
+                    muscle_path,
+                    args.align_method,
+                    threads_per_alignment,
+                    args.timeout,
+                    args.outgroup,
+                    fasta_origs,
+                    fasta_dests,
+                    args.min_samples,
+                    args.overwrite,
+                )
+            )
         for fasta_orig, fasta_dest in zip(other_origs, other_dests):
-            align_params.append((
-                mafft_path,
-                muscle_path,
-                args.align_method,
-                threads_per_alignment,
-                args.timeout,
-                args.outgroup,
-                [fasta_orig],
-                [fasta_dest],
-                args.min_samples,
-                args.overwrite,
-            ))
+            align_params.append(
+                (
+                    mafft_path,
+                    muscle_path,
+                    args.align_method,
+                    threads_per_alignment,
+                    args.timeout,
+                    args.outgroup,
+                    [fasta_orig],
+                    [fasta_dest],
+                    args.min_samples,
+                    args.overwrite,
+                )
+            )
 
         aligner = "MAFFT" if args.align_method.startswith("mafft") else "MUSCLE"
 
         if args.debug:
-            tqdm_serial_run(msa, align_params,
-                            f"Aligning with {aligner}", f"{aligner} alignment completed",
-                            "alignment", show_less)
+            tqdm_serial_run(
+                msa,
+                align_params,
+                f"Aligning with {aligner}",
+                f"{aligner} alignment completed",
+                "alignment",
+                show_less,
+            )
         else:
-            tqdm_parallel_async_run(msa, align_params,
-                                    f"Aligning with {aligner}", f"{aligner} alignment completed",
-                                    "alignment", concurrent, show_less)
+            tqdm_parallel_async_run(
+                msa,
+                align_params,
+                f"Aligning with {aligner}",
+                f"{aligner} alignment completed",
+                "alignment",
+                concurrent,
+                show_less,
+            )
         log.log("")
-
 
     ################################################################################################
     ###################################################################### PARALOG FILTERING SECTION
@@ -307,9 +373,11 @@ def align(full_command, args):
     )
     concurrent = threads_max
     if skip_filtering:
-        log.log(red(
-            f"Skipping the paralog filtering step because you used '--redo_from {args.redo_from}'"
-        ))
+        log.log(
+            red(
+                f"Skipping the paralog filtering step because you used '--redo_from {args.redo_from}'"
+            )
+        )
         log.log("")
     else:
         filtering_refs = select_filtering_refs(refs_paths, markers, formats, args.filter_method)
@@ -322,66 +390,87 @@ def align(full_command, args):
         if filter_method == "none":
             filter_method = None
 
-        log.log(f'{"Concurrent processes":>{mar}}: {bold(concurrent)}')
-        log.log(f'{"Filtering method":>{mar}}: {bold(filter_method)}')
+        log.log(f"{'Concurrent processes':>{mar}}: {bold(concurrent)}")
+        log.log(f"{'Filtering method':>{mar}}: {bold(filter_method)}")
         log.log("")
         if filtering_refs:
-            log.log(bold(f'{"References for filtering":>{mar}}:'))
+            log.log(bold(f"{'References for filtering':>{mar}}:"))
             for marker in filtering_refs:
                 filtering_format = "AA" if filtering_refs[marker]["format_dir"] == "01_AA" else "NT"
-                log.log(f'{"  Marker":>{mar}}: {bold(marker)}')
-                log.log(f'{"  Format":>{mar}}: {bold(filtering_format)}')
-                log.log(f'{"  Path":>{mar}}: {bold(filtering_refs[marker]["path"])}')
+                log.log(f"{'  Marker':>{mar}}: {bold(marker)}")
+                log.log(f"{'  Format':>{mar}}: {bold(filtering_format)}")
+                log.log(f"{'  Path':>{mar}}: {bold(filtering_refs[marker]['path'])}")
                 log.log("")
-        log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
-        log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
+        log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
+        log.log(f"{'Keep all files':>{mar}}: {bold(args.keep_all)}")
         log.log("")
 
         if filter_method in ["naive", "both"]:
             fastas_to_filter = fastas_origs_dests(
                 out_dir,
                 Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFR"]),
-                Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIR"])
+                Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIR"]),
             )
             log.log("")
-            log.log(bold(f'{"NAIVE paralog filtering":>{mar}}:'))
-            log.log(f'{"FASTA files to process":>{mar}}: {bold(len(fastas_to_filter))}')
-            log.log(make_output_dirtree(markers,
-                                        formats,
-                                        out_dir,
-                                        Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIR"]),
-                                        mar))
+            log.log(bold(f"{'NAIVE paralog filtering':>{mar}}:"))
+            log.log(f"{'FASTA files to process':>{mar}}: {bold(len(fastas_to_filter))}")
+            log.log(
+                make_output_dirtree(
+                    markers,
+                    formats,
+                    out_dir,
+                    Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIR"]),
+                    mar,
+                )
+            )
             log.log("")
-            paralog_naive_filter(fastas_to_filter, args.min_samples, args.overwrite,
-                                 concurrent, args.debug, show_less)
+            paralog_naive_filter(
+                fastas_to_filter,
+                args.min_samples,
+                args.overwrite,
+                concurrent,
+                args.debug,
+                show_less,
+            )
             log.log("")
 
         if filter_method in ["informed", "both"]:
             fastas_to_filter = fastas_origs_dests(
                 out_dir,
                 Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFR"]),
-                Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["INFR"])
+                Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["INFR"]),
             )
             log.log("")
-            log.log(bold(f'{"INFORMED paralog filtering":>{mar}}:'))
-            log.log(f'{"Filter tolerance":>{mar}}: {bold(args.tolerance)} {bold("STDEVS")}')
-            log.log(f'{"FASTA files to process":>{mar}}: {bold(len(fastas_to_filter))}')
-            log.log(make_output_dirtree(markers,
-                                        formats,
-                                        out_dir,
-                                        Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["INFR"]),
-                                        mar))
+            log.log(bold(f"{'INFORMED paralog filtering':>{mar}}:"))
+            log.log(f"{'Filter tolerance':>{mar}}: {bold(args.tolerance)} {bold('STDEVS')}")
+            log.log(f"{'FASTA files to process':>{mar}}: {bold(len(fastas_to_filter))}")
+            log.log(
+                make_output_dirtree(
+                    markers,
+                    formats,
+                    out_dir,
+                    Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["INFR"]),
+                    mar,
+                )
+            )
             log.log("")
             manager = Manager()
             shared_paralog_stats = manager.list()
-            paralog_informed_filter(shared_paralog_stats, fastas_to_filter, filtering_refs,
-                                    args.tolerance, args.min_samples, args.overwrite,
-                                    concurrent, args.debug, show_less)
+            paralog_informed_filter(
+                shared_paralog_stats,
+                fastas_to_filter,
+                filtering_refs,
+                args.tolerance,
+                args.min_samples,
+                args.overwrite,
+                concurrent,
+                args.debug,
+                show_less,
+            )
             paralog_stats_tsv = write_paralog_stats(out_dir, tsv_comment, shared_paralog_stats)
             log.log("")
-            log.log(f'{"Paralog statistics":>{mar}}: {bold(paralog_stats_tsv)}')
+            log.log(f"{'Paralog statistics':>{mar}}: {bold(paralog_stats_tsv)}")
             log.log("")
-
 
     ################################################################################################
     ###################################################################### REFERENCE REMOVAL SECTION
@@ -391,14 +480,17 @@ def align(full_command, args):
         " sequences used as alignment guide and for paralog filtering"
     )
     if skip_removal:
-        log.log(red(
-            f"Skipping the reference removal step because you used '--redo_from {args.redo_from}'"
-        ))
+        log.log(
+            red(
+                f"Skipping the reference removal step because you used '--redo_from {args.redo_from}'"
+            )
+        )
         log.log("")
     else:
         try:
-            remove_references = bool(any([path for marker in refs_paths
-                                          for path in refs_paths[marker].values()]))
+            remove_references = bool(
+                any([path for marker in refs_paths for path in refs_paths[marker].values()])
+            )
         except TypeError:
             remove_references = False
 
@@ -409,52 +501,67 @@ def align(full_command, args):
                 fastas_partial = fastas_origs_dests(
                     out_dir,
                     Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFR"]),
-                    Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"])
+                    Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"]),
                 )
                 fastas_to_rem_refs = {**fastas_to_rem_refs, **fastas_partial}
-                log.log(make_output_dirtree(markers,
-                                            formats,
-                                            out_dir,
-                                            Path(settings.ALN_DIRS["ALND"],
-                                                 settings.ALN_DIRS["UNFI"]),
-                                            mar))
+                log.log(
+                    make_output_dirtree(
+                        markers,
+                        formats,
+                        out_dir,
+                        Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"]),
+                        mar,
+                    )
+                )
                 log.log("")
 
             if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIR"]).exists():
                 fastas_partial = fastas_origs_dests(
                     out_dir,
                     Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIR"]),
-                    Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIV"])
+                    Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIV"]),
                 )
                 fastas_to_rem_refs = {**fastas_to_rem_refs, **fastas_partial}
-                log.log(make_output_dirtree(markers,
-                                            formats,
-                                            out_dir,
-                                            Path(settings.ALN_DIRS["ALND"],
-                                                 settings.ALN_DIRS["NAIV"]),
-                                            mar))
+                log.log(
+                    make_output_dirtree(
+                        markers,
+                        formats,
+                        out_dir,
+                        Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIV"]),
+                        mar,
+                    )
+                )
                 log.log("")
 
             if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["INFR"]).exists():
                 fastas_partial = fastas_origs_dests(
                     out_dir,
                     Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["INFR"]),
-                    Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["INFO"])
+                    Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["INFO"]),
                 )
                 fastas_to_rem_refs = {**fastas_to_rem_refs, **fastas_partial}
-                log.log(make_output_dirtree(markers,
-                                            formats,
-                                            out_dir,
-                                            Path(settings.ALN_DIRS["ALND"],
-                                                 settings.ALN_DIRS["INFO"]),
-                                            mar))
+                log.log(
+                    make_output_dirtree(
+                        markers,
+                        formats,
+                        out_dir,
+                        Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["INFO"]),
+                        mar,
+                    )
+                )
                 log.log("")
-            log.log(f'{"FASTA files to process":>{mar}}: {bold(len(fastas_to_rem_refs))}')
+            log.log(f"{'FASTA files to process':>{mar}}: {bold(len(fastas_to_rem_refs))}")
             log.log("")
-            rem_refs(refs_paths, fastas_to_rem_refs, args.min_samples,
-                     args.overwrite, concurrent, args.debug, show_less)
+            rem_refs(
+                refs_paths,
+                fastas_to_rem_refs,
+                args.min_samples,
+                args.overwrite,
+                concurrent,
+                args.debug,
+                show_less,
+            )
             log.log("")
-
 
     ################################################################################################
     ############################################################################### TRIMMING SECTION
@@ -467,99 +574,137 @@ def align(full_command, args):
         "'03_aligned_trimmed'"
     )
     if clipkit_status == "not found":
-        log.log(red(
-            "ClipKIT could not be found, alignments cannot be trimmed. Verify you have ClipKIT"
-            " installed or provide the full path to the program with '--clipkit_path'"
-        ))
+        log.log(
+            red(
+                "ClipKIT could not be found, alignments cannot be trimmed. Verify you have ClipKIT"
+                " installed or provide the full path to the program with '--clipkit_path'"
+            )
+        )
     else:
-        log.log(f'{"Concurrent processes":>{mar}}: {bold(concurrent)}')
+        log.log(f"{'Concurrent processes':>{mar}}: {bold(concurrent)}")
         log.log("")
-        log.log(f'{"Algorithm":>{mar}}: {bold(args.clipkit_method)}')
+        log.log(f"{'Algorithm':>{mar}}: {bold(args.clipkit_method)}")
         clipkit_gaps = "auto" if args.clipkit_method == "smart-gap" else args.clipkit_gaps
         clipkit_gaps = "auto" if args.min_data_per_column > 0 else args.clipkit_gaps
-        log.log(f'{"Gaps threshold":>{mar}}: {bold(clipkit_gaps)}')
+        log.log(f"{'Gaps threshold':>{mar}}: {bold(clipkit_gaps)}")
         if args.min_data_per_column > 0:
-            log.log(f'{"Min. sites per column":>{mar}}: {bold(args.min_data_per_column)}')
+            log.log(f"{'Min. sites per column':>{mar}}: {bold(args.min_data_per_column)}")
         else:
-            log.log(f'{"Min. sites per column":>{mar}}: {dim("NOT USED")}')
-        log.log(f'{"Min. sequence coverage":>{mar}}: {bold(args.min_coverage)}')
-        log.log(f'{"Min. samples to keep":>{mar}}: {bold(args.min_samples)}')
+            log.log(f"{'Min. sites per column':>{mar}}: {dim('NOT USED')}")
+        log.log(f"{'Min. sequence coverage':>{mar}}: {bold(args.min_coverage)}")
+        log.log(f"{'Min. samples to keep':>{mar}}: {bold(args.min_samples)}")
         log.log("")
-        log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
-        log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
-        fastas_to_trim = fastas_origs_dests(out_dir,
-                                            settings.ALN_DIRS["ALND"],
-                                            settings.ALN_DIRS["TRIM"])
-        log.log(f'{"FASTA files to trim":>{mar}}: {bold(len(fastas_to_trim))}')
+        log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
+        log.log(f"{'Keep all files':>{mar}}: {bold(args.keep_all)}")
+        fastas_to_trim = fastas_origs_dests(
+            out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["TRIM"]
+        )
+        log.log(f"{'FASTA files to trim':>{mar}}: {bold(len(fastas_to_trim))}")
         log.log("")
         log.log("Creating output directories:")
         if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFR"]).exists():
-            log.log(make_output_dirtree(markers,
-                                        formats,
-                                        out_dir,
-                                        Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["UNFR"]),
-                                        mar))
+            log.log(
+                make_output_dirtree(
+                    markers,
+                    formats,
+                    out_dir,
+                    Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["UNFR"]),
+                    mar,
+                )
+            )
             log.log("")
         if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIR"]).exists():
-            log.log(make_output_dirtree(markers,
-                                        formats,
-                                        out_dir,
-                                        Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["NAIR"]),
-                                        mar))
+            log.log(
+                make_output_dirtree(
+                    markers,
+                    formats,
+                    out_dir,
+                    Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["NAIR"]),
+                    mar,
+                )
+            )
             log.log("")
         if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["INFR"]).exists():
-            log.log(make_output_dirtree(markers,
-                                        formats,
-                                        out_dir,
-                                        Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["INFR"]),
-                                        mar))
+            log.log(
+                make_output_dirtree(
+                    markers,
+                    formats,
+                    out_dir,
+                    Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["INFR"]),
+                    mar,
+                )
+            )
             log.log("")
         if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"]).exists():
-            log.log(make_output_dirtree(markers,
-                                        formats,
-                                        out_dir,
-                                        Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["UNFI"]),
-                                        mar))
+            log.log(
+                make_output_dirtree(
+                    markers,
+                    formats,
+                    out_dir,
+                    Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["UNFI"]),
+                    mar,
+                )
+            )
             log.log("")
         if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIV"]).exists():
-            log.log(make_output_dirtree(markers,
-                                        formats,
-                                        out_dir,
-                                        Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["NAIV"]),
-                                        mar))
+            log.log(
+                make_output_dirtree(
+                    markers,
+                    formats,
+                    out_dir,
+                    Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["NAIV"]),
+                    mar,
+                )
+            )
             log.log("")
         if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["INFO"]).exists():
-            log.log(make_output_dirtree(markers,
-                                        formats,
-                                        out_dir,
-                                        Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["INFO"]),
-                                        mar))
+            log.log(
+                make_output_dirtree(
+                    markers,
+                    formats,
+                    out_dir,
+                    Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["INFO"]),
+                    mar,
+                )
+            )
             log.log("")
 
         clipkit_params = []
         for fasta_orig in fastas_to_trim:
-            clipkit_params.append((
-                clipkit_path,
-                args.clipkit_method,
-                args.clipkit_gaps,
-                fasta_orig,
-                fastas_to_trim[fasta_orig],
-                args.min_data_per_column,
-                args.min_coverage,
-                args.min_samples,
-                args.overwrite,
-            ))
+            clipkit_params.append(
+                (
+                    clipkit_path,
+                    args.clipkit_method,
+                    args.clipkit_gaps,
+                    fasta_orig,
+                    fastas_to_trim[fasta_orig],
+                    args.min_data_per_column,
+                    args.min_coverage,
+                    args.min_samples,
+                    args.overwrite,
+                )
+            )
 
         if args.debug:
-            tqdm_serial_run(clipkit, clipkit_params,
-                            "Trimming alignments with ClipKIT", "ClipKIT trimming completed",
-                            "alignment", show_less)
+            tqdm_serial_run(
+                clipkit,
+                clipkit_params,
+                "Trimming alignments with ClipKIT",
+                "ClipKIT trimming completed",
+                "alignment",
+                show_less,
+            )
         else:
-            tqdm_parallel_async_run(clipkit, clipkit_params,
-                                    "Trimming alignments with ClipKIT", "ClipKIT trimming completed",
-                                    "alignment", concurrent, show_less)
+            tqdm_parallel_async_run(
+                clipkit,
+                clipkit_params,
+                "Trimming alignments with ClipKIT",
+                "ClipKIT trimming completed",
+                "alignment",
+                concurrent,
+                show_less,
+            )
     log.log("")
-
 
     ################################################################################################
     ################################################################################ CLEANUP SECTION
@@ -572,51 +717,54 @@ def align(full_command, args):
     )
     fastas_to_stats = list(Path(out_dir, settings.ALN_DIRS["ALND"]).rglob("*.f[an]a"))
     fastas_to_stats += list(Path(out_dir, settings.ALN_DIRS["TRIM"]).rglob("*.f[an]a"))
-    fastas_to_stats = sorted([file for file in fastas_to_stats
-                              if not f"{file.name}".startswith(".")])
+    fastas_to_stats = sorted(
+        [file for file in fastas_to_stats if not f"{file.name}".startswith(".")]
+    )
     manager = Manager()
     shared_sam_stats = manager.list()
     shared_aln_stats = manager.list()
 
     compute_stats_params = []
     for fasta in fastas_to_stats:
-        compute_stats_params.append((
-            shared_sam_stats,
-            shared_aln_stats,
-            fasta
-        ))
+        compute_stats_params.append((shared_sam_stats, shared_aln_stats, fasta))
 
     if args.debug:
-        tqdm_serial_run(compute_stats, compute_stats_params,
-                        "Computing alignment and sample statistics",
-                        "Alignment and sample statistics completed",
-                        "alignment", show_less)
+        tqdm_serial_run(
+            compute_stats,
+            compute_stats_params,
+            "Computing alignment and sample statistics",
+            "Alignment and sample statistics completed",
+            "alignment",
+            show_less,
+        )
     else:
-        tqdm_parallel_async_run(compute_stats, compute_stats_params,
-                                "Computing alignment and sample statistics",
-                                "Alignment and sample statistics completed",
-                                "alignment", concurrent, show_less)
+        tqdm_parallel_async_run(
+            compute_stats,
+            compute_stats_params,
+            "Computing alignment and sample statistics",
+            "Alignment and sample statistics completed",
+            "alignment",
+            concurrent,
+            show_less,
+        )
     log.log("")
 
     aln_stats_tsv = write_aln_stats(out_dir, tsv_comment, shared_aln_stats)
     sam_stats_tsv = write_sam_stats(out_dir, tsv_comment, shared_sam_stats)
     if aln_stats_tsv:
-        log.log(f'{"Alignment statistics":>{mar}}: {bold(aln_stats_tsv)}')
-        log.log(f'{"Sample statistics":>{mar}}: {bold(sam_stats_tsv)}')
+        log.log(f"{'Alignment statistics':>{mar}}: {bold(aln_stats_tsv)}")
+        log.log(f"{'Sample statistics':>{mar}}: {bold(sam_stats_tsv)}")
         log.log("")
         if all([numpy_found, pandas_found, plotly_found]):
-
             from .report import build_alignment_report
 
             log.log("")
-            log.log_explanation(
-                "Generating Alignment Statistics report..."
+            log.log_explanation("Generating Alignment Statistics report...")
+            aln_html_report, aln_html_msg = build_alignment_report(
+                out_dir, aln_stats_tsv, sam_stats_tsv
             )
-            aln_html_report, aln_html_msg = build_alignment_report(out_dir,
-                                                                   aln_stats_tsv,
-                                                                   sam_stats_tsv)
-            log.log(f'{"Alignment report":>{mar}}: {bold(aln_html_report)}')
-            log.log(f'{"":>{mar}}  {dim(aln_html_msg)}')
+            log.log(f"{'Alignment report':>{mar}}: {bold(aln_html_report)}")
+            log.log(f"{'':>{mar}}  {dim(aln_html_msg)}")
         else:
             log.log(
                 f"{bold('WARNING:')} Captus uses 'numpy', 'pandas', and 'plotly' to generate an HTML"
@@ -630,9 +778,7 @@ def align(full_command, args):
     if not args.keep_all:
         start = time.time()
         log.log("")
-        log.log_explanation(
-            "Deleting MAFFT's and ClipKIT's logs and other unnecessary files..."
-        )
+        log.log_explanation("Deleting MAFFT's and ClipKIT's logs and other unnecessary files...")
         reclaimed_bytes = 0
         files_to_delete = list(out_dir.resolve().rglob("*.mafft.log"))
         files_to_delete += list(out_dir.resolve().rglob("*.muscle.log"))
@@ -641,9 +787,9 @@ def align(full_command, args):
             reclaimed_bytes += del_file.stat().st_size
             del_file.unlink()
         log.log(
-            f'    A total of {len(files_to_delete)} files'
-            f' amounting to {reclaimed_bytes / 1024 ** 2:.2f}MB'
-            f' were deleted in {elapsed_time(time.time() - start)}'
+            f"    A total of {len(files_to_delete)} files"
+            f" amounting to {reclaimed_bytes / 1024**2:.2f}MB"
+            f" were deleted in {elapsed_time(time.time() - start)}"
         )
     else:
         log.log(bold("No files were removed, '--keep_all' was enabled"))
@@ -657,7 +803,6 @@ def align(full_command, args):
             continue
     log.log("")
 
-
     ################################################################################################
     ################################################################################# ENDING SECTION
     successful_exit(
@@ -668,11 +813,15 @@ def align(full_command, args):
 
 def prepare_redo(out_dir, redo_from):
     alignment = [Path(out_dir, settings.ALN_DIRS["ALND"])]
-    filtering = [Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIR"]),
-                 Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["INFR"])]
-    removal = [Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"]),
-               Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIV"]),
-               Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["INFO"])]
+    filtering = [
+        Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIR"]),
+        Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["INFR"]),
+    ]
+    removal = [
+        Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"]),
+        Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIV"]),
+        Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["INFO"]),
+    ]
     trimming = [Path(out_dir, settings.ALN_DIRS["TRIM"])]
     dirs_to_delete = []
     if redo_from.lower() == "alignment":
@@ -693,10 +842,12 @@ def prepare_redo(out_dir, redo_from):
             shutil.rmtree(del_dir, ignore_errors=True)
             tqdm.write(f"'{del_dir}': deleted")
             pbar.update()
-    log.log(bold(
-        f" \u2514\u2500\u2192 Ready for redo from the '{redo_from}' stage,"
-        f" {len(dirs_to_delete)} directories deleted [{elapsed_time(time.time() - start)}]"
-    ))
+    log.log(
+        bold(
+            f" \u2514\u2500\u2192 Ready for redo from the '{redo_from}' stage,"
+            f" {len(dirs_to_delete)} directories deleted [{elapsed_time(time.time() - start)}]"
+        )
+    )
 
 
 def check_value_list(input_values: str, valid_values: dict):
@@ -711,7 +862,7 @@ def check_value_list(input_values: str, valid_values: dict):
         checked = ",".join([v for v in input_values.upper().split(",") if v in valid_values])
         ignored = ",".join([v for v in input_values.split(",") if v.upper() not in valid_values])
     if ignored:
-        ignored = f'(ignored values: {ignored})'
+        ignored = f"(ignored values: {ignored})"
 
     return checked, ignored
 
@@ -733,9 +884,11 @@ def find_extracted_sample_dirs(captus_extractions_dir):
     for sample_dir in all_sample_dirs:
         if settings.SEQ_NAME_SEP in f"{sample_dir}".replace("__captus-ext", ""):
             sample_name = sample_dir.parts[-1].replace("__captus-ext", "")
-            skipped.append(f"'{sample_dir.parts[-1]}': SKIPPED, pattern"
-                           f" '{settings.SEQ_NAME_SEP}' not allowed in sample name"
-                           f" '{sample_name}'")
+            skipped.append(
+                f"'{sample_dir.parts[-1]}': SKIPPED, pattern"
+                f" '{settings.SEQ_NAME_SEP}' not allowed in sample name"
+                f" '{sample_name}'"
+            )
         else:
             extracted_sample_dirs.append(sample_dir)
     if not extracted_sample_dirs:
@@ -759,7 +912,7 @@ def prepare_refs(captus_ext_dir, margin):
                     if refs_paths[marker][info]:
                         if info.endswith("_path"):
                             refs_paths[marker][info] = Path(refs_paths[marker][info])
-                            msg = f'{marker:>{margin}}: {refs_paths[marker][info]} ({info})'
+                            msg = f"{marker:>{margin}}: {refs_paths[marker][info]} ({info})"
                             if not refs_paths[marker][info].exists():
                                 not_found.append(msg)
                                 refs_paths[marker][info] = None
@@ -767,24 +920,30 @@ def prepare_refs(captus_ext_dir, margin):
                                 found.append(msg)
     except FileNotFoundError:
         refs_paths = {
-            "NUC" : {"AA_path": None, "AA_msg": "not used", "NT_path": None, "NT_msg": "not used"},
-            "PTD" : {"AA_path": None, "AA_msg": "not used", "NT_path": None, "NT_msg": "not used"},
-            "MIT" : {"AA_path": None, "AA_msg": "not used", "NT_path": None, "NT_msg": "not used"},
-            "DNA" : {"AA_path": None, "AA_msg": None,       "NT_path": None, "NT_msg": "not used"},
-            "CLR" : {"AA_path": None, "AA_msg": None,       "NT_path": None, "NT_msg": "not used"},
+            "NUC": {"AA_path": None, "AA_msg": "not used", "NT_path": None, "NT_msg": "not used"},
+            "PTD": {"AA_path": None, "AA_msg": "not used", "NT_path": None, "NT_msg": "not used"},
+            "MIT": {"AA_path": None, "AA_msg": "not used", "NT_path": None, "NT_msg": "not used"},
+            "DNA": {"AA_path": None, "AA_msg": None, "NT_path": None, "NT_msg": "not used"},
+            "CLR": {"AA_path": None, "AA_msg": None, "NT_path": None, "NT_msg": "not used"},
         }
     if not found and not not_found:
-        log.log(f'{"WARNING":>{margin}}: No reference files found!')
+        log.log(f"{'WARNING':>{margin}}: No reference files found!")
     else:
         if found:
-            log.log(bold(f'{"Reference datasets":>{margin}}:'))
+            log.log(bold(f"{'Reference datasets':>{margin}}:"))
             for ref_path in found:
                 log.log(ref_path)
             log.log("")
         if not_found:
-            log.log(red((f"WARNING: The following reference files were not found. If you moved the"
-                          " reference files used for extraction from their original location you can"
-                         f" change the path in the file '{json_path}':\n")))
+            log.log(
+                red(
+                    (
+                        f"WARNING: The following reference files were not found. If you moved the"
+                        " reference files used for extraction from their original location you can"
+                        f" change the path in the file '{json_path}':\n"
+                    )
+                )
+            )
             for ref_path in not_found:
                 log.log(red(ref_path))
                 log.log("")
@@ -800,28 +959,37 @@ def select_filtering_refs(refs_paths, markers, formats, method):
     if method.lower() in ["informed", "both"]:
         if "NT" in formats:
             for marker in markers:
-                if (marker in ["NUC", "PTD", "MIT"]
-                    and refs_paths[marker]["NT_path"]):
-                    filtering_refs[marker] = {"path": refs_paths[marker]["NT_path"],
-                                              "marker_dir": settings.MARKER_DIRS[marker],
-                                              "format_dir": settings.FORMAT_DIRS["NT"]}
+                if marker in ["NUC", "PTD", "MIT"] and refs_paths[marker]["NT_path"]:
+                    filtering_refs[marker] = {
+                        "path": refs_paths[marker]["NT_path"],
+                        "marker_dir": settings.MARKER_DIRS[marker],
+                        "format_dir": settings.FORMAT_DIRS["NT"],
+                    }
         # Prefer coding reference in nucleotides to aminoacids for paralog filtering
         if "AA" in formats:
             for marker in markers:
-                if (marker in ["NUC", "PTD", "MIT"]
+                if (
+                    marker in ["NUC", "PTD", "MIT"]
                     and marker not in filtering_refs
-                    and refs_paths[marker]["AA_path"]):
-                    filtering_refs[marker] = {"path": refs_paths[marker]["AA_path"],
-                                              "marker_dir": settings.MARKER_DIRS[marker],
-                                              "format_dir": settings.FORMAT_DIRS["AA"]}
+                    and refs_paths[marker]["AA_path"]
+                ):
+                    filtering_refs[marker] = {
+                        "path": refs_paths[marker]["AA_path"],
+                        "marker_dir": settings.MARKER_DIRS[marker],
+                        "format_dir": settings.FORMAT_DIRS["AA"],
+                    }
         if "MA" in formats:
             for marker in markers:
-                if (marker in ["DNA", "CLR"]
+                if (
+                    marker in ["DNA", "CLR"]
                     and marker not in filtering_refs
-                    and refs_paths[marker]["NT_path"]):
-                    filtering_refs[marker] = {"path": refs_paths[marker]["NT_path"],
-                                              "marker_dir": settings.MARKER_DIRS[marker],
-                                              "format_dir": settings.FORMAT_DIRS["MA"]}
+                    and refs_paths[marker]["NT_path"]
+                ):
+                    filtering_refs[marker] = {
+                        "path": refs_paths[marker]["NT_path"],
+                        "marker_dir": settings.MARKER_DIRS[marker],
+                        "format_dir": settings.FORMAT_DIRS["MA"],
+                    }
 
     return filtering_refs
 
@@ -835,15 +1003,21 @@ def make_output_dirtree(markers, formats, out_dir, base_dir, margin):
     base_tree = Path(out_dir, base_dir).resolve()
     markers = sorted([(settings.MARKER_DIRS[m], m) for m in markers.upper().split(",")])
     formats = sorted([(settings.FORMAT_DIRS[f], f) for f in formats.upper().split(",")])
-    valid_combos = sorted([(m[0], f[0]) for m in markers for f in formats
-                           if (m[1], f[1]) in settings.VALID_MARKER_FORMAT_COMBO])
+    valid_combos = sorted(
+        [
+            (m[0], f[0])
+            for m in markers
+            for f in formats
+            if (m[1], f[1]) in settings.VALID_MARKER_FORMAT_COMBO
+        ]
+    )
     corner = "\u2514\u2500\u2500 "
-    branch = "\u251C\u2500\u2500 "
+    branch = "\u251c\u2500\u2500 "
     space = "    "
     vline = "\u2502   "
     symbols = ["", corner]
     dirs = [Path(out_dir).resolve(), base_dir]
-    margins = [f'{"Output directory tree":>{margin}}: ', f'{"":>{margin}}  ']
+    margins = [f"{'Output directory tree':>{margin}}: ", f"{'':>{margin}}  "]
     for combo in valid_combos:
         make_output_dir(Path(base_tree, combo[0], combo[1]))
         if combo[0] not in dirs:
@@ -853,27 +1027,42 @@ def make_output_dirtree(markers, formats, out_dir, base_dir, margin):
                 parent, fork = vline, branch
             dirs.append(combo[0])
             symbols.append(f"{space}{fork}")
-            margins.append(f'{"":>{margin}}  ')
+            margins.append(f"{'':>{margin}}  ")
         dirs.append(combo[1])
-        if symbols[-1] == f'{space}{parent}{corner}':
-            symbols[-1] = f'{space}{parent}{branch}'
-        symbols.append(f'{space}{parent}{corner}')
-        margins.append(f'{"":>{margin}}  ')
+        if symbols[-1] == f"{space}{parent}{corner}":
+            symbols[-1] = f"{space}{parent}{branch}"
+        symbols.append(f"{space}{parent}{corner}")
+        margins.append(f"{'':>{margin}}  ")
 
     return "\n".join([f"{m}{bold(s)}{bold(d)}" for m, s, d in zip(margins, symbols, dirs)])
 
 
 def collect_extracted_markers(
-    markers, formats, max_paralogs, min_samples, extracted_sample_dirs, out_dir, base_dir,
-    refs_paths, collect_only, overwrite, show_less
+    markers,
+    formats,
+    max_paralogs,
+    min_samples,
+    extracted_sample_dirs,
+    out_dir,
+    base_dir,
+    refs_paths,
+    collect_only,
+    overwrite,
+    show_less,
 ):
-    source_files = [Path(settings.MARKER_DIRS[m], f"{m}{settings.FORMAT_SUFFIXES[f]}")
-                   for m in markers.split(",") for f in formats.split(",")
-                   if (m, f) in settings.VALID_MARKER_FORMAT_COMBO]
+    source_files = [
+        Path(settings.MARKER_DIRS[m], f"{m}{settings.FORMAT_SUFFIXES[f]}")
+        for m in markers.split(",")
+        for f in formats.split(",")
+        if (m, f) in settings.VALID_MARKER_FORMAT_COMBO
+    ]
 
-    out_dirs = [Path(out_dir, base_dir, settings.MARKER_DIRS[m], settings.FORMAT_DIRS[f])
-                for m in markers.split(",") for f in formats.split(",")
-                if (m, f) in settings.VALID_MARKER_FORMAT_COMBO]
+    out_dirs = [
+        Path(out_dir, base_dir, settings.MARKER_DIRS[m], settings.FORMAT_DIRS[f])
+        for m in markers.split(",")
+        for f in formats.split(",")
+        if (m, f) in settings.VALID_MARKER_FORMAT_COMBO
+    ]
     for od in out_dirs:
         if dir_is_empty(od) is True or overwrite is True:
             for fasta_file in od.glob("*"):
@@ -903,18 +1092,24 @@ def collect_extracted_markers(
     fastas_per_marker = {}
     collect_sample_markers_params = []
     for source_fasta_path in fastas_per_sample:
-        collect_sample_markers_params.append([
-            fastas_per_marker,
-            source_fasta_path,
-            fastas_per_sample[source_fasta_path]["sample_name"],
-            fastas_per_sample[source_fasta_path]["destination"],
-            fastas_per_sample[source_fasta_path]["suffix"],
-            max_paralogs,
-        ])
-    tqdm_serial_run(collect_sample_markers, collect_sample_markers_params,
-                    "Collecting extracted markers",
-                    "Collection of extracted markers finished",
-                    "source", show_less)
+        collect_sample_markers_params.append(
+            [
+                fastas_per_marker,
+                source_fasta_path,
+                fastas_per_sample[source_fasta_path]["sample_name"],
+                fastas_per_sample[source_fasta_path]["destination"],
+                fastas_per_sample[source_fasta_path]["suffix"],
+                max_paralogs,
+            ]
+        )
+    tqdm_serial_run(
+        collect_sample_markers,
+        collect_sample_markers_params,
+        "Collecting extracted markers",
+        "Collection of extracted markers finished",
+        "source",
+        show_less,
+    )
     if max_paralogs == -1:
         max_paralog_rank = get_max_paralog_rank(collect_sample_markers_params)
     else:
@@ -923,9 +1118,9 @@ def collect_extracted_markers(
     # Write FASTAs compiled per marker when they have at least four samples
     log.log("")
     start = time.time()
-    accepted = 0 # FASTA output was saved and has at least four samples
-    rejected = 0 # FASTA output was not saved because has fewer than four samples
-    skipped  = 0 # FASTA output skipped because already exists
+    accepted = 0  # FASTA output was saved and has at least four samples
+    rejected = 0  # FASTA output was not saved because has fewer than four samples
+    skipped = 0  # FASTA output skipped because already exists
     log.log(bold("Verifying and writing collected FASTA files:"))
     tqdm_cols = min(shutil.get_terminal_size().columns, 120)
     with tqdm(total=len(fastas_per_marker), ncols=tqdm_cols, unit="file") as pbar:
@@ -939,10 +1134,12 @@ def collect_extracted_markers(
             else:
                 skipped += 1
             pbar.update()
-    log.log(bold(
-        f" \u2514\u2500\u2192 {len(fastas_per_marker)} collected FASTAs processed"
-        f" [{elapsed_time(time.time() - start)}]"
-    ))
+    log.log(
+        bold(
+            f" \u2514\u2500\u2192 {len(fastas_per_marker)} collected FASTAs processed"
+            f" [{elapsed_time(time.time() - start)}]"
+        )
+    )
     log.log(
         f"     {accepted} saved, {rejected} not saved for having fewer than {min_samples} samples,"
         f" {skipped} already existed and were skipped"
@@ -954,36 +1151,49 @@ def collect_extracted_markers(
         # Add references to all the possible collected FASTAs
         if refs_paths is not None:
             refs = [
-                refs_paths["NUC"]["AA_path"], refs_paths["NUC"]["NT_path"],
-                refs_paths["PTD"]["AA_path"], refs_paths["PTD"]["NT_path"],
-                refs_paths["MIT"]["AA_path"], refs_paths["MIT"]["NT_path"],
-                refs_paths["DNA"]["NT_path"], refs_paths["DNA"]["NT_path"],
-                refs_paths["CLR"]["NT_path"], refs_paths["CLR"]["NT_path"],
+                refs_paths["NUC"]["AA_path"],
+                refs_paths["NUC"]["NT_path"],
+                refs_paths["PTD"]["AA_path"],
+                refs_paths["PTD"]["NT_path"],
+                refs_paths["MIT"]["AA_path"],
+                refs_paths["MIT"]["NT_path"],
+                refs_paths["DNA"]["NT_path"],
+                refs_paths["DNA"]["NT_path"],
+                refs_paths["CLR"]["NT_path"],
+                refs_paths["CLR"]["NT_path"],
             ]
             mrks = ["NUC", "NUC", "PTD", "PTD", "MIT", "MIT", "DNA", "DNA", "CLR", "CLR"]
-            fmts = [ "AA",  "NT",  "AA",  "NT",  "AA",  "NT",  "MA",  "MF",  "MA",  "MF"]
+            fmts = ["AA", "NT", "AA", "NT", "AA", "NT", "MA", "MF", "MA", "MF"]
             add_refs_params = []
             for r, m, f in zip(refs, mrks, fmts):
                 if all([r, m in markers.upper().split(","), f in formats.upper().split(",")]):
-                    add_refs_params.append((
-                        r,
-                        Path(out_dir, base_dir, settings.MARKER_DIRS[m], settings.FORMAT_DIRS[f]),
-                        shared_ref_names,
-                    ))
+                    add_refs_params.append(
+                        (
+                            r,
+                            Path(
+                                out_dir, base_dir, settings.MARKER_DIRS[m], settings.FORMAT_DIRS[f]
+                            ),
+                            shared_ref_names,
+                        )
+                    )
             if bool(add_refs_params):
                 log.log("")
-                tqdm_serial_run(add_refs, add_refs_params,
-                                "Adding reference markers", "Addition of reference markers finished",
-                                "reference", show_less)
+                tqdm_serial_run(
+                    add_refs,
+                    add_refs_params,
+                    "Adding reference markers",
+                    "Addition of reference markers finished",
+                    "reference",
+                    show_less,
+                )
 
     # Write ASTRAL-Pro sequence to sample equivalence tsv file
-    astral_pro_tsv = write_astral_pro_seq_to_sam(out_dir,
-                                                 max_paralog_rank,
-                                                 shared_ref_names,
-                                                 sample_names)
+    astral_pro_tsv = write_astral_pro_seq_to_sam(
+        out_dir, max_paralog_rank, shared_ref_names, sample_names
+    )
     if astral_pro_tsv:
         log.log("")
-        log.log(f'{"ASTRAL-Pro seq-to-sample":>{26}}: {bold(astral_pro_tsv)}')
+        log.log(f"{'ASTRAL-Pro seq-to-sample':>{26}}: {bold(astral_pro_tsv)}")
 
 
 def collect_sample_markers(
@@ -996,7 +1206,10 @@ def collect_sample_markers(
     for seq_name_full in fasta_in:
         # Replace connecting 'n's only for alignment, otherwise MAFFT takes forever and opens
         # enormous gaps
-        if Path(destination).parts[-1] not in [settings.FORMAT_DIRS["AA"], settings.FORMAT_DIRS["NT"]]:
+        if Path(destination).parts[-1] not in [
+            settings.FORMAT_DIRS["AA"],
+            settings.FORMAT_DIRS["NT"],
+        ]:
             seq_no_ns = fasta_in[seq_name_full]["sequence"].replace("n", "-")
             fasta_in[seq_name_full]["sequence"] = seq_no_ns
         # Replace stop codons by X, MAFFT automatically removes the '*' symbol
@@ -1031,7 +1244,6 @@ def get_max_paralog_rank(collect_sample_markers_params: list):
         fasta_in = fasta_to_dict(params[1])
         for seq_name_full in fasta_in:
             seq_name_parts = seq_name_full.split(settings.SEQ_NAME_SEP)
-            seq_name = seq_name_parts[0]
             if len(seq_name_parts) == 3:
                 paralog_rank = int(seq_name_parts[2])
             else:
@@ -1052,15 +1264,15 @@ def add_refs(ref_path, dest_dir, shared_ref_names):
         refs_needed = []
         fasta_in = fasta_to_dict(fasta)
         for seq_name in fasta_in:
-            if ("[query=" in fasta_in[seq_name]["description"]
-                and not seq_name.endswith(f"{settings.SEQ_NAME_SEP}ref")):
+            if "[query=" in fasta_in[seq_name]["description"] and not seq_name.endswith(
+                f"{settings.SEQ_NAME_SEP}ref"
+            ):
                 refs_needed.append(
                     fasta_in[seq_name]["description"].split("[query=")[1].split("]")[0]
                 )
         for ref_name in set(refs_needed):
             name_parts = ref_name.split(settings.REF_CLUSTER_SEP)
-            ref_out = (f"{settings.REF_CLUSTER_SEP.join(name_parts[0:-1])}"
-                       f"{settings.SEQ_NAME_SEP}ref")
+            ref_out = f"{settings.REF_CLUSTER_SEP.join(name_parts[0:-1])}{settings.SEQ_NAME_SEP}ref"
             if ref_out not in shared_ref_names:
                 shared_ref_names.append(ref_out)
             if ref_name in ref_fasta:
@@ -1090,9 +1302,12 @@ def num_samples(fasta_dict):
     Determine number of different samples in alignment with sequence length greater than 0,
     and excluding sequences whose name ends in '|ref'
     """
-    samples = [seq_name.split(settings.SEQ_NAME_SEP)[0] for seq_name in fasta_dict
-               if not seq_name.endswith(f"{settings.SEQ_NAME_SEP}ref")
-               and len(fasta_dict[seq_name]["sequence"].replace("-","")) > 0]
+    samples = [
+        seq_name.split(settings.SEQ_NAME_SEP)[0]
+        for seq_name in fasta_dict
+        if not seq_name.endswith(f"{settings.SEQ_NAME_SEP}ref")
+        and len(fasta_dict[seq_name]["sequence"].replace("-", "")) > 0
+    ]
 
     return len(set(samples))
 
@@ -1135,10 +1350,17 @@ def fastas_origs_dests(dir_path: Path, orig_base_dir: str, dest_base_dir: str):
 
 
 def msa(
-    mafft_path, muscle_path, align_method, threads, timeout, outgroup, fastas_in: list,
-    fastas_out: list, min_samples, overwrite
+    mafft_path,
+    muscle_path,
+    align_method,
+    threads,
+    timeout,
+    outgroup,
+    fastas_in: list,
+    fastas_out: list,
+    min_samples,
+    overwrite,
 ):
-
     start = time.time()
 
     # If two FASTAs are passed to 'fastas_in', they are in order: AA nd NT;
@@ -1150,8 +1372,7 @@ def msa(
     fasta_out_short = Path(*fasta_out.parts[-3:])
     if num_samples(fasta_to_dict(fasta_in)) < min_samples:
         message = dim(
-            f"'{fasta_out_short}': SKIPPED (input FASTA has fewer than"
-            f" {min_samples} samples)"
+            f"'{fasta_out_short}': SKIPPED (input FASTA has fewer than {min_samples} samples)"
         )
         return message
     if fasta_out.exists():
@@ -1164,9 +1385,11 @@ def msa(
                     mafft_path,
                     settings.ALIGN_ALGORITHMS[align_method]["arg"],
                     "--amino",
-                    "--maxiterate", "1000",
+                    "--maxiterate",
+                    "1000",
                     "--reorder",
-                    "--thread", f"{threads}",
+                    "--thread",
+                    f"{threads}",
                     f"{fasta_in}",
                 ]
             else:
@@ -1174,22 +1397,28 @@ def msa(
                     mafft_path,
                     settings.ALIGN_ALGORITHMS[align_method]["arg"],
                     "--nuc",
-                    "--maxiterate", "1000",
+                    "--maxiterate",
+                    "1000",
                     "--reorder",
-                    "--thread", f"{threads}",
+                    "--thread",
+                    f"{threads}",
                     f"{fasta_in}",
                 ]
             mafft_log_file = Path(fasta_out.parent, f"{fasta_out.stem}.mafft.log")
             with open(mafft_log_file, "w") as mafft_log:
-                mafft_log.write(f"Captus' MAFFT Command:\n  {' '.join(mafft_cmd)}"
-                                f" > {fasta_out}\n\n\n")
+                mafft_log.write(
+                    f"Captus' MAFFT Command:\n  {' '.join(mafft_cmd)} > {fasta_out}\n\n\n"
+                )
             with open(fasta_out, "w") as mafft_out:
                 with open(mafft_log_file, "a") as mafft_log:
                     try:
-                        subprocess.run(mafft_cmd, stdout=mafft_out, stderr=mafft_log,
-                                       timeout=timeout)
+                        subprocess.run(
+                            mafft_cmd, stdout=mafft_out, stderr=mafft_log, timeout=timeout
+                        )
                         if file_is_empty(fasta_out):
-                            message = red(f"'{fasta_out_short}': FAILED alignment, empty output file")
+                            message = red(
+                                f"'{fasta_out_short}': FAILED alignment, empty output file"
+                            )
                             fasta_out.unlink()
                         else:
                             rehead_root_msa(fasta_in, fasta_out, outgroup)
@@ -1210,33 +1439,44 @@ def msa(
                 muscle_cmd = [
                     muscle_path,
                     "-amino",
-                    "-threads", f"{threads}",
-                    settings.ALIGN_ALGORITHMS[align_method]["arg"], f"{fasta_in}",
-                    "-output", f"{fasta_out}"
+                    "-threads",
+                    f"{threads}",
+                    settings.ALIGN_ALGORITHMS[align_method]["arg"],
+                    f"{fasta_in}",
+                    "-output",
+                    f"{fasta_out}",
                 ]
             else:
                 muscle_cmd = [
                     muscle_path,
                     "-nt",
-                    "-threads", f"{threads}",
-                    settings.ALIGN_ALGORITHMS[align_method]["arg"], f"{fasta_in}",
-                    "-output", f"{fasta_out}"
+                    "-threads",
+                    f"{threads}",
+                    settings.ALIGN_ALGORITHMS[align_method]["arg"],
+                    f"{fasta_in}",
+                    "-output",
+                    f"{fasta_out}",
                 ]
             muscle_log_file = Path(fasta_out.parent, f"{fasta_out.stem}.muscle.log")
             with open(muscle_log_file, "w") as muscle_log:
                 muscle_log.write(f"Captus' MUSCLE Command:\n  {' '.join(muscle_cmd)}\n\n\n")
             with open(muscle_log_file, "a") as muscle_log:
                 try:
-                    subprocess.run(muscle_cmd, stdout=muscle_log, stderr=muscle_log,
-                                   timeout=timeout)
+                    subprocess.run(
+                        muscle_cmd, stdout=muscle_log, stderr=muscle_log, timeout=timeout
+                    )
                     if file_is_empty(fasta_out):
                         message = red(f"'{fasta_out_short}': FAILED alignment, empty output file")
                         fasta_out.unlink()
                     elif not fasta_out.exists():
-                        message = red(f"'{fasta_out_short}': FAILED alignment, output not generated")
+                        message = red(
+                            f"'{fasta_out_short}': FAILED alignment, output not generated"
+                        )
                     else:
                         rehead_root_msa(fasta_in, fasta_out, outgroup)
-                        message = f"'{fasta_out_short}': aligned [{elapsed_time(time.time() - start)}]"
+                        message = (
+                            f"'{fasta_out_short}': aligned [{elapsed_time(time.time() - start)}]"
+                        )
                 except subprocess.TimeoutExpired:
                     message = (
                         f"'{red(fasta_out_short)}': FAILED alignment, timeout exceeded"
@@ -1250,18 +1490,20 @@ def msa(
                     )
 
         if len(fastas_in) == 2:
-            codon_message = codon_align(mafft_path,
-                                        muscle_path,
-                                        align_method,
-                                        threads,
-                                        timeout,
-                                        outgroup,
-                                        fasta_out,
-                                        fastas_in[1],
-                                        fastas_out[1],
-                                        min_samples,
-                                        overwrite)
-            message += f'\n{codon_message}'
+            codon_message = codon_align(
+                mafft_path,
+                muscle_path,
+                align_method,
+                threads,
+                timeout,
+                outgroup,
+                fasta_out,
+                fastas_in[1],
+                fastas_out[1],
+                min_samples,
+                overwrite,
+            )
+            message += f"\n{codon_message}"
 
     else:
         message = dim(f"'{fasta_out_short}': SKIPPED (output FASTA already exists)")
@@ -1270,19 +1512,37 @@ def msa(
 
 
 def codon_align(
-    mafft_path, muscle_path, align_method, threads, timeout, outgroup, aa_aligned: Path,
-    nt_orig: Path, nt_dest: Path, min_samples, overwrite
+    mafft_path,
+    muscle_path,
+    align_method,
+    threads,
+    timeout,
+    outgroup,
+    aa_aligned: Path,
+    nt_orig: Path,
+    nt_dest: Path,
+    min_samples,
+    overwrite,
 ):
     if not aa_aligned.exists() or file_is_empty(aa_aligned):
-        return msa(mafft_path, muscle_path, align_method, threads, timeout,
-                   outgroup, [nt_orig], [nt_dest], min_samples, overwrite)
+        return msa(
+            mafft_path,
+            muscle_path,
+            align_method,
+            threads,
+            timeout,
+            outgroup,
+            [nt_orig],
+            [nt_dest],
+            min_samples,
+            overwrite,
+        )
     else:
         start = time.time()
         fasta_out_short = Path(*nt_dest.parts[-3:])
         if num_samples(fasta_to_dict(nt_orig)) < min_samples:
             message = dim(
-                f"'{fasta_out_short}': SKIPPED (input FASTA has fewer than"
-                f" {min_samples} samples)"
+                f"'{fasta_out_short}': SKIPPED (input FASTA has fewer than {min_samples} samples)"
             )
             return message
         if nt_dest.exists():
@@ -1300,9 +1560,9 @@ def codon_align(
                     seq_nt_out = ""
                     for aa in seq_aa:
                         if aa == "-":
-                            seq_nt_out += "-"*3
+                            seq_nt_out += "-" * 3
                         else:
-                            seq_nt_out += seq_nt[nt_start:nt_start+3]
+                            seq_nt_out += seq_nt[nt_start : nt_start + 3]
                             nt_start += 3
                     nt_aligned[seq_name] = {
                         "description": nt_unaligned[seq_name]["description"],
@@ -1319,22 +1579,33 @@ def codon_align(
 def paralog_naive_filter(fastas_paths, min_samples, overwrite, concurrent, debug, show_less):
     filter_paralogs_naive_params = []
     for fasta in fastas_paths:
-        filter_paralogs_naive_params.append((
-            fasta,
-            fastas_paths[fasta],
-            min_samples,
-            overwrite,
-        ))
+        filter_paralogs_naive_params.append(
+            (
+                fasta,
+                fastas_paths[fasta],
+                min_samples,
+                overwrite,
+            )
+        )
     if debug:
-        tqdm_serial_run(filter_paralogs_naive, filter_paralogs_naive_params,
-                        "Removing potential paralogs from alignments",
-                        "Potential paralog removal completed",
-                        "alignment", show_less)
+        tqdm_serial_run(
+            filter_paralogs_naive,
+            filter_paralogs_naive_params,
+            "Removing potential paralogs from alignments",
+            "Potential paralog removal completed",
+            "alignment",
+            show_less,
+        )
     else:
-        tqdm_parallel_async_run(filter_paralogs_naive, filter_paralogs_naive_params,
-                                "Removing potential paralogs from alignments",
-                                "Potential paralog removal completed",
-                                "alignment", concurrent, show_less)
+        tqdm_parallel_async_run(
+            filter_paralogs_naive,
+            filter_paralogs_naive_params,
+            "Removing potential paralogs from alignments",
+            "Potential paralog removal completed",
+            "alignment",
+            concurrent,
+            show_less,
+        )
 
 
 def filter_paralogs_naive(fasta_in: Path, fasta_out: Path, min_samples, overwrite):
@@ -1347,8 +1618,10 @@ def filter_paralogs_naive(fasta_in: Path, fasta_out: Path, min_samples, overwrit
     if overwrite is True or not fasta_out.exists():
         fasta_with_paralogs, fasta_without_paralogs = fasta_to_dict(fasta_in), {}
         for seq_name in fasta_with_paralogs:
-            if ("hit=00" in fasta_with_paralogs[seq_name]["description"] or
-                f"{settings.SEQ_NAME_SEP}ref" in seq_name):
+            if (
+                "hit=00" in fasta_with_paralogs[seq_name]["description"]
+                or f"{settings.SEQ_NAME_SEP}ref" in seq_name
+            ):
                 seq_name_out = seq_name.replace(f"{settings.SEQ_NAME_SEP}00", "")
                 fasta_without_paralogs[seq_name_out] = dict(fasta_with_paralogs[seq_name])
         if num_samples(fasta_without_paralogs) >= min_samples:
@@ -1366,8 +1639,15 @@ def filter_paralogs_naive(fasta_in: Path, fasta_out: Path, min_samples, overwrit
 
 
 def paralog_informed_filter(
-    shared_paralog_stats, fastas_paths, filtering_refs, tolerance, min_samples, overwrite,
-    concurrent, debug, show_less
+    shared_paralog_stats,
+    fastas_paths,
+    filtering_refs,
+    tolerance,
+    min_samples,
+    overwrite,
+    concurrent,
+    debug,
+    show_less,
 ):
     fastas = {}
     for marker in filtering_refs:
@@ -1385,34 +1665,46 @@ def paralog_informed_filter(
         for marker_name in fastas[marker_dir]:
             fastas_marker = {}
             for fasta in fastas_paths:
-                if (fasta.stem == marker_name
-                    and fasta.parts[-3] == fastas[marker_dir][marker_name].parts[-3]):
+                if (
+                    fasta.stem == marker_name
+                    and fasta.parts[-3] == fastas[marker_dir][marker_name].parts[-3]
+                ):
                     fastas_marker[fasta] = fastas_paths[fasta]
-            filter_paralogs_informed_params.append((
-                shared_paralog_stats,
-                fastas[marker_dir][marker_name],
-                fastas_marker,
-                tolerance,
-                min_samples,
-                overwrite
-            ))
+            filter_paralogs_informed_params.append(
+                (
+                    shared_paralog_stats,
+                    fastas[marker_dir][marker_name],
+                    fastas_marker,
+                    tolerance,
+                    min_samples,
+                    overwrite,
+                )
+            )
 
     if debug:
-        tqdm_serial_run(filter_paralogs_informed, filter_paralogs_informed_params,
-                        "Removing potential paralogs from markers",
-                        "Potential paralog removal completed",
-                        "marker", show_less)
+        tqdm_serial_run(
+            filter_paralogs_informed,
+            filter_paralogs_informed_params,
+            "Removing potential paralogs from markers",
+            "Potential paralog removal completed",
+            "marker",
+            show_less,
+        )
     else:
-        tqdm_parallel_async_run(filter_paralogs_informed, filter_paralogs_informed_params,
-                                "Removing potential paralogs from markers",
-                                "Potential paralog removal completed",
-                                "marker", concurrent, show_less)
+        tqdm_parallel_async_run(
+            filter_paralogs_informed,
+            filter_paralogs_informed_params,
+            "Removing potential paralogs from markers",
+            "Potential paralog removal completed",
+            "marker",
+            concurrent,
+            show_less,
+        )
 
 
 def filter_paralogs_informed(
     shared_paralog_stats, fasta_model, fastas_paths, tolerance, min_samples, overwrite
 ):
-
     start = time.time()
 
     output_missing = False
@@ -1465,47 +1757,56 @@ def filter_paralogs_informed(
                     hit_num = "00"
                 length_seq = len(aln[seq]["sequence"].strip("-"))
                 lenght_ref = len(best_ref_seq.strip("-"))
-                pid = pairwise_identity(best_ref_seq, aln[seq]["sequence"],
-                                        fasta_model_format,
-                                        ignore_internal_gaps=True)
+                pid = pairwise_identity(
+                    best_ref_seq,
+                    aln[seq]["sequence"],
+                    fasta_model_format,
+                    ignore_internal_gaps=True,
+                )
                 paralog_score = (pid / 100) * (length_seq / lenght_ref)
                 if sample_name in samples_with_paralogs:
                     samples_with_paralogs[sample_name][seq] = paralog_score
                 else:
                     samples_with_paralogs[sample_name] = {seq: paralog_score}
-                tsv.append([
-                    fasta_model_marker,       # [0]  marker type
-                    fasta_model_format,       # [1]  format used for filtering
-                    fasta_model.stem,         # [2]  locus name
-                    best_ref_full_name,       # [3]  reference name
-                    sample_name,              # [4]  sample name
-                    hit_num,                  # [5]  hit ranking
-                    seq,                      # [6]  sequence name
-                    f"{length_seq}",          # [7]  ungapped sequence length
-                    f"{pid:.5f}",             # [8]  identity to reference
-                    f"{paralog_score:.5f}",   # [9]  pid * (len(seq) / len(ref))
-                    f"{False}",               # [10] accepted as ortholog
-                ])
+                tsv.append(
+                    [
+                        fasta_model_marker,  # [0]  marker type
+                        fasta_model_format,  # [1]  format used for filtering
+                        fasta_model.stem,  # [2]  locus name
+                        best_ref_full_name,  # [3]  reference name
+                        sample_name,  # [4]  sample name
+                        hit_num,  # [5]  hit ranking
+                        seq,  # [6]  sequence name
+                        f"{length_seq}",  # [7]  ungapped sequence length
+                        f"{pid:.5f}",  # [8]  identity to reference
+                        f"{paralog_score:.5f}",  # [9]  pid * (len(seq) / len(ref))
+                        f"{False}",  # [10] accepted as ortholog
+                    ]
+                )
         for sample in samples_with_paralogs:
-            accepted.append(max(samples_with_paralogs[sample], key=samples_with_paralogs[sample].get))
+            accepted.append(
+                max(samples_with_paralogs[sample], key=samples_with_paralogs[sample].get)
+            )
 
         pids = [float(row[8]) for row in tsv if row[6] in accepted]
         min_pid = statistics.mean(pids) - (tolerance * statistics.stdev(pids))
         for row in tsv:
             if row[6] in accepted:
                 if float(row[8]) >= min_pid:
-                    row[10] = f'{True}'
+                    row[10] = f"{True}"
                 else:
                     del accepted[accepted.index(row[6])]
 
-        shared_paralog_stats += ["\t".join(row)+"\n" for row in tsv]
+        shared_paralog_stats += ["\t".join(row) + "\n" for row in tsv]
         fastas_saved = len(fastas_paths)
         for fasta in fastas_paths:
             fasta_with_paralogs, fasta_without_paralogs = fasta_to_dict(fasta), {}
             for seq_name in fasta_with_paralogs:
                 if seq_name in accepted:
-                    if (seq_name.endswith(f"{settings.SEQ_NAME_SEP}ref")
-                        or settings.SEQ_NAME_SEP not in seq_name):
+                    if (
+                        seq_name.endswith(f"{settings.SEQ_NAME_SEP}ref")
+                        or settings.SEQ_NAME_SEP not in seq_name
+                    ):
                         fasta_without_paralogs[seq_name] = fasta_with_paralogs[seq_name]
                     else:
                         seq_name_out = settings.SEQ_NAME_SEP.join(
@@ -1517,19 +1818,21 @@ def filter_paralogs_informed(
             else:
                 fastas_saved -= 1
         if fastas_saved > 0:
-            messages.append((
-                f"'{fasta_model.parts[-3]}-{fasta_model.stem}': paralogs removed from"
-                f" {fastas_saved} files [{elapsed_time(time.time() - start)}]"
-            ))
+            messages.append(
+                (
+                    f"'{fasta_model.parts[-3]}-{fasta_model.stem}': paralogs removed from"
+                    f" {fastas_saved} files [{elapsed_time(time.time() - start)}]"
+                )
+            )
         else:
-            messages.append(red(
-                f"'{fasta_model.parts[-3]}-{fasta_model.stem}': not saved (filtered FASTAs had fewer"
-                f" than {min_samples} samples) [{elapsed_time(time.time() - start)}]"
-            ))
+            messages.append(
+                red(
+                    f"'{fasta_model.parts[-3]}-{fasta_model.stem}': not saved (filtered FASTAs had fewer"
+                    f" than {min_samples} samples) [{elapsed_time(time.time() - start)}]"
+                )
+            )
     else:
-        messages.append(dim(
-            f"'{fasta_model_short}': SKIPPED (output FASTA already exists)"
-        ))
+        messages.append(dim(f"'{fasta_model_short}': SKIPPED (output FASTA already exists)"))
 
     return "\n".join(messages)
 
@@ -1541,17 +1844,24 @@ def write_paralog_stats(out_dir, tsv_comment, shared_paralog_stats):
         stats_tsv_file = Path(out_dir, "captus-align_paralogs.tsv")
         with open(stats_tsv_file, "wt") as tsv_out:
             tsv_out.write(tsv_comment)
-            tsv_out.write("\t".join(["marker_type",
-                                     "format_filtered",
-                                     "locus",
-                                     "ref",
-                                     "sample",
-                                     "hit",
-                                     "sequence",
-                                     "length",
-                                     "identity",
-                                     "paralog_score",
-                                     "accepted"]) + "\n")
+            tsv_out.write(
+                "\t".join(
+                    [
+                        "marker_type",
+                        "format_filtered",
+                        "locus",
+                        "ref",
+                        "sample",
+                        "hit",
+                        "sequence",
+                        "length",
+                        "identity",
+                        "paralog_score",
+                        "accepted",
+                    ]
+                )
+                + "\n"
+            )
             tsv_out.writelines(sorted(shared_paralog_stats))
         return stats_tsv_file
 
@@ -1567,28 +1877,42 @@ def rem_refs(refs_paths, fastas_paths, min_samples, overwrite, concurrent, debug
             continue
         for seq_name in fasta_to_dict(ref_path):
             name_parts = seq_name.split(settings.REF_CLUSTER_SEP)
-            ref_name = (f"{settings.REF_CLUSTER_SEP.join(name_parts[0:-1])}"
-                        f"{settings.SEQ_NAME_SEP}ref")
+            ref_name = (
+                f"{settings.REF_CLUSTER_SEP.join(name_parts[0:-1])}{settings.SEQ_NAME_SEP}ref"
+            )
             if ref_name not in ref_names:
                 ref_names.append(ref_name)
 
     rem_refs_from_fasta_params = []
     for fasta in fastas_paths:
-        rem_refs_from_fasta_params.append((
-            fasta,
-            fastas_paths[fasta],
-            ref_names,
-            min_samples,
-            overwrite,
-        ))
+        rem_refs_from_fasta_params.append(
+            (
+                fasta,
+                fastas_paths[fasta],
+                ref_names,
+                min_samples,
+                overwrite,
+            )
+        )
     if debug:
-        tqdm_serial_run(rem_refs_from_fasta, rem_refs_from_fasta_params,
-                        "Removing references from alignments", "Removal of references completed",
-                        "alignment", show_less)
+        tqdm_serial_run(
+            rem_refs_from_fasta,
+            rem_refs_from_fasta_params,
+            "Removing references from alignments",
+            "Removal of references completed",
+            "alignment",
+            show_less,
+        )
     else:
-        tqdm_parallel_async_run(rem_refs_from_fasta, rem_refs_from_fasta_params,
-                                "Removing references from alignments", "References removal completed",
-                                "alignment", concurrent, show_less)
+        tqdm_parallel_async_run(
+            rem_refs_from_fasta,
+            rem_refs_from_fasta_params,
+            "Removing references from alignments",
+            "References removal completed",
+            "alignment",
+            concurrent,
+            show_less,
+        )
 
 
 def rem_refs_from_fasta(fasta_in: Path, fasta_out: Path, ref_names: list, min_samples, overwrite):
@@ -1620,8 +1944,15 @@ def rem_refs_from_fasta(fasta_in: Path, fasta_out: Path, ref_names: list, min_sa
 
 
 def clipkit(
-    clipkit_path, clipkit_method, clipkit_gaps, fasta_in: Path, fasta_out: Path, min_data_per_column,
-    min_coverage, min_samples, overwrite
+    clipkit_path,
+    clipkit_method,
+    clipkit_gaps,
+    fasta_in: Path,
+    fasta_out: Path,
+    min_data_per_column,
+    min_coverage,
+    min_samples,
+    overwrite,
 ):
     start = time.time()
 
@@ -1639,11 +1970,16 @@ def clipkit(
         clipkit_cmd = [
             clipkit_path,
             f"{fasta_in}",
-            "--output", f"{fasta_out}",
-            "--mode", f"{clipkit_method}",
-            "--gaps", f"{clipkit_gaps}",
-            "--input_file_format", "fasta",
-            "--output_file_format", "fasta",
+            "--output",
+            f"{fasta_out}",
+            "--mode",
+            f"{clipkit_method}",
+            "--gaps",
+            f"{clipkit_gaps}",
+            "--input_file_format",
+            "fasta",
+            "--output_file_format",
+            "fasta",
             "--log",
         ]
         clipkit_log_file = Path(fasta_out.parent, f"{fasta_out.stem}.clipkit.log")
@@ -1704,7 +2040,6 @@ def clipkit(
 
 
 def compute_stats(shared_sam_stats, shared_aln_stats, fasta_path):
-
     start = time.time()
 
     short_path = Path(*fasta_path.parts[-5:])
@@ -1716,7 +2051,7 @@ def compute_stats(shared_sam_stats, shared_aln_stats, fasta_path):
 
     fasta_path_parts = fasta_path.parts
 
-    aln_marker, aln_format= "", ""
+    aln_marker, aln_format = "", ""
     for m in settings.MARKER_DIRS:
         if fasta_path_parts[-3] == settings.MARKER_DIRS[m]:
             aln_marker = m
@@ -1728,51 +2063,55 @@ def compute_stats(shared_sam_stats, shared_aln_stats, fasta_path):
 
     coding = bool(fasta_path_parts[-2] == "02_NT")
     aln_stats = alignment_stats(fasta_dict, aln_type, coding)
-    aln_tsv = [[
-        f"{fasta_path}",                                    # [0] alignment file location
-        f'{bool("untrimmed" not in fasta_path_parts[-5])}', # [1] alignment was trimmed
-        f'{fasta_path_parts[-4].split("_")[1]}',            # [2] paralog filter applied
-        f'{bool("w_refs" in fasta_path_parts[-4])}',        # [3] still with references
-        aln_marker,                                         # [4] marker type
-        aln_format,                                         # [5] alignment format
-        fasta_path.stem,                                    # [6] locus name
-        f'{aln_stats["sequences"]}',                        # [7] num sequences
-        f'{aln_stats["samples"]}',                          # [8] num samples
-        f'{aln_stats["avg_copies"]}',                       # [9] avg num copies
-        f'{aln_stats["sites"]}',                            # [10] num sites
-        f'{aln_stats["informative"]}',                      # [11] num informative sites
-        f'{aln_stats["informativeness"]}',                  # [12] pct of informative sites
-        f'{aln_stats["uninformative"]}',                    # [13] num constant + singleton sites
-        f'{aln_stats["constant"]}',                         # [14] num constant sites
-        f'{aln_stats["singleton"]}',                        # [15] num singleton sites
-        f'{aln_stats["patterns"]}',                         # [16] num unique columns
-        f'{aln_stats["avg_pid"]}',                          # [17] average pairwise identity
-        f'{aln_stats["missingness"]}',                      # [18] pct of gaps and Ns or Xs
-        f'{aln_stats["gc"]}',                               # [19] GC content in %
-        f'{aln_stats["gc_codon_p1"]}',                      # [20] GC content of pos1 in codon in %
-        f'{aln_stats["gc_codon_p2"]}',                      # [21] GC content of pos2 in codon in %
-        f'{aln_stats["gc_codon_p3"]}',                      # [22] GC content of pos3 in codon in %
-    ]]
-    shared_aln_stats += ["\t".join(row)+"\n" for row in aln_tsv]
+    aln_tsv = [
+        [
+            f"{fasta_path}",  # [0] alignment file location
+            f"{bool('untrimmed' not in fasta_path_parts[-5])}",  # [1] alignment was trimmed
+            f"{fasta_path_parts[-4].split('_')[1]}",  # [2] paralog filter applied
+            f"{bool('w_refs' in fasta_path_parts[-4])}",  # [3] still with references
+            aln_marker,  # [4] marker type
+            aln_format,  # [5] alignment format
+            fasta_path.stem,  # [6] locus name
+            f"{aln_stats['sequences']}",  # [7] num sequences
+            f"{aln_stats['samples']}",  # [8] num samples
+            f"{aln_stats['avg_copies']}",  # [9] avg num copies
+            f"{aln_stats['sites']}",  # [10] num sites
+            f"{aln_stats['informative']}",  # [11] num informative sites
+            f"{aln_stats['informativeness']}",  # [12] pct of informative sites
+            f"{aln_stats['uninformative']}",  # [13] num constant + singleton sites
+            f"{aln_stats['constant']}",  # [14] num constant sites
+            f"{aln_stats['singleton']}",  # [15] num singleton sites
+            f"{aln_stats['patterns']}",  # [16] num unique columns
+            f"{aln_stats['avg_pid']}",  # [17] average pairwise identity
+            f"{aln_stats['missingness']}",  # [18] pct of gaps and Ns or Xs
+            f"{aln_stats['gc']}",  # [19] GC content in %
+            f"{aln_stats['gc_codon_p1']}",  # [20] GC content of pos1 in codon in %
+            f"{aln_stats['gc_codon_p2']}",  # [21] GC content of pos2 in codon in %
+            f"{aln_stats['gc_codon_p3']}",  # [22] GC content of pos3 in codon in %
+        ]
+    ]
+    shared_aln_stats += ["\t".join(row) + "\n" for row in aln_tsv]
 
     sam_stats = sample_stats(fasta_dict, aln_type, coding)
     sam_tsv = []
     for sample in sam_stats:
-        sam_tsv.append([
-            sample,                                         # [0] sample name
-            f'{" / ".join(fasta_path.parts[-5:-1])}',       # [1] stage / marker / format
-            fasta_path.stem,                                # [2] locus name
-            f'{sam_stats[sample]["len_total"]}',            # [3] alignment length
-            f'{sam_stats[sample]["len_gapped"]}',           # [4] length - terminal gaps
-            f'{sam_stats[sample]["len_ungapped"]}',         # [5] length - all gaps
-            f'{sam_stats[sample]["ambigs"]}',               # [6] num ambiguities
-            f'{sam_stats[sample]["gc"]}',                   # [7] GC content in %
-            f'{sam_stats[sample]["gc_codon_p1"]}',          # [8] GC content of pos1 in codon in %
-            f'{sam_stats[sample]["gc_codon_p2"]}',          # [9] GC content of pos2 in codon in %
-            f'{sam_stats[sample]["gc_codon_p3"]}',          # [10] GC content of pos3 in codon in %
-            f'{sam_stats[sample]["num_copies"]}',           # [11] num copies
-        ])
-    shared_sam_stats += ["\t".join(row)+"\n" for row in sam_tsv]
+        sam_tsv.append(
+            [
+                sample,  # [0] sample name
+                f"{' / '.join(fasta_path.parts[-5:-1])}",  # [1] stage / marker / format
+                fasta_path.stem,  # [2] locus name
+                f"{sam_stats[sample]['len_total']}",  # [3] alignment length
+                f"{sam_stats[sample]['len_gapped']}",  # [4] length - terminal gaps
+                f"{sam_stats[sample]['len_ungapped']}",  # [5] length - all gaps
+                f"{sam_stats[sample]['ambigs']}",  # [6] num ambiguities
+                f"{sam_stats[sample]['gc']}",  # [7] GC content in %
+                f"{sam_stats[sample]['gc_codon_p1']}",  # [8] GC content of pos1 in codon in %
+                f"{sam_stats[sample]['gc_codon_p2']}",  # [9] GC content of pos2 in codon in %
+                f"{sam_stats[sample]['gc_codon_p3']}",  # [10] GC content of pos3 in codon in %
+                f"{sam_stats[sample]['num_copies']}",  # [11] num copies
+            ]
+        )
+    shared_sam_stats += ["\t".join(row) + "\n" for row in sam_tsv]
 
     message = f"'{short_path}': stats computed [{elapsed_time(time.time() - start)}]"
 
@@ -1786,29 +2125,36 @@ def write_aln_stats(out_dir, tsv_comment, shared_aln_stats):
         stats_tsv_file = Path(out_dir, "captus-align_alignments.tsv")
         with open(stats_tsv_file, "wt") as tsv_out:
             tsv_out.write(tsv_comment)
-            tsv_out.write("\t".join(["path",
-                                     "trimmed",
-                                     "paralog_filter",
-                                     "with_refs",
-                                     "marker_type",
-                                     "format",
-                                     "locus",
-                                     "seqs",
-                                     "samples",
-                                     "avg_copies",
-                                     "sites",
-                                     "informative",
-                                     "informativeness",
-                                     "uninformative",
-                                     "constant",
-                                     "singleton",
-                                     "patterns",
-                                     "avg_pid",
-                                     "missingness",
-                                     "gc",
-                                     "gc_codon_p1",
-                                     "gc_codon_p2",
-                                     "gc_codon_p3",]) + "\n")
+            tsv_out.write(
+                "\t".join(
+                    [
+                        "path",
+                        "trimmed",
+                        "paralog_filter",
+                        "with_refs",
+                        "marker_type",
+                        "format",
+                        "locus",
+                        "seqs",
+                        "samples",
+                        "avg_copies",
+                        "sites",
+                        "informative",
+                        "informativeness",
+                        "uninformative",
+                        "constant",
+                        "singleton",
+                        "patterns",
+                        "avg_pid",
+                        "missingness",
+                        "gc",
+                        "gc_codon_p1",
+                        "gc_codon_p2",
+                        "gc_codon_p3",
+                    ]
+                )
+                + "\n"
+            )
             tsv_out.writelines(sorted(shared_aln_stats))
         return stats_tsv_file
 
@@ -1820,18 +2166,25 @@ def write_sam_stats(out_dir, tsv_comment, shared_sam_stats):
         stats_tsv_file = Path(out_dir, "captus-align_samples.tsv")
         with open(stats_tsv_file, "wt") as tsv_out:
             tsv_out.write(tsv_comment)
-            tsv_out.write("\t".join(["sample",
-                                     "stage_marker_format",
-                                     "locus",
-                                     "len_total",
-                                     "len_gapped",
-                                     "len_ungapped",
-                                     "ambigs",
-                                     "gc",
-                                     "gc_codon_p1",
-                                     "gc_codon_p2",
-                                     "gc_codon_p3",
-                                     "num_copies",]) + "\n")
+            tsv_out.write(
+                "\t".join(
+                    [
+                        "sample",
+                        "stage_marker_format",
+                        "locus",
+                        "len_total",
+                        "len_gapped",
+                        "len_ungapped",
+                        "ambigs",
+                        "gc",
+                        "gc_codon_p1",
+                        "gc_codon_p2",
+                        "gc_codon_p3",
+                        "num_copies",
+                    ]
+                )
+                + "\n"
+            )
             tsv_out.writelines(sorted(shared_sam_stats))
         return stats_tsv_file
 
@@ -1842,11 +2195,11 @@ def write_astral_pro_seq_to_sam(out_dir, max_paralogs, ref_names, sample_names):
     else:
         seq_to_sam = []
         for name in sorted(ref_names):
-            seq_to_sam.append(f'{name}\t{name}\n')
+            seq_to_sam.append(f"{name}\t{name}\n")
         for name in sorted(sample_names):
-            seq_to_sam.append(f'{name}\t{name}\n')
-            for p in range(max_paralogs+1):
-                seq_to_sam.append(f'{name}{settings.SEQ_NAME_SEP}{p:02}\t{name}\n')
+            seq_to_sam.append(f"{name}\t{name}\n")
+            for p in range(max_paralogs + 1):
+                seq_to_sam.append(f"{name}{settings.SEQ_NAME_SEP}{p:02}\t{name}\n")
         stats_tsv_file = Path(out_dir, settings.ASTRAL_PRO_EQ)
         with open(stats_tsv_file, "wt") as tsv_out:
             tsv_out.writelines(seq_to_sam)

@@ -15,7 +15,6 @@ details. You should have received a copy of the GNU General Public License along
 not, see <http://www.gnu.org/licenses/>.
 """
 
-
 import datetime
 import re
 import shutil
@@ -25,7 +24,6 @@ import textwrap
 
 
 class Log(object):
-
     def __init__(self, log_filename=None, stdout_verbosity_level=1, log_file_verbosity_level=None):
         """
         Modified to accept 'log_filename' as a str or Path
@@ -126,14 +124,18 @@ def log_progress_line(completed, total, base_pairs=None, end_newline=False):
 
 
 def log_explanation(
-    text, verbosity=1, print_to_screen=True, write_to_log_file=True, extra_empty_lines_after=1,
-    indent_size=4
+    text,
+    verbosity=1,
+    print_to_screen=True,
+    write_to_log_file=True,
+    extra_empty_lines_after=1,
+    indent_size=4,
 ):
     """
     This function writes explanatory text to the screen. It is wrapped to the terminal width for
     stdout but not wrapped for the log file.
     """
-    text = f'{" " * indent_size}{text}'
+    text = f"{' ' * indent_size}{text}"
     if print_to_screen:
         terminal_width = shutil.get_terminal_size().columns
         for line in textwrap.wrap(text, width=terminal_width - 1):
@@ -146,8 +148,12 @@ def log_explanation(
         log(text, verbosity=verbosity, print_to_screen=False, write_to_log_file=True)
 
     for _ in range(extra_empty_lines_after):
-        log("", verbosity=verbosity, print_to_screen=print_to_screen,
-            write_to_log_file=write_to_log_file)
+        log(
+            "",
+            verbosity=verbosity,
+            print_to_screen=print_to_screen,
+            write_to_log_file=write_to_log_file,
+        )
 
 
 def log_number_list(
@@ -157,7 +163,7 @@ def log_number_list(
     Some lists of numbers are long, so this function makes them wrap nicely when displayed on
     stdout.
     """
-    text = f'{" " * indent_size}{", ".join(str(x) for x in numbers)}'
+    text = f"{' ' * indent_size}{', '.join(str(x) for x in numbers)}"
     if print_to_screen:
         terminal_width = shutil.get_terminal_size().columns
         for line in textwrap.wrap(text, width=terminal_width - 1):

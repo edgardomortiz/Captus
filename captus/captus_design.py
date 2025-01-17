@@ -17,7 +17,6 @@ details. You should have received a copy of the GNU General Public License along
 not, see <http://www.gnu.org/licenses/>.
 """
 
-
 import argparse
 import sys
 
@@ -30,44 +29,42 @@ from .version import __version__
 
 
 class CaptusDesign(object):
-
     ################################################################################################
     ########################################################################## CAPTUS-DESIGN SECTION
     def __init__(self):
-
-        description = bold(f'Captus {__version__}:'
-                           " Assembly of Phylogenomic Datasets from High-Throughput Sequencing data")
-        parser=argparse.ArgumentParser(
+        description = bold(
+            f"Captus {__version__}:"
+            " Assembly of Phylogenomic Datasets from High-Throughput Sequencing data"
+        )
+        parser = argparse.ArgumentParser(
             usage="captus_design command [options]",
             description=description,
             formatter_class=MyHelpFormatter,
             epilog="For help on a particular command: captus_assembly command -h",
-            add_help=False
+            add_help=False,
         )
 
         required_group = parser.add_argument_group("Captus-design commands")
         required_group.add_argument(
             "command",
             help="B|Program commands (in typical order of execution)\n"
-                 "cluster = Find clusters in CDS or transcripts across several samples. Genomes"
-                 " in FASTA + annotation track in GFF, or simply transcripts or CDS in FASTA are"
-                 " allowed\n"
-                 "select = Filter the clusters according to several selection parameters\n"
-                 "bait = Create baits based on the selected clusters. It can process the clusters"
-                 " selected in the previous step or any set of input alignments"
+            "cluster = Find clusters in CDS or transcripts across several samples. Genomes"
+            " in FASTA + annotation track in GFF, or simply transcripts or CDS in FASTA are"
+            " allowed\n"
+            "select = Filter the clusters according to several selection parameters\n"
+            "bait = Create baits based on the selected clusters. It can process the clusters"
+            " selected in the previous step or any set of input alignments",
         )
 
         help_group = parser.add_argument_group("Help")
         help_group.add_argument(
-            "-h", "--help",
-            action="help",
-            help="Show this help message and exit"
+            "-h", "--help", action="help", help="Show this help message and exit"
         )
         help_group.add_argument(
             "--version",
             action="version",
             version=f"Captus v{__version__}",
-            help="Show Captus' version number"
+            help="Show Captus' version number",
         )
 
         if len(sys.argv) == 1:
@@ -83,69 +80,68 @@ class CaptusDesign(object):
         # use dispatch pattern to invoke method with same name
         getattr(self, args.command)()
 
-
     ################################################################################################
     ################################################################################ CLUSTER SECTION
     def cluster(self):
         description = bold(
             "Captus-design: Cluster; find clusters of markers across genomes or transcripts\n"
         )
-        parser=argparse.ArgumentParser(
+        parser = argparse.ArgumentParser(
             usage="captus_design cluster -m MARKERS_TO_CLUSTER [MARKERS_TO_CLUSTER ...] [options]",
             description=description,
             formatter_class=MyHelpFormatter,
             epilog="For more information, please see https://github.com/edgardomortiz/Captus",
-            add_help=False
+            add_help=False,
         )
 
         input_group = parser.add_argument_group("Input")
         input_group.add_argument(
-            "-m", "--markers_to_cluster",
+            "-m",
+            "--markers_to_cluster",
             action="store",
             nargs="+",
             type=str,
             required=True,
             dest="markers_to_cluster",
             help="B|Input directory containing data to cluster. Valid extensions are: .fasta,"
-                 " .fasta.gz, .fna, .fna.gz, .gff, .gff.gz, .gff3, .gff3.gz, .gtf, .gtf.gz."
-                 " Everything before the extension will be used as sample name. If a FASTA file is"
-                 " found with its corresponding annotation track in GFF, then the CDS features will"
-                 " be used for clustering, otherwise, every sequence in the FASTA file will be used"
-                 " for clustering. There are a few ways to provide the input filenames:\n"
-                 "A directory = path to directory containing the files (e.g.: -m ./genomic_data)\n"
-                 "A list = filenames separated by space (e.g.: -m A.fasta A.gff B.fna.gz C.fna)\n"
-                 "A pattern = UNIX matching expression (e.g.: -m ./genomic_data/A.*)"
+            " .fasta.gz, .fna, .fna.gz, .gff, .gff.gz, .gff3, .gff3.gz, .gtf, .gtf.gz."
+            " Everything before the extension will be used as sample name. If a FASTA file is"
+            " found with its corresponding annotation track in GFF, then the CDS features will"
+            " be used for clustering, otherwise, every sequence in the FASTA file will be used"
+            " for clustering. There are a few ways to provide the input filenames:\n"
+            "A directory = path to directory containing the files (e.g.: -m ./genomic_data)\n"
+            "A list = filenames separated by space (e.g.: -m A.fasta A.gff B.fna.gz C.fna)\n"
+            "A pattern = UNIX matching expression (e.g.: -m ./genomic_data/A.*)",
         )
         input_group.add_argument(
-            "-b", "--bait_length",
+            "-b",
+            "--bait_length",
             action="store",
             default=120,
             type=int,
             dest="bait_length",
             help="Projected length for the baits (a.k.a. probes), only exons of at least this length"
-                 " are used for the creation of baits"
+            " are used for the creation of baits",
         )
 
         output_group = parser.add_argument_group("Output")
         output_group.add_argument(
-            "-o", "--out",
+            "-o",
+            "--out",
             action="store",
             default="./01_clustered_markers",
             type=str,
             dest="out",
-            help="Output directory name"
+            help="Output directory name",
         )
         output_group.add_argument(
             "--keep_all",
             action="store_true",
             dest="keep_all",
-            help="Do not delete any intermediate files"
+            help="Do not delete any intermediate files",
         )
         output_group.add_argument(
-            "--overwrite",
-            action="store_true",
-            dest="overwrite",
-            help="Overwrite previous results"
+            "--overwrite", action="store_true", dest="overwrite", help="Overwrite previous results"
         )
 
         clustering_group = parser.add_argument_group("Clustering of markers")
@@ -157,9 +153,9 @@ class CaptusDesign(object):
             dest="clust_program",
             choices=["mmseqs", "vsearch"],
             help="Clustering software to use for deduplication and clustering. We recommend MMseqs2"
-                 " over VSEARCH. VSEARCH is extremely slow with sequences longer than a few thousand"
-                 " bp, it is included for comparison purposes only and will probably be removed in"
-                 " the future"
+            " over VSEARCH. VSEARCH is extremely slow with sequences longer than a few thousand"
+            " bp, it is included for comparison purposes only and will probably be removed in"
+            " the future",
         )
         clustering_group.add_argument(
             "--mmseqs_sensitivity",
@@ -168,7 +164,7 @@ class CaptusDesign(object):
             type=float,
             dest="mmseqs_sensitivity",
             help="MMseqs2 sensitivity, from 1 to 7.5. Common reference points are: 1 (faster),"
-                 " 4 (fast), 7.5 (sens)"
+            " 4 (fast), 7.5 (sens)",
         )
         clustering_group.add_argument(
             "--mmseqs_cluster_mode",
@@ -176,12 +172,12 @@ class CaptusDesign(object):
             default=1,
             type=float,
             dest="mmseqs_cluster_mode",
-            choices=[0,1,2],
+            choices=[0, 1, 2],
             help="B|MMseqs2 clustering mode (https://github.com/soedinglab/mmseqs2/wiki#clustering-"
-                 "modes), options are:\n"
-                 "0 = Greedy set cover (least cohesive)\n"
-                 "1 = Connected component (most cohesive)\n"
-                 "2 = Greedy incremental (analogous to CD-HIT)"
+            "modes), options are:\n"
+            "0 = Greedy set cover (least cohesive)\n"
+            "1 = Connected component (most cohesive)\n"
+            "2 = Greedy incremental (analogous to CD-HIT)",
         )
         clustering_group.add_argument(
             "--max_seq_len",
@@ -190,35 +186,38 @@ class CaptusDesign(object):
             type=str,
             dest="max_seq_len",
             help="When left to 'auto' Captus will filter sequences longer than 65535 bp if MMseqs2"
-                 " is used or longer than 5000 bp if VSEARCH is used. Otherwise provide a length in"
-                 " bp to remove longer sequences prior to deduplication and clustering"
+            " is used or longer than 5000 bp if VSEARCH is used. Otherwise provide a length in"
+            " bp to remove longer sequences prior to deduplication and clustering",
         )
         clustering_group.add_argument(
-            "-s", "--strand",
+            "-s",
+            "--strand",
             action="store",
             default="both",
             type=str,
             dest="strand",
             choices=["both", "plus"],
             help="Strand to compare for deduplication or clustering when using VSEARCH (MMSeqs2"
-                 " processes both strands by default). Using both strands increases"
-                 " processing time in VSEARCH"
+            " processes both strands by default). Using both strands increases"
+            " processing time in VSEARCH",
         )
         clustering_group.add_argument(
-            "-d", "--dedup_threshold",
+            "-d",
+            "--dedup_threshold",
             action="store",
             default=99.5,
             type=float,
             dest="dedup_threshold",
-            help="Percent identity threshold for within-sample marker deduplication"
+            help="Percent identity threshold for within-sample marker deduplication",
         )
         clustering_group.add_argument(
-            "-c", "--clust_threshold",
+            "-c",
+            "--clust_threshold",
             action="store",
             default=75,
             type=float,
             dest="clust_threshold",
-            help="Percent identity threshold for across-samples marker clustering"
+            help="Percent identity threshold for across-samples marker clustering",
         )
 
         align_group = parser.add_argument_group("Alignment of clusters")
@@ -226,7 +225,7 @@ class CaptusDesign(object):
             "--align_singletons",
             action="store_true",
             dest="align_singletons",
-            help="Align clusters containing sequences from a single species"
+            help="Align clusters containing sequences from a single species",
         )
         align_group.add_argument(
             "--timeout",
@@ -234,41 +233,45 @@ class CaptusDesign(object):
             default=21600,
             type=int,
             dest="timeout",
-            help="Maximum allowed time in seconds for a single alignment"
+            help="Maximum allowed time in seconds for a single alignment",
         )
 
         curation_group = parser.add_argument_group("Curation of aligned clusters")
         curation_group.add_argument(
-            "-g", "--gaps",
+            "-g",
+            "--gaps",
             action="store",
             default=0.2,
             type=float,
             dest="gaps",
             help="Maximum proportion of missing data allowed from leading and trailing columns on"
-                 " aligned clusters"
+            " aligned clusters",
         )
         curation_group.add_argument(
-            "--fs", "--focal_species",
+            "--fs",
+            "--focal_species",
             action="store",
             type=str,
             dest="focal_species",
             help="Comma-separated list (no spaces) of species whose presence must be tracked in the"
-                 " alignments"
+            " alignments",
         )
         curation_group.add_argument(
-            "--os", "--outgroup_species",
+            "--os",
+            "--outgroup_species",
             action="store",
             type=str,
             dest="outgroup_species",
-            help="Comma-separated list (no spaces) of outgroup species names"
+            help="Comma-separated list (no spaces) of outgroup species names",
         )
         curation_group.add_argument(
-            "--as", "--addon_samples",
+            "--as",
+            "--addon_samples",
             action="store",
             type=str,
             dest="addon_samples",
             help="Comma-separated list (no spaces) of samples to exclude from the maximum proportion"
-                 " of missing data, these can be poor quality assemblies for example"
+            " of missing data, these can be poor quality assemblies for example",
         )
 
         other_group = parser.add_argument_group("Other")
@@ -285,11 +288,11 @@ class CaptusDesign(object):
             type=str,
             dest="redo_from",
             help="B|Repeat analysis from a particular stage:\n"
-                 "import = Delete all subdirectories and import input data again\n"
-                 "deduplication = Delete all deduplicated FASTA files and restart\n"
-                 "clustering = Delete clustering subdirectory and restart\n"
-                 "alignment = Delete alignments subdirectory and restart\n"
-                 "curation = Delete curated alignments subdirectory and restart"
+            "import = Delete all subdirectories and import input data again\n"
+            "deduplication = Delete all deduplicated FASTA files and restart\n"
+            "clustering = Delete clustering subdirectory and restart\n"
+            "alignment = Delete alignments subdirectory and restart\n"
+            "curation = Delete curated alignments subdirectory and restart",
         )
         other_group.add_argument(
             "--mmseqs_path",
@@ -297,7 +300,7 @@ class CaptusDesign(object):
             default="mmseqs",
             type=str,
             dest="mmseqs_path",
-            help="Path to MMseqs2"
+            help="Path to MMseqs2",
         )
         other_group.add_argument(
             "--vsearch_path",
@@ -305,7 +308,7 @@ class CaptusDesign(object):
             default="vsearch",
             type=str,
             dest="vsearch_path",
-            help="Path to VSEARCH"
+            help="Path to VSEARCH",
         )
         other_group.add_argument(
             "--mafft_path",
@@ -313,7 +316,7 @@ class CaptusDesign(object):
             default="mafft",
             type=str,
             dest="mafft_path",
-            help="Path to MAFFT (default: mafft/mafft.bat)"
+            help="Path to MAFFT (default: mafft/mafft.bat)",
         )
         other_group.add_argument(
             "--ram",
@@ -322,7 +325,7 @@ class CaptusDesign(object):
             type=str,
             dest="ram",
             help="Maximum RAM in GB (e.g.: 4.5) dedicated to Captus, 'auto' uses"
-                 f" {settings.RAM_FRACTION:.0%}% of available RAM"
+            f" {settings.RAM_FRACTION:.0%}% of available RAM",
         )
         other_group.add_argument(
             "--threads",
@@ -330,44 +333,42 @@ class CaptusDesign(object):
             default="auto",
             type=str,
             dest="threads",
-            help="Maximum number of CPUs dedicated to Captus, 'auto' uses all available CPUs"
+            help="Maximum number of CPUs dedicated to Captus, 'auto' uses all available CPUs",
         )
         other_group.add_argument(
             "--concurrent",
             action="store",
-            default='auto',
+            default="auto",
             type=str,
             dest="concurrent",
             help="Captus will attempt to execute this many alignments concurrently. CPUs will be"
-                 " divided by this value for each individual process. If set to 'auto', Captus will"
-                 " set as many processes as to at least have 2 threads available for each MAFFT"
-                 " process. Clustering is done sample by sample using as many threads as possible."
+            " divided by this value for each individual process. If set to 'auto', Captus will"
+            " set as many processes as to at least have 2 threads available for each MAFFT"
+            " process. Clustering is done sample by sample using as many threads as possible.",
         )
         other_group.add_argument(
             "--debug",
             action="store_true",
             dest="debug",
-            help="Enable debugging mode, parallelization is disabled so errors are logged to screen"
+            help="Enable debugging mode, parallelization is disabled so errors are logged to screen",
         )
         other_group.add_argument(
             "--show_more",
             action="store_true",
             dest="show_more",
             help="Show individual alignment information during the run. Detailed information is"
-                 " written regardless to the log"
+            " written regardless to the log",
         )
 
         help_group = parser.add_argument_group("Help")
         help_group.add_argument(
-            "-h", "--help",
-            action="help",
-            help="Show this help message and exit"
+            "-h", "--help", action="help", help="Show this help message and exit"
         )
         help_group.add_argument(
             "--version",
             action="version",
             version=f"Captus v{__version__}",
-            help="Show Captus' version number"
+            help="Show Captus' version number",
         )
 
         if len(sys.argv) == 2:
@@ -379,63 +380,62 @@ class CaptusDesign(object):
         cluster(full_command, args)
         exit(1)
 
-
     ################################################################################################
     ################################################################################# SELECT SECTION
     def select(self):
         description = bold(
             "Captus-design: Select; informed selection of clusters for bait creation\n"
         )
-        parser=argparse.ArgumentParser(
+        parser = argparse.ArgumentParser(
             usage="captus_design select -c CAPTUS_CLUSTERS_DIR [options]",
             description=description,
             formatter_class=MyHelpFormatter,
             epilog="For more information, please see https://github.com/edgardomortiz/Captus",
-            add_help=False
+            add_help=False,
         )
 
         input_group = parser.add_argument_group("Input")
         input_group.add_argument(
-            "-c", "--captus_clusters_dir",
+            "-c",
+            "--captus_clusters_dir",
             action="store",
             default="./01_clustered_markers",
             type=str,
             required=True,
             dest="captus_clusters_dir",
             help="Path to the output directory that contains the curated aligned clusters found"
-                 " during the previous step of Captus-design. This directory is called"
-                 " '01_clustered_markers' if you did not specify a different name during the"
-                 " 'cluster' step"
+            " during the previous step of Captus-design. This directory is called"
+            " '01_clustered_markers' if you did not specify a different name during the"
+            " 'cluster' step",
         )
         input_group.add_argument(
-            "-d", "--dry_run",
+            "-d",
+            "--dry_run",
             action="store_true",
             dest="dry_run",
             help="Just preview the number of markers resulting from the selecting parameters as well"
-                 " as the total projected capture footprint"
+            " as the total projected capture footprint",
         )
 
         output_group = parser.add_argument_group("Output")
         output_group.add_argument(
-            "-o", "--out",
+            "-o",
+            "--out",
             action="store",
             default="./02_selected_markers",
             type=str,
             dest="out",
             help="Output directory name. This directory will contain a copy of only the selected"
-                 " markers"
+            " markers",
         )
         output_group.add_argument(
             "--keep_all",
             action="store_true",
             dest="keep_all",
-            help="Do not delete any intermediate files"
+            help="Do not delete any intermediate files",
         )
         output_group.add_argument(
-            "--overwrite",
-            action="store_true",
-            dest="overwrite",
-            help="Overwrite previous results"
+            "--overwrite", action="store_true", dest="overwrite", help="Overwrite previous results"
         )
 
         filter_group = parser.add_argument_group("Filtering of markers")
@@ -445,7 +445,7 @@ class CaptusDesign(object):
             type=str,
             dest="avg_copies",
             default="1,1",
-            help="Average number of copies range, decimals are allowed, e.g. 1,1.5 (min,max)"
+            help="Average number of copies range, decimals are allowed, e.g. 1,1.5 (min,max)",
         )
         filter_group.add_argument(
             "--len",
@@ -453,7 +453,7 @@ class CaptusDesign(object):
             type=str,
             dest="length",
             default="0,20000",
-            help="Alignment length range in bp (min,max)"
+            help="Alignment length range in bp (min,max)",
         )
         filter_group.add_argument(
             "--pid",
@@ -461,7 +461,7 @@ class CaptusDesign(object):
             type=str,
             dest="pairwise_identity",
             default="0.0,100.0",
-            help="Range of average pairwise percent identity (min,max)"
+            help="Range of average pairwise percent identity (min,max)",
         )
         filter_group.add_argument(
             "--gc",
@@ -469,7 +469,7 @@ class CaptusDesign(object):
             type=str,
             dest="gc_content",
             default="0.0,100.0",
-            help="Range of GC content as percentage (min,max)"
+            help="Range of GC content as percentage (min,max)",
         )
         filter_group.add_argument(
             "--pis",
@@ -477,7 +477,7 @@ class CaptusDesign(object):
             type=str,
             dest="informative_sites",
             default="0,20000",
-            help="Range of number of parsimony informative sites (min,max)"
+            help="Range of number of parsimony informative sites (min,max)",
         )
         filter_group.add_argument(
             "--inf",
@@ -485,7 +485,7 @@ class CaptusDesign(object):
             type=str,
             dest="informativeness",
             default="0.0,100.0",
-            help="Range of percentage of parsimony informative sites (min,max)"
+            help="Range of percentage of parsimony informative sites (min,max)",
         )
         filter_group.add_argument(
             "--mis",
@@ -493,7 +493,7 @@ class CaptusDesign(object):
             type=str,
             dest="missingness",
             default="0.0,100.0",
-            help="Range of percentage of internal gaps and missing data allowed (min,max)"
+            help="Range of percentage of internal gaps and missing data allowed (min,max)",
         )
         filter_group.add_argument(
             "--seq",
@@ -501,7 +501,7 @@ class CaptusDesign(object):
             type=int,
             dest="num_sequences",
             default=1,
-            help="Minimum number of sequences per alignment"
+            help="Minimum number of sequences per alignment",
         )
         filter_group.add_argument(
             "--sam",
@@ -509,7 +509,7 @@ class CaptusDesign(object):
             type=int,
             dest="num_samples",
             default=1,
-            help="Minimum number of samples per alignment"
+            help="Minimum number of samples per alignment",
         )
         filter_group.add_argument(
             "--fos",
@@ -517,7 +517,7 @@ class CaptusDesign(object):
             type=int,
             dest="num_focal_species",
             default=0,
-            help="Minimum number of focal species per alignment"
+            help="Minimum number of focal species per alignment",
         )
         filter_group.add_argument(
             "--ous",
@@ -525,7 +525,7 @@ class CaptusDesign(object):
             type=int,
             dest="num_outgroup_species",
             default=0,
-            help="Minimum number of outgroup species per alignment"
+            help="Minimum number of outgroup species per alignment",
         )
         filter_group.add_argument(
             "--ads",
@@ -533,7 +533,7 @@ class CaptusDesign(object):
             type=int,
             dest="num_addon_samples",
             default=0,
-            help="Minimum number of add-on samples per alignment"
+            help="Minimum number of add-on samples per alignment",
         )
         filter_group.add_argument(
             "--spp",
@@ -541,7 +541,7 @@ class CaptusDesign(object):
             type=int,
             dest="num_species",
             default=0,
-            help="Minimum number of species per alignment"
+            help="Minimum number of species per alignment",
         )
         filter_group.add_argument(
             "--gen",
@@ -549,7 +549,7 @@ class CaptusDesign(object):
             type=int,
             dest="num_genera",
             default=0,
-            help="Minimum number of genera per alignment"
+            help="Minimum number of genera per alignment",
         )
         filter_group.add_argument(
             "--cdl",
@@ -557,7 +557,7 @@ class CaptusDesign(object):
             type=str,
             dest="cds_len",
             default="0,20000",
-            help="Original length range of entire CDS in bp before trimming (min,max)"
+            help="Original length range of entire CDS in bp before trimming (min,max)",
         )
         filter_group.add_argument(
             "--llr",
@@ -565,7 +565,7 @@ class CaptusDesign(object):
             type=str,
             dest="len_long_exons_retained",
             default="0,20000",
-            help="Length range of sequence retained (bp) corresponding to long exons (min,max)"
+            help="Length range of sequence retained (bp) corresponding to long exons (min,max)",
         )
         filter_group.add_argument(
             "--lsr",
@@ -573,7 +573,7 @@ class CaptusDesign(object):
             type=str,
             dest="len_short_exons_retained",
             default="0,20000",
-            help="Length range of sequence retained (bp) corresponding to short exons (min,max)"
+            help="Length range of sequence retained (bp) corresponding to short exons (min,max)",
         )
         filter_group.add_argument(
             "--ptr",
@@ -581,7 +581,7 @@ class CaptusDesign(object):
             type=str,
             dest="perc_total_cds_retained",
             default="0.0,100.0",
-            help="Percentage range of the CDS original length retained (min,max)"
+            help="Percentage range of the CDS original length retained (min,max)",
         )
         filter_group.add_argument(
             "--plr",
@@ -589,7 +589,7 @@ class CaptusDesign(object):
             type=str,
             dest="perc_long_exons_retained",
             default="0.0,100.0",
-            help="Percentage range of sequence retained corresponding to long exons (min,max)"
+            help="Percentage range of sequence retained corresponding to long exons (min,max)",
         )
         filter_group.add_argument(
             "--psr",
@@ -597,7 +597,7 @@ class CaptusDesign(object):
             type=str,
             dest="perc_short_exons_retained",
             default="0.0,100.0",
-            help="Percentage range of sequence retained corresponding to short exons (min,max)"
+            help="Percentage range of sequence retained corresponding to short exons (min,max)",
         )
 
         other_group = parser.add_argument_group("Other")
@@ -606,20 +606,18 @@ class CaptusDesign(object):
             action="store_true",
             dest="show_more",
             help="Show individual alignment information during the run. Detailed information is"
-                 " written regardless to the log"
+            " written regardless to the log",
         )
 
         help_group = parser.add_argument_group("Help")
         help_group.add_argument(
-            "-h", "--help",
-            action="help",
-            help="Show this help message and exit"
+            "-h", "--help", action="help", help="Show this help message and exit"
         )
         help_group.add_argument(
             "--version",
             action="version",
             version=f"Captus v{__version__}",
-            help="Show Captus' version number"
+            help="Show Captus' version number",
         )
 
         if len(sys.argv) == 2:
@@ -631,210 +629,228 @@ class CaptusDesign(object):
         select(full_command, args)
         exit(1)
 
-
     ################################################################################################
     ################################################################################### BAIT SECTION
     def bait(self):
         description = bold("Captus-design: Bait; create baits from selected alignments\n")
-        parser=argparse.ArgumentParser(
+        parser = argparse.ArgumentParser(
             usage="captus_design bait -s CAPTUS_SELECTED_DIR [options]",
             description=description,
             formatter_class=MyHelpFormatter,
             epilog="For more information, please see https://github.com/edgardomortiz/Captus",
-            add_help=False
+            add_help=False,
         )
 
         input_group = parser.add_argument_group("Input")
         input_group.add_argument(
-            "-s", "--captus_selected_dir",
+            "-s",
+            "--captus_selected_dir",
             action="store",
             default="./02_selected_markers",
             type=str,
             required=True,
             dest="captus_selected_dir",
             help="Path to an output directory from the 'select' step of Captus-design which is"
-                 " tipically called '02_selected_markers'. Captus will search for FASTA files"
-                 " inside this directory and every subdirectory"
+            " tipically called '02_selected_markers'. Captus will search for FASTA files"
+            " inside this directory and every subdirectory",
         )
         input_group.add_argument(
-            "-c", "--captus_clusters_dir",
+            "-c",
+            "--captus_clusters_dir",
             action="store",
             type=str,
             dest="captus_clusters_dir",
             help="Path to the output directory that contains the curated aligned clusters found"
-                 " during the previous 'cluster' step of Captus-design. This directory is called"
-                 " '01_clustered_markers' if you did not specify a different name during the"
-                 " 'cluster' step. When provided, Captus uses the exon data table to create baits"
-                 " that do not span exonic boundaries"
+            " during the previous 'cluster' step of Captus-design. This directory is called"
+            " '01_clustered_markers' if you did not specify a different name during the"
+            " 'cluster' step. When provided, Captus uses the exon data table to create baits"
+            " that do not span exonic boundaries",
         )
 
         output_group = parser.add_argument_group("Output")
         output_group.add_argument(
-            "-o", "--out",
+            "-o",
+            "--out",
             action="store",
             default="./03_baits",
             type=str,
             dest="out",
-            help="Output directory name"
+            help="Output directory name",
         )
         output_group.add_argument(
             "--keep_all",
             action="store_true",
             dest="keep_all",
-            help="Do not delete any intermediate files"
+            help="Do not delete any intermediate files",
         )
         output_group.add_argument(
-            "--overwrite",
-            action="store_true",
-            dest="overwrite",
-            help="Overwrite previous results"
+            "--overwrite", action="store_true", dest="overwrite", help="Overwrite previous results"
         )
 
         bait_group = parser.add_argument_group("Bait creation and filtering")
         bait_group.add_argument(
-            "-b", "--bait_length",
+            "-b",
+            "--bait_length",
             action="store",
             type=int,
             dest="bait_length",
             default=120,
-            help="Length in bp for bait design"
+            help="Length in bp for bait design",
         )
         bait_group.add_argument(
-            "--er", "--exclude_reference",
+            "--er",
+            "--exclude_reference",
             type=str,
             dest="exclude_reference",
             help="If you want to exclude baits that map to a reference sequence, you can specify the"
-                 " path to a FASTA file"
+            " path to a FASTA file",
         )
         bait_group.add_argument(
-            "--in", "--include_n",
+            "--in",
+            "--include_n",
             action="store_true",
             dest="include_n",
             help="If enabled, baits with Ns will also be considered for design. When omitted, baits"
-                 " with Ns are discarded"
+            " with Ns are discarded",
         )
         bait_group.add_argument(
-            "--ki", "--keep_iupac",
+            "--ki",
+            "--keep_iupac",
             action="store_true",
             dest="keep_iupac",
             help="If enabled, IUPAC ambiguity codes will be kept in the final baits. When omitted,"
-                 " the IUPAC codes are disambiguated choosing one nucleotide in the ambiguitiy at"
-                 " random"
+            " the IUPAC codes are disambiguated choosing one nucleotide in the ambiguitiy at"
+            " random",
         )
         bait_group.add_argument(
-            "--gc", "--gc_content",
+            "--gc",
+            "--gc_content",
             action="store",
             type=str,
             dest="gc_content",
             default="30.0,50.0",
-            help="GC content allowed in bait"
+            help="GC content allowed in bait",
         )
         bait_group.add_argument(
-            "--mt", "--melting_temperature",
+            "--mt",
+            "--melting_temperature",
             action="store",
             type=str,
             dest="melting_temperature",
             default="0.0,120.0",
-            help="Melting temperature allowed for bait"
+            help="Melting temperature allowed for bait",
         )
         bait_group.add_argument(
-            "--hc", "--hybridization_chemistry",
+            "--hc",
+            "--hybridization_chemistry",
             action="store",
             type=str,
             dest="hybridization_chemistry",
             choices={"RNA-DNA", "RNA-RNA", "DNA-DNA"},
             default="RNA-DNA",
-            help="Probe-Target chemistry, used in melting temperature calculation"
+            help="Probe-Target chemistry, used in melting temperature calculation",
         )
         bait_group.add_argument(
-            "--so", "--sodium",
+            "--so",
+            "--sodium",
             action="store",
             type=float,
             dest="sodium",
             default=0.9,
-            help="Na concentration for melting temperature calculation"
+            help="Na concentration for melting temperature calculation",
         )
         bait_group.add_argument(
-            "--fo", "--formamide",
+            "--fo",
+            "--formamide",
             action="store",
             type=float,
             dest="formamide",
             default=0.0,
-            help="Formamide concentration for melting temperature calculation"
+            help="Formamide concentration for melting temperature calculation",
         )
         bait_group.add_argument(
-            "--mmp", "--max_masked_percentage",
+            "--mmp",
+            "--max_masked_percentage",
             action="store",
             type=float,
             dest="max_masked_percentage",
             default=25.0,
             help="Low complexity regions of baits are masked using VSEARCH, define maximum"
-                 " percentage of sequence allowed to be masked"
+            " percentage of sequence allowed to be masked",
         )
         bait_group.add_argument(
-            "--mhl", "--max_homopolymer_length",
+            "--mhl",
+            "--max_homopolymer_length",
             type=int,
             dest="max_homopolymer_length",
             default=6,
-            help="Maximum length in bp for homopolymers within a bait"
+            help="Maximum length in bp for homopolymers within a bait",
         )
 
         clustering_group = parser.add_argument_group("Bait clustering and tiling")
         clustering_group.add_argument(
-            "--tpo", "--tiling_percentage_overlap",
+            "--tpo",
+            "--tiling_percentage_overlap",
             type=float,
             dest="tiling_percentage_overlap",
             default=50.0,
             help="Maximum percentage of the length of the bait allowed to overlap with the adjacent"
-                 " bait in the tiling design, e.g. if you use 25%% of overlap for 120 bp baits, they"
-                 " will overlap by at most 30 bp"
+            " bait in the tiling design, e.g. if you use 25%% of overlap for 120 bp baits, they"
+            " will overlap by at most 30 bp",
         )
         clustering_group.add_argument(
-            "--bct", "--bait_clust_threshold",
+            "--bct",
+            "--bait_clust_threshold",
             action="store",
             type=float,
             dest="bait_clust_threshold",
             default=98.0,
             help="The entire set of potential baits are finally clustered at this identity, keeping"
-                 " a single centroid bait sequence per cluster. It has been shown than a bait can"
-                 " hybridize with a target sequence that is at least 75%% identical, therefore do"
-                 " not use clustering thresholds lower than 0.75"
+            " a single centroid bait sequence per cluster. It has been shown than a bait can"
+            " hybridize with a target sequence that is at least 75%% identical, therefore do"
+            " not use clustering thresholds lower than 0.75",
         )
 
-        final_baits_targets = parser.add_argument_group("Baitset and reference target file creation")
+        final_baits_targets = parser.add_argument_group(
+            "Baitset and reference target file creation"
+        )
         final_baits_targets.add_argument(
-            "--tct", "--target_clust_threshold",
+            "--tct",
+            "--target_clust_threshold",
             action="store",
             type=float,
             dest="target_clust_threshold",
             default=98.0,
             help="A reference target file will be created only for the baits that passed the filters"
-                 " and clustering. The reference target sequences will be clustered at this"
-                 " threshold to reduce redundancy"
+            " and clustering. The reference target sequences will be clustered at this"
+            " threshold to reduce redundancy",
         )
         final_baits_targets.add_argument(
-            "--tmc", "--target_min_coverage",
+            "--tmc",
+            "--target_min_coverage",
             type=float,
             dest="target_min_coverage",
             default=75.0,
             help="To avoid including partial sequences for a locus, only the reference target"
-                " with at least this percentage of coverage with respect of the longest target in"
-                " the locus will be retained"
+            " with at least this percentage of coverage with respect of the longest target in"
+            " the locus will be retained",
         )
         final_baits_targets.add_argument(
-            "--met", "--min_expected_tiling",
+            "--met",
+            "--min_expected_tiling",
             type=float,
             dest="min_expected_tiling",
             default=1.5,
             help="Retain only loci whose baits covered the length of the reference target"
-                 " sequences at least this many times, met = (num_baits * bait_length) / locus_length "
+            " sequences at least this many times, met = (num_baits * bait_length) / locus_length ",
         )
         final_baits_targets.add_argument(
-            "--ral", "--remove_ambiguous_loci",
+            "--ral",
+            "--remove_ambiguous_loci",
             action="store_true",
             dest="remove_ambiguous_loci",
             help="Remove loci with reference target sequences grouped together at"
-                 " '--target_clust_threshold' since their baits might map to either locus"
+            " '--target_clust_threshold' since their baits might map to either locus",
         )
 
         other_group = parser.add_argument_group("Other")
@@ -844,7 +860,7 @@ class CaptusDesign(object):
             default="bbmap.sh",
             type=str,
             dest="bbmap_path",
-            help="Path to bbmap.sh"
+            help="Path to bbmap.sh",
         )
         other_group.add_argument(
             "--vsearch_path",
@@ -852,7 +868,7 @@ class CaptusDesign(object):
             default="vsearch",
             type=str,
             dest="vsearch_path",
-            help="Path to VSEARCH"
+            help="Path to VSEARCH",
         )
         other_group.add_argument(
             "--mmseqs_path",
@@ -860,7 +876,7 @@ class CaptusDesign(object):
             default="mmseqs",
             type=str,
             dest="mmseqs_path",
-            help="Path to MMseqs2"
+            help="Path to MMseqs2",
         )
         other_group.add_argument(
             "--ram",
@@ -869,7 +885,7 @@ class CaptusDesign(object):
             type=str,
             dest="ram",
             help="Maximum RAM in GB (e.g.: 4.5) dedicated to Captus, 'auto' uses"
-                 f" {settings.RAM_FRACTION:.0%}% of available RAM"
+            f" {settings.RAM_FRACTION:.0%}% of available RAM",
         )
         other_group.add_argument(
             "--threads",
@@ -877,7 +893,7 @@ class CaptusDesign(object):
             default="auto",
             type=str,
             dest="threads",
-            help="Maximum number of CPUs dedicated to Captus, 'auto' uses all available CPUs"
+            help="Maximum number of CPUs dedicated to Captus, 'auto' uses all available CPUs",
         )
         other_group.add_argument(
             "--concurrent",
@@ -886,33 +902,31 @@ class CaptusDesign(object):
             type=str,
             dest="concurrent",
             help="Captus will attempt to execute this many tasks concurrently. This number will not"
-                 " exceed '--threads'"
+            " exceed '--threads'",
         )
         other_group.add_argument(
             "--debug",
             action="store_true",
             dest="debug",
-            help="Enable debugging mode, parallelization is disabled so errors are logged to screen"
+            help="Enable debugging mode, parallelization is disabled so errors are logged to screen",
         )
         other_group.add_argument(
             "--show_more",
             action="store_true",
             dest="show_more",
             help="Show individual alignment information during the run. Detailed information is"
-                 " written regardless to the log"
+            " written regardless to the log",
         )
 
         help_group = parser.add_argument_group("Help")
         help_group.add_argument(
-            "-h", "--help",
-            action="help",
-            help="Show this help message and exit"
+            "-h", "--help", action="help", help="Show this help message and exit"
         )
         help_group.add_argument(
             "--version",
             action="version",
             version=f"Captus v{__version__}",
-            help="Show Captus' version number"
+            help="Show Captus' version number",
         )
 
         if len(sys.argv) == 2:

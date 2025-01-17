@@ -22,18 +22,43 @@ from pathlib import Path
 from tqdm import tqdm
 
 from . import log, settings
-from .bioformats import (bait_stats, dict_to_fasta, fasta_to_dict, mmseqs_cluster, resolve_iupac,
-                         split_mmseqs_clusters_file)
-from .misc import (ElapsedTimeThread, bbtools_path_version, bold, compress_list_files, dim,
-                   dir_is_empty, elapsed_time, file_is_empty, format_dep_msg, gzip_compress,
-                   has_valid_ext, make_output_dir, mmseqs_path_version, pigz_compress,
-                   python_library_check, quit_with_error, red, set_ram, set_threads,
-                   successful_exit, tqdm_parallel_async_run, tqdm_serial_run, vsearch_path_version)
+from .bioformats import (
+    bait_stats,
+    dict_to_fasta,
+    fasta_to_dict,
+    mmseqs_cluster,
+    resolve_iupac,
+    split_mmseqs_clusters_file,
+)
+from .misc import (
+    ElapsedTimeThread,
+    bbtools_path_version,
+    bold,
+    compress_list_files,
+    dim,
+    dir_is_empty,
+    elapsed_time,
+    file_is_empty,
+    format_dep_msg,
+    gzip_compress,
+    has_valid_ext,
+    make_output_dir,
+    mmseqs_path_version,
+    pigz_compress,
+    python_library_check,
+    quit_with_error,
+    red,
+    set_ram,
+    set_threads,
+    successful_exit,
+    tqdm_parallel_async_run,
+    tqdm_serial_run,
+    vsearch_path_version,
+)
 from .version import __version__
 
 
 def bait(full_command, args):
-
     captus_start = time.time()
     out_dir, out_dir_msg = make_output_dir(args.out)
     log.logger = log.Log(Path(out_dir, "captus-bait.log"), stdout_verbosity_level=1)
@@ -49,38 +74,40 @@ def bait(full_command, args):
         " manually selected alignments and derive baits from them. Potential baits will be filtered"
         " and reduced in number through clustering. If the markers were imported from annotated"
         " genomes, the exon data will be used to create baits that do not cross exon boundaries",
-        extra_empty_lines_after=0
+        extra_empty_lines_after=0,
     )
     log.log_explanation("For more information, please see https://github.com/edgardomortiz/Captus")
 
-    log.log(f'{"Captus version":>{mar}}: {bold(f"v{__version__}")}')
-    log.log(f'{"Command":>{mar}}: {bold(full_command)}')
-    _, ram_MB, ram_GB, ram_GB_total = set_ram(args.ram)
-    log.log(f'{"Max. RAM":>{mar}}: {bold(f"{ram_GB:.1f}GB")} {dim(f"(out of {ram_GB_total:.1f}GB)")}')
+    log.log(f"{'Captus version':>{mar}}: {bold(f'v{__version__}')}")
+    log.log(f"{'Command':>{mar}}: {bold(full_command)}")
+    _, ram_MB, ram_GB, ram_GB_total = set_ram(args.ram, java=True)
+    log.log(
+        f"{'Max. RAM':>{mar}}: {bold(f'{ram_GB:.1f}GB')} {dim(f'(out of {ram_GB_total:.1f}GB)')}"
+    )
     threads_max, threads_total = set_threads(args.threads)
-    log.log(f'{"Max. Threads":>{mar}}: {bold(threads_max)} {dim(f"(out of {threads_total})")}')
+    log.log(f"{'Max. Threads':>{mar}}: {bold(threads_max)} {dim(f'(out of {threads_total})')}")
     log.log("")
 
-    log.log(f'{"Dependencies":>{mar}}:')
+    log.log(f"{'Dependencies':>{mar}}:")
     _, bbmap_version, bbmap_status = bbtools_path_version(args.bbmap_path)
-    log.log(format_dep_msg(f'{"BBTools":>{mar}}: ', bbmap_version, bbmap_status))
+    log.log(format_dep_msg(f"{'BBTools':>{mar}}: ", bbmap_version, bbmap_status))
     _, vsearch_version, vsearch_status = vsearch_path_version(args.vsearch_path)
-    log.log(format_dep_msg(f'{"VSEARCH":>{mar}}: ', vsearch_version, vsearch_status))
+    log.log(format_dep_msg(f"{'VSEARCH':>{mar}}: ", vsearch_version, vsearch_status))
     _, mmseqs_version, mmseqs_status = mmseqs_path_version(args.mmseqs_path)
-    log.log(format_dep_msg(f'{"MMseqs2":>{mar}}: ', mmseqs_version, mmseqs_status))
+    log.log(format_dep_msg(f"{'MMseqs2':>{mar}}: ", mmseqs_version, mmseqs_status))
     log.log("")
 
-    log.log(f'{"Python libraries":>{mar}}:')
+    log.log(f"{'Python libraries':>{mar}}:")
     _, numpy_version, numpy_status = python_library_check("numpy")
     _, pandas_version, pandas_status = python_library_check("pandas")
     _, plotly_version, plotly_status = python_library_check("plotly")
-    log.log(format_dep_msg(f'{"numpy":>{mar}}: ', numpy_version, numpy_status))
-    log.log(format_dep_msg(f'{"pandas":>{mar}}: ', pandas_version, pandas_status))
-    log.log(format_dep_msg(f'{"plotly":>{mar}}: ', plotly_version, plotly_status))
+    log.log(format_dep_msg(f"{'numpy':>{mar}}: ", numpy_version, numpy_status))
+    log.log(format_dep_msg(f"{'pandas':>{mar}}: ", pandas_version, pandas_status))
+    log.log(format_dep_msg(f"{'plotly':>{mar}}: ", plotly_version, plotly_status))
     log.log("")
 
-    log.log(f'{"Output directory":>{mar}}: {bold(out_dir)}')
-    log.log(f'{"":>{mar}}  {dim(out_dir_msg)}')
+    log.log(f"{'Output directory':>{mar}}: {bold(out_dir)}")
+    log.log(f"{'':>{mar}}  {dim(out_dir_msg)}")
     log.log("")
 
     if bbmap_status == "not_found":
@@ -96,7 +123,6 @@ def bait(full_command, args):
             "Captus could not find MMseqs2, please provide a valid path with '--mmseqs_path'"
         )
 
-
     ################################################################################################
     ########################################################################## BAIT CREATION SECTION
     log.log_section_header("Creating baits from selected loci alignments")
@@ -107,24 +133,24 @@ def bait(full_command, args):
         " generated in this step. Finally the baits will be dereplicated."
     )
 
-    log.log(f'{"Bait length":>{mar}}: {bold(args.bait_length)}')
+    log.log(f"{'Bait length':>{mar}}: {bold(args.bait_length)}")
     log.log("")
-    log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
-    log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
+    log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
+    log.log(f"{'Keep all files':>{mar}}: {bold(args.keep_all)}")
     fastas_auto = find_fastas(Path(args.captus_selected_dir, settings.DES_DIRS["AUT"]))
-    log.log(f'{"FASTAs automatic":>{mar}}: {bold(len(fastas_auto))}')
+    log.log(f"{'FASTAs automatic':>{mar}}: {bold(len(fastas_auto))}")
     fastas_manual = find_fastas(Path(args.captus_selected_dir, settings.DES_DIRS["MAN"]))
-    log.log(f'{"FASTAs manual":>{mar}}: {bold(len(fastas_manual))}')
-    log.log(f'{"FASTAs total":>{mar}}: {bold(len(fastas_auto) + len(fastas_manual))}')
+    log.log(f"{'FASTAs manual':>{mar}}: {bold(len(fastas_manual))}")
+    log.log(f"{'FASTAs total':>{mar}}: {bold(len(fastas_auto) + len(fastas_manual))}")
     log.log("")
 
     raw_baits_dir_path, raw_baits_dir_msg = make_output_dir(Path(out_dir, settings.DES_DIRS["RAW"]))
-    log.log(f'{"Raw baits directory":>{mar}}: {bold(raw_baits_dir_path)}')
-    log.log(f'{"":>{mar}}  {dim(raw_baits_dir_msg)}')
+    log.log(f"{'Raw baits directory':>{mar}}: {bold(raw_baits_dir_path)}")
+    log.log(f"{'':>{mar}}  {dim(raw_baits_dir_msg)}")
     log.log("")
 
-    baits_exons_gz_path = Path(raw_baits_dir_path, f'{settings.DES_FILES["BDEX"]}.gz')
-    baits_no_exons_gz_path = Path(raw_baits_dir_path, f'{settings.DES_FILES["BDNE"]}.gz')
+    baits_exons_gz_path = Path(raw_baits_dir_path, f"{settings.DES_FILES['BDEX']}.gz")
+    baits_no_exons_gz_path = Path(raw_baits_dir_path, f"{settings.DES_FILES['BDNE']}.gz")
     long_exons_path = Path(raw_baits_dir_path, settings.DES_FILES["LONG"])
 
     if baits_exons_gz_path.exists() or baits_no_exons_gz_path.exists():
@@ -143,16 +169,25 @@ def bait(full_command, args):
             log.log(f"'{long_exons_path}'")
     else:
         baits_full_exons_path, baits_full_no_exons_path, long_exons_path = create_baits(
-            raw_baits_dir_path, args.captus_clusters_dir, args.bait_length,
-            fastas_auto, fastas_manual, args.overwrite, args.show_more
+            raw_baits_dir_path,
+            args.captus_clusters_dir,
+            args.bait_length,
+            fastas_auto,
+            fastas_manual,
+            args.overwrite,
+            args.show_more,
         )
         baits_exons_gz_path, baits_no_exons_gz_path = dereplicate_compress_baits(
-            raw_baits_dir_path, baits_full_exons_path, baits_full_no_exons_path,
-            args.bait_length, args.overwrite, args.vsearch_path, threads_max
+            raw_baits_dir_path,
+            baits_full_exons_path,
+            baits_full_no_exons_path,
+            args.bait_length,
+            args.overwrite,
+            args.vsearch_path,
+            threads_max,
         )
 
     log.log("")
-
 
     ################################################################################################
     ######################################################################### BAIT FILTERING SECTION
@@ -165,51 +200,78 @@ def bait(full_command, args):
         " to exclude with '--exclude_reference'"
     )
 
-    show_less =  not args.show_more
-    log.log(f'{"Concurrent tasks":>{mar}}: {bold(threads_max)}')
+    show_less = not args.show_more
+    log.log(f"{'Concurrent tasks':>{mar}}: {bold(threads_max)}")
     log.log("")
     if args.exclude_reference and not Path(args.exclude_reference).exists():
         quit_with_error(f"The provided FASTA file '{args.exclude_reference}' does not exist")
-    log.log(f'{"Exclude if bait maps to":>{mar}}: {bold(args.exclude_reference)}')
-    log.log(f'{"Allow Ns in baits":>{mar}}: {bold(args.include_n)}')
-    log.log(f'{"Keep IUPAC ambiguities":>{mar}}: {bold(args.keep_iupac)}')
-    log.log(f'{"GC content range":>{mar}}: {bold(args.gc_content)}%')
-    log.log(f'{"Melting temp. range":>{mar}}: {bold(args.melting_temperature)}˚C')
-    log.log(f'{"Hybridization chemistry":>{mar}}: {bold(args.hybridization_chemistry)}')
-    log.log(f'{"Sodium concentration":>{mar}}: {bold(args.sodium)}')
-    log.log(f'{"Formamide concentration":>{mar}}: {bold(args.formamide)}')
-    log.log(f'{"Max. low complexity":>{mar}}: {bold(args.max_masked_percentage)}%')
-    log.log(f'{"Max. homopolymer length":>{mar}}: {bold(args.max_homopolymer_length)} bp')
+    log.log(f"{'Exclude if bait maps to':>{mar}}: {bold(args.exclude_reference)}")
+    log.log(f"{'Allow Ns in baits':>{mar}}: {bold(args.include_n)}")
+    log.log(f"{'Keep IUPAC ambiguities':>{mar}}: {bold(args.keep_iupac)}")
+    log.log(f"{'GC content range':>{mar}}: {bold(args.gc_content)}%")
+    log.log(f"{'Melting temp. range':>{mar}}: {bold(args.melting_temperature)}˚C")
+    log.log(f"{'Hybridization chemistry':>{mar}}: {bold(args.hybridization_chemistry)}")
+    log.log(f"{'Sodium concentration':>{mar}}: {bold(args.sodium)}")
+    log.log(f"{'Formamide concentration':>{mar}}: {bold(args.formamide)}")
+    log.log(f"{'Max. low complexity':>{mar}}: {bold(args.max_masked_percentage)}%")
+    log.log(f"{'Max. homopolymer length':>{mar}}: {bold(args.max_homopolymer_length)} bp")
     log.log("")
-    log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
-    log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
+    log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
+    log.log(f"{'Keep all files':>{mar}}: {bold(args.keep_all)}")
     log.log("")
 
     fil_baits_dir_path, fil_baits_dir_msg = make_output_dir(Path(out_dir, settings.DES_DIRS["FIL"]))
-    log.log(f'{"Filtered baits directory":>{mar}}: {bold(fil_baits_dir_path)}')
-    log.log(f'{"":>{mar}}  {dim(fil_baits_dir_msg)}')
+    log.log(f"{'Filtered baits directory':>{mar}}: {bold(fil_baits_dir_path)}")
+    log.log(f"{'':>{mar}}  {dim(fil_baits_dir_msg)}")
     log.log("")
 
     baits_exons_mapped_gz_path = map_exonic_baits(
-        fil_baits_dir_path, baits_exons_gz_path, long_exons_path, args.bbmap_path,
-        ram_MB, threads_max, args.bait_length, args.keep_all, args.overwrite
+        fil_baits_dir_path,
+        baits_exons_gz_path,
+        long_exons_path,
+        args.bbmap_path,
+        ram_MB,
+        threads_max,
+        args.bait_length,
+        args.keep_all,
+        args.overwrite,
     )
 
     if baits_exons_mapped_gz_path:
         baits_exons_gz_path = baits_exons_mapped_gz_path
 
     baits_concat_mask_gz_path = concat_refex_mask_baits(
-        fil_baits_dir_path, baits_exons_gz_path, baits_no_exons_gz_path, args.exclude_reference,
-        args.bbmap_path, args.vsearch_path, ram_MB, threads_max, args.bait_length, args.overwrite
+        fil_baits_dir_path,
+        baits_exons_gz_path,
+        baits_no_exons_gz_path,
+        args.exclude_reference,
+        args.bbmap_path,
+        args.vsearch_path,
+        ram_MB,
+        threads_max,
+        args.bait_length,
+        args.overwrite,
     )
 
     baits_filtered_gz_path = filter_baits(
-        fil_baits_dir_path, baits_concat_mask_gz_path, args.include_n, args.keep_iupac,
-        args.gc_content, args.melting_temperature, args.hybridization_chemistry, args.sodium,
-        args.formamide, args.max_masked_percentage, args.max_homopolymer_length,
-        args.bait_length, args.keep_all, args.overwrite, threads_max, args.debug, show_less
+        fil_baits_dir_path,
+        baits_concat_mask_gz_path,
+        args.include_n,
+        args.keep_iupac,
+        args.gc_content,
+        args.melting_temperature,
+        args.hybridization_chemistry,
+        args.sodium,
+        args.formamide,
+        args.max_masked_percentage,
+        args.max_homopolymer_length,
+        args.bait_length,
+        args.keep_all,
+        args.overwrite,
+        threads_max,
+        args.debug,
+        show_less,
     )
-
 
     ################################################################################################
     ######################################################################## BAIT CLUSTERING SECTION
@@ -221,25 +283,30 @@ def bait(full_command, args):
         " baits or reduce it to achieve the opposite result."
     )
     mincols = math.ceil(args.tiling_percentage_overlap / 100 * args.bait_length)
-    log.log(f'{"Bait length":>{mar}}: {bold(args.bait_length)}')
+    log.log(f"{'Bait length':>{mar}}: {bold(args.bait_length)}")
     log.log("")
-    log.log(f'{"Tiling overlap":>{mar}}: {bold(args.tiling_percentage_overlap)}% (= {mincols} bp)')
-    log.log(f'{"Bait clustering id.":>{mar}}: {bold(args.bait_clust_threshold)}%')
+    log.log(f"{'Tiling overlap':>{mar}}: {bold(args.tiling_percentage_overlap)}% (= {mincols} bp)")
+    log.log(f"{'Bait clustering id.':>{mar}}: {bold(args.bait_clust_threshold)}%")
     log.log("")
-    log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
-    log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
+    log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
+    log.log(f"{'Keep all files':>{mar}}: {bold(args.keep_all)}")
     log.log("")
 
     clu_baits_dir_path, clu_baits_dir_msg = make_output_dir(Path(out_dir, settings.DES_DIRS["BAI"]))
-    log.log(f'{"Clustered baitsets directory":>{mar}}: {bold(clu_baits_dir_path)}')
-    log.log(f'{"":>{mar}}  {dim(clu_baits_dir_msg)}')
+    log.log(f"{'Clustered baitsets directory':>{mar}}: {bold(clu_baits_dir_path)}")
+    log.log(f"{'':>{mar}}  {dim(clu_baits_dir_msg)}")
     log.log("")
 
     clust_baits_path = cluster_tile_baits(
-        clu_baits_dir_path, baits_filtered_gz_path, args.bait_length, args.vsearch_path,
-        mincols, args.bait_clust_threshold, args.tiling_percentage_overlap, args.overwrite
+        clu_baits_dir_path,
+        baits_filtered_gz_path,
+        args.bait_length,
+        args.vsearch_path,
+        mincols,
+        args.bait_clust_threshold,
+        args.tiling_percentage_overlap,
+        args.overwrite,
     )
-
 
     ################################################################################################
     ######################################################### REFERENCE TARGET FILE CREATION SECTION
@@ -253,28 +320,38 @@ def bait(full_command, args):
         " locus, only the sequences with at least '--target_min_coverage' with respect to the"
         " longest sequence in their locus will be retained"
     )
-    log.log(f'{"Target clustering id.":>{mar}}: {bold(args.target_clust_threshold)}%')
-    log.log(f'{"Target min. coverage":>{mar}}: {bold(args.target_min_coverage)}%')
-    log.log(f'{"Min. expected tiling":>{mar}}: {bold(args.min_expected_tiling)}X')
-    log.log(f'{"Remove ambiguous loci":>{mar}}: {bold(args.remove_ambiguous_loci)}')
+    log.log(f"{'Target clustering id.':>{mar}}: {bold(args.target_clust_threshold)}%")
+    log.log(f"{'Target min. coverage':>{mar}}: {bold(args.target_min_coverage)}%")
+    log.log(f"{'Min. expected tiling':>{mar}}: {bold(args.min_expected_tiling)}X")
+    log.log(f"{'Remove ambiguous loci':>{mar}}: {bold(args.remove_ambiguous_loci)}")
     log.log("")
-    log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
-    log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
+    log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
+    log.log(f"{'Keep all files':>{mar}}: {bold(args.keep_all)}")
     log.log("")
 
-    baits_targets_dir_path, baits_targets_dir_msg = make_output_dir(Path(out_dir,
-                                                                         settings.DES_DIRS["TAR"]))
-    log.log(f'{"Final baitsets directory":>{mar}}: {bold(baits_targets_dir_path)}')
-    log.log(f'{"":>{mar}}  {dim(baits_targets_dir_msg)}')
+    baits_targets_dir_path, baits_targets_dir_msg = make_output_dir(
+        Path(out_dir, settings.DES_DIRS["TAR"])
+    )
+    log.log(f"{'Final baitsets directory':>{mar}}: {bold(baits_targets_dir_path)}")
+    log.log(f"{'':>{mar}}  {dim(baits_targets_dir_msg)}")
     log.log("")
 
     prepare_targets(
-        baits_targets_dir_path, clust_baits_path, args.bait_length, args.mmseqs_path,
-        args.target_clust_threshold, args.target_min_coverage, args.min_expected_tiling,
-        args.remove_ambiguous_loci, fastas_auto, fastas_manual,
-        threads_max, args.overwrite, args.show_more, mar
+        baits_targets_dir_path,
+        clust_baits_path,
+        args.bait_length,
+        args.mmseqs_path,
+        args.target_clust_threshold,
+        args.target_min_coverage,
+        args.min_expected_tiling,
+        args.remove_ambiguous_loci,
+        fastas_auto,
+        fastas_manual,
+        threads_max,
+        args.overwrite,
+        args.show_more,
+        mar,
     )
-
 
     ################################################################################################
     ################################################################################# ENDING SECTION
@@ -287,8 +364,7 @@ def bait(full_command, args):
 def find_fastas(fastas_dir: Path):
     valid_exts = settings.FASTA_VALID_EXTENSIONS
     if fastas_dir.exists():
-        return [file for file in fastas_dir.resolve().rglob("*")
-                if has_valid_ext(file, valid_exts)]
+        return [file for file in fastas_dir.resolve().rglob("*") if has_valid_ext(file, valid_exts)]
     else:
         return []
 
@@ -311,7 +387,7 @@ def find_and_merge_exon_data(cluster_dir_path: Path):
     if Path(cluster_dir_path).exists():
         sample_dirs = list(Path(cluster_dir_path).rglob("*__captus-clr"))
         for sample_dir in sample_dirs:
-            tsvs += list(Path(sample_dir).rglob(f'*{settings.DES_SUFFIXES["DATA"]}'))
+            tsvs += list(Path(sample_dir).rglob(f"*{settings.DES_SUFFIXES['DATA']}"))
     exons_data = {}
     for tsv in tsvs:
         with open(tsv, "rt") as tsv_in:
@@ -343,8 +419,13 @@ def find_and_merge_exon_data(cluster_dir_path: Path):
 
 
 def create_baits(
-    raw_baits_dir_path: Path, cluster_dir_path: str, bait_length: int,
-    fastas_auto: list, fastas_manual: list, overwrite: bool, show_more: bool
+    raw_baits_dir_path: Path,
+    cluster_dir_path: str,
+    bait_length: int,
+    fastas_auto: list,
+    fastas_manual: list,
+    overwrite: bool,
+    show_more: bool,
 ):
     baits_full_exons_path = Path(raw_baits_dir_path, settings.DES_FILES["BFEX"])
     baits_full_no_exons_path = Path(raw_baits_dir_path, settings.DES_FILES["BFNE"])
@@ -375,19 +456,21 @@ def create_baits(
                     if settings.SEQ_NAME_SEP in seq_name:
                         sample = seq_name.split(settings.SEQ_NAME_SEP)[0]
                         seq_id = seq_name.split(settings.SEQ_NAME_SEP)[1]
-                        des = (f'[sample={sample}] [seq_id={seq_id}]'
-                               f' {fasta_in[seq_name]["description"]}').strip()
+                        des = (
+                            f"[sample={sample}] [seq_id={seq_id}]"
+                            f" {fasta_in[seq_name]['description']}"
+                        ).strip()
                     else:
                         sample = seq_name
                         seq_id = "NA"
-                        des = (f'[sample={sample}] {fasta_in[seq_name]["description"]}').strip()
+                        des = (f"[sample={sample}] {fasta_in[seq_name]['description']}").strip()
                     if seq_id in exons_data:
                         cds_ids.append(seq_id)
-                    seq = fasta_in[seq_name]["sequence"].replace("-","").upper()
+                    seq = fasta_in[seq_name]["sequence"].replace("-", "").upper()
                     for p in range(0, len(seq) - (bait_length - 1)):
                         bait_name = f"{locus}{settings.SEQ_NAME_SEP}b{bait_count:06}"
                         baits[bait_name] = {
-                            "sequence": seq[p:p+bait_length],
+                            "sequence": seq[p : p + bait_length],
                             "description": des,
                         }
                         bait_count += 1
@@ -401,10 +484,12 @@ def create_baits(
                     tqdm.write(msg)
                 log.log(msg, print_to_screen=False)
                 pbar.update()
-        log.log(bold(
-            f" \u2514\u2500\u2192 Successfully processed {len(fastas)} loci"
-            f" [{elapsed_time(time.time() - start)}]"
-        ))
+        log.log(
+            bold(
+                f" \u2514\u2500\u2192 Successfully processed {len(fastas)} loci"
+                f" [{elapsed_time(time.time() - start)}]"
+            )
+        )
         log.log("")
 
         if long_exons_path.exists():
@@ -425,16 +510,20 @@ def create_baits(
                             if cds_id in all_cds_ids:
                                 lef[seq_name] = long_exons[seq_name]
                         dict_to_fasta(lef, long_exons_path, append=True)
-                        msg = (f"'{fasta_path.name}': processed in"
-                               f" {elapsed_time(time.time() - inner_start)}")
+                        msg = (
+                            f"'{fasta_path.name}': processed in"
+                            f" {elapsed_time(time.time() - inner_start)}"
+                        )
                         if show_more:
                             tqdm.write(msg)
                         log.log(msg, print_to_screen=False)
                         pbar.update()
-                log.log(bold(
-                    f" \u2514\u2500\u2192 FASTA file '{long_exons_path.name}' succesfully created"
-                    f" [{elapsed_time(time.time() - start)}]"
-                ))
+                log.log(
+                    bold(
+                        f" \u2514\u2500\u2192 FASTA file '{long_exons_path.name}' succesfully created"
+                        f" [{elapsed_time(time.time() - start)}]"
+                    )
+                )
                 log.log("")
 
     else:
@@ -458,15 +547,20 @@ def create_baits(
 
 
 def dereplicate_compress_baits(
-    raw_baits_dir_path: Path, baits_full_exons_path: Path, baits_full_no_exons_path: Path,
-    bait_length: int, overwrite: bool, vsearch_path: str, threads_max: int
+    raw_baits_dir_path: Path,
+    baits_full_exons_path: Path,
+    baits_full_no_exons_path: Path,
+    bait_length: int,
+    overwrite: bool,
+    vsearch_path: str,
+    threads_max: int,
 ):
     start = time.time()
 
     baits_exons_path = Path(raw_baits_dir_path, settings.DES_FILES["BDEX"])
     baits_no_exons_path = Path(raw_baits_dir_path, settings.DES_FILES["BDNE"])
-    baits_exons_gz_path = Path(raw_baits_dir_path, f'{settings.DES_FILES["BDEX"]}.gz')
-    baits_no_exons_gz_path = Path(raw_baits_dir_path, f'{settings.DES_FILES["BDNE"]}.gz')
+    baits_exons_gz_path = Path(raw_baits_dir_path, f"{settings.DES_FILES['BDEX']}.gz")
+    baits_no_exons_gz_path = Path(raw_baits_dir_path, f"{settings.DES_FILES['BDNE']}.gz")
     baits_to_compress = []
 
     if overwrite or (not baits_exons_gz_path.exists() and not baits_no_exons_gz_path.exists()):
@@ -482,35 +576,49 @@ def dereplicate_compress_baits(
                     pbar.update()
                 else:
                     inner_start = time.time()
-                    bait_derep_file = Path(bait_file.parent, f"{bait_file.name}".replace("_full", ""))
+                    bait_derep_file = Path(
+                        bait_file.parent, f"{bait_file.name}".replace("_full", "")
+                    )
                     derep_log_file = Path(f"{bait_file}".replace(".fasta", ".derep.log"))
                     derep_cmd = [
                         vsearch_path,
-                        "--derep_fulllength", f"{bait_file}",
-                        "--output", f"{bait_derep_file}",
-                        "--fasta_width", f"{bait_length}",
-                        "--strand", "both",
+                        "--derep_fulllength",
+                        f"{bait_file}",
+                        "--output",
+                        f"{bait_derep_file}",
+                        "--fasta_width",
+                        f"{bait_length}",
+                        "--strand",
+                        "both",
                         "--notrunclabels",
                     ]
                     with open(derep_log_file, "w") as derep_log:
-                        derep_log.write(f"Captus' Dereplication Command:\n  {' '.join(derep_cmd)}\n\n\n")
+                        derep_log.write(
+                            f"Captus' Dereplication Command:\n  {' '.join(derep_cmd)}\n\n\n"
+                        )
                     with open(derep_log_file, "a") as derep_log:
-                        subprocess.run(derep_cmd, stdout=derep_log, stdin=derep_log, stderr=derep_log)
+                        subprocess.run(
+                            derep_cmd, stdout=derep_log, stdin=derep_log, stderr=derep_log
+                        )
                     if not file_is_empty(bait_derep_file):
                         baits_to_compress.append(bait_derep_file)
                         bait_file.unlink()
-                        msg = (f"'{bait_file.name}': dereplicated, saved as "
-                               f"'{bait_derep_file.name}' [{elapsed_time(time.time() - inner_start)}]")
+                        msg = (
+                            f"'{bait_file.name}': dereplicated, saved as "
+                            f"'{bait_derep_file.name}' [{elapsed_time(time.time() - inner_start)}]"
+                        )
                     else:
                         bait_derep_file.unlink()
                         msg = red(f"'{bait_file.name}': FAILED dereplication")
                     tqdm.write(msg)
                     log.log(msg, print_to_screen=False)
                     pbar.update()
-        log.log(bold(
-            f" \u2514\u2500\u2192 Bait files successfully dereplicated"
-            f" [{elapsed_time(time.time() - start)}]"
-        ))
+        log.log(
+            bold(
+                f" \u2514\u2500\u2192 Bait files successfully dereplicated"
+                f" [{elapsed_time(time.time() - start)}]"
+            )
+        )
         log.log("")
     if baits_to_compress:
         compress_list_files(baits_to_compress, threads_max)
@@ -524,14 +632,21 @@ def dereplicate_compress_baits(
 
 
 def map_exonic_baits(
-    filtered_baits_dir_path: Path, baits_exons_gz_path: Path, long_exons_path: Path, bbmap_path: str,
-    ram_MB: int, threads_max: int, bait_length: int, keep_all: bool, overwrite: bool
+    filtered_baits_dir_path: Path,
+    baits_exons_gz_path: Path,
+    long_exons_path: Path,
+    bbmap_path: str,
+    ram_MB: int,
+    threads_max: int,
+    bait_length: int,
+    keep_all: bool,
+    overwrite: bool,
 ):
     start = time.time()
 
     if not baits_exons_gz_path or not long_exons_path:
         return None
-    baits_exons_mapped_path = Path(filtered_baits_dir_path, f'{settings.DES_FILES["BEXM"]}')
+    baits_exons_mapped_path = Path(filtered_baits_dir_path, f"{settings.DES_FILES['BEXM']}")
     baits_exons_mapped_gz_path = Path(f"{baits_exons_mapped_path}.gz")
     maxindel = math.ceil(bait_length * settings.MAX_INDEL_BAIT_PROP)
 
@@ -547,7 +662,6 @@ def map_exonic_baits(
         log.log(bold("Mapping baits to long exon sequences:"))
         tqdm_cols = min(shutil.get_terminal_size().columns, 120)
         with tqdm(total=2, ncols=tqdm_cols, unit="task") as pbar:
-
             inner_start = time.time()
             bbmap_cmd = [
                 bbmap_path,
@@ -562,7 +676,7 @@ def map_exonic_baits(
                 f"fastawrap={bait_length}",
                 f"maxindel={maxindel}",
                 "strictmaxindel=t",
-                f"2>{baits_sam_stdout_path}"
+                f"2>{baits_sam_stdout_path}",
             ]
             with open(baits_sam_stderr_path, "w") as bbmap_err:
                 subprocess.run(bbmap_cmd, stderr=bbmap_err)
@@ -573,8 +687,10 @@ def map_exonic_baits(
                         bbmap_log.write(line)
             baits_sam_stderr_path.unlink()
             baits_sam_stdout_path.unlink()
-            msg = (f"'{baits_sam_gz_path.name}': baits mapped to exons"
-                   f" [{elapsed_time(time.time() - inner_start)}]")
+            msg = (
+                f"'{baits_sam_gz_path.name}': baits mapped to exons"
+                f" [{elapsed_time(time.time() - inner_start)}]"
+            )
             tqdm.write(msg)
             log.log(msg, print_to_screen=False)
             pbar.update()
@@ -607,23 +723,29 @@ def map_exonic_baits(
                 baits_sam_gz_path.unlink()
             if baits_exons_mapped_gz_path.exists():
                 pct_retained = long_exon_baits / total_baits * 100
-                msg = (f"'{baits_exons_mapped_gz_path.name}': {long_exon_baits:n} of {total_baits:n}"
-                       f" baits ({pct_retained:.2f}%) fully contained in long exons"
-                       f" [{elapsed_time(time.time() - inner_start)}]")
+                msg = (
+                    f"'{baits_exons_mapped_gz_path.name}': {long_exon_baits:n} of {total_baits:n}"
+                    f" baits ({pct_retained:.2f}%) fully contained in long exons"
+                    f" [{elapsed_time(time.time() - inner_start)}]"
+                )
             else:
                 msg = red(f"'{baits_exons_mapped_gz_path.name}': FAILED")
             tqdm.write(msg)
             log.log(msg, print_to_screen=False)
             pbar.update()
 
-        log.log(bold(
-            f" \u2514\u2500\u2192 Exonic baits processed, only baits fully contained"
-            f" in long exons retained [{elapsed_time(time.time() - start)}]"
-        ))
+        log.log(
+            bold(
+                f" \u2514\u2500\u2192 Exonic baits processed, only baits fully contained"
+                f" in long exons retained [{elapsed_time(time.time() - start)}]"
+            )
+        )
         log.log("")
     else:
-        log.log(f"'{bold(baits_exons_mapped_gz_path.name)}': output already"
-                f" exists, SKIPPED mapping baits to long exons sequences")
+        log.log(
+            f"'{bold(baits_exons_mapped_gz_path.name)}': output already"
+            f" exists, SKIPPED mapping baits to long exons sequences"
+        )
         log.log("")
 
     if baits_exons_mapped_gz_path.exists():
@@ -633,15 +755,22 @@ def map_exonic_baits(
 
 
 def concat_refex_mask_baits(
-    filtered_baits_dir_path: Path, baits_exons_gz_path: Path, baits_no_exons_gz_path: Path,
-    exclude_reference: str, bbmap_path: str, vsearch_path: str, ram_MB: int, threads_max: int,
-    bait_length: int, overwrite: bool
+    filtered_baits_dir_path: Path,
+    baits_exons_gz_path: Path,
+    baits_no_exons_gz_path: Path,
+    exclude_reference: str,
+    bbmap_path: str,
+    vsearch_path: str,
+    ram_MB: int,
+    threads_max: int,
+    bait_length: int,
+    overwrite: bool,
 ):
     start = time.time()
 
     if not baits_exons_gz_path and not baits_no_exons_gz_path:
         quit_with_error("No bait files were found, nothing else to process...")
-    baits_concat_path = Path(filtered_baits_dir_path, f'{settings.DES_FILES["BCAT"]}')
+    baits_concat_path = Path(filtered_baits_dir_path, f"{settings.DES_FILES['BCAT']}")
     baits_mask_path = Path(f"{baits_concat_path}".replace(".fasta", "_mask.fasta"))
     baits_mask_gz_path = Path(f"{baits_concat_path}".replace(".fasta", "_mask.fasta.gz"))
 
@@ -653,14 +782,17 @@ def concat_refex_mask_baits(
         baits_tomap_path = Path(f"{baits_concat_path}".replace(".fasta", "_tomap.fasta.gz"))
         baits_unmap_path = Path(f"{baits_concat_path}".replace(".fasta", "_unmap.fasta.gz"))
         baits_unmap_log_path = Path(f"{baits_concat_path}".replace(".fasta", "_unmap.bbmap.log"))
-        baits_unmap_stdout_path = Path(f"{baits_concat_path}".replace(".fasta", "_unmap.stdout.log"))
-        baits_unmap_stderr_path = Path(f"{baits_concat_path}".replace(".fasta", "_unmap.stderr.log"))
+        baits_unmap_stdout_path = Path(
+            f"{baits_concat_path}".replace(".fasta", "_unmap.stdout.log")
+        )
+        baits_unmap_stderr_path = Path(
+            f"{baits_concat_path}".replace(".fasta", "_unmap.stderr.log")
+        )
         baits_mask_log_path = Path(f"{baits_concat_path}".replace(".fasta", "_mask.vsearch.log"))
 
         log.log(bold("Excluding baits matching a given reference and masking low-complexity:"))
         tqdm_cols = min(shutil.get_terminal_size().columns, 120)
         with tqdm(total=3, ncols=tqdm_cols, unit="task") as pbar:
-
             inner_start = time.time()
             cat_cmd = ["cat"]
             if baits_exons_gz_path and baits_exons_gz_path.exists():
@@ -670,8 +802,10 @@ def concat_refex_mask_baits(
             with open(baits_tomap_path, "w") as baits_tomap:
                 subprocess.run(cat_cmd, stdout=baits_tomap)
             if baits_tomap_path.exists():
-                msg = (f"'{baits_tomap_path.name}': baits concatenated"
-                       f" [{elapsed_time(time.time() - inner_start)}]")
+                msg = (
+                    f"'{baits_tomap_path.name}': baits concatenated"
+                    f" [{elapsed_time(time.time() - inner_start)}]"
+                )
             else:
                 quit_with_error("No bait files were found, nothing else to process...")
             tqdm.write(msg)
@@ -680,8 +814,10 @@ def concat_refex_mask_baits(
 
             inner_start = time.time()
             if not exclude_reference or not Path(exclude_reference).exists():
-                msg = (f"'{baits_tomap_path.name}': SKIPPED mapping against excluding"
-                       f" reference [{elapsed_time(time.time() - inner_start)}]")
+                msg = (
+                    f"'{baits_tomap_path.name}': SKIPPED mapping against excluding"
+                    f" reference [{elapsed_time(time.time() - inner_start)}]"
+                )
                 baits_tomap_path.replace(baits_unmap_path)
             else:
                 bbmap_cmd = [
@@ -694,7 +830,7 @@ def concat_refex_mask_baits(
                     f"threads={threads_max}",
                     f"outu={baits_unmap_path}",
                     f"fastawrap={bait_length}",
-                    f"2>{baits_unmap_stdout_path}"
+                    f"2>{baits_unmap_stdout_path}",
                 ]
                 with open(baits_unmap_stderr_path, "w") as bbmap_err:
                     subprocess.run(bbmap_cmd, stderr=bbmap_err)
@@ -705,8 +841,10 @@ def concat_refex_mask_baits(
                             bbmap_log.write(line)
                 baits_unmap_stderr_path.unlink()
                 baits_unmap_stdout_path.unlink()
-                msg = (f"'{baits_unmap_path.name}': retained baits that do not match the"
-                       f" excluding reference [{elapsed_time(time.time() - inner_start)}]")
+                msg = (
+                    f"'{baits_unmap_path.name}': retained baits that do not match the"
+                    f" excluding reference [{elapsed_time(time.time() - inner_start)}]"
+                )
             tqdm.write(msg)
             log.log(msg, print_to_screen=False)
             pbar.update()
@@ -714,14 +852,20 @@ def concat_refex_mask_baits(
             inner_start = time.time()
             mask_cmd = [
                 vsearch_path,
-                "--maskfasta", f"{baits_unmap_path}",
-                "--output", f"{baits_mask_path}",
-                "--qmask", "dust",
-                "--fasta_width", f"{bait_length}",
+                "--maskfasta",
+                f"{baits_unmap_path}",
+                "--output",
+                f"{baits_mask_path}",
+                "--qmask",
+                "dust",
+                "--fasta_width",
+                f"{bait_length}",
                 "--notrunclabels",
             ]
             with open(baits_mask_log_path, "w") as mask_log:
-                mask_log.write(f"Captus' Low Complexity Masking Command:\n  {' '.join(mask_cmd)}\n\n\n")
+                mask_log.write(
+                    f"Captus' Low Complexity Masking Command:\n  {' '.join(mask_cmd)}\n\n\n"
+                )
             with open(baits_mask_log_path, "a") as mask_log:
                 subprocess.run(mask_cmd, stdout=mask_log, stdin=mask_log, stderr=mask_log)
             if not file_is_empty(baits_mask_path):
@@ -730,22 +874,28 @@ def concat_refex_mask_baits(
                 elif shutil.which("gzip"):
                     gzip_compress(baits_mask_path)
             if baits_mask_gz_path.exists():
-                msg = (f"'{baits_mask_gz_path.name}': masked low-complexity regions"
-                       f" in baits [{elapsed_time(time.time() - inner_start)}]")
+                msg = (
+                    f"'{baits_mask_gz_path.name}': masked low-complexity regions"
+                    f" in baits [{elapsed_time(time.time() - inner_start)}]"
+                )
             else:
                 quit_with_error("No bait files were found, nothing else to process...")
             tqdm.write(msg)
             log.log(msg, print_to_screen=False)
             pbar.update()
 
-        log.log(bold(
-            f" \u2514\u2500\u2192 Baits concatenated, filtered against excluding"
-            f" reference, and masked [{elapsed_time(time.time() - start)}]"
-        ))
+        log.log(
+            bold(
+                f" \u2514\u2500\u2192 Baits concatenated, filtered against excluding"
+                f" reference, and masked [{elapsed_time(time.time() - start)}]"
+            )
+        )
         log.log("")
     else:
-        log.log(f"'{bold(baits_mask_gz_path.name)}': output already exists, SKIPPED"
-                f" concatenation, filtering by reference, and masking of baits")
+        log.log(
+            f"'{bold(baits_mask_gz_path.name)}': output already exists, SKIPPED"
+            f" concatenation, filtering by reference, and masking of baits"
+        )
         log.log("")
 
     if baits_mask_gz_path.exists():
@@ -765,8 +915,9 @@ def split_baits_file(
     chunks_ceiling = max(threads_max, math.ceil(num_seqs / settings.BAITS_SPLIT_SIZE))
     num_chunks = 0
     try:
-        if (abs(settings.BAITS_SPLIT_SIZE - (num_seqs / chunks_ceiling))
-            <= abs(settings.BAITS_SPLIT_SIZE - (num_seqs / chunks_floor))):
+        if abs(settings.BAITS_SPLIT_SIZE - (num_seqs / chunks_ceiling)) <= abs(
+            settings.BAITS_SPLIT_SIZE - (num_seqs / chunks_floor)
+        ):
             seqs_per_chunk = math.ceil(num_seqs / chunks_ceiling)
             num_chunks = chunks_ceiling
         else:
@@ -789,32 +940,45 @@ def split_baits_file(
             chunk_count += 1
             total_count += 1
             if chunk_count == seqs_per_chunk or total_count == num_seqs:
-                split_bait_path = Path(filtered_baits_dir_path,
-                                       f"{baits_path.stem}_part{part:0{num_digits}}.fasta.gz")
+                split_bait_path = Path(
+                    filtered_baits_dir_path, f"{baits_path.stem}_part{part:0{num_digits}}.fasta.gz"
+                )
                 dict_to_fasta(split_bait, split_bait_path)
                 bait_parts_paths.append(split_bait_path)
                 part += 1
                 split_bait = {}
                 chunk_count = 0
-                msg = f"'{split_bait_path.name}': saved in {elapsed_time(time.time() - inner_start)}"
+                msg = (
+                    f"'{split_bait_path.name}': saved in {elapsed_time(time.time() - inner_start)}"
+                )
                 inner_start = time.time()
                 if not show_less:
                     tqdm.write(msg)
                 log.log(msg, print_to_screen=False)
                 pbar.update()
-    log.log(bold(
-        f" \u2514\u2500\u2192 Baits file '{baits_path.name}' succesfully splitted"
-        f" in {num_chunks} parts [{elapsed_time(time.time() - start)}]"
-    ))
+    log.log(
+        bold(
+            f" \u2514\u2500\u2192 Baits file '{baits_path.name}' succesfully splitted"
+            f" in {num_chunks} parts [{elapsed_time(time.time() - start)}]"
+        )
+    )
     log.log("")
 
     return bait_parts_paths
 
 
 def filter_baits_chunk(
-    bait_part_path: Path, include_n: bool, keep_iupac: bool, gc_content: str,
-    melting_temperature: str, hybridization_chemistry: str, sodium: float, formamide: float,
-    max_masked_percentage: float, max_homopolymer_length: int, bait_length: int
+    bait_part_path: Path,
+    include_n: bool,
+    keep_iupac: bool,
+    gc_content: str,
+    melting_temperature: str,
+    hybridization_chemistry: str,
+    sodium: float,
+    formamide: float,
+    max_masked_percentage: float,
+    max_homopolymer_length: int,
+    bait_length: int,
 ):
     start = time.time()
 
@@ -830,15 +994,21 @@ def filter_baits_chunk(
 
     bait_part = fasta_to_dict(bait_part_path)
     for bait_name in bait_part:
-        bs = bait_stats(bait_part[bait_name]["sequence"], hybridization_chemistry, sodium, formamide)
-        bait_desc = (f'{bait_part[bait_name]["description"]} [gc={bs["gc"]:.2f}%]'
-                     f' [melt={bs["melt_temp"]:.2f}C] [low_complex={bs["low_complexity"]:.2f}%]'
-                     f' [homopol={bs["max_homopolymer_len"]}bp] [N={bs["Ns"]}]')
-        if (min_gc <= bs["gc"] <= max_gc
+        bs = bait_stats(
+            bait_part[bait_name]["sequence"], hybridization_chemistry, sodium, formamide
+        )
+        bait_desc = (
+            f"{bait_part[bait_name]['description']} [gc={bs['gc']:.2f}%]"
+            f" [melt={bs['melt_temp']:.2f}C] [low_complex={bs['low_complexity']:.2f}%]"
+            f" [homopol={bs['max_homopolymer_len']}bp] [N={bs['Ns']}]"
+        )
+        if (
+            min_gc <= bs["gc"] <= max_gc
             and min_melt_temp <= bs["melt_temp"] <= max_melt_temp
             and bs["low_complexity"] <= max_masked_percentage
             and bs["max_homopolymer_len"] <= max_homopolymer_length
-            and bs["Ns"] <= max_Ns):
+            and bs["Ns"] <= max_Ns
+        ):
             bait_seq = bait_part[bait_name]["sequence"]
             if keep_iupac:
                 bait_seq = resolve_iupac(bait_seq)
@@ -858,18 +1028,29 @@ def filter_baits_chunk(
 
 
 def filter_baits(
-    filtered_baits_dir_path: Path, baits_concat_mask_gz_path: Path, include_n: bool,
-    keep_iupac: bool, gc_content: str, melting_temperature: str, hybridization_chemistry: str,
-    sodium: float, formamide: float, max_masked_percentage: float, max_homopolymer_length: int,
-    bait_length: int, keep_all: bool, overwrite: bool, threads_max: int, debug: bool,
-    show_less: bool
+    filtered_baits_dir_path: Path,
+    baits_concat_mask_gz_path: Path,
+    include_n: bool,
+    keep_iupac: bool,
+    gc_content: str,
+    melting_temperature: str,
+    hybridization_chemistry: str,
+    sodium: float,
+    formamide: float,
+    max_masked_percentage: float,
+    max_homopolymer_length: int,
+    bait_length: int,
+    keep_all: bool,
+    overwrite: bool,
+    threads_max: int,
+    debug: bool,
+    show_less: bool,
 ):
-
     if not baits_concat_mask_gz_path.exists():
         quit_with_error("No bait files were found, nothing else to process...")
-    baits_accepted_path = Path(filtered_baits_dir_path, f'{settings.DES_FILES["BACC"]}')
+    baits_accepted_path = Path(filtered_baits_dir_path, f"{settings.DES_FILES['BACC']}")
     baits_accepted_gz_path = Path(f"{baits_accepted_path}.gz")
-    baits_rejected_path = Path(filtered_baits_dir_path, f'{settings.DES_FILES["BREJ"]}')
+    baits_rejected_path = Path(filtered_baits_dir_path, f"{settings.DES_FILES['BREJ']}")
     baits_rejected_gz_path = Path(f"{baits_rejected_path}.gz")
 
     if overwrite or not baits_accepted_gz_path.exists():
@@ -877,33 +1058,45 @@ def filter_baits(
             baits_accepted_path.unlink()
         if baits_accepted_gz_path.exists():
             baits_accepted_gz_path.unlink()
-        baits_chunks_paths = split_baits_file(filtered_baits_dir_path,
-                                              baits_concat_mask_gz_path,
-                                              threads_max,
-                                              show_less)
+        baits_chunks_paths = split_baits_file(
+            filtered_baits_dir_path, baits_concat_mask_gz_path, threads_max, show_less
+        )
         filter_params = []
         for baits_chunk_path in baits_chunks_paths:
-            filter_params.append((
-                baits_chunk_path,
-                include_n,
-                keep_iupac,
-                gc_content,
-                melting_temperature,
-                hybridization_chemistry,
-                sodium,
-                formamide,
-                max_masked_percentage,
-                max_homopolymer_length,
-                bait_length
-            ))
+            filter_params.append(
+                (
+                    baits_chunk_path,
+                    include_n,
+                    keep_iupac,
+                    gc_content,
+                    melting_temperature,
+                    hybridization_chemistry,
+                    sodium,
+                    formamide,
+                    max_masked_percentage,
+                    max_homopolymer_length,
+                    bait_length,
+                )
+            )
         if debug:
-            tqdm_serial_run(filter_baits_chunk, filter_params,
-                            "Filtering baits", "Baits filtering completed",
-                            "file", show_less)
+            tqdm_serial_run(
+                filter_baits_chunk,
+                filter_params,
+                "Filtering baits",
+                "Baits filtering completed",
+                "file",
+                show_less,
+            )
         else:
-            tqdm_parallel_async_run(filter_baits_chunk, filter_params,
-                                    "Filtering baits", "Baits filtering completed",
-                                    "file", threads_max, show_less)
+            tqdm_parallel_async_run(
+                filter_baits_chunk,
+                filter_params,
+                "Filtering baits",
+                "Baits filtering completed",
+                "file",
+                threads_max,
+                show_less,
+            )
         log.log("")
 
         if not keep_all:
@@ -921,8 +1114,10 @@ def filter_baits(
                 rejected_baits = fasta_to_dict(baits_chunk_path)
                 baits_chunk_path.unlink()
                 dict_to_fasta(rejected_baits, baits_rejected_path, append=True)
-                msg = (f"'{baits_chunk_path.name}': concatenated"
-                       f" in {elapsed_time(time.time() - inner_start)}")
+                msg = (
+                    f"'{baits_chunk_path.name}': concatenated"
+                    f" in {elapsed_time(time.time() - inner_start)}"
+                )
                 if not show_less:
                     tqdm.write(msg)
                 log.log(msg, print_to_screen=False)
@@ -931,17 +1126,21 @@ def filter_baits(
             pigz_compress(baits_rejected_path, threads_max)
         elif shutil.which("gzip"):
             gzip_compress(baits_rejected_path)
-        log.log(bold(
-            f" \u2514\u2500\u2192 '{bold(baits_rejected_gz_path.name)}':"
-            f" concatenated [{elapsed_time(time.time() - start)}]"
-        ))
+        log.log(
+            bold(
+                f" \u2514\u2500\u2192 '{bold(baits_rejected_gz_path.name)}':"
+                f" concatenated [{elapsed_time(time.time() - start)}]"
+            )
+        )
         log.log("")
 
         start = time.time()
         accepted_bait_paths = list(filtered_baits_dir_path.rglob("*_accepted.fasta.gz"))
         if not accepted_bait_paths:
             quit_with_error("No baits passed the filters, try relaxing the filtering parameters...")
-        baits_accepted_unsorted_path = Path(f"{baits_accepted_path}".replace(".fasta", "_unsorted.fasta"))
+        baits_accepted_unsorted_path = Path(
+            f"{baits_accepted_path}".replace(".fasta", "_unsorted.fasta")
+        )
         log.log(bold("Concatenating accepted baits files:"))
         tqdm_cols = min(shutil.get_terminal_size().columns, 120)
         with tqdm(total=len(accepted_bait_paths), ncols=tqdm_cols, unit="file") as pbar:
@@ -950,8 +1149,10 @@ def filter_baits(
                 accepted_baits = fasta_to_dict(baits_chunk_path)
                 baits_chunk_path.unlink()
                 dict_to_fasta(accepted_baits, baits_accepted_unsorted_path, append=True)
-                msg = (f"'{baits_chunk_path.name}': concatenated"
-                       f" in {elapsed_time(time.time() - inner_start)}")
+                msg = (
+                    f"'{baits_chunk_path.name}': concatenated"
+                    f" in {elapsed_time(time.time() - inner_start)}"
+                )
                 if not show_less:
                     tqdm.write(msg)
                 log.log(msg, print_to_screen=False)
@@ -963,14 +1164,17 @@ def filter_baits(
             pigz_compress(baits_accepted_path, threads_max)
         elif shutil.which("gzip"):
             gzip_compress(baits_accepted_path)
-        log.log(bold(
-            f" \u2514\u2500\u2192 '{bold(baits_accepted_gz_path.name)}':"
-            f" concatenated [{elapsed_time(time.time() - start)}]"
-        ))
+        log.log(
+            bold(
+                f" \u2514\u2500\u2192 '{bold(baits_accepted_gz_path.name)}':"
+                f" concatenated [{elapsed_time(time.time() - start)}]"
+            )
+        )
         log.log("")
     else:
-        log.log(f"'{bold(baits_accepted_gz_path.name)}': output"
-                f" already exists, SKIPPED bait filtering")
+        log.log(
+            f"'{bold(baits_accepted_gz_path.name)}': output already exists, SKIPPED bait filtering"
+        )
         log.log("")
 
     if baits_accepted_gz_path.exists():
@@ -980,15 +1184,22 @@ def filter_baits(
 
 
 def cluster_tile_baits(
-    clust_baits_dir_path: Path, baits_filtered_gz_path: Path, bait_length: int, vsearch_path: str,
-    mincols: int, bait_clust_threshold: float, tiling_percentage_overlap: float, overwrite: bool
+    clust_baits_dir_path: Path,
+    baits_filtered_gz_path: Path,
+    bait_length: int,
+    vsearch_path: str,
+    mincols: int,
+    bait_clust_threshold: float,
+    tiling_percentage_overlap: float,
+    overwrite: bool,
 ):
-
-    clust_baits_unsorted_file = (f"baits_bct{bait_clust_threshold:.2f}_"
-                                 f"tpo{tiling_percentage_overlap:.2f}_unsorted.fasta")
+    clust_baits_unsorted_file = (
+        f"baits_bct{bait_clust_threshold:.2f}_tpo{tiling_percentage_overlap:.2f}_unsorted.fasta"
+    )
     clust_baits_unsorted_path = Path(clust_baits_dir_path, clust_baits_unsorted_file)
-    clust_baits_final_file = (f"baits_bct{bait_clust_threshold:.2f}_"
-                              f"tpo{tiling_percentage_overlap:.2f}.fasta")
+    clust_baits_final_file = (
+        f"baits_bct{bait_clust_threshold:.2f}_tpo{tiling_percentage_overlap:.2f}.fasta"
+    )
     clust_baits_final_path = Path(clust_baits_dir_path, clust_baits_final_file)
     clust_baits_log_path = Path(f"{clust_baits_final_path}".replace(".fasta", ".log"))
     if bait_clust_threshold > 1.0:
@@ -1003,14 +1214,20 @@ def cluster_tile_baits(
         start = time.time()
         clust_cmd = [
             vsearch_path,
-            "--cluster_smallmem", f"{baits_filtered_gz_path}",
+            "--cluster_smallmem",
+            f"{baits_filtered_gz_path}",
             "--usersort",
-            "--strand", "both",
-            "--id", f"{bait_clust_threshold}",
-            "--mincols", f"{mincols}",
-            "--fasta_width", f"{bait_length}",
+            "--strand",
+            "both",
+            "--id",
+            f"{bait_clust_threshold}",
+            "--mincols",
+            f"{mincols}",
+            "--fasta_width",
+            f"{bait_length}",
             "--notrunclabels",
-            "--centroids", f"{clust_baits_unsorted_path}"
+            "--centroids",
+            f"{clust_baits_unsorted_path}",
         ]
         vsearch_thread = ElapsedTimeThread()
         vsearch_thread.start()
@@ -1051,18 +1268,31 @@ def cluster_tile_baits(
 
 
 def prepare_targets(
-    baits_targets_dir_path: Path, clust_baits_path: Path, bait_length: int, mmseqs_path: str,
-    target_clust_threshold: float, target_min_coverage: float, min_expected_tiling: float,
-    remove_ambiguous_loci: bool, fastas_auto: list, fastas_manual: list,
-    threads: int, overwrite: bool, show_more: bool, margin: int
+    baits_targets_dir_path: Path,
+    clust_baits_path: Path,
+    bait_length: int,
+    mmseqs_path: str,
+    target_clust_threshold: float,
+    target_min_coverage: float,
+    min_expected_tiling: float,
+    remove_ambiguous_loci: bool,
+    fastas_auto: list,
+    fastas_manual: list,
+    threads: int,
+    overwrite: bool,
+    show_more: bool,
+    margin: int,
 ):
-
-    baitset_final_name = f'{clust_baits_path.name.replace(".fasta", "")}_met{min_expected_tiling:.2f}'
+    baitset_final_name = (
+        f"{clust_baits_path.name.replace('.fasta', '')}_met{min_expected_tiling:.2f}"
+    )
     if remove_ambiguous_loci:
         baitset_final_name += "_noamb"
     baitset_final_path = Path(baits_targets_dir_path, f"{baitset_final_name}.fasta")
     targets_concat_path = Path(baits_targets_dir_path, f"{baitset_final_name}_all_targets.fasta")
-    targets_final_name = f"targets_tct{target_clust_threshold:.2f}_tmc{target_min_coverage:.2f}.fasta"
+    targets_final_name = (
+        f"targets_tct{target_clust_threshold:.2f}_tmc{target_min_coverage:.2f}.fasta"
+    )
     targets_final_path = Path(baits_targets_dir_path, f"{baitset_final_name}_{targets_final_name}")
     targets_tsv_path = Path(f"{targets_final_path}".replace(".fasta", ".tsv"))
     fastas = fastas_auto + fastas_manual
@@ -1134,10 +1364,12 @@ def prepare_targets(
                     tqdm.write(msg)
                 log.log(msg, print_to_screen=False)
                 pbar.update()
-        log.log(bold(
-            f" \u2514\u2500\u2192 Successfully processed {len(fastas)} loci"
-            f" [{elapsed_time(time.time() - start)}]"
-        ))
+        log.log(
+            bold(
+                f" \u2514\u2500\u2192 Successfully processed {len(fastas)} loci"
+                f" [{elapsed_time(time.time() - start)}]"
+            )
+        )
     elif targets_concat_path.exists() and not file_is_empty(targets_concat_path):
         log.log(
             f"'{bold(targets_concat_path.name)}': output already exists,"
@@ -1148,24 +1380,28 @@ def prepare_targets(
     if overwrite or not targets_final_path.exists() or file_is_empty(targets_final_path):
         if targets_final_path.exists():
             targets_final_path.unlink()
-        log.log(bold(
-            f"Clustering reference target sequences at {target_clust_threshold*100:.2f}% identity:"
-        ))
+        log.log(
+            bold(
+                f"Clustering reference target sequences at {target_clust_threshold * 100:.2f}% identity:"
+            )
+        )
         clust_prefix = targets_final_path.stem
         clust_tmp_dir = Path(baits_targets_dir_path, "mmseqs_tmp")
-        message = mmseqs_cluster(mmseqs_path,
-                                 "easy-cluster",
-                                 baits_targets_dir_path,
-                                 targets_concat_path,
-                                 clust_prefix,
-                                 clust_tmp_dir,
-                                 7.5,
-                                 target_clust_threshold,
-                                 1,
-                                 target_min_coverage,
-                                 1,
-                                 2,
-                                 threads)
+        message = mmseqs_cluster(
+            mmseqs_path,
+            "easy-cluster",
+            baits_targets_dir_path,
+            targets_concat_path,
+            clust_prefix,
+            clust_tmp_dir,
+            7.5,
+            target_clust_threshold,
+            1,
+            target_min_coverage,
+            1,
+            2,
+            threads,
+        )
         log.log(message)
         log.log("")
 
@@ -1218,15 +1454,16 @@ def prepare_targets(
             if locus in included:
                 loci_baits[locus]["included_in"] = ",".join(sorted(set(included[locus])))
             try:
-                loci_baits[locus]["exp_tiling"] = ((loci_baits[locus]["baits"] * bait_length)
-                                                / loci_baits[locus]["max_length"])
+                loci_baits[locus]["exp_tiling"] = (
+                    loci_baits[locus]["baits"] * bait_length
+                ) / loci_baits[locus]["max_length"]
             except ZeroDivisionError:
                 loci_baits[locus]["exp_tiling"] = 0
             if remove_ambiguous_loci:
                 if loci_baits[locus]["includes"] or loci_baits[locus]["included_in"]:
                     loci_baits[locus]["removed"].append("ambiguous")
             if loci_baits[locus]["exp_tiling"] < min_expected_tiling:
-                loci_baits[locus]["removed"].append(f'tiling={loci_baits[locus]["exp_tiling"]:.2f}')
+                loci_baits[locus]["removed"].append(f"tiling={loci_baits[locus]['exp_tiling']:.2f}")
             loci_baits[locus]["removed"] = ",".join(loci_baits[locus]["removed"])
             if not loci_baits[locus]["removed"]:
                 footprint += loci_baits[locus]["max_length"]
@@ -1234,9 +1471,10 @@ def prepare_targets(
         targets_out = {}
         for target_name in centroids:
             locus = target_name.split(settings.REF_CLUSTER_SEP)[-1]
-            if (len(centroids[target_name]["sequence"])
-                / loci_baits[locus]["max_length"]
-                >= target_min_coverage):
+            if (
+                len(centroids[target_name]["sequence"]) / loci_baits[locus]["max_length"]
+                >= target_min_coverage
+            ):
                 loci_baits[locus]["targets"] += 1
                 if locus in targets_out:
                     targets_out[locus][target_name] = centroids[target_name]
@@ -1250,14 +1488,18 @@ def prepare_targets(
                     loci_baits[locus]["targets"] = len(targets_out[locus])
                     targets_passed += loci_baits[locus]["targets"]
                     dict_to_fasta(targets_out[locus], targets_final_path, sort=True, append=True)
-            log.log(bold(
-                f" \u2514\u2500\u2192 '{bold(targets_final_path.name)}': {targets_passed}"
-                f" reference target sequences representing {loci_passed} loci"
-                f" saved [{elapsed_time(time.time() - start)}]"
-            ))
+            log.log(
+                bold(
+                    f" \u2514\u2500\u2192 '{bold(targets_final_path.name)}': {targets_passed}"
+                    f" reference target sequences representing {loci_passed} loci"
+                    f" saved [{elapsed_time(time.time() - start)}]"
+                )
+            )
             log.log("")
         else:
-            quit_with_error("Reference target file empty, try to relax your filtering parameters...")
+            quit_with_error(
+                "Reference target file empty, try to relax your filtering parameters..."
+            )
 
         log.log(bold("Saving final baitset for synthesis:"))
         start = time.time()
@@ -1281,32 +1523,31 @@ def prepare_targets(
         log.log(bold("Saving reference target file statistics:"))
         start = time.time()
         with open(targets_tsv_path, "wt") as tsv_out:
-            tsv_out.write("locus\t"
-                          "num_targets\t"
-                          "num_baits\t"
-                          "length\t"
-                          "includes\t"
-                          "included_in\t"
-                          "exp_tiling\t"
-                          "removed\n")
+            tsv_out.write(
+                "locus\t"
+                "num_targets\t"
+                "num_baits\t"
+                "length\t"
+                "includes\t"
+                "included_in\t"
+                "exp_tiling\t"
+                "removed\n"
+            )
             for locus in sorted(loci_baitless):
-                tsv_out.write(f'{locus}\t'
-                              '0\t'
-                              '0\t'
-                              f'{loci_baitless[locus]["max_length"]}\t'
-                              '""\t'
-                              '""\t'
-                              '0\t'
-                              'no baits\n')
+                tsv_out.write(
+                    f'{locus}\t0\t0\t{loci_baitless[locus]["max_length"]}\t""\t""\t0\tno baits\n'
+                )
             for locus in sorted(loci_baits):
-                tsv_out.write(f'{locus}\t'
-                              f'{loci_baits[locus]["targets"]}\t'
-                              f'{loci_baits[locus]["baits"]}\t'
-                              f'{loci_baits[locus]["max_length"]}\t'
-                              f'{loci_baits[locus]["includes"]}\t'
-                              f'{loci_baits[locus]["included_in"]}\t'
-                              f'{loci_baits[locus]["exp_tiling"]:.2f}\t'
-                              f'{loci_baits[locus]["removed"]}\n')
+                tsv_out.write(
+                    f"{locus}\t"
+                    f"{loci_baits[locus]['targets']}\t"
+                    f"{loci_baits[locus]['baits']}\t"
+                    f"{loci_baits[locus]['max_length']}\t"
+                    f"{loci_baits[locus]['includes']}\t"
+                    f"{loci_baits[locus]['included_in']}\t"
+                    f"{loci_baits[locus]['exp_tiling']:.2f}\t"
+                    f"{loci_baits[locus]['removed']}\n"
+                )
         if targets_tsv_path.exists() and not file_is_empty(targets_tsv_path):
             log.log(
                 f"{bold(targets_tsv_path.name)}: loci stats table"
@@ -1324,11 +1565,11 @@ def prepare_targets(
         log.log("")
 
     log.log("")
-    log.log(bold(f'{"FINAL BAITSET FEATURES":>{margin}}:'))
-    log.log(f'{"Total loci":>{margin}}: {bold(loci_passed)}')
-    log.log(f'{"Total reference targets":>{margin}}: {bold(targets_passed)}')
-    log.log(f'{"Total baits":>{margin}}: {bold(baits_passed)}')
-    log.log(f'{"Max. capture footprint":>{margin}}: {bold(footprint)}')
+    log.log(bold(f"{'FINAL BAITSET FEATURES':>{margin}}:"))
+    log.log(f"{'Total loci':>{margin}}: {bold(loci_passed)}")
+    log.log(f"{'Total reference targets':>{margin}}: {bold(targets_passed)}")
+    log.log(f"{'Total baits':>{margin}}: {bold(baits_passed)}")
+    log.log(f"{'Max. capture footprint':>{margin}}: {bold(footprint)}")
     log.log("")
 
     if targets_concat_path.exists():

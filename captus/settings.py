@@ -39,6 +39,9 @@ GFF_VALID_EXTENSIONS = [".gff", ".gff3", ".gtf", ".gff.gz", ".gff3.gz", ".gtf.gz
 # Fraction of total RAM available to Captus when using 'auto' in --ram
 RAM_FRACTION = 0.99
 
+# Fraction of total RAM available to Captus when running Java applications
+RAM_FRACTION_JAVA = 0.70
+
 # Path to this file:
 SETTINGS_ASSEMBLY_PATH = Path(__file__).resolve()
 
@@ -142,7 +145,7 @@ MAX_DELTA_AT_GC = 10
 DELTA_MEAN_READ_LENGTH_TO_MAX_KMER_SIZE = 31
 
 # Minimum RAM in bytes for a MEGAHIT assembly
-MEGAHIT_MIN_RAM_B = 4 * 1024 ** 3
+MEGAHIT_MIN_RAM_B = 4 * 1024**3
 
 # Presets for MEGAHIT assemblies of RNAseq and WGS
 MEGAHIT_PRESETS = {
@@ -150,21 +153,21 @@ MEGAHIT_PRESETS = {
         "k_list": "31,39,47,63,79,95,111,127,143,159,175",
         "min_count": 2,
         "prune_level": 2,
-        "min_ram_B": 4 * 1024 ** 3, # 4GB
+        "min_ram_B": 4 * 1024**3,  # 4GB
         "extra_options": None,
     },
     "RNA": {
         "k_list": "27,47,67,87,107,127,147,167",
         "min_count": 2,
         "prune_level": 2,
-        "min_ram_B": 8 * 1024 ** 3, # 8GB
+        "min_ram_B": 8 * 1024**3,  # 8GB
         "extra_options": None,
     },
     "WGS": {
         "k_list": "31,39,49,69,89,109,129,149,169",
         "min_count": 3,
         "prune_level": 2,
-        "min_ram_B": 8 * 1024 ** 3, # 8GB
+        "min_ram_B": 8 * 1024**3,  # 8GB
         "extra_options": "--no-mercy",
     },
 }
@@ -184,7 +187,7 @@ SALMON_INDEX_DIR = "00_salmon_index"
 SALMON_QUANT_DIR = "01_salmon_quant"
 
 # Minimum RAM reserved a BLAT/Scipio instances in bytes (2GB)
-EXTRACTION_MIN_RAM_B = 2 * 1024 ** 3
+EXTRACTION_MIN_RAM_B = 2 * 1024**3
 
 # Hidden option: Switch to True to fill protein gaps with X
 FILL_GAP_WITH_X = False
@@ -268,7 +271,7 @@ PROT_REF_TARGETS = {
             "NT": Path(DATA_DIR, "SeedPlantsMIT.FNA"),
             "transtable": 1,
         },
-    }
+    },
 }
 
 # Bundled miscellaneous DNA references
@@ -305,31 +308,31 @@ REF_SPLIT_CHUNK_SIZE = 1000
 
 # Extraction directories per marker type
 MARKER_DIRS = {
-    "NUC": "01_coding_NUC",         # Nuclear protein markers
-    "PTD": "02_coding_PTD",         # Plastidial protein markers
-    "MIT": "03_coding_MIT",         # Mitochondrial protein markers
-    "DNA": "04_misc_DNA",           # Miscellaneous DNA markers
-    "CLR": "05_clusters",           # Cluster-derived DNA markers
+    "NUC": "01_coding_NUC",  # Nuclear protein markers
+    "PTD": "02_coding_PTD",  # Plastidial protein markers
+    "MIT": "03_coding_MIT",  # Mitochondrial protein markers
+    "DNA": "04_misc_DNA",  # Miscellaneous DNA markers
+    "CLR": "05_clusters",  # Cluster-derived DNA markers
 }
 
 # Filename suffixes for the different extraction FASTA formats
 FORMAT_SUFFIXES = {
-    "AA": "_coding_AA.faa",         # coding sequences in aminoacids
-    "NT": "_coding_NT.fna",         # coding sequences in nucleotides
-    "GE": "_genes.fna",             # complete gene sequences in nucleotides
-    "GF": "_genes_flanked.fna",     # complete gene sequences with additional flanking bp
-    "MA": "_matches.fna",           # matching DNA sequences from miscellaneous DNA extraction
-    "MF": "_matches_flanked.fna",   # matching DNA sequences with additional flanking bp
+    "AA": "_coding_AA.faa",  # coding sequences in aminoacids
+    "NT": "_coding_NT.fna",  # coding sequences in nucleotides
+    "GE": "_genes.fna",  # complete gene sequences in nucleotides
+    "GF": "_genes_flanked.fna",  # complete gene sequences with additional flanking bp
+    "MA": "_matches.fna",  # matching DNA sequences from miscellaneous DNA extraction
+    "MF": "_matches_flanked.fna",  # matching DNA sequences with additional flanking bp
 }
 
 # Directory names for the different extraction FASTA formats
 FORMAT_DIRS = {
-    "AA": "01_AA",                  # coding sequences in aminoacids
-    "NT": "02_NT",                  # coding sequences in nucleotides
-    "GE": "03_genes",               # complete gene sequences in nucleotides
-    "GF": "04_genes_flanked",       # complete gene sequences with additional flanking bp
-    "MA": "01_matches",             # matching DNA sequences from miscellaneous DNA extraction
-    "MF": "02_matches_flanked",     # matching DNA sequences with additional flanking bp
+    "AA": "01_AA",  # coding sequences in aminoacids
+    "NT": "02_NT",  # coding sequences in nucleotides
+    "GE": "03_genes",  # complete gene sequences in nucleotides
+    "GF": "04_genes_flanked",  # complete gene sequences with additional flanking bp
+    "MA": "01_matches",  # matching DNA sequences from miscellaneous DNA extraction
+    "MF": "02_matches_flanked",  # matching DNA sequences with additional flanking bp
 }
 
 # Translated protein reference suffix
@@ -339,8 +342,8 @@ TRANSLATED_REF_SUFFIX = ".captus.faa"
 JSON_REFS = "captus-extract_refs.json"
 
 # Valid combinations of marker directories and format directories
-VALID_MARKER_FORMAT_COMBO =  [(m, f) for m in ["NUC","PTD","MIT"] for f in ["AA","NT","GE","GF"]]
-VALID_MARKER_FORMAT_COMBO += [(m, f) for m in ["DNA","CLR"] for f in ["MA","MF"]]
+VALID_MARKER_FORMAT_COMBO = [(m, f) for m in ["NUC", "PTD", "MIT"] for f in ["AA", "NT", "GE", "GF"]]
+VALID_MARKER_FORMAT_COMBO += [(m, f) for m in ["DNA", "CLR"] for f in ["MA", "MF"]]
 
 # Scipio's initial round will run with 'min_score' multiplied by this factor
 # Empirically, we observed that a score of 0.14 in the first round gave good results, so it is no
@@ -364,9 +367,9 @@ SCIPIO_BLAT_IDENT_FACTOR = 0.9
 
 # Default Genetic Codes to set Scipio's --transtable
 DEFAULT_GENETIC_CODES = {
-    "NUC": {"id":  1, "name": "Standard"},
+    "NUC": {"id": 1, "name": "Standard"},
     "PTD": {"id": 11, "name": "Bacterial, Archaeal and Plant Plastid"},
-    "MIT": {"id":  1, "name": "Standard"}
+    "MIT": {"id": 1, "name": "Standard"},
 }
 
 # Divergent genetic codes that will need a lower 'SCIPIO_BLAT_IDENTITY_FACTOR' for BLAT to find hits
@@ -417,7 +420,7 @@ SCIPIO_GENOME_EXTRA_SETTINGS = {
         "--exhaust_align_size=1300",
         "--max_assemble_size=9000",
         "--min_intron_len=500",
-        "--gap_to_close=84", # Don't set >90, genes found in 1st round and lost in 2nd
+        "--gap_to_close=84",  # Don't set >90, genes found in 1st round and lost in 2nd
     ],
     # Change here the final settings for mitochondrial genes:
     "MIT": [
@@ -426,7 +429,7 @@ SCIPIO_GENOME_EXTRA_SETTINGS = {
         "--blat_tilesize=6",
         "--exhaust_align_size=9000",
         "--max_assemble_size=50000",
-        "--gap_to_close=84", # Don't set >90, genes found in 1st round and lost in 2nd
+        "--gap_to_close=84",  # Don't set >90, genes found in 1st round and lost in 2nd
     ],
 }
 
@@ -523,12 +526,31 @@ CLR_REP_MIN_SAMPLE_PROP = 0.01
 
 # Extraction statistics table header
 EXT_STATS_HEADER = [
-    "sample_name", "marker_type", "locus",
-    "ref_name", "ref_coords", "ref_type", "ref_len_matched",
-    "hit", "pct_recovered", "pct_identity", "score", "wscore",
-    "hit_len", "cds_len", "intron_len", "flanks_len", "frameshifts",
-    "hit_contigs", "hit_l50", "hit_l90", "hit_lg50", "hit_lg90",
-    "ctg_names", "ctg_strands", "ctg_coords",
+    "sample_name",
+    "marker_type",
+    "locus",
+    "ref_name",
+    "ref_coords",
+    "ref_type",
+    "ref_len_matched",
+    "hit",
+    "pct_recovered",
+    "pct_identity",
+    "score",
+    "wscore",
+    "hit_len",
+    "cds_len",
+    "intron_len",
+    "flanks_len",
+    "frameshifts",
+    "hit_contigs",
+    "hit_l50",
+    "hit_l90",
+    "hit_lg50",
+    "hit_lg90",
+    "ctg_names",
+    "ctg_strands",
+    "ctg_coords",
 ]
 
 # GFF feature colors, Okabe & Ito palette
@@ -555,38 +577,14 @@ ALN_DIRS = {
 
 # MAFFT/MUSCLE algorithms choices to real MAFFT/MUSCLE syntax translation
 ALIGN_ALGORITHMS = {
-    "mafft_auto": {
-        "arg": "--auto",
-        "aka": "(a.k.a. MAFFT's Automatic)"
-    },
-    "mafft_genafpair": {
-        "arg": "--genafpair",
-        "aka": "(a.k.a. MAFFT's E-INS-i)"
-    },
-    "mafft_localpair": {
-        "arg": "--localpair",
-        "aka": "(a.k.a. MAFFT's L-INS-i)"
-    },
-    "mafft_globalpair": {
-        "arg": "--globalpair",
-        "aka": "(a.k.a. MAFFT's G-INS-i)"
-    },
-    "mafft_retree1": {
-        "arg": "--retree 1",
-        "aka": "(a.k.a. MAFFT's FFT-NS-1)"
-    },
-    "mafft_retree2": {
-        "arg": "--retree 2",
-        "aka": "(a.k.a. MAFFT's FFT-NS-2)"
-    },
-    "muscle_align": {
-        "arg": "-align",
-        "aka": "(a.k.a. MUSCLE 5's PPP)"
-    },
-    "muscle_super5": {
-        "arg": "-super5",
-        "aka": "(a.k.a. MUSCLE 5's Super5)"
-    },
+    "mafft_auto": {"arg": "--auto", "aka": "(a.k.a. MAFFT's Automatic)"},
+    "mafft_genafpair": {"arg": "--genafpair", "aka": "(a.k.a. MAFFT's E-INS-i)"},
+    "mafft_localpair": {"arg": "--localpair", "aka": "(a.k.a. MAFFT's L-INS-i)"},
+    "mafft_globalpair": {"arg": "--globalpair", "aka": "(a.k.a. MAFFT's G-INS-i)"},
+    "mafft_retree1": {"arg": "--retree 1", "aka": "(a.k.a. MAFFT's FFT-NS-1)"},
+    "mafft_retree2": {"arg": "--retree 2", "aka": "(a.k.a. MAFFT's FFT-NS-2)"},
+    "muscle_align": {"arg": "-align", "aka": "(a.k.a. MUSCLE 5's PPP)"},
+    "muscle_super5": {"arg": "-super5", "aka": "(a.k.a. MUSCLE 5's Super5)"},
 }
 
 # Default MAFFT algorithm for Captus Design, use keys from ALIGN_ALGORITHMS (above)
@@ -602,27 +600,27 @@ ASTRAL_PRO_EQ = "captus-align_astral-pro.tsv"
 
 # Import data for clustering file names
 DES_SUFFIXES = {
-    "CDS":     "_markers.fasta",          # Full CDS, concatenated exons
-    "LONG":    "_exons_long.fasta",       # Individual exons >= bait_length
-    "SHORT":   "_exons_short.fasta",      # Individual exons < bait_length
-    "DATA":    "_exons_data.tsv",         # Exon and intron data, tab-separated values table
-    "MARKERS": "_markers.fasta",          # Any sequences, when no GFF is found
-    "FILTER":  "_markers_filtered.fasta", # Sequences filtered according to '--min_seq_len'
+    "CDS": "_markers.fasta",  # Full CDS, concatenated exons
+    "LONG": "_exons_long.fasta",  # Individual exons >= bait_length
+    "SHORT": "_exons_short.fasta",  # Individual exons < bait_length
+    "DATA": "_exons_data.tsv",  # Exon and intron data, tab-separated values table
+    "MARKERS": "_markers.fasta",  # Any sequences, when no GFF is found
+    "FILTER": "_markers_filtered.fasta",  # Sequences filtered according to '--min_seq_len'
     "DEDUPED": "_markers_deduped.fasta",  # Deduplicated sequences, ready for clustering
 }
 
 # Design output folders
 DES_DIRS = {
-    "CAT": "01_concatenated",      # inside 01_clustered_markers
-    "CLR": "02_clustered",         # inside 01_clustered_markers
-    "ALN": "03_aligned",           # inside 01_clustered_markers
-    "CUR": "04_curated",           # inside 01_clustered_markers
-    "AUT": "01_automatic",         # inside 02_selected_markers
-    "MAN": "02_manual",            # inside 02_selected_markers
-    "RAW": "01_raw",               # inside 03_baits
-    "FIL": "02_filtered",          # inside 03_baits
-    "BAI": "03_clustered",         # inside 03_baits
-    "TAR": "04_baits_and_targets", # inside 03_baits
+    "CAT": "01_concatenated",  # inside 01_clustered_markers
+    "CLR": "02_clustered",  # inside 01_clustered_markers
+    "ALN": "03_aligned",  # inside 01_clustered_markers
+    "CUR": "04_curated",  # inside 01_clustered_markers
+    "AUT": "01_automatic",  # inside 02_selected_markers
+    "MAN": "02_manual",  # inside 02_selected_markers
+    "RAW": "01_raw",  # inside 03_baits
+    "FIL": "02_filtered",  # inside 03_baits
+    "BAI": "03_clustered",  # inside 03_baits
+    "TAR": "04_baits_and_targets",  # inside 03_baits
 }
 
 # Design output files

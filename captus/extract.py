@@ -25,22 +25,55 @@ from pathlib import Path
 from tqdm import tqdm
 
 from . import log, settings
-from .bioformats import (blat_misc_dna_psl_to_dict, dict_to_fasta, fasta_headers_to_spades,
-                         fasta_to_dict, fasta_type, fix_premature_stops, import_busco_odb10,
-                         mmseqs_cluster, rehead_root_msa, scipio_yaml_to_dict,
-                         split_mmseqs_clusters_file, translate_fasta_dict, write_gff3)
-from .misc import (bioperl_get_version, blat_path_version, bold, bold_green, bold_yellow,
-                   compress_list_files, dim, dir_is_empty, elapsed_time, file_is_empty,
-                   format_dep_msg, has_valid_ext, mafft_path_version, make_output_dir,
-                   make_tmp_dir_within, mmseqs_path_version, python_library_check, quit_with_error,
-                   red, remove_formatting, scipio_path_version, set_ram, set_threads,
-                   successful_exit, tqdm_parallel_async_run, tqdm_parallel_nested_run,
-                   tqdm_serial_run, yaml_perl_get_version)
+from .bioformats import (
+    blat_misc_dna_psl_to_dict,
+    dict_to_fasta,
+    fasta_headers_to_spades,
+    fasta_to_dict,
+    fasta_type,
+    fix_premature_stops,
+    import_busco_odb10,
+    mmseqs_cluster,
+    rehead_root_msa,
+    scipio_yaml_to_dict,
+    split_mmseqs_clusters_file,
+    translate_fasta_dict,
+    write_gff3,
+)
+from .misc import (
+    bioperl_get_version,
+    blat_path_version,
+    bold,
+    bold_green,
+    bold_yellow,
+    compress_list_files,
+    dim,
+    dir_is_empty,
+    elapsed_time,
+    file_is_empty,
+    format_dep_msg,
+    has_valid_ext,
+    mafft_path_version,
+    make_output_dir,
+    make_tmp_dir_within,
+    mmseqs_path_version,
+    python_library_check,
+    quit_with_error,
+    red,
+    remove_formatting,
+    scipio_path_version,
+    set_ram,
+    set_threads,
+    successful_exit,
+    tqdm_parallel_async_run,
+    tqdm_parallel_nested_run,
+    tqdm_serial_run,
+    yaml_perl_get_version,
+)
 from .version import __version__
 
 
 def extract(full_command, args):
-
     captus_start = time.time()
     out_dir, out_dir_msg = make_output_dir(args.out)
     log.logger = log.Log(Path(args.out, "captus-extract.log"), stdout_verbosity_level=1)
@@ -55,30 +88,33 @@ def extract(full_command, args):
         " provided through '--nuc_refs', '--ptd_refs', and/or '--mit_refs'. Captus includes some"
         " reference protein sets to work with Plants like the 'Angiosperms353' protein set for"
         " nuclear genes, and two organellar protein reference sets 'SeedPlantsPTD' for plastids,"
-        " and 'SeedPlantsMIT' for mitochondria.", extra_empty_lines_after=0
+        " and 'SeedPlantsMIT' for mitochondria.",
+        extra_empty_lines_after=0,
     )
     log.log_explanation(
         "If you have references that are not proteins (e.g. non-coding regions, gene sequences"
         " including introns, full mRNAs, etc.) You can provide these miscellaneous DNA references"
         " with '--dna_refs' and Captus will use BLAT to find and extract matches in your assemblies.",
-        extra_empty_lines_after=0
+        extra_empty_lines_after=0,
     )
     log.log_explanation(
         "Finally, if you want to explore the usefulness of the contigs that were not hit by any"
         " protein or other DNA references after the Captus' extraction process, or simply if you do"
         " not have reference sets to test, you can try the option '--cluster_leftovers' to attempt"
         " sequence clustering across samples in order to discover homologous markers.",
-        extra_empty_lines_after=0
+        extra_empty_lines_after=0,
     )
     log.log_explanation("For more information, please see https://github.com/edgardomortiz/Captus")
 
-    log.log(f'{"Captus version":>{mar}}: {bold(f"v{__version__}")}')
-    log.log(f'{"Command":>{mar}}: {bold(full_command)}')
-    tsv_comment = f'#Captus v{__version__}\n#Command: {full_command}\n'
+    log.log(f"{'Captus version':>{mar}}: {bold(f'v{__version__}')}")
+    log.log(f"{'Command':>{mar}}: {bold(full_command)}")
+    tsv_comment = f"#Captus v{__version__}\n#Command: {full_command}\n"
     ram_B, ram_MB, ram_GB, ram_GB_total = set_ram(args.ram)
-    log.log(f'{"Max. RAM":>{mar}}: {bold(f"{ram_GB:.1f}GB")} {dim(f"(out of {ram_GB_total:.1f}GB)")}')
+    log.log(
+        f"{'Max. RAM':>{mar}}: {bold(f'{ram_GB:.1f}GB')} {dim(f'(out of {ram_GB_total:.1f}GB)')}"
+    )
     threads_max, threads_total = set_threads(args.threads)
-    log.log(f'{"Max. Threads":>{mar}}: {bold(threads_max)} {dim(f"(out of {threads_total})")}')
+    log.log(f"{'Max. Threads':>{mar}}: {bold(threads_max)} {dim(f'(out of {threads_total})')}")
     log.log("")
 
     # Set up software usage and actions based on given arguments
@@ -103,36 +139,37 @@ def extract(full_command, args):
         mmseqs_version, mmseqs_status = "", "not used"
         mafft_version, mafft_status = "", "not used"
 
-    log.log(f'{"Dependencies":>{mar}}:')
-    log.log(format_dep_msg(f'{"Scipio   ":>{mar}}: ', scipio_version, scipio_status))
-    branch_bioperl = "\u251C\u2500BioPerl"
-    log.log(format_dep_msg(f'{branch_bioperl:>{mar}}: ', bioperl_version, bioperl_status))
+    log.log(f"{'Dependencies':>{mar}}:")
+    log.log(format_dep_msg(f"{'Scipio   ':>{mar}}: ", scipio_version, scipio_status))
+    branch_bioperl = "\u251c\u2500BioPerl"
+    log.log(format_dep_msg(f"{branch_bioperl:>{mar}}: ", bioperl_version, bioperl_status))
     branch_yaml = "\u2514\u2500YAML   "
-    log.log(format_dep_msg(f'{branch_yaml:>{mar}}: ', yaml_version, yaml_status))
-    log.log(format_dep_msg(f'{"BLAT     ":>{mar}}: ', blat_version, blat_status))
-    log.log(format_dep_msg(f'{"MMseqs2  ":>{mar}}: ', mmseqs_version, mmseqs_status))
-    log.log(format_dep_msg(f'{"MAFFT    ":>{mar}}: ', mafft_version, mafft_status))
+    log.log(format_dep_msg(f"{branch_yaml:>{mar}}: ", yaml_version, yaml_status))
+    log.log(format_dep_msg(f"{'BLAT     ':>{mar}}: ", blat_version, blat_status))
+    log.log(format_dep_msg(f"{'MMseqs2  ':>{mar}}: ", mmseqs_version, mmseqs_status))
+    log.log(format_dep_msg(f"{'MAFFT    ':>{mar}}: ", mafft_version, mafft_status))
     log.log("")
 
-    log.log(f'{"Python libraries":>{mar}}:')
+    log.log(f"{'Python libraries':>{mar}}:")
     numpy_found, numpy_version, numpy_status = python_library_check("numpy")
     pandas_found, pandas_version, pandas_status = python_library_check("pandas")
     plotly_found, plotly_version, plotly_status = python_library_check("plotly")
-    log.log(format_dep_msg(f'{"numpy":>{mar}}: ', numpy_version, numpy_status))
-    log.log(format_dep_msg(f'{"pandas":>{mar}}: ', pandas_version, pandas_status))
-    log.log(format_dep_msg(f'{"plotly":>{mar}}: ', plotly_version, plotly_status))
+    log.log(format_dep_msg(f"{'numpy':>{mar}}: ", numpy_version, numpy_status))
+    log.log(format_dep_msg(f"{'pandas':>{mar}}: ", pandas_version, pandas_status))
+    log.log(format_dep_msg(f"{'plotly':>{mar}}: ", plotly_version, plotly_status))
     log.log("")
 
     captus_assemblies_dir, _ = make_output_dir(args.captus_assemblies_dir)
     _, asms_dir_status_msg = status_captus_assemblies_dir(captus_assemblies_dir, args.fastas, mar)
-    log.log(f'{"Captus assemblies dir":>{mar}}: {bold(captus_assemblies_dir)}')
+    log.log(f"{'Captus assemblies dir':>{mar}}: {bold(captus_assemblies_dir)}")
     log.log(asms_dir_status_msg)
     log.log("")
 
     # Last dependency verification before modifying Captus' assembly directory
-    if any(dep_status == "not found" for dep_status in [
-        scipio_status, bioperl_status, yaml_status, blat_status
-    ]):
+    if any(
+        dep_status == "not found"
+        for dep_status in [scipio_status, bioperl_status, yaml_status, blat_status]
+    ):
         skip_extraction = True
         if skip_clustering:
             quit_with_error(
@@ -181,24 +218,24 @@ def extract(full_command, args):
             " assemblies to contain the imported file"
         )
         asms_before_import = len(fastas_to_extract)
-        find_and_copy_fastas(args.fastas, captus_assemblies_dir, args.overwrite,
-                             threads_max, args.show_less)
+        find_and_copy_fastas(
+            args.fastas, captus_assemblies_dir, args.overwrite, threads_max, args.show_less
+        )
         fastas_to_extract, skipped_extract = find_fasta_assemblies(captus_assemblies_dir, out_dir)
         log.log("")
         asms_imported = len(fastas_to_extract) - asms_before_import
-        log.log(f'{"Assemblies imported":>{mar}}: {bold(asms_imported)}')
-    log.log(f'{"Total assemblies found":>{mar}}: {bold(len(fastas_to_extract))}')
+        log.log(f"{'Assemblies imported':>{mar}}: {bold(asms_imported)}")
+    log.log(f"{'Total assemblies found':>{mar}}: {bold(len(fastas_to_extract))}")
     log.log("")
-    log.log(f'{"Output directory":>{mar}}: {bold(out_dir)}')
-    log.log(f'{"":>{mar}}  {dim(out_dir_msg)}')
+    log.log(f"{'Output directory':>{mar}}: {bold(out_dir)}")
+    log.log(f"{'':>{mar}}  {dim(out_dir_msg)}")
     log.log("")
 
     if skipped_extract:
-        log.log(f'{bold("WARNING:")} {len(skipped_extract)} sample(s) will be skipped')
+        log.log(f"{bold('WARNING:')} {len(skipped_extract)} sample(s) will be skipped")
         for msg in skipped_extract:
             log.log(msg)
         log.log("")
-
 
     ################################################################################################
     ############################################################################# EXTRACTION SECTION
@@ -207,18 +244,21 @@ def extract(full_command, args):
         "Now Captus will search within your FASTA assemblies for the set of reference proteins"
         " provided by '--nuc_refs', '--ptd_refs', and/or '--mit_refs' and extract the sequences both"
         " in nucleotide and translated to aminoacid using the specified '--nuc_transtable',"
-        " '--ptd_transtable' and '--mit_transtable' respectively.", extra_empty_lines_after=0
+        " '--ptd_transtable' and '--mit_transtable' respectively.",
+        extra_empty_lines_after=0,
     )
     log.log_explanation(
         "Additionally, miscellaneous DNA references provided with '--dna_refs' will also be"
         " extracted."
     )
     if skip_extraction:
-        log.log(red(
-            "Skipping extraction step... (to enable provide any/all of these options: '--nuc_refs',"
-            " '--ptd_refs', '--mit_refs', '--dna_refs', and verify that all the software"
-            " dependencies are correctly installed)"
-        ))
+        log.log(
+            red(
+                "Skipping extraction step... (to enable provide any/all of these options: '--nuc_refs',"
+                " '--ptd_refs', '--mit_refs', '--dna_refs', and verify that all the software"
+                " dependencies are correctly installed)"
+            )
+        )
         log.log("")
     else:
         if not fastas_to_extract:
@@ -231,35 +271,45 @@ def extract(full_command, args):
         if args.nuc_refs:
             num_refs += 1
             if args.nuc_refs.lower() in settings.PROT_REF_TARGETS["NUC"]:
-                args.nuc_transtable = settings.PROT_REF_TARGETS["NUC"][args.nuc_refs.lower()]["transtable"]
+                args.nuc_transtable = settings.PROT_REF_TARGETS["NUC"][args.nuc_refs.lower()][
+                    "transtable"
+                ]
         if args.ptd_refs:
             num_refs += 1
             if args.ptd_refs.lower() in settings.PROT_REF_TARGETS["PTD"]:
-                args.ptd_transtable = settings.PROT_REF_TARGETS["PTD"][args.ptd_refs.lower()]["transtable"]
+                args.ptd_transtable = settings.PROT_REF_TARGETS["PTD"][args.ptd_refs.lower()][
+                    "transtable"
+                ]
         if args.mit_refs:
             num_refs += 1
             if args.mit_refs.lower() in settings.PROT_REF_TARGETS["MIT"]:
-                args.mit_transtable = settings.PROT_REF_TARGETS["MIT"][args.mit_refs.lower()]["transtable"]
+                args.mit_transtable = settings.PROT_REF_TARGETS["MIT"][args.mit_refs.lower()][
+                    "transtable"
+                ]
         num_prot_extractions = len(fastas_to_extract) * num_refs
 
-        protein_refs = prepare_protein_refs(args.nuc_refs,
-                                            args.ptd_refs,
-                                            args.mit_refs,
-                                            args.nuc_transtable,
-                                            args.ptd_transtable,
-                                            args.mit_transtable,
-                                            out_dir)
+        protein_refs = prepare_protein_refs(
+            args.nuc_refs,
+            args.ptd_refs,
+            args.mit_refs,
+            args.nuc_transtable,
+            args.ptd_transtable,
+            args.mit_transtable,
+            out_dir,
+        )
 
         log.log("")
-        if any([protein_refs["NUC"]["AA_path"],
+        if any(
+            [
+                protein_refs["NUC"]["AA_path"],
                 protein_refs["PTD"]["AA_path"],
-                protein_refs["MIT"]["AA_path"]]):
-            log.log(bold(f'{"PROTEIN OPTIONS":>{mar}}:'))
-            prot_concurrent, prot_threads, prot_ram = adjust_concurrency(args.concurrent,
-                                                                         num_prot_extractions,
-                                                                         threads_max,
-                                                                         ram_B,
-                                                                         "protein")
+                protein_refs["MIT"]["AA_path"],
+            ]
+        ):
+            log.log(bold(f"{'PROTEIN OPTIONS':>{mar}}:"))
+            prot_concurrent, prot_threads, prot_ram = adjust_concurrency(
+                args.concurrent, num_prot_extractions, threads_max, ram_B, "protein"
+            )
             if protein_refs["NUC"]["AA_path"]:
                 nuc_query = fasta_to_dict(protein_refs["NUC"]["AA_path"])
                 nuc_query_parts_paths = split_refs(nuc_query, out_dir, "NUC", prot_threads)
@@ -272,300 +322,352 @@ def extract(full_command, args):
                 mit_query = fasta_to_dict(protein_refs["MIT"]["AA_path"])
                 mit_query_parts_paths = split_refs(mit_query, out_dir, "MIT", prot_threads)
                 mit_query_info = reference_info(mit_query)
-            log.log(f'{"Max. loci for Scipio x2":>{mar}}: {bold(args.max_loci_scipio_x2)}')
-            log.log(f'{"Predict dubious introns":>{mar}}: {bold(args.predict)}')
-            log.log(f'{"Concurrent extractions":>{mar}}: {bold(prot_concurrent)}')
-            log.log(f'{"RAM per extraction":>{mar}}:'
-                    f' {bold(f"{prot_ram / 1024 ** 3:.1f}GB")}')
-            log.log(f'{"Threads per extraction":>{mar}}: {bold(prot_threads)}')
+            log.log(f"{'Max. loci for Scipio x2':>{mar}}: {bold(args.max_loci_scipio_x2)}")
+            log.log(f"{'Predict dubious introns':>{mar}}: {bold(args.predict)}")
+            log.log(f"{'Concurrent extractions':>{mar}}: {bold(prot_concurrent)}")
+            log.log(f"{'RAM per extraction':>{mar}}: {bold(f'{prot_ram / 1024**3:.1f}GB')}")
+            log.log(f"{'Threads per extraction':>{mar}}: {bold(prot_threads)}")
             log.log("")
-        log.log(bold(f'{"Nuclear proteins":>{mar}}:'))
-        log.log(f'{"reference":>{mar}}: {protein_refs["NUC"]["AA_msg"]}')
+        log.log(bold(f"{'Nuclear proteins':>{mar}}:"))
+        log.log(f"{'reference':>{mar}}: {protein_refs['NUC']['AA_msg']}")
         if protein_refs["NUC"]["AA_path"]:
-            log.log(f'{"reference info":>{mar}}: {nuc_query_info["info_msg"]}')
-            log.log(f'{"translation table":>{mar}}: {bold(args.nuc_transtable)}')
-            log.log(f'{"min_score":>{mar}}: {bold(args.nuc_min_score)}')
+            log.log(f"{'reference info':>{mar}}: {nuc_query_info['info_msg']}")
+            log.log(f"{'translation table':>{mar}}: {bold(args.nuc_transtable)}")
+            log.log(f"{'min_score':>{mar}}: {bold(args.nuc_min_score)}")
             nuc_min_identity = adjust_min_identity(args.nuc_min_identity, args.nuc_transtable)
-            log.log(f'{"min_identity":>{mar}}: {bold(nuc_min_identity)}')
+            log.log(f"{'min_identity':>{mar}}: {bold(nuc_min_identity)}")
             nuc_min_coverage = adjust_min_coverage(args.nuc_min_coverage)
-            log.log(f'{"min_coverage":>{mar}}: {bold(nuc_min_coverage)}')
+            log.log(f"{'min_coverage':>{mar}}: {bold(nuc_min_coverage)}")
             nuc_dt_msg = depth_tolerance_msg(args.nuc_depth_tolerance, "NUC")
-            log.log(f'{"depth_tolerance":>{mar}}: {nuc_dt_msg}')
+            log.log(f"{'depth_tolerance':>{mar}}: {nuc_dt_msg}")
         log.log("")
-        log.log(bold(f'{"Plastidial proteins":>{mar}}:'))
-        log.log(f'{"reference":>{mar}}: {protein_refs["PTD"]["AA_msg"]}')
+        log.log(bold(f"{'Plastidial proteins':>{mar}}:"))
+        log.log(f"{'reference':>{mar}}: {protein_refs['PTD']['AA_msg']}")
         if protein_refs["PTD"]["AA_path"]:
-            log.log(f'{"reference info":>{mar}}: {ptd_query_info["info_msg"]}')
-            log.log(f'{"translation table":>{mar}}: {bold(args.ptd_transtable)}')
-            log.log(f'{"min_score":>{mar}}: {bold(args.ptd_min_score)}')
+            log.log(f"{'reference info':>{mar}}: {ptd_query_info['info_msg']}")
+            log.log(f"{'translation table':>{mar}}: {bold(args.ptd_transtable)}")
+            log.log(f"{'min_score':>{mar}}: {bold(args.ptd_min_score)}")
             ptd_min_identity = adjust_min_identity(args.ptd_min_identity, args.ptd_transtable)
-            log.log(f'{"min_identity":>{mar}}: {bold(ptd_min_identity)}')
+            log.log(f"{'min_identity':>{mar}}: {bold(ptd_min_identity)}")
             ptd_min_coverage = adjust_min_coverage(args.ptd_min_coverage)
-            log.log(f'{"min_coverage":>{mar}}: {bold(ptd_min_coverage)}')
+            log.log(f"{'min_coverage':>{mar}}: {bold(ptd_min_coverage)}")
             ptd_dt_msg = depth_tolerance_msg(args.ptd_depth_tolerance, "PTD")
-            log.log(f'{"depth_tolerance":>{mar}}: {ptd_dt_msg}')
+            log.log(f"{'depth_tolerance':>{mar}}: {ptd_dt_msg}")
         log.log("")
-        log.log(bold(f'{"Mitochondrial proteins":>{mar}}:'))
-        log.log(f'{"reference":>{mar}}: {protein_refs["MIT"]["AA_msg"]}')
+        log.log(bold(f"{'Mitochondrial proteins':>{mar}}:"))
+        log.log(f"{'reference':>{mar}}: {protein_refs['MIT']['AA_msg']}")
         if protein_refs["MIT"]["AA_path"]:
-            log.log(f'{"reference info":>{mar}}: {mit_query_info["info_msg"]}')
-            log.log(f'{"translation table":>{mar}}: {bold(args.mit_transtable)}')
-            log.log(f'{"min_score":>{mar}}: {bold(args.mit_min_score)}')
+            log.log(f"{'reference info':>{mar}}: {mit_query_info['info_msg']}")
+            log.log(f"{'translation table':>{mar}}: {bold(args.mit_transtable)}")
+            log.log(f"{'min_score':>{mar}}: {bold(args.mit_min_score)}")
             mit_min_identity = adjust_min_identity(args.mit_min_identity, args.mit_transtable)
-            log.log(f'{"min_identity":>{mar}}: {bold(mit_min_identity)}')
+            log.log(f"{'min_identity':>{mar}}: {bold(mit_min_identity)}")
             mit_min_coverage = adjust_min_coverage(args.mit_min_coverage)
-            log.log(f'{"min_coverage":>{mar}}: {bold(mit_min_coverage)}')
+            log.log(f"{'min_coverage':>{mar}}: {bold(mit_min_coverage)}")
             mit_dt_msg = depth_tolerance_msg(args.mit_depth_tolerance, "MIT")
-            log.log(f'{"depth_tolerance":>{mar}}: {mit_dt_msg}')
+            log.log(f"{'depth_tolerance':>{mar}}: {mit_dt_msg}")
         log.log("")
         log.log("")
 
         dna_ref_size = 0
         dna_ref = prepare_dna_refs(args.dna_refs)
-        log.log(bold(f'{"MISCELLANEOUS DNA OPTIONS":>{mar}}:'))
+        log.log(bold(f"{'MISCELLANEOUS DNA OPTIONS':>{mar}}:"))
         if dna_ref["DNA"]["NT_path"]:
             dna_query = fasta_to_dict(dna_ref["DNA"]["NT_path"])
             dna_query_info = reference_info(dna_query)
             dna_ref_size = max(dna_ref_size, dna_query_info["total_size"])
             num_dna_extractions = len(fastas_to_extract)
-            dna_concurrent, dna_threads, dna_ram = adjust_concurrency(args.concurrent,
-                                                                      num_dna_extractions,
-                                                                      threads_max,
-                                                                      ram_B,
-                                                                      "dna")
-            log.log(f'{"Concurrent extractions":>{mar}}: {bold(dna_concurrent)}')
-            log.log(f'{"RAM per extraction":>{mar}}:'
-                    f' {bold(f"{dna_ram / 1024 ** 3:.1f}GB")}')
-            log.log(f'{"Threads per extraction":>{mar}}: {bold("1")}'
-                    f' {dim("(BLAT is single-threaded)")}')
+            dna_concurrent, dna_threads, dna_ram = adjust_concurrency(
+                args.concurrent, num_dna_extractions, threads_max, ram_B, "dna"
+            )
+            log.log(f"{'Concurrent extractions':>{mar}}: {bold(dna_concurrent)}")
+            log.log(f"{'RAM per extraction':>{mar}}: {bold(f'{dna_ram / 1024**3:.1f}GB')}")
+            log.log(
+                f"{'Threads per extraction':>{mar}}: {bold('1')} {dim('(BLAT is single-threaded)')}"
+            )
             log.log("")
-        log.log(f'{"reference":>{mar}}: {dna_ref["DNA"]["NT_msg"]}')
+        log.log(f"{'reference':>{mar}}: {dna_ref['DNA']['NT_msg']}")
         if dna_ref["DNA"]["NT_path"]:
-            log.log(f'{"reference info":>{mar}}: {dna_query_info["info_msg"]}')
-            log.log(f'{"min_identity":>{mar}}: {bold(args.dna_min_identity)}')
-            log.log(f'{"min_coverage":>{mar}}: {bold(args.dna_min_coverage)}')
+            log.log(f"{'reference info':>{mar}}: {dna_query_info['info_msg']}")
+            log.log(f"{'min_identity':>{mar}}: {bold(args.dna_min_identity)}")
+            log.log(f"{'min_coverage':>{mar}}: {bold(args.dna_min_coverage)}")
             dna_dt_msg = depth_tolerance_msg(args.dna_depth_tolerance, "DNA")
-            log.log(f'{"depth_tolerance":>{mar}}: {dna_dt_msg}')
+            log.log(f"{'depth_tolerance':>{mar}}: {dna_dt_msg}")
         log.log("")
         log.log("")
 
-        log.log(bold(f'{"OUTPUT OPTIONS":>{mar}}:'))
-        log.log(f'{"Ignore depth of coverage":>{mar}}: {bold(args.ignore_depth)}')
-        log.log(f'{"Disable contig stitching":>{mar}}: {bold(args.disable_stitching)}')
+        log.log(bold(f"{'OUTPUT OPTIONS':>{mar}}:"))
+        log.log(f"{'Ignore depth of coverage':>{mar}}: {bold(args.ignore_depth)}")
+        log.log(f"{'Disable contig stitching':>{mar}}: {bold(args.disable_stitching)}")
         max_paralogs_msg = dim("(Keep all paralogs)") if args.max_paralogs == -1 else ""
-        log.log(f'{"Max. paralogs":>{mar}}: {bold(args.max_paralogs)} {max_paralogs_msg}')
+        log.log(f"{'Max. paralogs':>{mar}}: {bold(args.max_paralogs)} {max_paralogs_msg}")
         loci_files_msg = ""
         if args.max_loci_files == 0:
             loci_files_msg = dim("(Do not write separate loci files per sample)")
-        log.log(f'{"Max. separate loci files":>{mar}}: {bold(args.max_loci_files)} {loci_files_msg}')
-        log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
-        log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
+        log.log(
+            f"{'Max. separate loci files':>{mar}}: {bold(args.max_loci_files)} {loci_files_msg}"
+        )
+        log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
+        log.log(f"{'Keep all files':>{mar}}: {bold(args.keep_all)}")
         log.log("")
-        log.log(f'{"Samples to process":>{mar}}: {bold(len(fastas_to_extract))}')
+        log.log(f"{'Samples to process':>{mar}}: {bold(len(fastas_to_extract))}")
 
-        extract_coding = bool(any([protein_refs["NUC"]["AA_path"],
-                                   protein_refs["PTD"]["AA_path"],
-                                   protein_refs["MIT"]["AA_path"]]))
+        extract_coding = bool(
+            any(
+                [
+                    protein_refs["NUC"]["AA_path"],
+                    protein_refs["PTD"]["AA_path"],
+                    protein_refs["MIT"]["AA_path"],
+                ]
+            )
+        )
 
         if extract_coding or bool(dna_ref["DNA"]["NT_path"]):
             scipio_params = []
             blat_params = []
             cleanup_params = []
-            for sample in sorted(fastas_to_extract,
-                                 key=lambda x: fastas_to_extract[x]["assembly_size"],
-                                 reverse=True):
+            for sample in sorted(
+                fastas_to_extract, key=lambda x: fastas_to_extract[x]["assembly_size"], reverse=True
+            ):
                 if protein_refs["NUC"]["AA_path"]:
-                    scipio_params.append((
-                        args.scipio_path,
-                        args.nuc_min_score,
-                        nuc_min_identity,
-                        args.nuc_min_coverage,
-                        args.blat_path,
-                        fastas_to_extract[sample]["assembly_path"],
-                        fastas_to_extract[sample]["sample_dir"],
-                        sample,
-                        protein_refs["NUC"]["AA_path"],
-                        nuc_query,
-                        nuc_query_parts_paths,
-                        nuc_query_info,
-                        "NUC",
-                        args.nuc_transtable,
-                        args.ignore_depth,
-                        args.nuc_depth_tolerance,
-                        args.disable_stitching,
-                        args.max_loci_files,
-                        args.max_loci_scipio_x2,
-                        args.max_paralogs,
-                        args.predict,
-                        prot_threads,
-                        tsv_comment,
-                        args.debug,
-                        args.overwrite,
-                        args.keep_all
-                    ))
+                    scipio_params.append(
+                        (
+                            args.scipio_path,
+                            args.nuc_min_score,
+                            nuc_min_identity,
+                            args.nuc_min_coverage,
+                            args.blat_path,
+                            fastas_to_extract[sample]["assembly_path"],
+                            fastas_to_extract[sample]["sample_dir"],
+                            sample,
+                            protein_refs["NUC"]["AA_path"],
+                            nuc_query,
+                            nuc_query_parts_paths,
+                            nuc_query_info,
+                            "NUC",
+                            args.nuc_transtable,
+                            args.ignore_depth,
+                            args.nuc_depth_tolerance,
+                            args.disable_stitching,
+                            args.max_loci_files,
+                            args.max_loci_scipio_x2,
+                            args.max_paralogs,
+                            args.predict,
+                            prot_threads,
+                            tsv_comment,
+                            args.debug,
+                            args.overwrite,
+                            args.keep_all,
+                        )
+                    )
                 if protein_refs["PTD"]["AA_path"]:
-                    scipio_params.append((
-                        args.scipio_path,
-                        args.ptd_min_score,
-                        ptd_min_identity,
-                        args.ptd_min_coverage,
-                        args.blat_path,
-                        fastas_to_extract[sample]["assembly_path"],
-                        fastas_to_extract[sample]["sample_dir"],
-                        sample,
-                        protein_refs["PTD"]["AA_path"],
-                        ptd_query,
-                        ptd_query_parts_paths,
-                        ptd_query_info,
-                        "PTD",
-                        args.ptd_transtable,
-                        args.ignore_depth,
-                        args.ptd_depth_tolerance,
-                        args.disable_stitching,
-                        args.max_loci_files,
-                        args.max_loci_scipio_x2,
-                        args.max_paralogs,
-                        args.predict,
-                        prot_threads,
-                        tsv_comment,
-                        args.debug,
-                        args.overwrite,
-                        args.keep_all,
-                    ))
+                    scipio_params.append(
+                        (
+                            args.scipio_path,
+                            args.ptd_min_score,
+                            ptd_min_identity,
+                            args.ptd_min_coverage,
+                            args.blat_path,
+                            fastas_to_extract[sample]["assembly_path"],
+                            fastas_to_extract[sample]["sample_dir"],
+                            sample,
+                            protein_refs["PTD"]["AA_path"],
+                            ptd_query,
+                            ptd_query_parts_paths,
+                            ptd_query_info,
+                            "PTD",
+                            args.ptd_transtable,
+                            args.ignore_depth,
+                            args.ptd_depth_tolerance,
+                            args.disable_stitching,
+                            args.max_loci_files,
+                            args.max_loci_scipio_x2,
+                            args.max_paralogs,
+                            args.predict,
+                            prot_threads,
+                            tsv_comment,
+                            args.debug,
+                            args.overwrite,
+                            args.keep_all,
+                        )
+                    )
                 if protein_refs["MIT"]["AA_path"]:
-                    scipio_params.append((
-                        args.scipio_path,
-                        args.mit_min_score,
-                        mit_min_identity,
-                        args.mit_min_coverage,
-                        args.blat_path,
-                        fastas_to_extract[sample]["assembly_path"],
-                        fastas_to_extract[sample]["sample_dir"],
-                        sample,
-                        protein_refs["MIT"]["AA_path"],
-                        mit_query,
-                        mit_query_parts_paths,
-                        mit_query_info,
-                        "MIT",
-                        args.mit_transtable,
-                        args.ignore_depth,
-                        args.mit_depth_tolerance,
-                        args.disable_stitching,
-                        args.max_loci_files,
-                        args.max_loci_scipio_x2,
-                        args.max_paralogs,
-                        args.predict,
-                        prot_threads,
-                        tsv_comment,
-                        args.debug,
-                        args.overwrite,
-                        args.keep_all,
-                    ))
+                    scipio_params.append(
+                        (
+                            args.scipio_path,
+                            args.mit_min_score,
+                            mit_min_identity,
+                            args.mit_min_coverage,
+                            args.blat_path,
+                            fastas_to_extract[sample]["assembly_path"],
+                            fastas_to_extract[sample]["sample_dir"],
+                            sample,
+                            protein_refs["MIT"]["AA_path"],
+                            mit_query,
+                            mit_query_parts_paths,
+                            mit_query_info,
+                            "MIT",
+                            args.mit_transtable,
+                            args.ignore_depth,
+                            args.mit_depth_tolerance,
+                            args.disable_stitching,
+                            args.max_loci_files,
+                            args.max_loci_scipio_x2,
+                            args.max_paralogs,
+                            args.predict,
+                            prot_threads,
+                            tsv_comment,
+                            args.debug,
+                            args.overwrite,
+                            args.keep_all,
+                        )
+                    )
                 if dna_ref["DNA"]["NT_path"]:
-                    blat_params.append((
-                        args.blat_path,
-                        args.dna_min_identity,
-                        args.dna_min_coverage,
-                        fastas_to_extract[sample]["assembly_path"],
-                        fastas_to_extract[sample]["sample_dir"],
+                    blat_params.append(
+                        (
+                            args.blat_path,
+                            args.dna_min_identity,
+                            args.dna_min_coverage,
+                            fastas_to_extract[sample]["assembly_path"],
+                            fastas_to_extract[sample]["sample_dir"],
+                            sample,
+                            dna_ref["DNA"]["NT_path"],
+                            dna_query,
+                            dna_query_info,
+                            "DNA",
+                            args.ignore_depth,
+                            args.dna_depth_tolerance,
+                            args.disable_stitching,
+                            args.max_loci_files,
+                            args.max_paralogs,
+                            tsv_comment,
+                            args.overwrite,
+                            args.keep_all,
+                        )
+                    )
+                cleanup_params.append(
+                    (
                         sample,
-                        dna_ref["DNA"]["NT_path"],
-                        dna_query,
-                        dna_query_info,
-                        "DNA",
-                        args.ignore_depth,
-                        args.dna_depth_tolerance,
-                        args.disable_stitching,
-                        args.max_loci_files,
-                        args.max_paralogs,
+                        fastas_to_extract[sample]["sample_dir"],
+                        fastas_to_extract[sample]["assembly_path"],
                         tsv_comment,
+                        args.keep_all,
                         args.overwrite,
-                        args.keep_all
-                    ))
-                cleanup_params.append((
-                    sample,
-                    fastas_to_extract[sample]["sample_dir"],
-                    fastas_to_extract[sample]["assembly_path"],
-                    tsv_comment,
-                    args.keep_all,
-                    args.overwrite,
-                    skip_clustering
-                ))
-            log.log(f'{"Extractions to process":>{mar}}:'
-                    f' {bold(f"{len(scipio_params)} protein")} and'
-                    f' {bold(f"{len(blat_params)} nucleotide")}')
+                        skip_clustering,
+                    )
+                )
+            log.log(
+                f"{'Extractions to process':>{mar}}:"
+                f" {bold(f'{len(scipio_params)} protein')} and"
+                f" {bold(f'{len(blat_params)} nucleotide')}"
+            )
             log.log("")
-
 
             if protein_refs["NUC"]["AA_path"]:
-                log.log(f'{"Nuclear proteins":>{mar}}:'
-                        f' {bold(f"{out_dir}/[Sample_name]__captus-ext/")}'
-                        f'{bold(settings.MARKER_DIRS["NUC"])}')
+                log.log(
+                    f"{'Nuclear proteins':>{mar}}:"
+                    f" {bold(f'{out_dir}/[Sample_name]__captus-ext/')}"
+                    f"{bold(settings.MARKER_DIRS['NUC'])}"
+                )
             if protein_refs["PTD"]["AA_path"]:
-                log.log(f'{"Plastidial proteins":>{mar}}:'
-                        f' {bold(f"{out_dir}/[Sample_name]__captus-ext/")}'
-                        f'{bold(settings.MARKER_DIRS["PTD"])}')
+                log.log(
+                    f"{'Plastidial proteins':>{mar}}:"
+                    f" {bold(f'{out_dir}/[Sample_name]__captus-ext/')}"
+                    f"{bold(settings.MARKER_DIRS['PTD'])}"
+                )
             if protein_refs["MIT"]["AA_path"]:
-                log.log(f'{"Mitochondrial proteins":>{mar}}:'
-                        f' {bold(f"{out_dir}/[Sample_name]__captus-ext/")}'
-                        f'{bold(settings.MARKER_DIRS["MIT"])}')
+                log.log(
+                    f"{'Mitochondrial proteins':>{mar}}:"
+                    f" {bold(f'{out_dir}/[Sample_name]__captus-ext/')}"
+                    f"{bold(settings.MARKER_DIRS['MIT'])}"
+                )
             if dna_ref["DNA"]["NT_path"]:
-                log.log(f'{"Miscellaneous DNA markers":>{mar}}:'
-                        f' {bold(f"{out_dir}/[Sample_name]__captus-ext/")}'
-                        f'{bold(settings.MARKER_DIRS["DNA"])}')
-            log.log(f'{"Annotated assemblies":>{mar}}: '
-                    f'{bold(f"{out_dir}/[Sample_name]__captus-ext/06_assembly_annotated")}')
-            log.log(f'{"":>{mar}}  '
-                    f'{dim("(These output directories will be created for each sample)")}')
+                log.log(
+                    f"{'Miscellaneous DNA markers':>{mar}}:"
+                    f" {bold(f'{out_dir}/[Sample_name]__captus-ext/')}"
+                    f"{bold(settings.MARKER_DIRS['DNA'])}"
+                )
+            log.log(
+                f"{'Annotated assemblies':>{mar}}: "
+                f"{bold(f'{out_dir}/[Sample_name]__captus-ext/06_assembly_annotated')}"
+            )
+            log.log(
+                f"{'':>{mar}}  {dim('(These output directories will be created for each sample)')}"
+            )
             log.log("")
 
-            json_path = update_refs_json({**protein_refs, **dna_ref}, out_dir) # concat two dict
-            log.log(f'{"Paths to references used":>{mar}}: {bold(f"{json_path}")}')
+            json_path = update_refs_json({**protein_refs, **dna_ref}, out_dir)  # concat two dict
+            log.log(f"{'Paths to references used':>{mar}}: {bold(f'{json_path}')}")
             log.log("")
 
             if scipio_params:
                 d_msg = "Extracting protein-coding markers with Scipio"
                 f_msg = "Protein-coding markers: finished processing"
                 if args.debug:
-                    tqdm_serial_run(scipio_coding, scipio_params, d_msg, f_msg,
-                                    "extraction", args.show_less)
+                    tqdm_serial_run(
+                        scipio_coding, scipio_params, d_msg, f_msg, "extraction", args.show_less
+                    )
                 else:
-                    tqdm_parallel_nested_run(scipio_coding, scipio_params, d_msg, f_msg,
-                                             "extraction", prot_concurrent, args.show_less)
+                    tqdm_parallel_nested_run(
+                        scipio_coding,
+                        scipio_params,
+                        d_msg,
+                        f_msg,
+                        "extraction",
+                        prot_concurrent,
+                        args.show_less,
+                    )
                 log.log("")
 
             if blat_params:
                 d_msg = "Extracting miscellaneous DNA markers with BLAT"
                 f_msg = "Miscellaneous DNA markers: finished processing"
                 if args.debug:
-                    tqdm_serial_run(blat_misc_dna, blat_params, d_msg, f_msg,
-                                    "extraction", args.show_less)
+                    tqdm_serial_run(
+                        blat_misc_dna, blat_params, d_msg, f_msg, "extraction", args.show_less
+                    )
                 else:
-                    tqdm_parallel_async_run(blat_misc_dna, blat_params, d_msg, f_msg,
-                                            "extraction", dna_concurrent, args.show_less)
+                    tqdm_parallel_async_run(
+                        blat_misc_dna,
+                        blat_params,
+                        d_msg,
+                        f_msg,
+                        "extraction",
+                        dna_concurrent,
+                        args.show_less,
+                    )
                 log.log("")
 
             d_msg = "Merging GFFs, summarizing recovery stats, and cleaning up"
             f_msg = "Merged GFF and summary recovery stats created"
             cleanup_concurrent = min(settings.MAX_HDD_WRITE_INSTANCES, threads_max)
             if args.debug:
-                tqdm_serial_run(cleanup_post_extraction, cleanup_params, d_msg, f_msg,
-                                "sample", args.show_less)
+                tqdm_serial_run(
+                    cleanup_post_extraction, cleanup_params, d_msg, f_msg, "sample", args.show_less
+                )
             else:
-                tqdm_parallel_async_run(cleanup_post_extraction, cleanup_params, d_msg, f_msg,
-                                        "sample", cleanup_concurrent, args.show_less)
+                tqdm_parallel_async_run(
+                    cleanup_post_extraction,
+                    cleanup_params,
+                    d_msg,
+                    f_msg,
+                    "sample",
+                    cleanup_concurrent,
+                    args.show_less,
+                )
             if not args.keep_all:
                 shutil.rmtree(Path(out_dir, settings.REF_TARGETS_SPLIT_DIR), ignore_errors=True)
             log.log("")
 
         # Nothing to extract
         else:
-            log.log(red(
-                "Skipping extraction step... (no valid references found, verify the paths provided"
-                " through '--nuc_refs', '--ptd_refs', '--mit_refs', '--dna_refs')"
-            ))
+            log.log(
+                red(
+                    "Skipping extraction step... (no valid references found, verify the paths provided"
+                    " through '--nuc_refs', '--ptd_refs', '--mit_refs', '--dna_refs')"
+                )
+            )
             log.log("")
-
 
     ################################################################################################
     ############################################################################# CLUSTERING SECTION
@@ -577,7 +679,8 @@ def extract(full_command, args):
         " sample will be used for clustering, otherwise the '01_assembly/assembly.fasta' files are"
         " used. USE WITH CAUTION: Clustering time and/or success will depend on the size of your"
         " assembly files, it should be safe to use if you assembled captured data, RNAseq reads, or"
-        " even genome skimming data.", extra_empty_lines_after=0
+        " even genome skimming data.",
+        extra_empty_lines_after=0,
     )
     log.log_explanation(
         "After clustering has been completed, only the clusters with at least '--cl_min_samples'"
@@ -587,10 +690,12 @@ def extract(full_command, args):
         " miscellaneous DNA markers."
     )
     if skip_clustering:
-        log.log(red(
-            "Skipping clustering step... (to enable use '--cluster_leftovers', and verify that all"
-            " the software dependencies are correctly installed)"
-        ))
+        log.log(
+            red(
+                "Skipping clustering step... (to enable use '--cluster_leftovers', and verify that all"
+                " the software dependencies are correctly installed)"
+            )
+        )
         log.log("")
     else:
         if not fastas_to_extract:
@@ -604,10 +709,12 @@ def extract(full_command, args):
 
         # When 'cl_min_identity' is set to 'auto' it becomes 90% of 'dna_min_identity' never
         # becoming less than 75%
-        if args.cl_min_identity == 'auto':
+        if args.cl_min_identity == "auto":
             dna_min_identity = max(args.dna_min_identity, settings.MMSEQS_MIN_AUTO_MIN_IDENTITY)
-            cl_min_identity = max(settings.MMSEQS_BLAT_DNA_IDENTITY_FACTOR * dna_min_identity,
-                                  settings.MMSEQS_MIN_AUTO_MIN_IDENTITY)
+            cl_min_identity = max(
+                settings.MMSEQS_BLAT_DNA_IDENTITY_FACTOR * dna_min_identity,
+                settings.MMSEQS_MIN_AUTO_MIN_IDENTITY,
+            )
         else:
             dna_min_identity = cl_min_identity = float(args.cl_min_identity)
         if args.cl_mode != 2:
@@ -620,32 +727,32 @@ def extract(full_command, args):
         else:
             cl_min_samples = min(int(args.cl_min_samples), num_samples)
 
-        log.log(bold_yellow("  \u25BA STEP 1 OF 3: Clustering contigs across samples with MMseqs2"))
+        log.log(bold_yellow("  \u25ba STEP 1 OF 3: Clustering contigs across samples with MMseqs2"))
         log.log("")
-        log.log(f'{"MMseqs2 method":>{mar}}: {bold(args.mmseqs_method)}')
-        log.log(f'{"cluster_mode":>{mar}}: {bold(args.cl_mode)}')
-        log.log(f'{"sensitivity":>{mar}}: {bold(args.cl_sensitivity)}')
-        log.log(f'{"min_seq_id":>{mar}}: {bold(cl_min_identity)}')
-        log.log(f'{"seq_id_mode":>{mar}}: {bold(args.cl_seq_id_mode)}')
-        log.log(f'{"cov":>{mar}}: {bold(args.cl_min_coverage)}')
-        log.log(f'{"cov_mode":>{mar}}: {bold(args.cl_cov_mode)}')
-        log.log(f'{"gap_open":>{mar}}: {bold(settings.MMSEQS_GAP_OPEN)}')
-        log.log(f'{"gap_extend":>{mar}}: {bold(settings.MMSEQS_GAP_EXTEND)}')
-        log.log(f'{"max_seq_len":>{mar}}: {bold(args.cl_max_seq_len)}')
-        log.log(f'{"tmp_dir":>{mar}}: {bold(clust_tmp_dir)}')
+        log.log(f"{'MMseqs2 method':>{mar}}: {bold(args.mmseqs_method)}")
+        log.log(f"{'cluster_mode':>{mar}}: {bold(args.cl_mode)}")
+        log.log(f"{'sensitivity':>{mar}}: {bold(args.cl_sensitivity)}")
+        log.log(f"{'min_seq_id':>{mar}}: {bold(cl_min_identity)}")
+        log.log(f"{'seq_id_mode':>{mar}}: {bold(args.cl_seq_id_mode)}")
+        log.log(f"{'cov':>{mar}}: {bold(args.cl_min_coverage)}")
+        log.log(f"{'cov_mode':>{mar}}: {bold(args.cl_cov_mode)}")
+        log.log(f"{'gap_open':>{mar}}: {bold(settings.MMSEQS_GAP_OPEN)}")
+        log.log(f"{'gap_extend':>{mar}}: {bold(settings.MMSEQS_GAP_EXTEND)}")
+        log.log(f"{'max_seq_len':>{mar}}: {bold(args.cl_max_seq_len)}")
+        log.log(f"{'tmp_dir':>{mar}}: {bold(clust_tmp_dir)}")
         log.log("")
-        log.log(f'{"Min. locus length":>{mar}}: {bold(args.cl_rep_min_len)}')
-        log.log(f'{"Min. samples per cluster":>{mar}}: {bold(cl_min_samples)}')
-        log.log(f'{"Max. copies per cluster":>{mar}}: {bold(args.cl_max_copies)}')
-        log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
-        log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
+        log.log(f"{'Min. locus length':>{mar}}: {bold(args.cl_rep_min_len)}")
+        log.log(f"{'Min. samples per cluster':>{mar}}: {bold(cl_min_samples)}")
+        log.log(f"{'Max. copies per cluster':>{mar}}: {bold(args.cl_max_copies)}")
+        log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
+        log.log(f"{'Keep all files':>{mar}}: {bold(args.keep_all)}")
         log.log("")
-        log.log(f'{"Using leftover contigs":>{mar}}: {bold(num_leftovers)}')
-        log.log(f'{"Using entire assembly":>{mar}}: {bold(len(fastas_to_cluster) - num_leftovers)}')
-        log.log(bold(f'{"Total samples to cluster":>{mar}}: {len(fastas_to_cluster)}'))
+        log.log(f"{'Using leftover contigs':>{mar}}: {bold(num_leftovers)}")
+        log.log(f"{'Using entire assembly':>{mar}}: {bold(len(fastas_to_cluster) - num_leftovers)}")
+        log.log(bold(f"{'Total samples to cluster':>{mar}}: {len(fastas_to_cluster)}"))
         log.log("")
-        log.log(f'{"Clustering directory":>{mar}}: {bold(clustering_dir)}')
-        log.log(f'{"":>{mar}}  {dim(clustering_dir_msg)}')
+        log.log(f"{'Clustering directory':>{mar}}: {bold(clustering_dir)}")
+        log.log(f"{'':>{mar}}  {dim(clustering_dir_msg)}")
         log.log("")
 
         if dir_is_empty(clustering_dir) or clustering_input_file.is_file() or args.overwrite:
@@ -657,24 +764,41 @@ def extract(full_command, args):
                 )
                 log.log("")
             else:
-                rehead_and_concatenate_fastas(fastas_to_cluster, clustering_dir,
-                                              clustering_input_file, args.cl_max_seq_len,
-                                              min(settings.MAX_HDD_WRITE_INSTANCES, threads_max),
-                                              args.show_less)
-            captus_cluster_refs = cluster_and_select_refs(num_samples, cl_min_samples,
-                                                          args.cl_max_copies, args.cl_rep_min_len,
-                                                          args.mmseqs_path, args.mmseqs_method,
-                                                          args.cl_mode, args.cl_sensitivity,
-                                                          clustering_input_file, clustering_dir,
-                                                          cl_min_identity, args.cl_seq_id_mode,
-                                                          args.cl_min_coverage, args.cl_cov_mode,
-                                                          clust_tmp_dir, args.mafft_path,
-                                                          threads_max, args.debug)
+                rehead_and_concatenate_fastas(
+                    fastas_to_cluster,
+                    clustering_dir,
+                    clustering_input_file,
+                    args.cl_max_seq_len,
+                    min(settings.MAX_HDD_WRITE_INSTANCES, threads_max),
+                    args.show_less,
+                )
+            captus_cluster_refs = cluster_and_select_refs(
+                num_samples,
+                cl_min_samples,
+                args.cl_max_copies,
+                args.cl_rep_min_len,
+                args.mmseqs_path,
+                args.mmseqs_method,
+                args.cl_mode,
+                args.cl_sensitivity,
+                clustering_input_file,
+                clustering_dir,
+                cl_min_identity,
+                args.cl_seq_id_mode,
+                args.cl_min_coverage,
+                args.cl_cov_mode,
+                clust_tmp_dir,
+                args.mafft_path,
+                threads_max,
+                args.debug,
+            )
             log.log("")
             log.log("")
-            log.log(bold_yellow(
-                "  \u25BA STEP 2 OF 3: Extracting cluster-derived DNA markers with BLAT"
-            ))
+            log.log(
+                bold_yellow(
+                    "  \u25ba STEP 2 OF 3: Extracting cluster-derived DNA markers with BLAT"
+                )
+            )
             log.log("")
             clust_ref_size = 0
             clust_ref = prepare_dna_refs(captus_cluster_refs, cluster=True)
@@ -683,110 +807,146 @@ def extract(full_command, args):
                 clust_query_info = reference_info(clust_query)
                 clust_ref_size = max(clust_ref_size, clust_query_info["total_size"])
                 num_clr_extractions = len(fastas_to_extract)
-                clust_concurrent, clust_threads, clust_ram = adjust_concurrency(args.concurrent,
-                                                                                num_clr_extractions,
-                                                                                threads_max,
-                                                                                ram_B,
-                                                                                "dna")
-                log.log(f'{"Concurrent extractions":>{mar}}: {bold(clust_concurrent)}')
-                log.log(f'{"RAM per extraction":>{mar}}:'
-                        f' {bold(f"{clust_ram / 1024 ** 3:.1f}GB")}')
-                log.log(f'{"Threads per extraction":>{mar}}: {bold("1")}'
-                        f' {dim("(BLAT is single-threaded)")}')
+                clust_concurrent, clust_threads, clust_ram = adjust_concurrency(
+                    args.concurrent, num_clr_extractions, threads_max, ram_B, "dna"
+                )
+                log.log(f"{'Concurrent extractions':>{mar}}: {bold(clust_concurrent)}")
+                log.log(f"{'RAM per extraction':>{mar}}: {bold(f'{clust_ram / 1024**3:.1f}GB')}")
+                log.log(
+                    f"{'Threads per extraction':>{mar}}: {bold('1')}"
+                    f" {dim('(BLAT is single-threaded)')}"
+                )
                 log.log("")
-            log.log(f'{"reference":>{mar}}: {clust_ref["CLR"]["NT_msg"]}')
+            log.log(f"{'reference':>{mar}}: {clust_ref['CLR']['NT_msg']}")
             if clust_ref["CLR"]["NT_path"]:
-                log.log(f'{"reference info":>{mar}}: {clust_query_info["info_msg"]}')
-                log.log(f'{"dna_min_identity":>{mar}}: {bold(dna_min_identity)}')
-                log.log(f'{"dna_min_coverage":>{mar}}: {bold(args.dna_min_coverage)}')
+                log.log(f"{'reference info':>{mar}}: {clust_query_info['info_msg']}")
+                log.log(f"{'dna_min_identity':>{mar}}: {bold(dna_min_identity)}")
+                log.log(f"{'dna_min_coverage':>{mar}}: {bold(args.dna_min_coverage)}")
                 clr_dt_msg = depth_tolerance_msg(args.dna_depth_tolerance, "CLR")
-                log.log(f'{"depth_tolerance":>{mar}}: {clr_dt_msg}')
+                log.log(f"{'depth_tolerance':>{mar}}: {clr_dt_msg}")
             log.log("")
-            log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
-            log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
-            log.log(f'{"Samples to process":>{mar}}: {bold(num_clr_extractions)}')
+            log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
+            log.log(f"{'Keep all files':>{mar}}: {bold(args.keep_all)}")
+            log.log(f"{'Samples to process':>{mar}}: {bold(num_clr_extractions)}")
             if clust_ref["CLR"]["NT_path"]:
                 blat_clusters_params = []
-                for sample in sorted(fastas_to_extract,
-                                     key=lambda x: fastas_to_extract[x]["assembly_size"],
-                                     reverse=True):
-                    blat_clusters_params.append((
-                        args.blat_path,
-                        dna_min_identity,
-                        args.dna_min_coverage,
-                        fastas_to_extract[sample]["assembly_path"],
-                        fastas_to_extract[sample]["sample_dir"],
-                        sample,
-                        clust_ref["CLR"]["NT_path"],
-                        clust_query,
-                        clust_query_info,
-                        "CLR",
-                        args.ignore_depth,
-                        args.dna_depth_tolerance,
-                        args.disable_stitching,
-                        args.max_loci_files,
-                        args.max_paralogs,
-                        tsv_comment,
-                        args.overwrite,
-                        args.keep_all
-                    ))
-                log.log(f'{"Extractions to process":>{mar}}: {bold(len(blat_clusters_params))}')
+                for sample in sorted(
+                    fastas_to_extract,
+                    key=lambda x: fastas_to_extract[x]["assembly_size"],
+                    reverse=True,
+                ):
+                    blat_clusters_params.append(
+                        (
+                            args.blat_path,
+                            dna_min_identity,
+                            args.dna_min_coverage,
+                            fastas_to_extract[sample]["assembly_path"],
+                            fastas_to_extract[sample]["sample_dir"],
+                            sample,
+                            clust_ref["CLR"]["NT_path"],
+                            clust_query,
+                            clust_query_info,
+                            "CLR",
+                            args.ignore_depth,
+                            args.dna_depth_tolerance,
+                            args.disable_stitching,
+                            args.max_loci_files,
+                            args.max_paralogs,
+                            tsv_comment,
+                            args.overwrite,
+                            args.keep_all,
+                        )
+                    )
+                log.log(f"{'Extractions to process':>{mar}}: {bold(len(blat_clusters_params))}")
                 log.log("")
-                log.log(f'{"Clustering output":>{mar}}:'
-                        f' {bold(f"{out_dir}/[Sample_name]__captus-ext/")}'
-                        f'{bold(settings.MARKER_DIRS["CLR"])}')
-                log.log(f'{"":>{mar}}  {dim("(A directory will be created for each sample)")}')
+                log.log(
+                    f"{'Clustering output':>{mar}}:"
+                    f" {bold(f'{out_dir}/[Sample_name]__captus-ext/')}"
+                    f"{bold(settings.MARKER_DIRS['CLR'])}"
+                )
+                log.log(f"{'':>{mar}}  {dim('(A directory will be created for each sample)')}")
                 log.log("")
 
                 json_path = update_refs_json(clust_ref, out_dir)
-                log.log(f'{"Paths to references used":>{mar}}: {bold(f"{json_path}")}')
+                log.log(f"{'Paths to references used':>{mar}}: {bold(f'{json_path}')}")
                 log.log("")
 
                 d_msg = "Extracting cluster-derived DNA markers with BLAT"
                 f_msg = "Cluster-derived DNA markers: finished processing"
                 if args.debug:
-                    tqdm_serial_run(blat_misc_dna, blat_clusters_params, d_msg, f_msg,
-                                    "extraction", args.show_less)
+                    tqdm_serial_run(
+                        blat_misc_dna,
+                        blat_clusters_params,
+                        d_msg,
+                        f_msg,
+                        "extraction",
+                        args.show_less,
+                    )
                 else:
-                    tqdm_parallel_async_run(blat_misc_dna, blat_clusters_params, d_msg, f_msg,
-                                            "extraction", clust_concurrent, args.show_less)
+                    tqdm_parallel_async_run(
+                        blat_misc_dna,
+                        blat_clusters_params,
+                        d_msg,
+                        f_msg,
+                        "extraction",
+                        clust_concurrent,
+                        args.show_less,
+                    )
                 log.log("")
                 log.log("")
-                log.log(bold_yellow(
-                    "  \u25BA STEP 3 OF 3: Final Merging of GFF Annotations and File Cleanup"
-                ))
+                log.log(
+                    bold_yellow(
+                        "  \u25ba STEP 3 OF 3: Final Merging of GFF Annotations and File Cleanup"
+                    )
+                )
                 log.log("")
                 cleanup_params = []
                 for sample in fastas_to_extract:
-                    cleanup_params.append((
-                        sample,
-                        fastas_to_extract[sample]["sample_dir"],
-                        fastas_to_extract[sample]["assembly_path"],
-                        tsv_comment,
-                        args.keep_all,
-                        True, # overwrite
-                        skip_clustering,
-                        True, # cluster
-                    ))
+                    cleanup_params.append(
+                        (
+                            sample,
+                            fastas_to_extract[sample]["sample_dir"],
+                            fastas_to_extract[sample]["assembly_path"],
+                            tsv_comment,
+                            args.keep_all,
+                            True,  # overwrite
+                            skip_clustering,
+                            True,  # cluster
+                        )
+                    )
                 d_msg = "Merging GFFs, summarizing recovery stats, and cleaning up"
                 f_msg = "Merged GFF and summary recovery stats created"
                 cleanup_concurrent = min(settings.MAX_HDD_WRITE_INSTANCES, threads_max)
                 if args.debug:
-                    tqdm_serial_run(cleanup_post_extraction, cleanup_params, d_msg, f_msg,
-                                    "sample", args.show_less)
+                    tqdm_serial_run(
+                        cleanup_post_extraction,
+                        cleanup_params,
+                        d_msg,
+                        f_msg,
+                        "sample",
+                        args.show_less,
+                    )
                 else:
-                    tqdm_parallel_async_run(cleanup_post_extraction, cleanup_params, d_msg, f_msg,
-                                            "sample", cleanup_concurrent, args.show_less)
+                    tqdm_parallel_async_run(
+                        cleanup_post_extraction,
+                        cleanup_params,
+                        d_msg,
+                        f_msg,
+                        "sample",
+                        cleanup_concurrent,
+                        args.show_less,
+                    )
                 log.log("")
 
         # Nothing to cluster, just skip already processed
         else:
-            log.log(red(
-                f"Skipping clustering step... Captus found output files in: '{clustering_dir}',"
-                " to replace them enable --overwrite"
-            ))
+            log.log(
+                red(
+                    f"Skipping clustering step... Captus found output files in: '{clustering_dir}',"
+                    " to replace them enable --overwrite"
+                )
+            )
             log.log("")
-
 
     ################################################################################################
     ############################################################################## SUMMARIZE SECTION
@@ -797,18 +957,15 @@ def extract(full_command, args):
     )
     ext_stats_tsv = collect_ext_stats(out_dir, tsv_comment)
     if ext_stats_tsv:
-        log.log(f'{"Extraction statistics":>{mar}}: {bold(ext_stats_tsv)}')
+        log.log(f"{'Extraction statistics':>{mar}}: {bold(ext_stats_tsv)}")
         log.log("")
         if all([numpy_found, pandas_found, plotly_found]):
-
             from .report import build_extraction_report
 
-            log.log_explanation(
-                "Generating Marker Extraction report..."
-            )
+            log.log_explanation("Generating Marker Extraction report...")
             ext_html_report, ext_html_msg = build_extraction_report(out_dir, ext_stats_tsv)
-            log.log(f'{"Extraction report":>{mar}}: {bold(ext_html_report)}')
-            log.log(f'{"":>{mar}}  {dim(ext_html_msg)}')
+            log.log(f"{'Extraction report':>{mar}}: {bold(ext_html_report)}")
+            log.log(f"{'':>{mar}}  {dim(ext_html_msg)}")
         else:
             log.log(
                 f"{bold('WARNING:')} Captus uses 'numpy', 'pandas', and 'plotly' to generate  an HTML"
@@ -818,7 +975,6 @@ def extract(full_command, args):
     else:
         log.log(red("Skipping summarization step... (no extraction statistics files were found)"))
     log.log("")
-
 
     ################################################################################################
     ################################################################################# ENDING SECTION
@@ -913,9 +1069,11 @@ def find_fasta_assemblies(captus_assemblies_dir, out_dir):
         for sample_dir in sample_dirs:
             if settings.SEQ_NAME_SEP in f"{sample_dir}".replace("__captus-asm", ""):
                 sample_name = sample_dir.parts[-1].replace("__captus-asm", "")
-                skipped.append(f"'{sample_dir.parts[-1]}': SKIPPED, pattern"
-                               f" '{settings.SEQ_NAME_SEP}' not allowed in sample name"
-                               f" '{sample_name}'")
+                skipped.append(
+                    f"'{sample_dir.parts[-1]}': SKIPPED, pattern"
+                    f" '{settings.SEQ_NAME_SEP}' not allowed in sample name"
+                    f" '{sample_name}'"
+                )
             else:
                 fastas = list(Path(sample_dir.resolve()).rglob("*/assembly.fasta"))
                 for fasta in fastas:
@@ -941,22 +1099,29 @@ def find_and_copy_fastas(fastas, captus_assemblies_dir, overwrite, threads_max, 
     if not isinstance(fastas, list):
         fastas = [fastas]
     if len(fastas) == 1 and Path(fastas[0]).is_dir():
-        fastas = [file for file in Path(fastas[0]).resolve().rglob("*")
-                  if has_valid_ext(file, valid_exts)]
+        fastas = [
+            file for file in Path(fastas[0]).resolve().rglob("*") if has_valid_ext(file, valid_exts)
+        ]
     else:
-        fastas = [Path(any_file).resolve() for any_file in fastas
-                  if Path(any_file).is_file() and has_valid_ext(any_file, valid_exts)]
+        fastas = [
+            Path(any_file).resolve()
+            for any_file in fastas
+            if Path(any_file).is_file() and has_valid_ext(any_file, valid_exts)
+        ]
     check_and_copy_found_fasta_params = []
     for fasta in fastas:
-        check_and_copy_found_fasta_params.append((
-            fasta,
-            valid_exts,
-            captus_assemblies_dir,
-            overwrite
-        ))
-    tqdm_parallel_async_run(check_and_copy_found_fasta ,check_and_copy_found_fasta_params,
-                            "Verifying and importing provided FASTA files",
-                            "Verification and copy completed", "assembly", threads_max, show_less)
+        check_and_copy_found_fasta_params.append(
+            (fasta, valid_exts, captus_assemblies_dir, overwrite)
+        )
+    tqdm_parallel_async_run(
+        check_and_copy_found_fasta,
+        check_and_copy_found_fasta_params,
+        "Verifying and importing provided FASTA files",
+        "Verification and copy completed",
+        "assembly",
+        threads_max,
+        show_less,
+    )
 
 
 def check_and_copy_found_fasta(fasta_path, valid_exts, captus_assemblies_dir, overwrite):
@@ -986,7 +1151,7 @@ def check_and_copy_found_fasta(fasta_path, valid_exts, captus_assemblies_dir, ov
                 )
             message = (
                 f"'{fasta_name}': copied to '[captus_assemblies_dir]/"
-                f'{Path(f"{sample_name}__captus-asm","01_assembly","assembly.fasta")}'
+                f"{Path(f'{sample_name}__captus-asm', '01_assembly', 'assembly.fasta')}"
                 f"' [{elapsed_time(time.time() - start)}]"
             )
         else:
@@ -994,7 +1159,7 @@ def check_and_copy_found_fasta(fasta_path, valid_exts, captus_assemblies_dir, ov
     else:
         message = (
             f"'{fasta_name}': SKIPPED, '[captus_assemblies_dir]/"
-            f'{Path(f"{sample_name}__captus-asm","01_assembly","assembly.fasta")}'
+            f"{Path(f'{sample_name}__captus-asm', '01_assembly', 'assembly.fasta')}"
             "' already exists"
         )
     return message
@@ -1007,6 +1172,7 @@ def prepare_protein_refs(
     Looks for bundled sets of reference proteins or verify given paths, translates FASTA file
     if it only contains nucleotides
     """
+
     def check_refset(refset, transtable, marker: str):
         """
         Verify that `refset` is either a bundled reference set or a valid FASTA file. If the FASTA
@@ -1032,8 +1198,9 @@ def prepare_protein_refs(
             start = time.time()
             suffix = settings.TRANSLATED_REF_SUFFIX
             if refset.endswith(".gz"):
-                aa_path = Path(Path(refset).resolve().parent,
-                               f'{Path(refset.replace(".gz", "")).stem}{suffix}')
+                aa_path = Path(
+                    Path(refset).resolve().parent, f"{Path(refset.replace('.gz', '')).stem}{suffix}"
+                )
             else:
                 aa_path = Path(Path(refset).resolve().parent, f"{Path(refset).stem}{suffix}")
             nt_path = Path(refset).resolve()
@@ -1055,7 +1222,7 @@ def prepare_protein_refs(
                     f"WARNING: Premature stop codons were found in {refset}"
                     " and automatically converted to X"
                 )
-            aa_msg = f'{bold(aa_path)} {dim("(Translated from")} {dim(refset)}{dim(")")}'
+            aa_msg = f"{bold(aa_path)} {dim('(Translated from')} {dim(refset)}{dim(')')}"
             nt_msg = f"{nt_path}"
         elif Path(refset).is_file() and fasta_type(refset) == "AA":
             amino_refset = fasta_to_dict(Path(refset).resolve())
@@ -1072,8 +1239,10 @@ def prepare_protein_refs(
                 )
             aa_msg = bold(aa_path)
         elif Path(refset).is_file() and "odb10" in refset and refset.endswith(".tar.gz"):
-            log.log(f"'{Path(refset).name}' seems to be a BUSCO lineage"
-                    " database, Captus will attempt to import it...")
+            log.log(
+                f"'{Path(refset).name}' seems to be a BUSCO lineage"
+                " database, Captus will attempt to import it..."
+            )
             amino_refset = import_busco_odb10(Path(refset))
             if amino_refset is None:
                 aa_msg = red("BUSCO lineage database could not be imported")
@@ -1116,7 +1285,7 @@ def prepare_dna_refs(dna_refs, cluster=False):
         return {"DNA": {"AA_path": None, "AA_msg": None, "NT_path": nt_path, "NT_msg": nt_msg}}
     elif f"{dna_refs}".lower() in settings.DNA_REF_TARGETS:
         nt_path = settings.DNA_REF_TARGETS[dna_refs.lower()].resolve()
-        nt_msg = f'{bold(dna_refs)} {dim(nt_path)}'
+        nt_msg = f"{bold(dna_refs)} {dim(nt_path)}"
     elif Path(dna_refs).is_file() and fasta_type(dna_refs) == "NT":
         nt_path = Path(dna_refs).resolve()
         nt_msg = bold(nt_path)
@@ -1145,11 +1314,11 @@ def update_refs_json(refs_paths: dict, out_dir):
             refs_json = json.load(jin)
     except FileNotFoundError:
         refs_json = {
-            "NUC" : {"AA_path": None, "AA_msg": "not used", "NT_path": None, "NT_msg": "not used"},
-            "PTD" : {"AA_path": None, "AA_msg": "not used", "NT_path": None, "NT_msg": "not used"},
-            "MIT" : {"AA_path": None, "AA_msg": "not used", "NT_path": None, "NT_msg": "not used"},
-            "DNA" : {"AA_path": None, "AA_msg": None,       "NT_path": None, "NT_msg": "not used"},
-            "CLR" : {"AA_path": None, "AA_msg": None,       "NT_path": None, "NT_msg": "not used"},
+            "NUC": {"AA_path": None, "AA_msg": "not used", "NT_path": None, "NT_msg": "not used"},
+            "PTD": {"AA_path": None, "AA_msg": "not used", "NT_path": None, "NT_msg": "not used"},
+            "MIT": {"AA_path": None, "AA_msg": "not used", "NT_path": None, "NT_msg": "not used"},
+            "DNA": {"AA_path": None, "AA_msg": None, "NT_path": None, "NT_msg": "not used"},
+            "CLR": {"AA_path": None, "AA_msg": None, "NT_path": None, "NT_msg": "not used"},
         }
 
     if refs_json:
@@ -1208,8 +1377,9 @@ def split_refs(query_dict, out_dir, marker_type, threads):
             cf += threads - (cf % threads)
         chunks_ceiling = max(threads, cc)
         chunks_floor = max(threads, cf)
-        if (abs(settings.REF_SPLIT_CHUNK_SIZE - (num_seqs / chunks_ceiling))
-            <= abs(settings.REF_SPLIT_CHUNK_SIZE - (num_seqs / chunks_floor))):
+        if abs(settings.REF_SPLIT_CHUNK_SIZE - (num_seqs / chunks_ceiling)) <= abs(
+            settings.REF_SPLIT_CHUNK_SIZE - (num_seqs / chunks_floor)
+        ):
             seqs_per_chunk = math.ceil(num_seqs / chunks_ceiling)
         else:
             seqs_per_chunk = math.ceil(num_seqs / chunks_floor)
@@ -1219,7 +1389,7 @@ def split_refs(query_dict, out_dir, marker_type, threads):
     part = 1
     for i in range(0, len(seq_names), seqs_per_chunk):
         split_fasta = {}
-        for seq_name in seq_names[i:i+seqs_per_chunk]:
+        for seq_name in seq_names[i : i + seqs_per_chunk]:
             split_fasta[seq_name] = query_dict[seq_name]
         split_fasta_path = Path(ref_split_dir, f"{marker_type}_part{part}.faa")
         dict_to_fasta(split_fasta, split_fasta_path)
@@ -1255,16 +1425,17 @@ def reference_info(query_dict):
 
     num_loci = len(loci_lengths)
     total_length_loci = round(sum(list(loci_lengths.values())))
-    info_msg = bold(f'{num_loci:,} loci, {num_seqs:,} sequences ')
+    info_msg = bold(f"{num_loci:,} loci, {num_seqs:,} sequences ")
     if separators_found == num_seqs:
         if num_loci == num_seqs:
-            info_msg += dim('(loci names found, detected a single sequence per locus)')
+            info_msg += dim("(loci names found, detected a single sequence per locus)")
         elif num_loci < num_seqs:
-            info_msg += dim('(loci names found, detected multiple sequences per locus)')
+            info_msg += dim("(loci names found, detected multiple sequences per locus)")
     else:
         info_msg += dim(
             f'(locus name separator "{settings.REF_CLUSTER_SEP}" missing in '
-            f'{num_seqs - separators_found} sequences, each sequence taken as a different locus)')
+            f"{num_seqs - separators_found} sequences, each sequence taken as a different locus)"
+        )
 
     ref_info = {
         "num_seqs": num_seqs,
@@ -1272,23 +1443,46 @@ def reference_info(query_dict):
         "separators_found": separators_found,
         "num_loci": num_loci,
         "total_length_loci": total_length_loci,
-        "info_msg": info_msg
+        "info_msg": info_msg,
     }
 
     return ref_info
 
 
 def depth_tolerance_msg(depth_tolerance, marker_type):
-    msg = bold(f'{depth_tolerance} ')
-    msg += dim(f'(min = median {marker_type} contig depth / {depth_tolerance}, ')
-    msg += dim(f'max = median {marker_type} contig depth x {depth_tolerance})')
+    msg = bold(f"{depth_tolerance} ")
+    msg += dim(f"(min = median {marker_type} contig depth / {depth_tolerance}, ")
+    msg += dim(f"max = median {marker_type} contig depth x {depth_tolerance})")
     return msg
 
+
 def scipio_coding(
-    scipio_path, min_score, min_identity, min_coverage, blat_path, target_path, sample_dir,
-    sample_name, query_path, query_dict, query_parts_paths, query_info, marker_type, transtable,
-    ignore_depth, depth_tolerance, disable_stitching, max_loci_files, max_loci_scipio_x2,
-    max_paralogs, predict, threads, tsv_comment, debug, overwrite, keep_all
+    scipio_path,
+    min_score,
+    min_identity,
+    min_coverage,
+    blat_path,
+    target_path,
+    sample_dir,
+    sample_name,
+    query_path,
+    query_dict,
+    query_parts_paths,
+    query_info,
+    marker_type,
+    transtable,
+    ignore_depth,
+    depth_tolerance,
+    disable_stitching,
+    max_loci_files,
+    max_loci_scipio_x2,
+    max_paralogs,
+    predict,
+    threads,
+    tsv_comment,
+    debug,
+    overwrite,
+    keep_all,
 ):
     """
     Perform two consecutive rounds of Scipio, the first run with mostly default settings and with a
@@ -1311,25 +1505,33 @@ def scipio_coding(
 
     # Group Scipio's basic parameters, the 'sample_dir', and the 'marker_type' into a list
     scipio_params = {
-        "scipio_path":  scipio_path,
-        "min_score":    min_score,
+        "scipio_path": scipio_path,
+        "min_score": min_score,
         "min_identity": min_identity,
         "min_coverage": min_coverage,
-        "blat_path":    blat_path,
-        "transtable":   transtable,
-        "sample_dir":   sample_dir,
-        "marker_type":  marker_type,
+        "blat_path": blat_path,
+        "transtable": transtable,
+        "sample_dir": sample_dir,
+        "marker_type": marker_type,
     }
 
     # Run Scipio twice if 'query_info["num_loci"]' does not exceed 'max_loci_scipio_x2'
     if query_info["num_loci"] <= max_loci_scipio_x2:
-
         # Use the function run_scipio() that to run Scipio and also get the name of the YAML
         # output 'yaml_out_file'
-        yaml_initial_file = run_scipio_parallel(scipio_params, target_path, query_path,
-                                                query_parts_paths, ignore_depth, depth_tolerance,
-                                                disable_stitching,   overwrite, threads,
-                                                debug, stage="initial")
+        yaml_initial_file = run_scipio_parallel(
+            scipio_params,
+            target_path,
+            query_path,
+            query_parts_paths,
+            ignore_depth,
+            depth_tolerance,
+            disable_stitching,
+            overwrite,
+            threads,
+            debug,
+            stage="initial",
+        )
         if yaml_initial_file is None:
             message = dim(
                 f"'{sample_name}': extraction of {genes[marker_type]}"
@@ -1337,13 +1539,22 @@ def scipio_coding(
             )
             return message
         elif yaml_initial_file == "BLAT FAILED":
-            message = red(f"'{sample_name}': FAILED extraction of {genes[marker_type]} (No BLAT hits)")
+            message = red(
+                f"'{sample_name}': FAILED extraction of {genes[marker_type]} (No BLAT hits)"
+            )
             return message
         else:
             yaml_initial_dir = yaml_initial_file.parent
-            initial_models = scipio_yaml_to_dict(yaml_initial_file, min_score, min_identity,
-                                                 min_coverage, marker_type, transtable,
-                                                 max_paralogs, predict)
+            initial_models = scipio_yaml_to_dict(
+                yaml_initial_file,
+                min_score,
+                min_identity,
+                min_coverage,
+                marker_type,
+                transtable,
+                max_paralogs,
+                predict,
+            )
 
         # Parse YAML to subselect only the best proteins from the 'query' and the contigs with hits
         # from the assembly ('target')
@@ -1352,22 +1563,43 @@ def scipio_coding(
             return message
         else:
             final_target, final_query = filter_query_and_target(
-                query_dict, fasta_to_dict(target_path),
-                yaml_initial_dir, initial_models, marker_type
+                query_dict,
+                fasta_to_dict(target_path),
+                yaml_initial_dir,
+                initial_models,
+                marker_type,
             )
 
         # Perform final Scipio's run (more exhaustive but with fewer contigs and reference proteins)
-        yaml_final_file = run_scipio_parallel(scipio_params, final_target, final_query,
-                                              query_parts_paths, ignore_depth, depth_tolerance,
-                                              disable_stitching, overwrite, threads,
-                                              debug, stage="final")
+        yaml_final_file = run_scipio_parallel(
+            scipio_params,
+            final_target,
+            final_query,
+            query_parts_paths,
+            ignore_depth,
+            depth_tolerance,
+            disable_stitching,
+            overwrite,
+            threads,
+            debug,
+            stage="final",
+        )
 
     # Run a single Scipio run when 'num_refs' exceeds 'max_loci_scipio_x2'
     else:
-        yaml_final_file = run_scipio_parallel(scipio_params, target_path, query_path,
-                                              query_parts_paths, ignore_depth, depth_tolerance,
-                                              disable_stitching, overwrite, threads,
-                                              debug, stage="single")
+        yaml_final_file = run_scipio_parallel(
+            scipio_params,
+            target_path,
+            query_path,
+            query_parts_paths,
+            ignore_depth,
+            depth_tolerance,
+            disable_stitching,
+            overwrite,
+            threads,
+            debug,
+            stage="single",
+        )
 
     if yaml_final_file is None:
         message = dim(
@@ -1380,51 +1612,79 @@ def scipio_coding(
         return message
     else:
         yaml_final_dir = yaml_final_file.parent
-        final_models = scipio_yaml_to_dict(yaml_final_file, min_score, min_identity,
-                                           min_coverage, marker_type, transtable,
-                                           max_paralogs, predict)
+        final_models = scipio_yaml_to_dict(
+            yaml_final_file,
+            min_score,
+            min_identity,
+            min_coverage,
+            marker_type,
+            transtable,
+            max_paralogs,
+            predict,
+        )
 
     # Parse final YAML to produce output FASTA files and reports
     if final_models is None:
         message = red(f"'{sample_name}': FAILED extraction of {genes[marker_type]}")
         return message
     else:
-        write_gff3(final_models, marker_type, disable_stitching, tsv_comment,
-                   Path(yaml_final_dir, f"{marker_type}_contigs.gff"))
-        recovery_stats = write_fastas_and_report(final_models, sample_name,
-                                                 fasta_to_dict(target_path),
-                                                 yaml_final_dir, marker_type, max_loci_files,
-                                                 tsv_comment, overwrite)
+        write_gff3(
+            final_models,
+            marker_type,
+            disable_stitching,
+            tsv_comment,
+            Path(yaml_final_dir, f"{marker_type}_contigs.gff"),
+        )
+        recovery_stats = write_fastas_and_report(
+            final_models,
+            sample_name,
+            fasta_to_dict(target_path),
+            yaml_final_dir,
+            marker_type,
+            max_loci_files,
+            tsv_comment,
+            overwrite,
+        )
         message = (
             f"'{sample_name}': recovered {recovery_stats['num_loci']:,} {genes[marker_type]}"
-            f' ({recovery_stats["num_loci"] / query_info["num_loci"]:.1%} of {query_info["num_loci"]:,}),'
-            f' {recovery_stats["total_length_best_hits"] / query_info["total_length_loci"]:.1%} of'
-            f' total reference length, {recovery_stats["num_paralogs"]:,} paralogs'
+            f" ({recovery_stats['num_loci'] / query_info['num_loci']:.1%} of {query_info['num_loci']:,}),"
+            f" {recovery_stats['total_length_best_hits'] / query_info['total_length_loci']:.1%} of"
+            f" total reference length, {recovery_stats['num_paralogs']:,} paralogs"
             f" found [{elapsed_time(time.time() - start)}]"
         )
         return message
 
 
 def run_scipio_parallel(
-    scipio_params: dict, target, query, query_part_paths, ignore_depth,
-    depth_tolerance, disable_stitching, overwrite, threads, debug, stage
+    scipio_params: dict,
+    target,
+    query,
+    query_part_paths,
+    ignore_depth,
+    depth_tolerance,
+    disable_stitching,
+    overwrite,
+    threads,
+    debug,
+    stage,
 ):
     # Set output directory and files according to 'sample_dir' and 'stage'
     marker_type = scipio_params["marker_type"]
     scipio_out_dir = Path(scipio_params["sample_dir"], settings.MARKER_DIRS[marker_type])
     if stage == "initial":
-        scipio_out_dir   = Path(scipio_out_dir, f'00_initial_scipio_{marker_type}')
-        blat_out_file    = Path(scipio_out_dir, f'{marker_type}_scipio_initial.psl')
-        scipio_out_file  = Path(scipio_out_dir, f'{marker_type}_scipio_initial.yaml')
-        scipio_log_file  = Path(scipio_out_dir, f'{marker_type}_scipio_initial.log')
+        scipio_out_dir = Path(scipio_out_dir, f"00_initial_scipio_{marker_type}")
+        blat_out_file = Path(scipio_out_dir, f"{marker_type}_scipio_initial.psl")
+        scipio_out_file = Path(scipio_out_dir, f"{marker_type}_scipio_initial.yaml")
+        scipio_log_file = Path(scipio_out_dir, f"{marker_type}_scipio_initial.log")
 
         # Adjust Scipio's 'min_score' for initial round allowing more lenient matching
-        scipio_min_score = round(scipio_params["min_score"]
-                                 * settings.SCIPIO_SCORE_INITIAL_FACTOR, 5)
+        scipio_min_score = round(
+            scipio_params["min_score"] * settings.SCIPIO_SCORE_INITIAL_FACTOR, 5
+        )
     else:
-        blat_out_file   = Path(scipio_out_dir, f'{marker_type}_scipio_final.psl')
-        scipio_out_file = Path(scipio_out_dir, f'{marker_type}_scipio_final.yaml')
-        scipio_log_file = Path(scipio_out_dir, f'{marker_type}_scipio_final.log')
+        blat_out_file = Path(scipio_out_dir, f"{marker_type}_scipio_final.psl")
+        scipio_out_file = Path(scipio_out_dir, f"{marker_type}_scipio_final.yaml")
+        scipio_log_file = Path(scipio_out_dir, f"{marker_type}_scipio_final.log")
         scipio_min_score = scipio_params["min_score"]
 
     # Set minimum BLAT score according to number of references (too many hits created when using
@@ -1445,12 +1705,23 @@ def run_scipio_parallel(
     if dir_is_empty(scipio_out_dir) is True or overwrite is True:
         # First, run BLAT only using the complete target and query files
         blat_only = True
-        blat_psl = run_scipio_command(scipio_params["scipio_path"], blat_out_file, blat_only,
-                                      scipio_min_score, scipio_params["min_identity"],
-                                      scipio_params["min_coverage"], disable_stitching,
-                                      scipio_params["blat_path"], blat_score,
-                                      scipio_params["transtable"], extra_settings, target, query,
-                                      scipio_out_file, scipio_log_file)
+        blat_psl = run_scipio_command(
+            scipio_params["scipio_path"],
+            blat_out_file,
+            blat_only,
+            scipio_min_score,
+            scipio_params["min_identity"],
+            scipio_params["min_coverage"],
+            disable_stitching,
+            scipio_params["blat_path"],
+            blat_score,
+            scipio_params["transtable"],
+            extra_settings,
+            target,
+            query,
+            scipio_out_file,
+            scipio_log_file,
+        )
         if not blat_psl:
             return "BLAT FAILED"
 
@@ -1462,11 +1733,9 @@ def run_scipio_parallel(
         split_blat_psl_params = []
         for query in query_part_paths:
             part = query.stem
-            split_blat_psl_params.append((
-                blat_out_file,
-                query_part_paths[query],
-                Path(scipio_out_dir, f"{part}_scipio.psl")
-            ))
+            split_blat_psl_params.append(
+                (blat_out_file, query_part_paths[query], Path(scipio_out_dir, f"{part}_scipio.psl"))
+            )
         psls_to_del = []
         if debug:
             for params in split_blat_psl_params:
@@ -1474,8 +1743,9 @@ def run_scipio_parallel(
                 psls_to_del.append(blat_part_psl)
         else:
             subexecutor = ProcessPoolExecutor(max_workers=threads)
-            futures = [subexecutor.submit(split_blat_psl, *params)
-                       for params in split_blat_psl_params]
+            futures = [
+                subexecutor.submit(split_blat_psl, *params) for params in split_blat_psl_params
+            ]
             for future in as_completed(futures):
                 blat_part_psl = future.result()
                 psls_to_del.append(blat_part_psl)
@@ -1486,23 +1756,25 @@ def run_scipio_parallel(
         run_scipio_command_params = []
         for query in query_part_paths:
             part = query.stem
-            run_scipio_command_params.append((
-                scipio_params["scipio_path"],
-                Path(scipio_out_dir, f"{part}_scipio.psl"),
-                blat_only,
-                scipio_min_score,
-                scipio_params["min_identity"],
-                scipio_params["min_coverage"],
-                disable_stitching,
-                scipio_params["blat_path"],
-                blat_score,
-                scipio_params["transtable"],
-                extra_settings,
-                target,
-                query,
-                Path(scipio_out_dir, f"{part}_scipio.yaml"),
-                Path(scipio_out_dir, f"{part}_scipio.log")
-            ))
+            run_scipio_command_params.append(
+                (
+                    scipio_params["scipio_path"],
+                    Path(scipio_out_dir, f"{part}_scipio.psl"),
+                    blat_only,
+                    scipio_min_score,
+                    scipio_params["min_identity"],
+                    scipio_params["min_coverage"],
+                    disable_stitching,
+                    scipio_params["blat_path"],
+                    blat_score,
+                    scipio_params["transtable"],
+                    extra_settings,
+                    target,
+                    query,
+                    Path(scipio_out_dir, f"{part}_scipio.yaml"),
+                    Path(scipio_out_dir, f"{part}_scipio.log"),
+                )
+            )
         yamls_to_cat = []
         if debug:
             for params in run_scipio_command_params:
@@ -1511,8 +1783,10 @@ def run_scipio_parallel(
                     yamls_to_cat.append(scipio_yaml)
         else:
             subexecutor = ProcessPoolExecutor(max_workers=threads)
-            futures = [subexecutor.submit(run_scipio_command, *params)
-                       for params in run_scipio_command_params]
+            futures = [
+                subexecutor.submit(run_scipio_command, *params)
+                for params in run_scipio_command_params
+            ]
             for future in as_completed(futures):
                 scipio_yaml = future.result()
                 if scipio_yaml is not None:
@@ -1527,7 +1801,7 @@ def run_scipio_parallel(
                             if line.startswith("  - ID: "):
                                 line = line.replace("  - ID: ", f"  - ID: {part}_")
                             yaml_out.write(line)
-                    scipio_log = Path(scipio_yaml.parent, f'{scipio_yaml.stem}.log')
+                    scipio_log = Path(scipio_yaml.parent, f"{scipio_yaml.stem}.log")
                     with open(scipio_log, "rt") as log_in:
                         yaml_log.write(f"\n\n{scipio_log}:\n")
                         yaml_log.writelines(log_in.readlines())
@@ -1535,7 +1809,7 @@ def run_scipio_parallel(
         # Merge partial output files, then delete all partial files
         if not file_is_empty(scipio_out_file):
             for scipio_yaml in yamls_to_cat:
-                scipio_log = Path(scipio_yaml.parent, f'{scipio_yaml.stem}.log')
+                scipio_log = Path(scipio_yaml.parent, f"{scipio_yaml.stem}.log")
                 scipio_yaml.unlink()
                 scipio_log.unlink()
             for psl in psls_to_del:
@@ -1548,9 +1822,9 @@ def run_scipio_parallel(
 
 
 def filter_depth_blat_psl(blat_out_file: Path, ignore_depth: bool, depth_tolerance: float):
-
-    blat_unfiltered_file = Path(blat_out_file.parent,
-                                blat_out_file.name.replace(".psl", "_unfiltered.psl"))
+    blat_unfiltered_file = Path(
+        blat_out_file.parent, blat_out_file.name.replace(".psl", "_unfiltered.psl")
+    )
 
     if ignore_depth is True:
         return
@@ -1600,30 +1874,43 @@ def split_blat_psl(psl_path_in, seq_names_set, psl_out_path):
 
 
 def run_scipio_command(
-    scipio_path, blat_out_file, blat_only, scipio_min_score, min_identity,
-    min_coverage, disable_stitching, blat_path, blat_score, transtable,
-    extra_settings, target_path, query_path, scipio_out_file, scipio_log_file
+    scipio_path,
+    blat_out_file,
+    blat_only,
+    scipio_min_score,
+    min_identity,
+    min_coverage,
+    disable_stitching,
+    blat_path,
+    blat_score,
+    transtable,
+    extra_settings,
+    target_path,
+    query_path,
+    scipio_out_file,
+    scipio_log_file,
 ):
     # Build the basic part of the command
     basic = [
-        "perl", f'{scipio_path}',
-        f'--blat_output={blat_out_file}',
+        "perl",
+        f"{scipio_path}",
+        f"--blat_output={blat_out_file}",
         "--verbose",
         "--keep_blat_output",
         "--show_blatline",
-        f'--min_score={scipio_min_score}',
-        f'--min_identity={min_identity}',
-        f'--min_coverage={min_coverage}',
+        f"--min_score={scipio_min_score}",
+        f"--min_identity={min_identity}",
+        f"--min_coverage={min_coverage}",
         "--max_mismatch=0",  # 0 means infinite
         "--multiple_results",
-        f'--blat_bin={blat_path}',
-        f'--blat_score={blat_score}',
-        f'--blat_identity={min_identity * settings.SCIPIO_BLAT_IDENT_FACTOR:.0f}',
-        f'--transtable={transtable}',
-        f'--accepted_intron_penalty={settings.SCIPIO_ACCEPTED_INTRON_PENALTY}',
+        f"--blat_bin={blat_path}",
+        f"--blat_score={blat_score}",
+        f"--blat_identity={min_identity * settings.SCIPIO_BLAT_IDENT_FACTOR:.0f}",
+        f"--transtable={transtable}",
+        f"--accepted_intron_penalty={settings.SCIPIO_ACCEPTED_INTRON_PENALTY}",
     ]
     if disable_stitching:
-        basic += ["--single_target_hits"] # Scipio finds matches in a single contig only
+        basic += ["--single_target_hits"]  # Scipio finds matches in a single contig only
 
     # Finish building the command and run Scipio
     if blat_only:
@@ -1701,7 +1988,7 @@ def write_fastas_and_report(
         for i in range(len(sorted_block_sizes)):
             c_size += sorted_block_sizes[i]
             if c_size >= x_size:
-                nx, lx = sorted_block_sizes[i], i+1
+                nx, lx = sorted_block_sizes[i], i + 1
                 break
         return nx, lx
 
@@ -1714,7 +2001,7 @@ def write_fastas_and_report(
                 if start == end:
                     block_size += 1
                 else:
-                    block_size += (end - start)
+                    block_size += end - start
             block_sizes.append(block_size)
         block_sizes = sorted(block_sizes, reverse=True)
         rec_size = sum(block_sizes)
@@ -1724,12 +2011,12 @@ def write_fastas_and_report(
         ng90, lg90 = calc_nx_lx(ref_size, 0.90, block_sizes)
         stats = {
             "num_contigs": len(block_sizes),
-            "N50":  n50,
-            "N90":  n90,
+            "N50": n50,
+            "N90": n90,
             "NG50": ng50,
             "NG90": ng90,
-            "L50":  l50,
-            "L90":  l90,
+            "L50": l50,
+            "L90": l90,
             "LG50": lg50,
             "LG90": lg90,
         }
@@ -1743,7 +2030,6 @@ def write_fastas_and_report(
     for ref in sorted(hits):
         num_loci += 1
         for h in range(len(hits[ref])):
-
             length = hits[ref][h]["match_len"]
 
             if h == 0:
@@ -1753,9 +2039,9 @@ def write_fastas_and_report(
                 num_paralogs += 1
 
             description = (
-                f'[hit={h:02}] [wscore={hits[ref][h]["wscore"]:.3f}] '
-                f'[cover={hits[ref][h]["coverage"]:.2f}] [ident={hits[ref][h]["identity"]:.2f}] '
-                f'[score={hits[ref][h]["score"]:.3f}] '
+                f"[hit={h:02}] [wscore={hits[ref][h]['wscore']:.3f}] "
+                f"[cover={hits[ref][h]['coverage']:.2f}] [ident={hits[ref][h]['identity']:.2f}] "
+                f"[score={hits[ref][h]['score']:.3f}] "
             )
 
             seq_flanked = hits[ref][h]["seq_flanked"]
@@ -1773,26 +2059,27 @@ def write_fastas_and_report(
             #     f'[query={hits[ref][h]["ref_name"]}:{ref_coords}] '
             #     f'[contigs={hits[ref][h]["hit_contigs"]}]'.replace("\n", ";")
             # )
-            query = (f'[query={hits[ref][h]["ref_name"]}] ')
+            query = f"[query={hits[ref][h]['ref_name']}] "
 
             shifts_flanked, shifts_gene, shifts_nt, shifts_aa = "", "", "", ""
             if marker_type in ["NUC", "PTD", "MIT"]:
-                shifts_flanked = [str(p + 1) for p in range(len(seq_flanked))
-                                  if seq_flanked[p] == "N"]
+                shifts_flanked = [
+                    str(p + 1) for p in range(len(seq_flanked)) if seq_flanked[p] == "N"
+                ]
                 if shifts_flanked:
-                    shifts_flanked = f'[frameshifts={",".join(shifts_flanked)}] '
+                    shifts_flanked = f"[frameshifts={','.join(shifts_flanked)}] "
                 else:
                     shifts_flanked = ""
                 shifts_gene = [str(p + 1) for p in range(len(seq_gene)) if seq_gene[p] == "N"]
                 if shifts_gene:
-                    shifts_gene = f'[frameshifts={",".join(shifts_gene)}] '
+                    shifts_gene = f"[frameshifts={','.join(shifts_gene)}] "
                 else:
                     shifts_gene = ""
                 shifts_nt = [str(p + 1) for p in range(len(seq_nt)) if seq_nt[p] == "N"]
                 shifts_aa = [str(math.ceil(int(p) / 3)) for p in shifts_nt]
                 if shifts_nt:
-                    shifts_aa = f'[frameshifts={",".join(shifts_aa)}]'
-                    shifts_nt = f'[frameshifts={",".join(shifts_nt)}]'
+                    shifts_aa = f"[frameshifts={','.join(shifts_aa)}]"
+                    shifts_nt = f"[frameshifts={','.join(shifts_nt)}]"
                 else:
                     shifts_aa, shifts_nt = "", ""
 
@@ -1804,24 +2091,24 @@ def write_fastas_and_report(
             flanked_seqs[seq_name] = {
                 "description": f"{query}{description}{len_flanked}{shifts_flanked}",
                 "sequence": seq_flanked,
-                "ref_name": ref
+                "ref_name": ref,
             }
             gene_seqs[seq_name] = {
                 "description": f"{query}{description}{len_gene}{shifts_gene}",
                 "sequence": seq_gene,
-                "ref_name": ref
+                "ref_name": ref,
             }
 
             if marker_type in ["NUC", "PTD", "MIT"]:
                 cds_nt_seqs[seq_name] = {
                     "description": f"{query}{description}{len_nt}{shifts_nt}",
                     "sequence": seq_nt,
-                    "ref_name": ref
+                    "ref_name": ref,
                 }
                 cds_aa_seqs[seq_name] = {
                     "description": f"{query}{description}{len_aa}{shifts_aa}",
                     "sequence": seq_aa,
-                    "ref_name": ref
+                    "ref_name": ref,
                 }
 
             # Format data for summary table
@@ -1829,42 +2116,51 @@ def write_fastas_and_report(
             flanks_len = len(seq_flanked.replace("n", "")) - len(seq_gene.replace("n", ""))
             if marker_type in ["NUC", "PTD", "MIT"]:
                 intron_len = max(len(seq_gene.replace("n", "")) - len(seq_nt), 0)
-                stats_row = {"ref_type": "prot",
-                             "cds_len": f'{len(seq_nt)}',
-                             "intron_len": f'{intron_len}',
-                             "frameshifts": shifts_nt.strip().replace("[frameshifts=", "").strip("]")}
+                stats_row = {
+                    "ref_type": "prot",
+                    "cds_len": f"{len(seq_nt)}",
+                    "intron_len": f"{intron_len}",
+                    "frameshifts": shifts_nt.strip().replace("[frameshifts=", "").strip("]"),
+                }
             else:
-                stats_row = {"ref_type": "nucl",
-                             "cds_len": "NA",
-                             "intron_len": "NA",
-                             "frameshifts": "NA"}
+                stats_row = {
+                    "ref_type": "nucl",
+                    "cds_len": "NA",
+                    "intron_len": "NA",
+                    "frameshifts": "NA",
+                }
             frag_stats = fragmentation(hits[ref][h]["ref_coords"], hits[ref][h]["ref_size"])
-            stats.append("\t".join([sample_name,
-                                    marker_type,
-                                    ref,
-                                    hits[ref][h]["ref_name"],
-                                    ref_coords,
-                                    stats_row["ref_type"],
-                                    f"{length}",
-                                    f"{h:02}",
-                                    f'{hits[ref][h]["coverage"]:.2f}',
-                                    f'{hits[ref][h]["identity"]:.2f}',
-                                    f'{hits[ref][h]["score"]:.3f}',
-                                    f'{hits[ref][h]["wscore"]:.3f}',
-                                    f'{hit_len}',
-                                    stats_row["cds_len"],
-                                    stats_row["intron_len"],
-                                    f'{flanks_len}',
-                                    stats_row["frameshifts"],
-                                    f'{frag_stats["num_contigs"]}',
-                                    f'{frag_stats["L50"] }',
-                                    f'{frag_stats["L90"] }',
-                                    f'{frag_stats["LG50"]}',
-                                    f'{frag_stats["LG90"]}',
-                                    f'{hits[ref][h]["hit_contigs"]}'.replace("\n", ";"),
-                                    f'{hits[ref][h]["strand"]}'.replace("\n", ";"),
-                                    format_coords(hits[ref][h]["hit_coords"]),
-                                    ]))
+            stats.append(
+                "\t".join(
+                    [
+                        sample_name,
+                        marker_type,
+                        ref,
+                        hits[ref][h]["ref_name"],
+                        ref_coords,
+                        stats_row["ref_type"],
+                        f"{length}",
+                        f"{h:02}",
+                        f"{hits[ref][h]['coverage']:.2f}",
+                        f"{hits[ref][h]['identity']:.2f}",
+                        f"{hits[ref][h]['score']:.3f}",
+                        f"{hits[ref][h]['wscore']:.3f}",
+                        f"{hit_len}",
+                        stats_row["cds_len"],
+                        stats_row["intron_len"],
+                        f"{flanks_len}",
+                        stats_row["frameshifts"],
+                        f"{frag_stats['num_contigs']}",
+                        f"{frag_stats['L50']}",
+                        f"{frag_stats['L90']}",
+                        f"{frag_stats['LG50']}",
+                        f"{frag_stats['LG90']}",
+                        f"{hits[ref][h]['hit_contigs']}".replace("\n", ";"),
+                        f"{hits[ref][h]['strand']}".replace("\n", ";"),
+                        format_coords(hits[ref][h]["hit_coords"]),
+                    ]
+                )
+            )
 
             for contig in hits[ref][h]["hit_contigs"].split("\n"):
                 if contig not in hit_contigs:
@@ -1882,13 +2178,13 @@ def write_fastas_and_report(
             hit_list_out.write(f"{contig}\n")
 
     if marker_type in ["NUC", "PTD", "MIT"]:
-        dict_to_fasta(cds_aa_seqs, Path(out_dir, f'{marker_type}{settings.FORMAT_SUFFIXES["AA"]}'))
-        dict_to_fasta(cds_nt_seqs, Path(out_dir, f'{marker_type}{settings.FORMAT_SUFFIXES["NT"]}'))
-        dict_to_fasta(gene_seqs, Path(out_dir, f'{marker_type}{settings.FORMAT_SUFFIXES["GE"]}'))
-        dict_to_fasta(flanked_seqs, Path(out_dir, f'{marker_type}{settings.FORMAT_SUFFIXES["GF"]}'))
+        dict_to_fasta(cds_aa_seqs, Path(out_dir, f"{marker_type}{settings.FORMAT_SUFFIXES['AA']}"))
+        dict_to_fasta(cds_nt_seqs, Path(out_dir, f"{marker_type}{settings.FORMAT_SUFFIXES['NT']}"))
+        dict_to_fasta(gene_seqs, Path(out_dir, f"{marker_type}{settings.FORMAT_SUFFIXES['GE']}"))
+        dict_to_fasta(flanked_seqs, Path(out_dir, f"{marker_type}{settings.FORMAT_SUFFIXES['GF']}"))
     elif marker_type in ["DNA", "CLR"]:
-        dict_to_fasta(gene_seqs, Path(out_dir, f'{marker_type}{settings.FORMAT_SUFFIXES["MA"]}'))
-        dict_to_fasta(flanked_seqs, Path(out_dir, f'{marker_type}{settings.FORMAT_SUFFIXES["MF"]}'))
+        dict_to_fasta(gene_seqs, Path(out_dir, f"{marker_type}{settings.FORMAT_SUFFIXES['MA']}"))
+        dict_to_fasta(flanked_seqs, Path(out_dir, f"{marker_type}{settings.FORMAT_SUFFIXES['MF']}"))
 
     if len(gene_seqs) <= max_loci_files:
         if marker_type in ["NUC", "PTD", "MIT"]:
@@ -1920,35 +2216,58 @@ def write_fastas_and_report(
                 )
             else:
                 seq_name_short = seq_name_full.split(settings.SEQ_NAME_SEP)[0]
-            dict_to_fasta({seq_name_short: dict(flanked_seqs[seq_name_full])},
-                          Path(flanked_seqs_dir, f'{flanked_seqs[seq_name_full]["ref_name"]}.fna'),
-                          append=True)
-            dict_to_fasta({seq_name_short: dict(gene_seqs[seq_name_full])},
-                          Path(gene_seqs_dir, f'{gene_seqs[seq_name_full]["ref_name"]}.fna'),
-                          append=True)
+            dict_to_fasta(
+                {seq_name_short: dict(flanked_seqs[seq_name_full])},
+                Path(flanked_seqs_dir, f"{flanked_seqs[seq_name_full]['ref_name']}.fna"),
+                append=True,
+            )
+            dict_to_fasta(
+                {seq_name_short: dict(gene_seqs[seq_name_full])},
+                Path(gene_seqs_dir, f"{gene_seqs[seq_name_full]['ref_name']}.fna"),
+                append=True,
+            )
             if marker_type in ["NUC", "PTD", "MIT"]:
-                dict_to_fasta({seq_name_short: dict(cds_aa_seqs[seq_name_full])},
-                              Path(cds_aa_seqs_dir, f'{cds_aa_seqs[seq_name_full]["ref_name"]}.faa'),
-                              append=True)
-                dict_to_fasta({seq_name_short: dict(cds_nt_seqs[seq_name_full])},
-                              Path(cds_nt_seqs_dir, f'{cds_nt_seqs[seq_name_full]["ref_name"]}.fna'),
-                              append=True)
+                dict_to_fasta(
+                    {seq_name_short: dict(cds_aa_seqs[seq_name_full])},
+                    Path(cds_aa_seqs_dir, f"{cds_aa_seqs[seq_name_full]['ref_name']}.faa"),
+                    append=True,
+                )
+                dict_to_fasta(
+                    {seq_name_short: dict(cds_nt_seqs[seq_name_full])},
+                    Path(cds_nt_seqs_dir, f"{cds_nt_seqs[seq_name_full]['ref_name']}.fna"),
+                    append=True,
+                )
 
     recovery_stats = {
         "num_loci": num_loci,
         "num_paralogs": num_paralogs,
         "mean_length_best_hits": round(statistics.mean(lengths_best_hits), 2),
         "total_length_best_hits": sum(lengths_best_hits),
-        "mean_coverage_best_hits": round(statistics.mean(coverages_best_hits), 2)
+        "mean_coverage_best_hits": round(statistics.mean(coverages_best_hits), 2),
     }
 
     return recovery_stats
 
 
 def blat_misc_dna(
-    blat_path, min_identity, min_coverage, target_path, sample_dir, sample_name,
-    query_path, query_dict, query_info, marker_type, ignore_depth, depth_tolerance,
-    disable_stitching, max_loci_files, max_paralogs, tsv_comment, overwrite, keep_all
+    blat_path,
+    min_identity,
+    min_coverage,
+    target_path,
+    sample_dir,
+    sample_name,
+    query_path,
+    query_dict,
+    query_info,
+    marker_type,
+    ignore_depth,
+    depth_tolerance,
+    disable_stitching,
+    max_loci_files,
+    max_paralogs,
+    tsv_comment,
+    overwrite,
+    keep_all,
 ):
     """
     Extract matches of miscellaneous DNA sequences by comparing the assemblies to a set of
@@ -1962,7 +2281,7 @@ def blat_misc_dna(
         blat_path = settings.BUNDLED_BLAT
 
     # Create output directory
-    blat_dna_out_dir  = Path(sample_dir, settings.MARKER_DIRS[marker_type])
+    blat_dna_out_dir = Path(sample_dir, settings.MARKER_DIRS[marker_type])
     blat_dna_out_file = Path(blat_dna_out_dir, f"{marker_type}_blat_search.psl")
     blat_dna_log_file = Path(blat_dna_out_dir, f"{marker_type}_blat_search.log")
     dna_gff_file = Path(blat_dna_out_dir, f"{marker_type}_contigs.gff")
@@ -1978,7 +2297,7 @@ def blat_misc_dna(
             f"-minIdentity={min_identity}",
             f"{target_path}",
             f"{query_path}",
-            f"{blat_dna_out_file}"
+            f"{blat_dna_out_file}",
         ]
         with open(blat_dna_log_file, "w") as blat_log:
             blat_log.write(f"Captus' BLAT command:\n  {' '.join(blat_cmd)}\n\n")
@@ -1988,9 +2307,15 @@ def blat_misc_dna(
         # Filter hits according the depth of coverage of the contigs
         filter_depth_blat_psl(blat_dna_out_file, ignore_depth, depth_tolerance)
 
-        dna_hits = blat_misc_dna_psl_to_dict(blat_dna_out_file, dna_target, min_identity,
-                                             min_coverage, marker_type, disable_stitching,
-                                             max_paralogs)
+        dna_hits = blat_misc_dna_psl_to_dict(
+            blat_dna_out_file,
+            dna_target,
+            min_identity,
+            min_coverage,
+            marker_type,
+            disable_stitching,
+            max_paralogs,
+        )
         if not dna_hits:
             message = red(f"'{sample_name}': FAILED extraction of miscellaneous DNA markers")
             return message
@@ -1998,15 +2323,22 @@ def blat_misc_dna(
             if not keep_all:
                 Path(blat_dna_out_file).unlink()
             write_gff3(dna_hits, marker_type, disable_stitching, tsv_comment, dna_gff_file)
-            recovery_stats = write_fastas_and_report(dna_hits, sample_name, dna_target,
-                                                     blat_dna_out_dir, marker_type,
-                                                     max_loci_files, tsv_comment, overwrite)
+            recovery_stats = write_fastas_and_report(
+                dna_hits,
+                sample_name,
+                dna_target,
+                blat_dna_out_dir,
+                marker_type,
+                max_loci_files,
+                tsv_comment,
+                overwrite,
+            )
             message = (
                 f"'{sample_name}': recovered {recovery_stats['num_loci']:,} DNA markers"
-                f' ({recovery_stats["num_loci"] / query_info["num_loci"]:.1%} of'
-                f' {query_info["num_loci"]:,}),'
-                f' {recovery_stats["total_length_best_hits"] / query_info["total_length_loci"]:.1%}'
-                f' of total reference length, {recovery_stats["num_paralogs"]:,} paralogs found'
+                f" ({recovery_stats['num_loci'] / query_info['num_loci']:.1%} of"
+                f" {query_info['num_loci']:,}),"
+                f" {recovery_stats['total_length_best_hits'] / query_info['total_length_loci']:.1%}"
+                f" of total reference length, {recovery_stats['num_paralogs']:,} paralogs found"
                 f" [{elapsed_time(time.time() - start)}]"
             )
             return message
@@ -2020,8 +2352,14 @@ def blat_misc_dna(
 
 
 def cleanup_post_extraction(
-    sample_name, sample_dir, assembly_path, tsv_comment,
-    keep_all, overwrite, skip_clustering, cluster=False
+    sample_name,
+    sample_dir,
+    assembly_path,
+    tsv_comment,
+    keep_all,
+    overwrite,
+    skip_clustering,
+    cluster=False,
 ):
     """
     Concatenate all '.gff' from extraction folders to make a master annotation file and a single
@@ -2037,23 +2375,25 @@ def cleanup_post_extraction(
     gff_file = Path(annotated_assembly_dir, f"{sample_name}_hit_contigs.gff")
     stats_file = Path(annotated_assembly_dir, f"{sample_name}_recovery_stats.tsv")
     hit_contigs_file = Path(annotated_assembly_dir, f"{sample_name}_hit_contigs.fasta")
-    leftovers_clust_file = Path(annotated_assembly_dir, "leftover_contigs_after_clustering.fasta.gz")
+    leftovers_clust_file = Path(
+        annotated_assembly_dir, "leftover_contigs_after_clustering.fasta.gz"
+    )
     leftovers_file = Path(annotated_assembly_dir, "leftover_contigs.fasta.gz")
     out_files = [gff_file, stats_file, hit_contigs_file, leftovers_clust_file, leftovers_file]
 
     if dir_is_empty(annotated_assembly_dir) is True or overwrite is True:
         # Concatenate all GFF from different genomes
         sample_gffs = sorted(list(sample_dir.resolve().rglob("[A-Z]*_contigs.gff")))
-        sample_gffs = [gff for gff in sample_gffs
-                       if gff.parts[-2] != "06_assembly_annotated"]
+        sample_gffs = [gff for gff in sample_gffs if gff.parts[-2] != "06_assembly_annotated"]
         if not cluster and not skip_clustering:
-            sample_gffs = [gff for gff in sample_gffs
-                           if gff.parts[-2] != settings.MARKER_DIRS["CLR"]]
+            sample_gffs = [
+                gff for gff in sample_gffs if gff.parts[-2] != settings.MARKER_DIRS["CLR"]
+            ]
         gff_lines = 0
         with open(gff_file, "wt") as gff_out:
             gff_out.write("##gff-version 3\n")
-            gff_out.write(f'#{tsv_comment.split("\n")[0]}\n')
-            gff_out.write(f'#{tsv_comment.split("\n")[1]}\n')
+            gff_out.write(f"#{tsv_comment.split('\n')[0]}\n")
+            gff_out.write(f"#{tsv_comment.split('\n')[1]}\n")
             if sample_gffs:
                 for gff in sorted(sample_gffs):
                     with open(gff, "rt") as gff_in:
@@ -2075,11 +2415,11 @@ def cleanup_post_extraction(
         # Concatenate all recovery statistics tables
         stats_header = "\t".join(settings.EXT_STATS_HEADER) + "\n"
         sample_stats = sorted(list(sample_dir.resolve().rglob("[A-Z]*_recovery_stats.tsv")))
-        sample_stats = [tsv for tsv in sample_stats
-                        if tsv.parts[-2] != "06_assembly_annotated"]
+        sample_stats = [tsv for tsv in sample_stats if tsv.parts[-2] != "06_assembly_annotated"]
         if not cluster and not skip_clustering:
-            sample_stats = [tsv for tsv in sample_stats
-                            if tsv.parts[-2] != settings.MARKER_DIRS["CLR"]]
+            sample_stats = [
+                tsv for tsv in sample_stats if tsv.parts[-2] != settings.MARKER_DIRS["CLR"]
+            ]
         tsv_lines = 0
         with open(stats_file, "wt") as tsv_out:
             tsv_out.write(tsv_comment)
@@ -2098,8 +2438,9 @@ def cleanup_post_extraction(
         names_hit_contigs = []
         contig_lists = list(sample_dir.resolve().rglob("[A-Z]*_contigs.list.txt"))
         if not cluster and not skip_clustering:
-            contig_lists = [cl for cl in contig_lists
-                            if cl.parts[-2] != settings.MARKER_DIRS["CLR"]]
+            contig_lists = [
+                cl for cl in contig_lists if cl.parts[-2] != settings.MARKER_DIRS["CLR"]
+            ]
         if contig_lists:
             for cl in contig_lists:
                 with open(cl, "rt") as clin:
@@ -2149,9 +2490,11 @@ def find_fasta_leftovers(fastas_to_extract):
     fastas_to_cluster = {}
     num_leftovers = 0
     for sample in fastas_to_extract:
-        leftovers_file = Path(fastas_to_extract[sample]["sample_dir"],
-                              "06_assembly_annotated",
-                              "leftover_contigs.fasta.gz")
+        leftovers_file = Path(
+            fastas_to_extract[sample]["sample_dir"],
+            "06_assembly_annotated",
+            "leftover_contigs.fasta.gz",
+        )
         if leftovers_file.is_file():
             fastas_to_cluster[sample] = leftovers_file.resolve()
             num_leftovers += 1
@@ -2161,8 +2504,12 @@ def find_fasta_leftovers(fastas_to_extract):
 
 
 def rehead_and_concatenate_fastas(
-    fastas_to_cluster, clustering_dir, clustering_input_file, clust_max_seq_len, threads_max,
-    show_less
+    fastas_to_cluster,
+    clustering_dir,
+    clustering_input_file,
+    clust_max_seq_len,
+    threads_max,
+    show_less,
 ):
     """
     Since all the FASTAs coming from all the samples will be joined in a single file for clustering,
@@ -2174,9 +2521,15 @@ def rehead_and_concatenate_fastas(
     rehead_params = []
     for sample in fastas_to_cluster:
         rehead_params.append((sample, fastas_to_cluster[sample], clustering_dir))
-    tqdm_parallel_async_run(rehead_fasta_with_sample_name, rehead_params,
-                            "Preparing FASTA assemblies for clustering",
-                            "FASTA pre-processing completed", "file", threads_max, show_less)
+    tqdm_parallel_async_run(
+        rehead_fasta_with_sample_name,
+        rehead_params,
+        "Preparing FASTA assemblies for clustering",
+        "FASTA pre-processing completed",
+        "file",
+        threads_max,
+        show_less,
+    )
     log.log("")
     fastas_to_concatenate = list(clustering_dir.glob("*_leftover_contigs.fasta"))
     log.log(bold("Concatenating input for clustering:"))
@@ -2185,17 +2538,22 @@ def rehead_and_concatenate_fastas(
         for cat_fasta in fastas_to_concatenate:
             full_fasta = fasta_to_dict(cat_fasta)
             if clust_max_seq_len > 0:
-                filtered_fasta = {seq_name:full_fasta[seq_name] for seq_name in full_fasta
-                                  if len(full_fasta[seq_name]["sequence"]) <= clust_max_seq_len}
+                filtered_fasta = {
+                    seq_name: full_fasta[seq_name]
+                    for seq_name in full_fasta
+                    if len(full_fasta[seq_name]["sequence"]) <= clust_max_seq_len
+                }
                 dict_to_fasta(filtered_fasta, clustering_input_file, append=True)
             else:
                 dict_to_fasta(full_fasta, clustering_input_file, append=True)
             cat_fasta.unlink()
             pbar.update()
-    log.log(bold(
-        f" \u2514\u2500\u2192 File '{clustering_input_file.name}'"
-        f" prepared in {elapsed_time(time.time() - start)}(s)"
-    ))
+    log.log(
+        bold(
+            f" \u2514\u2500\u2192 File '{clustering_input_file.name}'"
+            f" prepared in {elapsed_time(time.time() - start)}(s)"
+        )
+    )
 
 
 def rehead_fasta_with_sample_name(sample_name, sample_fasta_path, clustering_dir):
@@ -2217,17 +2575,43 @@ def rehead_fasta_with_sample_name(sample_name, sample_fasta_path, clustering_dir
 
 
 def cluster_and_select_refs(
-    num_samples, clust_min_samples, clust_max_copies, clust_rep_min_len, mmseqs_path,
-    mmseqs_method, cluster_mode, cluster_sensitivity, clustering_input_file, clustering_dir,
-    min_identity, seq_id_mode, min_coverage, cov_mode, clust_tmp_dir, mafft_path, max_threads, debug
+    num_samples,
+    clust_min_samples,
+    clust_max_copies,
+    clust_rep_min_len,
+    mmseqs_path,
+    mmseqs_method,
+    cluster_mode,
+    cluster_sensitivity,
+    clustering_input_file,
+    clustering_dir,
+    min_identity,
+    seq_id_mode,
+    min_coverage,
+    cov_mode,
+    clust_tmp_dir,
+    mafft_path,
+    max_threads,
+    debug,
 ):
     log.log("")
     log.log(bold(f"Initial clustering of contigs at {min_identity}% identity:"))
     clust1_prefix = f"cl{min_identity:.2f}_cov{min_coverage:.2f}"
-    clust1_message = mmseqs_cluster(mmseqs_path, mmseqs_method, clustering_dir,
-                                    clustering_input_file, clust1_prefix, clust_tmp_dir,
-                                    cluster_sensitivity, min_identity, seq_id_mode,
-                                    min_coverage, cov_mode, cluster_mode, max_threads)
+    clust1_message = mmseqs_cluster(
+        mmseqs_path,
+        mmseqs_method,
+        clustering_dir,
+        clustering_input_file,
+        clust1_prefix,
+        clust_tmp_dir,
+        cluster_sensitivity,
+        min_identity,
+        seq_id_mode,
+        min_coverage,
+        cov_mode,
+        cluster_mode,
+        max_threads,
+    )
     log.log(clust1_message)
     log.log("")
     msg_p1 = bold(f"Filtering clusters with fewer than {clust_min_samples} samples,")
@@ -2243,17 +2627,24 @@ def cluster_and_select_refs(
     tqdm_cols = min(shutil.get_terminal_size().columns, 120)
     with tqdm(total=len(clust1_clusters), ncols=tqdm_cols, unit="cluster") as pbar:
         for cluster in clust1_clusters:
-            samples_in_cluster = len(set([
-                cluster[i][1:].split(settings.SEQ_NAME_SEP)[0] for i in range(0, len(cluster), 2)
-            ]))
+            samples_in_cluster = len(
+                set(
+                    [
+                        cluster[i][1:].split(settings.SEQ_NAME_SEP)[0]
+                        for i in range(0, len(cluster), 2)
+                    ]
+                )
+            )
             avg_copies_in_cluster = len(cluster) / 2 / samples_in_cluster
             if samples_in_cluster == 1:
                 singletons += 1
                 pbar.update()
                 continue
-            elif (samples_in_cluster >= clust_min_samples
-                  and avg_copies_in_cluster <= clust_max_copies
-                  and len(cluster[1]) >= clust_rep_min_len):
+            elif (
+                samples_in_cluster >= clust_min_samples
+                and avg_copies_in_cluster <= clust_max_copies
+                and len(cluster[1]) >= clust_rep_min_len
+            ):
                 passed.append(cluster)
                 pbar.update()
                 continue
@@ -2268,16 +2659,16 @@ def cluster_and_select_refs(
     cluster_lenghts = {}
     for cluster in passed:
         clr = f"captus{num_cluster:0{num_digits}}"
-        for i in range (0, len(cluster), 2):
+        for i in range(0, len(cluster), 2):
             if i == 0:
                 cluster_lenghts[clr] = len(cluster[1])
             h = cluster[i][1:].split(settings.SEQ_NAME_SEP)
             smp, ctg = h[0], h[1]
             ref_sep = settings.REF_CLUSTER_SEP
             seq_sep = settings.SEQ_NAME_SEP
-            seq_name = f"{smp}_C{(i//2)+1}{ref_sep}{clr}{seq_sep}{ctg}"
+            seq_name = f"{smp}_C{(i // 2) + 1}{ref_sep}{clr}{seq_sep}{ctg}"
             fasta_to_recluster[seq_name] = {
-                "sequence": cluster[i+1],
+                "sequence": cluster[i + 1],
                 "description": "",
             }
         num_cluster += 1
@@ -2286,23 +2677,36 @@ def cluster_and_select_refs(
     Path(clustering_dir, f"{clust1_prefix}_all_seqs.fasta").unlink()
     Path(clustering_dir, f"{clust1_prefix}_rep_seq.fasta").unlink()
     Path(clustering_dir, f"{clust1_prefix}_cluster.tsv").unlink()
-    log.log(bold(
-        f" \u2514\u2500\u2192 Clusters retained: {len(passed)} [{elapsed_time(time.time() - start)}]"
-    ))
-    log.log(dim(
-        f"     Filtered out {singletons+failed} clusters, of which {singletons} were singletons"
-    ))
-    log.log(dim(
-        f"     Retained sequences written to {clust2_input_fasta}"
-    ))
+    log.log(
+        bold(
+            f" \u2514\u2500\u2192 Clusters retained: {len(passed)} [{elapsed_time(time.time() - start)}]"
+        )
+    )
+    log.log(
+        dim(
+            f"     Filtered out {singletons + failed} clusters, of which {singletons} were singletons"
+        )
+    )
+    log.log(dim(f"     Retained sequences written to {clust2_input_fasta}"))
     log.log("")
     min_id2 = min(min_identity + ((100 - min_identity) / 2), min_identity + 1)
     log.log(bold(f"Reducing passing clusters by re-clustering at {min_id2}% identity:"))
     clust2_prefix = f"cl{min_id2:.2f}_cov{min_coverage:.2f}"
-    clust2_message = mmseqs_cluster(mmseqs_path, mmseqs_method, clustering_dir,
-                                    clust2_input_fasta, clust2_prefix, clust_tmp_dir,
-                                    cluster_sensitivity, min_id2, seq_id_mode,
-                                    min_coverage, cov_mode, cluster_mode, max_threads)
+    clust2_message = mmseqs_cluster(
+        mmseqs_path,
+        mmseqs_method,
+        clustering_dir,
+        clust2_input_fasta,
+        clust2_prefix,
+        clust_tmp_dir,
+        cluster_sensitivity,
+        min_id2,
+        seq_id_mode,
+        min_coverage,
+        cov_mode,
+        cluster_mode,
+        max_threads,
+    )
     log.log(clust2_message)
     log.log("")
     log.log(bold("Selecting final cluster representatives:"))
@@ -2314,18 +2718,24 @@ def cluster_and_select_refs(
     tqdm_cols = min(shutil.get_terminal_size().columns, 120)
     with tqdm(total=len(clust2_clusters), ncols=tqdm_cols, unit="cluster") as pbar:
         for cluster in clust2_clusters:
-            samples_in_cluster = len(set([
-                "_C".join(cluster[i][1:].split(settings.SEQ_NAME_SEP)[0].split("_C")[:-1])
-                for i in range(0, len(cluster), 2)
-            ]))
+            samples_in_cluster = len(
+                set(
+                    [
+                        "_C".join(cluster[i][1:].split(settings.SEQ_NAME_SEP)[0].split("_C")[:-1])
+                        for i in range(0, len(cluster), 2)
+                    ]
+                )
+            )
             h = cluster[0][1:].split(settings.SEQ_NAME_SEP)
             seq_name = h[0]
             clr = seq_name.split(settings.REF_CLUSTER_SEP)[-1]
             size = len(cluster) // 2
             seq = cluster[1]
             desc = f"[cluster_size={size}] [contig={h[1]}]"
-            if (len(seq) / cluster_lenghts[clr] >= settings.CLR_REP_MIN_LEN_PROP
-                and samples_in_cluster >= min_samples_in_cluster):
+            if (
+                len(seq) / cluster_lenghts[clr] >= settings.CLR_REP_MIN_LEN_PROP
+                and samples_in_cluster >= min_samples_in_cluster
+            ):
                 if clr not in cluster_refs:
                     cluster_refs[clr] = {
                         seq_name: {
@@ -2355,8 +2765,11 @@ def cluster_and_select_refs(
 
 
 def check_strand_and_save_refs(
-    cluster_refs_unstranded: dict, cluster_refs_fasta: Path,
-    mafft_path: str, max_threads: int, debug: bool
+    cluster_refs_unstranded: dict,
+    cluster_refs_fasta: Path,
+    mafft_path: str,
+    max_threads: int,
+    debug: bool,
 ):
     """
     Takes a dictionary where the main keys are cluster names with fasta dictionaries as values and
@@ -2398,21 +2811,28 @@ def check_strand_and_save_refs(
             fasta_in = Path(tmp_unaligned_dir, f"{clr}.fasta")
             fasta_out = Path(tmp_aligned_dir, f"{clr}.fasta")
             dict_to_fasta(cluster_refs_unstranded[clr], fasta_in)
-            mafft_params.append([
-                mafft_path,
-                fasta_in,
-                fasta_out
-            ])
+            mafft_params.append([mafft_path, fasta_in, fasta_out])
     show_less = True
-    concurrent =  max_threads//2
+    concurrent = max_threads // 2
     if debug:
-        tqdm_serial_run(mafft_auto_strand, mafft_params,
-                        f"Verifying cluster strands with MAFFT", "Strand verificiation completed",
-                        "cluster", show_less)
+        tqdm_serial_run(
+            mafft_auto_strand,
+            mafft_params,
+            "Verifying cluster strands with MAFFT",
+            "Strand verificiation completed",
+            "cluster",
+            show_less,
+        )
     else:
-        tqdm_parallel_async_run(mafft_auto_strand, mafft_params,
-                                f"Verifying cluster strands with MAFFT", "Strand verificiation completed",
-                                "cluster", concurrent, show_less)
+        tqdm_parallel_async_run(
+            mafft_auto_strand,
+            mafft_params,
+            "Verifying cluster strands with MAFFT",
+            "Strand verificiation completed",
+            "cluster",
+            concurrent,
+            show_less,
+        )
     log.log("")
 
     # Load aligned and correctly stranded FASTAs to add to the reference, disalign first
@@ -2422,7 +2842,7 @@ def check_strand_and_save_refs(
         for seq_name in stranded_fasta:
             cluster_refs[seq_name] = {
                 "sequence": stranded_fasta[seq_name]["sequence"].replace("-", ""),
-                "description": stranded_fasta[seq_name]["description"]
+                "description": stranded_fasta[seq_name]["description"],
             }
     dict_to_fasta(cluster_refs, cluster_refs_fasta)
 
@@ -2438,16 +2858,17 @@ def mafft_auto_strand(mafft_path: str, fasta_in: Path, fasta_out: Path):
     mafft_cmd = [
         mafft_path,
         "--nuc",
-        "--maxiterate", "1000",
-        "--thread", "2",
+        "--maxiterate",
+        "1000",
+        "--thread",
+        "2",
         "--adjustdirection",
-        f"{fasta_in}"
+        f"{fasta_in}",
     ]
     fasta_out_short = Path(*fasta_out.parts[-3:])
     mafft_log_file = Path(fasta_out.parent, f"{fasta_out.stem}.mafft.log")
     with open(mafft_log_file, "w") as mafft_log:
-        mafft_log.write(f"Captus' MAFFT Command:\n  {' '.join(mafft_cmd)}"
-                        f" > {fasta_out}\n\n\n")
+        mafft_log.write(f"Captus' MAFFT Command:\n  {' '.join(mafft_cmd)} > {fasta_out}\n\n\n")
     with open(fasta_out, "w") as mafft_out:
         with open(mafft_log_file, "a") as mafft_log:
             subprocess.run(mafft_cmd, stdout=mafft_out, stderr=mafft_log)

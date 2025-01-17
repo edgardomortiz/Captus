@@ -22,17 +22,39 @@ from pathlib import Path
 from tqdm import tqdm
 
 from . import log, settings
-from .bioformats import (alignment_stats, cds_from_gff, dict_to_fasta, fasta_to_dict,
-                         mmseqs_cluster, vsearch_cluster)
-from .misc import (bold, dim, dir_is_empty, elapsed_time, file_is_empty, find_and_match_fastas_gffs,
-                   format_dep_msg, mafft_path_version, make_output_dir, mmseqs_path_version,
-                   python_library_check, quit_with_error, red, set_ram, set_threads,
-                   successful_exit, tqdm_parallel_async_run, tqdm_serial_run, vsearch_path_version)
+from .bioformats import (
+    alignment_stats,
+    cds_from_gff,
+    dict_to_fasta,
+    fasta_to_dict,
+    mmseqs_cluster,
+    vsearch_cluster,
+)
+from .misc import (
+    bold,
+    dim,
+    dir_is_empty,
+    elapsed_time,
+    file_is_empty,
+    find_and_match_fastas_gffs,
+    format_dep_msg,
+    mafft_path_version,
+    make_output_dir,
+    mmseqs_path_version,
+    python_library_check,
+    quit_with_error,
+    red,
+    set_ram,
+    set_threads,
+    successful_exit,
+    tqdm_parallel_async_run,
+    tqdm_serial_run,
+    vsearch_path_version,
+)
 from .version import __version__
 
 
 def cluster(full_command, args):
-
     captus_start = time.time()
     out_dir, out_dir_msg = make_output_dir(args.out)
     log.logger = log.Log(Path(out_dir, "captus-cluster.log"), stdout_verbosity_level=1)
@@ -47,7 +69,8 @@ def cluster(full_command, args):
         " the files provided with the '--markers_to_cluster' option. If a FASTA file is found"
         " together with a matching GFF annotation file, Captus will extract the CDS for clustering,"
         " otherwise every sequence in the FASTA file that is shorter than '--max_seq_len' will be"
-        " clustered", extra_empty_lines_after=0
+        " clustered",
+        extra_empty_lines_after=0,
     )
     if len(args.markers_to_cluster) == 1 and Path(args.markers_to_cluster[0]).is_dir():
         intro_msg = (
@@ -78,15 +101,19 @@ def cluster(full_command, args):
     if args.clust_program.lower() == "mmseqs" and mmseqs_status == "not found":
         if vsearch_status == "OK":
             args.clust_program = "vsearch"
-            intro_msg = ("MMseqs2 was not found, but VSEARCH will be used for dereplicating and"
-                         " clustering instead.")
+            intro_msg = (
+                "MMseqs2 was not found, but VSEARCH will be used for dereplicating and"
+                " clustering instead."
+            )
         else:
             no_clust_program = True
     elif args.clust_program.lower() == "vsearch" and vsearch_status == "not found":
         if mmseqs_status == "OK":
             args.clust_program = "mmseqs"
-            intro_msg = ("VSEARCH was not found, but MMseqs2 will be used for dereplicating and"
-                         " clustering instead.")
+            intro_msg = (
+                "VSEARCH was not found, but MMseqs2 will be used for dereplicating and"
+                " clustering instead."
+            )
         else:
             no_clust_program = True
     show_less = not args.show_more
@@ -96,40 +123,42 @@ def cluster(full_command, args):
 
     max_seq_len = adjust_max_seq_len(args.clust_program, args.max_seq_len)
 
-    log.log(f'{"Captus version":>{mar}}: {bold(f"v{__version__}")}')
-    log.log(f'{"Command":>{mar}}: {bold(full_command)}')
+    log.log(f"{'Captus version':>{mar}}: {bold(f'v{__version__}')}")
+    log.log(f"{'Command':>{mar}}: {bold(full_command)}")
     _, ram_MB, ram_GB, ram_GB_total = set_ram(args.ram)
-    log.log(f'{"Max. RAM":>{mar}}: {bold(f"{ram_GB:.1f}GB")} {dim(f"(out of {ram_GB_total:.1f}GB)")}')
+    log.log(
+        f"{'Max. RAM':>{mar}}: {bold(f'{ram_GB:.1f}GB')} {dim(f'(out of {ram_GB_total:.1f}GB)')}"
+    )
     threads_max, threads_total = set_threads(args.threads)
-    log.log(f'{"Max. Threads":>{mar}}: {bold(threads_max)} {dim(f"(out of {threads_total})")}')
+    log.log(f"{'Max. Threads':>{mar}}: {bold(threads_max)} {dim(f'(out of {threads_total})')}")
     log.log("")
 
-    log.log(f'{"Dependencies":>{mar}}:')
+    log.log(f"{'Dependencies':>{mar}}:")
     if args.clust_program.lower() == "mmseqs":
-        log.log(format_dep_msg(f'{"MMseqs2":>{mar}}: ', mmseqs_version, mmseqs_status))
-        log.log(format_dep_msg(f'{"VSEARCH":>{mar}}: ', "", "not used"))
+        log.log(format_dep_msg(f"{'MMseqs2':>{mar}}: ", mmseqs_version, mmseqs_status))
+        log.log(format_dep_msg(f"{'VSEARCH':>{mar}}: ", "", "not used"))
     if args.clust_program.lower() == "vsearch":
-        log.log(format_dep_msg(f'{"MMseqs2":>{mar}}: ', "", "not used"))
-        log.log(format_dep_msg(f'{"VSEARCH":>{mar}}: ', vsearch_version, vsearch_status))
+        log.log(format_dep_msg(f"{'MMseqs2':>{mar}}: ", "", "not used"))
+        log.log(format_dep_msg(f"{'VSEARCH':>{mar}}: ", vsearch_version, vsearch_status))
     _, mafft_version, mafft_status = mafft_path_version(args.mafft_path)
-    log.log(format_dep_msg(f'{"MAFFT":>{mar}}: ', mafft_version, mafft_status))
+    log.log(format_dep_msg(f"{'MAFFT':>{mar}}: ", mafft_version, mafft_status))
     log.log("")
 
-    log.log(f'{"Python libraries":>{mar}}:')
+    log.log(f"{'Python libraries':>{mar}}:")
     numpy_found, numpy_version, numpy_status = python_library_check("numpy")
     pandas_found, pandas_version, pandas_status = python_library_check("pandas")
     plotly_found, plotly_version, plotly_status = python_library_check("plotly")
-    log.log(format_dep_msg(f'{"numpy":>{mar}}: ', numpy_version, numpy_status))
-    log.log(format_dep_msg(f'{"pandas":>{mar}}: ', pandas_version, pandas_status))
-    log.log(format_dep_msg(f'{"plotly":>{mar}}: ', plotly_version, plotly_status))
+    log.log(format_dep_msg(f"{'numpy':>{mar}}: ", numpy_version, numpy_status))
+    log.log(format_dep_msg(f"{'pandas':>{mar}}: ", pandas_version, pandas_status))
+    log.log(format_dep_msg(f"{'plotly':>{mar}}: ", plotly_version, plotly_status))
     log.log("")
 
-    log.log(f'{"Output directory":>{mar}}: {bold(out_dir)}')
-    log.log(f'{"":>{mar}}  {dim(out_dir_msg)}')
+    log.log(f"{'Output directory':>{mar}}: {bold(out_dir)}")
+    log.log(f"{'':>{mar}}  {dim(out_dir_msg)}")
     log.log("")
 
     if args.redo_from:
-        log.log(f'{"Redo from":>{mar}}: {bold(args.redo_from)}')
+        log.log(f"{'Redo from':>{mar}}: {bold(args.redo_from)}")
         prepare_redo(out_dir, args.redo_from)
         log.log("")
 
@@ -143,7 +172,6 @@ def cluster(full_command, args):
             "Captus could not find MAFFT, please provide a valid path with '--mafft_path'"
         )
 
-
     ################################################################################################
     ########################################################################## MARKER IMPORT SECTION
     log.log_section_header("Processing and import of markers for clustering")
@@ -156,37 +184,49 @@ def cluster(full_command, args):
     )
     log.log_explanation(import_msg)
 
-    log.log(f'{"Concurrent imports":>{mar}}: {bold(threads_max)}')
+    log.log(f"{'Concurrent imports':>{mar}}: {bold(threads_max)}")
     log.log("")
-    log.log(f'{"Bait length":>{mar}}: {bold(args.bait_length)}')
+    log.log(f"{'Bait length':>{mar}}: {bold(args.bait_length)}")
     log.log("")
-    log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
-    log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
+    log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
+    log.log(f"{'Keep all files':>{mar}}: {bold(args.keep_all)}")
     fastas_to_import = find_and_match_fastas_gffs(args.markers_to_cluster)
-    log.log(f'{"FASTAs to import":>{mar}}: {bold(len(fastas_to_import))}')
+    log.log(f"{'FASTAs to import':>{mar}}: {bold(len(fastas_to_import))}")
     log.log("")
 
     import_params = []
     for fasta in fastas_to_import:
-        import_params.append((
-            fasta,
-            fastas_to_import[fasta]["fasta_dir"],
-            fastas_to_import[fasta]["gff_path"],
-            args.bait_length,
-            out_dir,
-            args.overwrite,
-        ))
+        import_params.append(
+            (
+                fasta,
+                fastas_to_import[fasta]["fasta_dir"],
+                fastas_to_import[fasta]["gff_path"],
+                args.bait_length,
+                out_dir,
+                args.overwrite,
+            )
+        )
 
     if args.debug:
-        tqdm_serial_run(import_fasta, import_params,
-                        "Importing and preprocessing FASTAs and GFFs",
-                        "Data import completed", "sample", show_less)
+        tqdm_serial_run(
+            import_fasta,
+            import_params,
+            "Importing and preprocessing FASTAs and GFFs",
+            "Data import completed",
+            "sample",
+            show_less,
+        )
     else:
-        tqdm_parallel_async_run(import_fasta, import_params,
-                                "Importing and preprocessing FASTAs and GFFs",
-                                "Data import completed", "sample", threads_max, show_less)
+        tqdm_parallel_async_run(
+            import_fasta,
+            import_params,
+            "Importing and preprocessing FASTAs and GFFs",
+            "Data import completed",
+            "sample",
+            threads_max,
+            show_less,
+        )
     log.log("")
-
 
     ################################################################################################
     #################################################### MARKER DEDUPLICATION AND CLUSTERING SECTION
@@ -198,100 +238,124 @@ def cluster(full_command, args):
     )
     log.log_explanation(clust_msg)
 
-    log.log(f'{"Max. threads":>{mar}}: {bold(threads_max)}')
+    log.log(f"{'Max. threads':>{mar}}: {bold(threads_max)}")
     log.log("")
-    log.log(f'{"Clustering program":>{mar}}: {bold(args.clust_program)}')
+    log.log(f"{'Clustering program':>{mar}}: {bold(args.clust_program)}")
     if args.clust_program == "mmseqs":
-            log.log(f'{"MMseqs2 sensitivity":>{mar}}: {bold(args.mmseqs_sensitivity)}')
-            log.log(f'{"MMseqs2 cluster mode":>{mar}}: {bold(args.mmseqs_cluster_mode)}')
-    log.log(f'{"Max. sequence length":>{mar}}: {bold(max_seq_len)}')
-    log.log(f'{"Min. sequence length":>{mar}}: {bold(args.bait_length)} (= bait length)')
-    log.log(f'{"Strand":>{mar}}: {bold(args.strand)}')
-    log.log(f'{"Deduplication id.":>{mar}}: {bold(args.dedup_threshold)}%')
-    log.log(f'{"Clustering id.":>{mar}}: {bold(args.clust_threshold)}%')
-    log.log(f'{"Align singletons":>{mar}}: {bold(args.align_singletons)}')
+        log.log(f"{'MMseqs2 sensitivity':>{mar}}: {bold(args.mmseqs_sensitivity)}")
+        log.log(f"{'MMseqs2 cluster mode':>{mar}}: {bold(args.mmseqs_cluster_mode)}")
+    log.log(f"{'Max. sequence length':>{mar}}: {bold(max_seq_len)}")
+    log.log(f"{'Min. sequence length':>{mar}}: {bold(args.bait_length)} (= bait length)")
+    log.log(f"{'Strand':>{mar}}: {bold(args.strand)}")
+    log.log(f"{'Deduplication id.':>{mar}}: {bold(args.dedup_threshold)}%")
+    log.log(f"{'Clustering id.':>{mar}}: {bold(args.clust_threshold)}%")
+    log.log(f"{'Align singletons':>{mar}}: {bold(args.align_singletons)}")
     log.log("")
-    log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
-    log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
+    log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
+    log.log(f"{'Keep all files':>{mar}}: {bold(args.keep_all)}")
     samples_to_filter = find_fastas_in_sample_dirs(out_dir, settings.DES_SUFFIXES["MARKERS"])
-    log.log(f'{"FASTAs to process":>{mar}}: {bold(len(samples_to_filter))}')
+    log.log(f"{'FASTAs to process':>{mar}}: {bold(len(samples_to_filter))}")
     log.log("")
 
     filter_params = []
     for sample_name in samples_to_filter:
-        filter_params.append((
-            sample_name,
-            samples_to_filter[sample_name]["sample_dir"],
-            samples_to_filter[sample_name]["fasta_path"],
-            out_dir,
-            max_seq_len,
-            args.bait_length,
-            args.overwrite,
-        ))
-    task_title = (f"Removing sequences shorter than {args.bait_length}"
-                  f" bp or longer than {max_seq_len} bp from FASTAs")
+        filter_params.append(
+            (
+                sample_name,
+                samples_to_filter[sample_name]["sample_dir"],
+                samples_to_filter[sample_name]["fasta_path"],
+                out_dir,
+                max_seq_len,
+                args.bait_length,
+                args.overwrite,
+            )
+        )
+    task_title = (
+        f"Removing sequences shorter than {args.bait_length}"
+        f" bp or longer than {max_seq_len} bp from FASTAs"
+    )
     if args.debug:
-        tqdm_serial_run(filter_fasta, filter_params, task_title,
-                        "Length filtering completed", "sample", show_less)
+        tqdm_serial_run(
+            filter_fasta,
+            filter_params,
+            task_title,
+            "Length filtering completed",
+            "sample",
+            show_less,
+        )
     else:
-        tqdm_parallel_async_run(filter_fasta, filter_params, task_title,
-                                "Length filtering completed", "sample", threads_max, show_less)
+        tqdm_parallel_async_run(
+            filter_fasta,
+            filter_params,
+            task_title,
+            "Length filtering completed",
+            "sample",
+            threads_max,
+            show_less,
+        )
 
     log.log("")
 
     samples_to_dedup = find_fastas_in_sample_dirs(out_dir, settings.DES_SUFFIXES["FILTER"])
     dedup_params = []
     for sample_name in samples_to_dedup:
-        dedup_params.append((
-            sample_name,
-            samples_to_dedup[sample_name]["sample_dir"],
-            samples_to_dedup[sample_name]["fasta_path"],
-            out_dir,
-            args.clust_program,
-            args.mmseqs_path,
-            args.mmseqs_sensitivity,
-            args.mmseqs_cluster_mode,
-            args.vsearch_path,
-            args.dedup_threshold,
-            args.strand,
-            threads_max,
-            args.overwrite,
-            args.keep_all,
-        ))
-    tqdm_serial_run(dedup_fasta, dedup_params,
-                    f"Deduplicating sequences from each sample at {args.dedup_threshold}% identity",
-                    "Deduplication completed", "sample", show_less)
+        dedup_params.append(
+            (
+                sample_name,
+                samples_to_dedup[sample_name]["sample_dir"],
+                samples_to_dedup[sample_name]["fasta_path"],
+                out_dir,
+                args.clust_program,
+                args.mmseqs_path,
+                args.mmseqs_sensitivity,
+                args.mmseqs_cluster_mode,
+                args.vsearch_path,
+                args.dedup_threshold,
+                args.strand,
+                threads_max,
+                args.overwrite,
+                args.keep_all,
+            )
+        )
+    tqdm_serial_run(
+        dedup_fasta,
+        dedup_params,
+        f"Deduplicating sequences from each sample at {args.dedup_threshold}% identity",
+        "Deduplication completed",
+        "sample",
+        show_less,
+    )
     log.log("")
 
     concat_dir_path, concat_dir_msg = make_output_dir(Path(out_dir, settings.DES_DIRS["CAT"]))
-    log.log(f'{"Concatenation directory":>{mar}}: {bold(concat_dir_path)}')
-    log.log(f'{"":>{mar}}  {dim(concat_dir_msg)}')
+    log.log(f"{'Concatenation directory':>{mar}}: {bold(concat_dir_path)}")
+    log.log(f"{'':>{mar}}  {dim(concat_dir_msg)}")
     log.log("")
     samples_to_concat = find_fastas_in_sample_dirs(out_dir, settings.DES_SUFFIXES["DEDUPED"])
-    fasta_concat_path = rehead_and_concatenate_fastas(samples_to_concat,
-                                                      concat_dir_path,
-                                                      args.overwrite,
-                                                      show_less)
+    fasta_concat_path = rehead_and_concatenate_fastas(
+        samples_to_concat, concat_dir_path, args.overwrite, show_less
+    )
     log.log("")
 
     cluster_dir_path, cluster_dir_msg = make_output_dir(Path(out_dir, settings.DES_DIRS["CLR"]))
-    log.log(f'{"Clustering directory":>{mar}}: {bold(cluster_dir_path)}')
-    log.log(f'{"":>{mar}}  {dim(cluster_dir_msg)}')
+    log.log(f"{'Clustering directory':>{mar}}: {bold(cluster_dir_path)}")
+    log.log(f"{'':>{mar}}  {dim(cluster_dir_msg)}")
     log.log("")
-    cluster_markers(fasta_concat_path,
-                    cluster_dir_path,
-                    args.clust_program,
-                    args.mmseqs_path,
-                    args.mmseqs_sensitivity,
-                    args.mmseqs_cluster_mode,
-                    args.vsearch_path,
-                    args.strand,
-                    args.clust_threshold,
-                    args.align_singletons,
-                    threads_max,
-                    args.overwrite)
+    cluster_markers(
+        fasta_concat_path,
+        cluster_dir_path,
+        args.clust_program,
+        args.mmseqs_path,
+        args.mmseqs_sensitivity,
+        args.mmseqs_cluster_mode,
+        args.vsearch_path,
+        args.strand,
+        args.clust_threshold,
+        args.align_singletons,
+        threads_max,
+        args.overwrite,
+    )
     log.log("")
-
 
     ################################################################################################
     ######################################################################### LOCI ALIGNMENT SECTION
@@ -307,42 +371,55 @@ def cluster(full_command, args):
     align_dir_path, align_dir_msg = make_output_dir(Path(out_dir, settings.DES_DIRS["ALN"]))
     align_params = []
     for fasta_path in fastas_to_align:
-        align_params.append((
-            args.mafft_path,
-            settings.DESIGN_ALIGN_ALGORITHM,
-            threads_per_alignment,
-            args.timeout,
-            fasta_path,
-            align_dir_path,
-            args.overwrite,
-        ))
+        align_params.append(
+            (
+                args.mafft_path,
+                settings.DESIGN_ALIGN_ALGORITHM,
+                threads_per_alignment,
+                args.timeout,
+                fasta_path,
+                align_dir_path,
+                args.overwrite,
+            )
+        )
 
-    log.log(f'{"Concurrent alignments":>{mar}}: {bold(concurrent)}')
-    log.log(f'{"Threads per alignment":>{mar}}: {bold(threads_per_alignment)}')
+    log.log(f"{'Concurrent alignments':>{mar}}: {bold(concurrent)}")
+    log.log(f"{'Threads per alignment':>{mar}}: {bold(threads_per_alignment)}")
     log.log("")
-    log.log(f'{"Algorithm":>{mar}}: {bold(settings.DESIGN_ALIGN_ALGORITHM)}'
-            f' {dim(settings.ALIGN_ALGORITHMS[settings.DESIGN_ALIGN_ALGORITHM]["aka"])}')
-    log.log(f'{"Timeout":>{mar}}: {bold(args.timeout)}'
-            f' {dim(f"[{elapsed_time(args.timeout)}]")}')
+    log.log(
+        f"{'Algorithm':>{mar}}: {bold(settings.DESIGN_ALIGN_ALGORITHM)}"
+        f" {dim(settings.ALIGN_ALGORITHMS[settings.DESIGN_ALIGN_ALGORITHM]['aka'])}"
+    )
+    log.log(f"{'Timeout':>{mar}}: {bold(args.timeout)} {dim(f'[{elapsed_time(args.timeout)}]')}")
     log.log("")
-    log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
-    log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
-    log.log(f'{"FASTAs to align":>{mar}}: {bold(len(fastas_to_align))}')
+    log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
+    log.log(f"{'Keep all files':>{mar}}: {bold(args.keep_all)}")
+    log.log(f"{'FASTAs to align':>{mar}}: {bold(len(fastas_to_align))}")
     log.log("")
-    log.log(f'{"Alignment directory":>{mar}}: {bold(align_dir_path)}')
-    log.log(f'{"":>{mar}}  {dim(align_dir_msg)}')
+    log.log(f"{'Alignment directory':>{mar}}: {bold(align_dir_path)}")
+    log.log(f"{'':>{mar}}  {dim(align_dir_msg)}")
     log.log("")
 
     if args.debug:
-        tqdm_serial_run(mafft_assembly, align_params,
-                        "Aligning clusters", "Cluster alignment completed",
-                        "alignment", show_less)
+        tqdm_serial_run(
+            mafft_assembly,
+            align_params,
+            "Aligning clusters",
+            "Cluster alignment completed",
+            "alignment",
+            show_less,
+        )
     else:
-        tqdm_parallel_async_run(mafft_assembly, align_params,
-                                "Aligning clusters", "Cluster alignment completed",
-                                "alignment", concurrent, show_less)
+        tqdm_parallel_async_run(
+            mafft_assembly,
+            align_params,
+            "Aligning clusters",
+            "Cluster alignment completed",
+            "alignment",
+            concurrent,
+            show_less,
+        )
     log.log("")
-
 
     ################################################################################################
     ##################################################################### ALIGNMENT CURATION SECTION
@@ -366,38 +443,45 @@ def cluster(full_command, args):
     shared_aln_stats = manager.list()
     curate_params = []
     for fasta_path in fastas_to_curate:
-        curate_params.append((
-            args.gaps,
-            args.bait_length,
-            args.focal_species,
-            args.outgroup_species,
-            args.addon_samples,
-            exons_data,
-            fasta_path,
-            curate_dir_path,
-            shared_aln_stats,
-            args.overwrite,
-        ))
+        curate_params.append(
+            (
+                args.gaps,
+                args.bait_length,
+                args.focal_species,
+                args.outgroup_species,
+                args.addon_samples,
+                exons_data,
+                fasta_path,
+                curate_dir_path,
+                shared_aln_stats,
+                args.overwrite,
+            )
+        )
 
-    log.log(f'{"Concurrent curations":>{mar}}: {bold(threads_max)}')
+    log.log(f"{'Concurrent curations':>{mar}}: {bold(threads_max)}")
     log.log("")
-    log.log(f'{"Max. gap proportion":>{mar}}: {bold(args.gaps)}')
-    log.log(f'{"Bait length":>{mar}}: {bold(args.bait_length)}')
-    log.log(f'{"Focal species":>{mar}}: {bold(args.focal_species)}')
-    log.log(f'{"Outgroup species":>{mar}}: {bold(args.outgroup_species)}')
-    log.log(f'{"Add-on samples":>{mar}}: {bold(args.addon_samples)}')
+    log.log(f"{'Max. gap proportion':>{mar}}: {bold(args.gaps)}")
+    log.log(f"{'Bait length':>{mar}}: {bold(args.bait_length)}")
+    log.log(f"{'Focal species':>{mar}}: {bold(args.focal_species)}")
+    log.log(f"{'Outgroup species':>{mar}}: {bold(args.outgroup_species)}")
+    log.log(f"{'Add-on samples':>{mar}}: {bold(args.addon_samples)}")
     log.log("")
-    log.log(f'{"Overwrite files":>{mar}}: {bold(args.overwrite)}')
-    log.log(f'{"Keep all files":>{mar}}: {bold(args.keep_all)}')
-    log.log(f'{"FASTAs to curate":>{mar}}: {bold(len(fastas_to_curate))}')
+    log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
+    log.log(f"{'Keep all files':>{mar}}: {bold(args.keep_all)}")
+    log.log(f"{'FASTAs to curate':>{mar}}: {bold(len(fastas_to_curate))}")
     log.log("")
-    log.log(f'{"Curation directory":>{mar}}: {bold(curate_dir_path)}')
-    log.log(f'{"":>{mar}}  {dim(curate_dir_msg)}')
+    log.log(f"{'Curation directory':>{mar}}: {bold(curate_dir_path)}")
+    log.log(f"{'':>{mar}}  {dim(curate_dir_msg)}")
     log.log("")
 
-    tqdm_serial_run(curate, curate_params,
-                    "Curating cluster alignments", "Curation of alignments completed",
-                    "alignment", show_less)
+    tqdm_serial_run(
+        curate,
+        curate_params,
+        "Curating cluster alignments",
+        "Curation of alignments completed",
+        "alignment",
+        show_less,
+    )
 
     # manager.list() slows down the curate() function when used in parallel, until better solution
     # we will run it serially
@@ -411,7 +495,6 @@ def cluster(full_command, args):
     #                             "alignment", threads_max, show_less)
 
     log.log("")
-
 
     ################################################################################################
     ################################################################################ CLEANUP SECTION
@@ -427,20 +510,17 @@ def cluster(full_command, args):
     log.log_explanation("Writing curated alignments statistics...")
     aln_stats_tsv = write_aln_stats(out_dir, shared_aln_stats)
     if aln_stats_tsv:
-        log.log(f'{"Alignment statistics":>{mar}}: {bold(aln_stats_tsv)}')
-        log.log(f'{"":>{mar}}  {dim(f"File saved in {elapsed_time(time.time() - start)}")}')
+        log.log(f"{'Alignment statistics':>{mar}}: {bold(aln_stats_tsv)}")
+        log.log(f"{'':>{mar}}  {dim(f'File saved in {elapsed_time(time.time() - start)}')}")
         log.log("")
         if all([numpy_found, pandas_found, plotly_found]):
-
             from .report import build_design_report
 
             log.log("")
-            log.log_explanation(
-                "Generating Alignment Statistics report..."
-            )
+            log.log_explanation("Generating Alignment Statistics report...")
             aln_html_report, aln_html_msg = build_design_report(out_dir, aln_stats_tsv, "cluster")
-            log.log(f'{"Alignment report":>{mar}}: {bold(aln_html_report)}')
-            log.log(f'{"":>{mar}}  {dim(aln_html_msg)}')
+            log.log(f"{'Alignment report':>{mar}}: {bold(aln_html_report)}")
+            log.log(f"{'':>{mar}}  {dim(aln_html_msg)}")
         else:
             log.log(
                 f"{bold('WARNING:')} Captus uses 'numpy', 'pandas', and 'plotly' to generate an HTML"
@@ -461,15 +541,14 @@ def cluster(full_command, args):
             reclaimed_bytes += del_file.stat().st_size
             del_file.unlink()
         log.log(
-            f'    A total of {len(files_to_delete)} files'
-            f' amounting to {reclaimed_bytes / 1024 ** 2:.2f}MB'
-            f' were deleted in {elapsed_time(time.time() - start)}'
+            f"    A total of {len(files_to_delete)} files"
+            f" amounting to {reclaimed_bytes / 1024**2:.2f}MB"
+            f" were deleted in {elapsed_time(time.time() - start)}"
         )
     else:
         log.log(bold("No files were removed, '--keep_all' was enabled"))
 
     log.log("")
-
 
     ################################################################################################
     ################################################################################# ENDING SECTION
@@ -481,7 +560,7 @@ def cluster(full_command, args):
 
 def prepare_redo(out_dir: Path, redo_from: str):
     importation = list(Path(out_dir).rglob("*__captus-clr"))
-    dereplication = list(Path(out_dir).rglob(f'*{settings.DES_SUFFIXES["DEDUPED"]}'))
+    dereplication = list(Path(out_dir).rglob(f"*{settings.DES_SUFFIXES['DEDUPED']}"))
     concatenation = [Path(out_dir, settings.DES_DIRS["CAT"])]
     clustering = [Path(out_dir, settings.DES_DIRS["CLR"])]
     alignment = [Path(out_dir, settings.DES_DIRS["ALN"])]
@@ -515,15 +594,21 @@ def prepare_redo(out_dir: Path, redo_from: str):
             shutil.rmtree(del_dir, ignore_errors=True)
             tqdm.write(f"'{del_dir}': deleted")
             pbar.update()
-    log.log(bold(
-        f" \u2514\u2500\u2192 Ready for redo from the '{redo_from}' stage, {items_to_delete}"
-        f" directories and files deleted [{elapsed_time(time.time() - start)}]"
-    ))
+    log.log(
+        bold(
+            f" \u2514\u2500\u2192 Ready for redo from the '{redo_from}' stage, {items_to_delete}"
+            f" directories and files deleted [{elapsed_time(time.time() - start)}]"
+        )
+    )
 
 
 def import_fasta(
-    fasta_name: str, fasta_parent: Path, gff_path: Path, bait_length: int, out_dir: Path,
-    overwrite: bool
+    fasta_name: str,
+    fasta_parent: Path,
+    gff_path: Path,
+    bait_length: int,
+    out_dir: Path,
+    overwrite: bool,
 ):
     start = time.time()
 
@@ -535,21 +620,22 @@ def import_fasta(
         sample_out_dir, _ = make_output_dir(Path(out_dir, f"{sample_name}__captus-clr"))
         if gff_path:
             cds, long, short, data = cds_from_gff(gff_path, fasta_path, bait_length)
-            cds_path =   Path(sample_out_dir, f'{sample_name}{settings.DES_SUFFIXES["CDS"]}')
-            long_path =  Path(sample_out_dir, f'{sample_name}{settings.DES_SUFFIXES["LONG"]}')
-            short_path = Path(sample_out_dir, f'{sample_name}{settings.DES_SUFFIXES["SHORT"]}')
-            data_path =  Path(sample_out_dir, f'{sample_name}{settings.DES_SUFFIXES["DATA"]}')
+            cds_path = Path(sample_out_dir, f"{sample_name}{settings.DES_SUFFIXES['CDS']}")
+            long_path = Path(sample_out_dir, f"{sample_name}{settings.DES_SUFFIXES['LONG']}")
+            short_path = Path(sample_out_dir, f"{sample_name}{settings.DES_SUFFIXES['SHORT']}")
+            data_path = Path(sample_out_dir, f"{sample_name}{settings.DES_SUFFIXES['DATA']}")
             dict_to_fasta(cds, cds_path, write_if_empty=True)
             dict_to_fasta(long, long_path, write_if_empty=True)
             dict_to_fasta(short, short_path, write_if_empty=True)
             with open(data_path, "wt") as data_out:
                 for line in data:
-                    data_out.write("\t".join(line)+"\n")
-            message = (f"'{sample_name}': CDS and exon data imported"
-                       f" [{elapsed_time(time.time() - start)}]")
+                    data_out.write("\t".join(line) + "\n")
+            message = (
+                f"'{sample_name}': CDS and exon data imported [{elapsed_time(time.time() - start)}]"
+            )
         else:
             markers = fasta_to_dict(fasta_path)
-            markers_path = Path(sample_out_dir, f'{sample_name}{settings.DES_SUFFIXES["MARKERS"]}')
+            markers_path = Path(sample_out_dir, f"{sample_name}{settings.DES_SUFFIXES['MARKERS']}")
             dict_to_fasta(markers, markers_path, write_if_empty=True)
             message = f"'{sample_name}': FASTA imported [{elapsed_time(time.time() - start)}]"
     else:
@@ -566,7 +652,7 @@ def find_fastas_in_sample_dirs(out_dir: Path, suffix: str):
             fastas = list(Path(sample_dir).rglob(f"*{suffix}"))
             for fasta in fastas:
                 if f"{fasta.parent}".endswith("__captus-clr"):
-                    sample_dir  = fasta.parent.parts[-1]
+                    sample_dir = fasta.parent.parts[-1]
                     sample_name = sample_dir.replace("__captus-clr", "")
                     fastas_to_process[sample_name] = {
                         "sample_dir": sample_dir,
@@ -590,21 +676,28 @@ def adjust_max_seq_len(clust_program: str, max_seq_len: str):
 
 
 def filter_fasta(
-    sample_name: str, sample_dir: str, fasta_path: Path, out_dir: Path, max_seq_len: int,
-    min_seq_len: int, overwrite: bool
+    sample_name: str,
+    sample_dir: str,
+    fasta_path: Path,
+    out_dir: Path,
+    max_seq_len: int,
+    min_seq_len: int,
+    overwrite: bool,
 ):
     start = time.time()
-    fasta_out_path = Path(out_dir, sample_dir, f'{sample_name}{settings.DES_SUFFIXES["FILTER"]}')
+    fasta_out_path = Path(out_dir, sample_dir, f"{sample_name}{settings.DES_SUFFIXES['FILTER']}")
 
     if overwrite is True or not fasta_out_path.exists():
-        fasta_in  = fasta_to_dict(fasta_path)
+        fasta_in = fasta_to_dict(fasta_path)
         fasta_out = {}
         for seq_name in fasta_in:
             if min_seq_len <= len(fasta_in[seq_name]["sequence"]) <= max_seq_len:
                 fasta_out[seq_name] = fasta_in[seq_name]
         dict_to_fasta(fasta_out, fasta_out_path)
         if fasta_out_path.exists():
-            message = f"'{sample_name}': FASTA filtered by length [{elapsed_time(time.time() - start)}]"
+            message = (
+                f"'{sample_name}': FASTA filtered by length [{elapsed_time(time.time() - start)}]"
+            )
         else:
             message = red(f"'{sample_name}': FAILED filtering by length")
     else:
@@ -614,12 +707,23 @@ def filter_fasta(
 
 
 def dedup_fasta(
-    sample_name: str, sample_dir: str, fasta_path: Path, out_dir: Path, clust_program: str,
-    mmseqs_path: str, mmseqs_sensitivity: float, mmseqs_cluster_mode: int,  vsearch_path: str,
-    dedup_threshold: float, strand: str, threads_max: int, overwrite: bool, keep_all: bool
+    sample_name: str,
+    sample_dir: str,
+    fasta_path: Path,
+    out_dir: Path,
+    clust_program: str,
+    mmseqs_path: str,
+    mmseqs_sensitivity: float,
+    mmseqs_cluster_mode: int,
+    vsearch_path: str,
+    dedup_threshold: float,
+    strand: str,
+    threads_max: int,
+    overwrite: bool,
+    keep_all: bool,
 ):
     start = time.time()
-    fasta_out_path = Path(out_dir, sample_dir, f'{sample_name}{settings.DES_SUFFIXES["DEDUPED"]}')
+    fasta_out_path = Path(out_dir, sample_dir, f"{sample_name}{settings.DES_SUFFIXES['DEDUPED']}")
     if dedup_threshold > 1:
         dedup_threshold = dedup_threshold / 100
 
@@ -629,14 +733,21 @@ def dedup_fasta(
         if clust_program == "vsearch":
             dedup_cmd = [
                 vsearch_path,
-                "--cluster_fast", f"{fasta_path}",
-                "--strand", f"{strand}",
-                "--iddef", "0",
-                "--id", f"{dedup_threshold}",
-                "--query_cov", f"{min(0.99, dedup_threshold)}",
+                "--cluster_fast",
+                f"{fasta_path}",
+                "--strand",
+                f"{strand}",
+                "--iddef",
+                "0",
+                "--id",
+                f"{dedup_threshold}",
+                "--query_cov",
+                f"{min(0.99, dedup_threshold)}",
                 "--notrunclabels",
-                "--centroids", f"{fasta_out_path}",
-                "--threads", f"{threads_max}",
+                "--centroids",
+                f"{fasta_out_path}",
+                "--threads",
+                f"{threads_max}",
             ]
         elif clust_program == "mmseqs":
             dedup_cmd = [
@@ -645,16 +756,26 @@ def dedup_fasta(
                 f"{fasta_path}",
                 f"{result_prefix}",
                 f"{tmp_dir}",
-                "-s", f"{mmseqs_sensitivity}",
-                "--min-seq-id", f"{dedup_threshold}",
-                "--seq-id-mode", "1",
-                "-c", f"{min(0.99, dedup_threshold)}",
-                "--cov-mode", "1",
-                "--cluster-mode", f"{mmseqs_cluster_mode}",
-                "--gap-open", f"{max(1, settings.MMSEQS_GAP_OPEN)}",
-                "--gap-extend", f"{max(1, settings.MMSEQS_GAP_EXTEND)}",
-                "--kmer-per-seq-scale", f"{settings.MMSEQS_KMER_PER_SEQ_SCALE}",
-                "--threads", f"{threads_max}",
+                "-s",
+                f"{mmseqs_sensitivity}",
+                "--min-seq-id",
+                f"{dedup_threshold}",
+                "--seq-id-mode",
+                "1",
+                "-c",
+                f"{min(0.99, dedup_threshold)}",
+                "--cov-mode",
+                "1",
+                "--cluster-mode",
+                f"{mmseqs_cluster_mode}",
+                "--gap-open",
+                f"{max(1, settings.MMSEQS_GAP_OPEN)}",
+                "--gap-extend",
+                f"{max(1, settings.MMSEQS_GAP_EXTEND)}",
+                "--kmer-per-seq-scale",
+                f"{settings.MMSEQS_KMER_PER_SEQ_SCALE}",
+                "--threads",
+                f"{threads_max}",
             ]
             if mmseqs_cluster_mode != 0:
                 dedup_cmd += ["--cluster-reassign"]
@@ -705,28 +826,40 @@ def rehead_and_concatenate_fastas(
                 fasta_rehead = {}
                 fasta_sample = fasta_to_dict(samples_to_concat[sample]["fasta_path"])
                 for seq_name in fasta_sample:
-                    fasta_rehead[f'{sample}{settings.SEQ_NAME_SEP}{seq_name}'] = fasta_sample[seq_name]
+                    fasta_rehead[f"{sample}{settings.SEQ_NAME_SEP}{seq_name}"] = fasta_sample[
+                        seq_name
+                    ]
                 dict_to_fasta(fasta_rehead, fasta_concat_path, append=True)
                 message = f"'{sample}': FASTA reheaded [{elapsed_time(time.time() - start)}]"
                 log.log(message, print_to_screen=False)
                 if not show_less:
                     tqdm.write(message)
                 pbar.update()
-        log.log(bold(
-            f" \u2514\u2500\u2192 File '{fasta_concat_path.name}'"
-            f" prepared in {elapsed_time(time.time() - start)}(s)"
-        ))
+        log.log(
+            bold(
+                f" \u2514\u2500\u2192 File '{fasta_concat_path.name}'"
+                f" prepared in {elapsed_time(time.time() - start)}(s)"
+            )
+        )
     else:
         log.log(dim(f"SKIPPED concatenation, '{fasta_concat_path.name}' already exists"))
     return fasta_concat_path
 
 
 def cluster_markers(
-    fasta_concat_path: Path, cluster_dir_path: Path, clust_program: str, mmseqs_path: str,
-    mmseqs_sensitivity: float, mmseqs_cluster_mode: int, vsearch_path: str, strand: str,
-    clust_threshold: float, align_singletons: bool, threads: int, overwrite: bool
+    fasta_concat_path: Path,
+    cluster_dir_path: Path,
+    clust_program: str,
+    mmseqs_path: str,
+    mmseqs_sensitivity: float,
+    mmseqs_cluster_mode: int,
+    vsearch_path: str,
+    strand: str,
+    clust_threshold: float,
+    align_singletons: bool,
+    threads: int,
+    overwrite: bool,
 ):
-
     log.log(bold(f"Clustering '{fasta_concat_path.name}' at {clust_threshold}% identity:"))
     if clust_threshold > 1:
         clust_threshold = clust_threshold / 100
@@ -735,33 +868,39 @@ def cluster_markers(
     if overwrite is True or not cluster_tsv_path.exists() or file_is_empty(cluster_tsv_path):
         if clust_program == "mmseqs":
             mmseqs_tmp_dir = Path(fasta_concat_path.parent, "mmseqs_tmp")
-            message = mmseqs_cluster(mmseqs_path,
-                                     "easy-cluster",
-                                     Path(fasta_concat_path.parent),
-                                     fasta_concat_path,
-                                     cluster_prefix,
-                                     mmseqs_tmp_dir,
-                                     mmseqs_sensitivity,
-                                     clust_threshold,
-                                     1,
-                                     clust_threshold,
-                                     1,
-                                     mmseqs_cluster_mode,
-                                     threads)
+            message = mmseqs_cluster(
+                mmseqs_path,
+                "easy-cluster",
+                Path(fasta_concat_path.parent),
+                fasta_concat_path,
+                cluster_prefix,
+                mmseqs_tmp_dir,
+                mmseqs_sensitivity,
+                clust_threshold,
+                1,
+                clust_threshold,
+                1,
+                mmseqs_cluster_mode,
+                threads,
+            )
         elif clust_program == "vsearch":
-            message  = vsearch_cluster(vsearch_path,
-                                       "--cluster_fast",
-                                       Path(fasta_concat_path.parent),
-                                       fasta_concat_path,
-                                       cluster_prefix,
-                                       clust_threshold,
-                                       0,
-                                       clust_threshold,
-                                       strand,
-                                       threads)
+            message = vsearch_cluster(
+                vsearch_path,
+                "--cluster_fast",
+                Path(fasta_concat_path.parent),
+                fasta_concat_path,
+                cluster_prefix,
+                clust_threshold,
+                0,
+                clust_threshold,
+                strand,
+                threads,
+            )
         log.log(message)
     else:
-        log.log(dim(f"SKIPPED clustering, '{cluster_tsv_path.name}' already exists and is not empty"))
+        log.log(
+            dim(f"SKIPPED clustering, '{cluster_tsv_path.name}' already exists and is not empty")
+        )
 
     start = time.time()
     log.log("")
@@ -773,9 +912,9 @@ def cluster_markers(
     else:
         with open(cluster_tsv_path) as cluster_tsv:
             for line in cluster_tsv:
-                record =   line.strip().split()
+                record = line.strip().split()
                 centroid = record[0]
-                member =   record[1]
+                member = record[1]
                 if centroid not in clusters_all:
                     clusters_all[centroid] = [centroid]
                     if member not in clusters_all[centroid]:
@@ -818,12 +957,16 @@ def cluster_markers(
                 cluster_count += 1
                 pbar.update()
         if align_singletons:
-            message = (f"Clusters written, {single_species_clusters} clusters contained a single"
-                       f" species out of a total of {len(clusters_pass)} valid clusters"
-                       f" [{elapsed_time(time.time() - start)}]")
+            message = (
+                f"Clusters written, {single_species_clusters} clusters contained a single"
+                f" species out of a total of {len(clusters_pass)} valid clusters"
+                f" [{elapsed_time(time.time() - start)}]"
+            )
         else:
-            message = (f"Clusters written, {len(clusters_pass)} total valid clusters"
-                       f" [{elapsed_time(time.time() - start)}]")
+            message = (
+                f"Clusters written, {len(clusters_pass)} total valid clusters"
+                f" [{elapsed_time(time.time() - start)}]"
+            )
         log.log(bold(f" \u2514\u2500\u2192 {message}"))
     else:
         log.log(dim(f"SKIPPED writing of FASTA clusters, '{cluster_dir_path}' is not empty"))
@@ -857,10 +1000,14 @@ def adjust_align_concurrency(concurrent, threads_max):
 
 
 def mafft_assembly(
-    mafft_path: Path, mafft_algorithm: str, threads_per_alignment: int, timeout: int,
-    input_fasta_path: Path, align_dir_path: Path, overwrite: bool
+    mafft_path: Path,
+    mafft_algorithm: str,
+    threads_per_alignment: int,
+    timeout: int,
+    input_fasta_path: Path,
+    align_dir_path: Path,
+    overwrite: bool,
 ):
-
     def cleanup_fastas(all_fastas: list):
         for file in all_fastas:
             if file.exists():
@@ -876,8 +1023,12 @@ def mafft_assembly(
         short_fasta_path = Path(align_dir_path, f"{input_fasta_path.stem}_S.fasta")
         long_aligned_fasta_path = Path(align_dir_path, f"{input_fasta_path.stem}_A.fasta")
         intermediate_fasta_path = Path(align_dir_path, f"{input_fasta_path.stem}_I.fasta")
-        all_fastas = [long_fasta_path, short_fasta_path,
-                      long_aligned_fasta_path, intermediate_fasta_path]
+        all_fastas = [
+            long_fasta_path,
+            short_fasta_path,
+            long_aligned_fasta_path,
+            intermediate_fasta_path,
+        ]
         mafft_log_file = Path(align_dir_path, f"{input_fasta_path.stem}.mafft.log")
         input_fasta = fasta_to_dict(input_fasta_path)
         long_fasta = {}
@@ -886,7 +1037,7 @@ def mafft_assembly(
         max_seq_length = 0
         for seq_name in input_fasta:
             seq_length = len(input_fasta[seq_name]["sequence"])
-            if  seq_length > max_seq_length:
+            if seq_length > max_seq_length:
                 max_seq_length = seq_length
         for seq_name in input_fasta:
             seq_length = len(input_fasta[seq_name]["sequence"])
@@ -902,40 +1053,51 @@ def mafft_assembly(
             mafft_path,
             settings.ALIGN_ALGORITHMS[mafft_algorithm]["arg"],
             "--nuc",
-            "--maxiterate", "1000",
+            "--maxiterate",
+            "1000",
             "--adjustdirection",
             "--reorder",
-            "--thread", f"{threads_per_alignment}",
-            f"{long_fasta_path}"
+            "--thread",
+            f"{threads_per_alignment}",
+            f"{long_fasta_path}",
         ]
 
         mafft_add_cmd = [
             mafft_path,
             "--auto",
             "--nuc",
-            "--maxiterate", "1000",
+            "--maxiterate",
+            "1000",
             "--adjustdirection",
             "--reorder",
-            "--addfragments", f"{short_fasta_path}",
-            "--thread", f"{threads_per_alignment}",
+            "--addfragments",
+            f"{short_fasta_path}",
+            "--thread",
+            f"{threads_per_alignment}",
             f"{long_aligned_fasta_path}",
         ]
 
-        mid_fasta_path = long_aligned_fasta_path if len(short_fasta) > 0 else intermediate_fasta_path
+        mid_fasta_path = (
+            long_aligned_fasta_path if len(short_fasta) > 0 else intermediate_fasta_path
+        )
 
         if len(long_fasta) > 1:
             with open(mid_fasta_path, "w") as mafft_mid_out:
                 with open(mafft_log_file, "w") as mafft_log:
-                    mafft_log.write(f"Captus' MAFFT Command:\n  {' '.join(mafft_long_cmd)}"
-                                    f" > {mid_fasta_path}\n\n\n")
+                    mafft_log.write(
+                        f"Captus' MAFFT Command:\n  {' '.join(mafft_long_cmd)}"
+                        f" > {mid_fasta_path}\n\n\n"
+                    )
                 with open(mafft_log_file, "a") as mafft_log:
                     try:
-                        subprocess.run(mafft_long_cmd, stdout=mafft_mid_out,
-                                       stderr=mafft_log, timeout=timeout)
+                        subprocess.run(
+                            mafft_long_cmd, stdout=mafft_mid_out, stderr=mafft_log, timeout=timeout
+                        )
                         if file_is_empty(mid_fasta_path):
                             cleanup_fastas(all_fastas)
-                            message = red(f"'{input_fasta_path.name}': FAILED"
-                                        " alignment, empty output file")
+                            message = red(
+                                f"'{input_fasta_path.name}': FAILED alignment, empty output file"
+                            )
                             return message
                     except subprocess.TimeoutExpired:
                         cleanup_fastas(all_fastas)
@@ -949,16 +1111,23 @@ def mafft_assembly(
         if len(short_fasta) > 0:
             with open(intermediate_fasta_path, "w") as mafft_intermediate_out:
                 with open(mafft_log_file, "a") as mafft_log:
-                    mafft_log.write(f"\n\n\nCaptus' MAFFT Command:\n  {' '.join(mafft_add_cmd)}"
-                                    f" > {intermediate_fasta_path}\n\n\n")
+                    mafft_log.write(
+                        f"\n\n\nCaptus' MAFFT Command:\n  {' '.join(mafft_add_cmd)}"
+                        f" > {intermediate_fasta_path}\n\n\n"
+                    )
                 with open(mafft_log_file, "a") as mafft_log:
                     try:
-                        subprocess.run(mafft_add_cmd, stdout=mafft_intermediate_out,
-                                       stderr=mafft_log, timeout=timeout)
+                        subprocess.run(
+                            mafft_add_cmd,
+                            stdout=mafft_intermediate_out,
+                            stderr=mafft_log,
+                            timeout=timeout,
+                        )
                         if file_is_empty(intermediate_fasta_path):
                             cleanup_fastas(all_fastas)
-                            message = red(f"'{input_fasta_path.name}': FAILED"
-                                           " alignment, empty output file")
+                            message = red(
+                                f"'{input_fasta_path.name}': FAILED alignment, empty output file"
+                            )
                             return message
                     except subprocess.TimeoutExpired:
                         cleanup_fastas(all_fastas)
@@ -1004,7 +1173,7 @@ def find_and_merge_exon_data(out_dir: Path):
     if out_dir.exists():
         sample_dirs = list(Path(out_dir).rglob("*__captus-clr"))
         for sample_dir in sample_dirs:
-            tsvs += list(Path(sample_dir).rglob(f'*{settings.DES_SUFFIXES["DATA"]}'))
+            tsvs += list(Path(sample_dir).rglob(f"*{settings.DES_SUFFIXES['DATA']}"))
     exons_data = {}
     for tsv in tsvs:
         with open(tsv, "rt") as tsv_in:
@@ -1036,11 +1205,17 @@ def find_and_merge_exon_data(out_dir: Path):
 
 
 def curate(
-    gaps: float, bait_length: int, focal_species: list, outgroup_species: list,
-    addon_samples: list, exons_data: dict, input_fasta_path: Path, curate_dir_path: Path,
-    shared_aln_stats: list, overwrite: bool
+    gaps: float,
+    bait_length: int,
+    focal_species: list,
+    outgroup_species: list,
+    addon_samples: list,
+    exons_data: dict,
+    input_fasta_path: Path,
+    curate_dir_path: Path,
+    shared_aln_stats: list,
+    overwrite: bool,
 ):
-
     def can_be_merged(hap: str, seq: str):
         """
         A sequence can be merged into the haplotype if they don't overlap or they don't differ in
@@ -1073,7 +1248,7 @@ def curate(
             else:
                 haplos[sample_name] = ["-" * aln_width]
         for seq_name in aln_trimmed:
-            sample_name  = aln_trimmed[seq_name]["sample_name"]
+            sample_name = aln_trimmed[seq_name]["sample_name"]
             seq = aln_trimmed[seq_name]["sequence"]
             if len(haplos[sample_name]) == 1:
                 haplos[sample_name][0] = seq
@@ -1097,16 +1272,15 @@ def curate(
                     min_copies += 1
         return min_copies
 
-
     start = time.time()
     curated_fasta_path = Path(curate_dir_path, input_fasta_path.name)
 
     if overwrite is True or not curated_fasta_path.exists():
         aln = fasta_to_dict(input_fasta_path)
         aln_height = len(aln)
-        aln_width  = None
+        aln_width = None
         num_addons = 0
-        col_depth  = {}
+        col_depth = {}
         for seq_name in aln:
             if aln_width is None:
                 aln_width = len(aln[seq_name]["sequence"])
@@ -1114,8 +1288,7 @@ def curate(
                     col_depth[p] = 0
             else:
                 if len(aln[seq_name]["sequence"]) != aln_width:
-                    message = red(f"'{input_fasta_path.name}': FAILED"
-                                  " (sequences were not aligned)")
+                    message = red(f"'{input_fasta_path.name}': FAILED (sequences were not aligned)")
                     return message
             aln[seq_name]["sample_name"] = seq_name.split(settings.SEQ_NAME_SEP)[0]
             aln[seq_name]["cds_id"] = seq_name.split(settings.SEQ_NAME_SEP)[1]
@@ -1127,7 +1300,7 @@ def curate(
                 for p in range(aln[seq_name]["start"], aln[seq_name]["end"]):
                     col_depth[p] += 1
             else:
-                num_addons += 1 # needed for calculating missing data excluding the add-on samples
+                num_addons += 1  # needed for calculating missing data excluding the add-on samples
 
         min_data = math.floor((aln_height - num_addons) * (1 - gaps))
         trim_start = 0
@@ -1201,7 +1374,7 @@ def curate(
 
             if cds_ids:
                 if len(cds_ids) > 1:
-                    median_len = list(sorted(cds_ids.values()))[max(0, (len(cds_ids)//2)-1)]
+                    median_len = list(sorted(cds_ids.values()))[max(0, (len(cds_ids) // 2) - 1)]
                 else:
                     median_len = list(sorted(cds_ids.values()))[0]
                 cds_id = ""
@@ -1220,44 +1393,49 @@ def curate(
                 ast["gene_len"] = exons_data[cds_id]["gene_len"]
                 ast["prop_exons_retained"] = median_len / exons_data[cds_id]["exons_len"]
                 ast["prop_long_exons"] = exons_data[cds_id]["prop_long_exons"]
-                ast["prop_long_exons_retained"] = ast["prop_long_exons"] * ast["prop_exons_retained"]
+                ast["prop_long_exons_retained"] = (
+                    ast["prop_long_exons"] * ast["prop_exons_retained"]
+                )
                 ast["len_long_exons_retained"] = ast["prop_long_exons_retained"] * ast["exons_len"]
                 ast["prop_short_exons"] = exons_data[cds_id]["prop_short_exons"]
-                ast["prop_short_exons_retained"] = (ast["prop_short_exons"]
-                                                    * ast["prop_exons_retained"])
-                ast["len_short_exons_retained"] = ast["prop_short_exons_retained"] * ast["exons_len"]
+                ast["prop_short_exons_retained"] = (
+                    ast["prop_short_exons"] * ast["prop_exons_retained"]
+                )
+                ast["len_short_exons_retained"] = (
+                    ast["prop_short_exons_retained"] * ast["exons_len"]
+                )
                 # Format as text
-                ast["len_long_exons_retained"] = f'{ast["len_long_exons_retained"]:.0f}'
-                ast["len_short_exons_retained"] = f'{ast["len_short_exons_retained"]:.0f}'
-                ast["perc_exons_retained"] = f'{ast["prop_exons_retained"]*100:.2f}'
-                ast["perc_long_exons_retained"] = f'{ast["prop_long_exons_retained"]*100:.2f}'
-                ast["perc_short_exons_retained"] = f'{ast["prop_short_exons_retained"]*100:.2f}'
+                ast["len_long_exons_retained"] = f"{ast['len_long_exons_retained']:.0f}"
+                ast["len_short_exons_retained"] = f"{ast['len_short_exons_retained']:.0f}"
+                ast["perc_exons_retained"] = f"{ast['prop_exons_retained'] * 100:.2f}"
+                ast["perc_long_exons_retained"] = f"{ast['prop_long_exons_retained'] * 100:.2f}"
+                ast["perc_short_exons_retained"] = f"{ast['prop_short_exons_retained'] * 100:.2f}"
 
             stats = [
-                f"{curated_fasta_path}",                        # Path to curated FASTA
-                f"{curated_fasta_path.stem}",                   # Locus name
-                f"{ast['copies']}",                             # Minimum number of copies in locus
-                f"{ast['avg_copies']:.2f}",                     # Average number of copies in locus
-                f"{ast['sites']}",                              # Alignment length
-                f"{ast['gc']:.2f}",                             # % GC content
-                f"{ast['avg_pid']:.2f}",                        # % Pairwise identity
-                f"{ast['informative']}",                        # Number of informative sites
-                f"{ast['informativeness']:.2f}",                # % Informativeness
-                f"{ast['missingness']:.2f}",                    # % Missingness
-                f"{ast['sequences']}",                          # Number of sequences
-                f"{ast['samples']}",                            # Number of samples
-                f"{ast['focal']}",                              # Number of focal species
-                f"{ast['outgroup']}",                           # Number of outgroup species
-                f"{ast['addons']}",                             # Number of add-on samples
-                f"{ast['species']}",                            # Number of species
-                f"{ast['genera']}",                             # Number of genera
-                f"{ast['cds_id']}",                             # CDS ID
-                f"{ast['exons_len']}",                          # Total exon length of CDS
-                f"{ast['len_long_exons_retained']}",            # Long exons retained in bp
-                f"{ast['len_short_exons_retained']}",           # Short exons retained in bp
-                f"{ast['perc_exons_retained']}",                # Proportion of CDS retained
-                f"{ast['perc_long_exons_retained']}",           # Proportion of long exons retained
-                f"{ast['perc_short_exons_retained']}",          # Proportion of short exons retained
+                f"{curated_fasta_path}",  # Path to curated FASTA
+                f"{curated_fasta_path.stem}",  # Locus name
+                f"{ast['copies']}",  # Minimum number of copies in locus
+                f"{ast['avg_copies']:.2f}",  # Average number of copies in locus
+                f"{ast['sites']}",  # Alignment length
+                f"{ast['gc']:.2f}",  # % GC content
+                f"{ast['avg_pid']:.2f}",  # % Pairwise identity
+                f"{ast['informative']}",  # Number of informative sites
+                f"{ast['informativeness']:.2f}",  # % Informativeness
+                f"{ast['missingness']:.2f}",  # % Missingness
+                f"{ast['sequences']}",  # Number of sequences
+                f"{ast['samples']}",  # Number of samples
+                f"{ast['focal']}",  # Number of focal species
+                f"{ast['outgroup']}",  # Number of outgroup species
+                f"{ast['addons']}",  # Number of add-on samples
+                f"{ast['species']}",  # Number of species
+                f"{ast['genera']}",  # Number of genera
+                f"{ast['cds_id']}",  # CDS ID
+                f"{ast['exons_len']}",  # Total exon length of CDS
+                f"{ast['len_long_exons_retained']}",  # Long exons retained in bp
+                f"{ast['len_short_exons_retained']}",  # Short exons retained in bp
+                f"{ast['perc_exons_retained']}",  # Proportion of CDS retained
+                f"{ast['perc_long_exons_retained']}",  # Proportion of long exons retained
+                f"{ast['perc_short_exons_retained']}",  # Proportion of short exons retained
             ]
 
             shared_aln_stats += ["\t".join(stats) + "\n"]
@@ -1265,8 +1443,10 @@ def curate(
 
             message = f"'{curated_fasta_path.name}': curated [{elapsed_time(time.time() - start)}]"
         else:
-            message = red(f"'{input_fasta_path.name}': FAILED (trimmed"
-                          f" alignment had {len(aln_trimmed)} sequences)")
+            message = red(
+                f"'{input_fasta_path.name}': FAILED (trimmed"
+                f" alignment had {len(aln_trimmed)} sequences)"
+            )
     else:
         message = dim(f"'{curated_fasta_path.name}': SKIPPED (output FASTA already exists)")
 
@@ -1282,30 +1462,36 @@ def write_aln_stats(out_dir: Path, shared_aln_stats: list):
             return None
     else:
         with open(stats_tsv_file, "wt") as tsv_out:
-            tsv_out.write("\t".join(["path",
-                                     "locus",
-                                     "copies",
-                                     "avg_copies",
-                                     "length",
-                                     "gc_content",
-                                     "avg_pid",
-                                     "informative_sites",
-                                     "informativeness",
-                                     "missingness",
-                                     "sequences",
-                                     "samples",
-                                     "focal_species",
-                                     "outgroup_species",
-                                     "addon_samples",
-                                     "species",
-                                     "genera",
-                                     "cds_id",
-                                     "cds_len",
-                                     "len_long_exons_retained",
-                                     "len_short_exons_retained",
-                                     "perc_exons_retained",
-                                     "perc_long_exons_retained",
-                                     "perc_short_exons_retained",
-                                    ]) + "\n")
+            tsv_out.write(
+                "\t".join(
+                    [
+                        "path",
+                        "locus",
+                        "copies",
+                        "avg_copies",
+                        "length",
+                        "gc_content",
+                        "avg_pid",
+                        "informative_sites",
+                        "informativeness",
+                        "missingness",
+                        "sequences",
+                        "samples",
+                        "focal_species",
+                        "outgroup_species",
+                        "addon_samples",
+                        "species",
+                        "genera",
+                        "cds_id",
+                        "cds_len",
+                        "len_long_exons_retained",
+                        "len_short_exons_retained",
+                        "perc_exons_retained",
+                        "perc_long_exons_retained",
+                        "perc_short_exons_retained",
+                    ]
+                )
+                + "\n"
+            )
             tsv_out.writelines(sorted(shared_aln_stats))
         return stats_tsv_file

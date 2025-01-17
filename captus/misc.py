@@ -12,7 +12,6 @@ details. You should have received a copy of the GNU General Public License along
 not, see <http://www.gnu.org/licenses/>.
 """
 
-
 import argparse
 import importlib
 import multiprocessing
@@ -37,6 +36,7 @@ class ElapsedTimeThread(threading.Thread):
     """
     Stoppable thread that prints the time elapsed, from https://stackoverflow.com/a/44381654
     """
+
     def __init__(self):
         super(ElapsedTimeThread, self).__init__()
         self._stop_event = threading.Event()
@@ -68,18 +68,20 @@ def get_ram():
         return 0
 
 
-def set_ram(ram):
+def set_ram(ram, java=False):
     """
     Determines RAM size to be used according to Captus' '--ram' argument
     """
     memsize = get_ram()
+    if java is True:
+        memsize = int(memsize * settings.RAM_FRACTION_JAVA)
     if ram == "auto":
         ram_B = int(memsize * settings.RAM_FRACTION)
     else:
-        ram_B = min(int(float(ram) * 1024 ** 3), memsize)
-    ram_MB = ram_B // 1024 ** 2
-    ram_GB = round((ram_B / 1024 ** 3), 1)
-    ram_GB_total = round((memsize / 1024 ** 3), 1)
+        ram_B = min(int(float(ram) * 1024**3), memsize)
+    ram_MB = ram_B // 1024**2
+    ram_GB = round((ram_B / 1024**3), 1)
+    ram_GB_total = round((memsize / 1024**3), 1)
     return (ram_B, ram_MB, ram_GB, ram_GB_total)
 
 
@@ -106,19 +108,22 @@ def tqdm_serial_run(function, params_list, description_msg, finished_msg, unit, 
             if not show_less:
                 tqdm.write(function_message)
             pbar.update()
-    log.log(bold(
-        f" \u2514\u2500\u2192 {finished_msg} for {len(params_list)} {unit}(s)"
-        f" [{elapsed_time(time.time() - start)}]"
-    ))
+    log.log(
+        bold(
+            f" \u2514\u2500\u2192 {finished_msg} for {len(params_list)} {unit}(s)"
+            f" [{elapsed_time(time.time() - start)}]"
+        )
+    )
 
 
 def tqdm_parallel_async_run(
     function, params_list, description_msg, finished_msg, unit, threads, show_less=False
-    ):
+):
     """
     Run a function in parallel asynchronous mode updating a tqdm progress bar
     Keep in mind that the function referred as 'function_name' cannot be nested within another
     """
+
     def update(function_message):
         log.log(function_message, print_to_screen=False)
         if not show_less:
@@ -135,15 +140,17 @@ def tqdm_parallel_async_run(
     process.close()
     process.join()
     pbar.close()
-    log.log(bold(
-        f" \u2514\u2500\u2192 {finished_msg} for {len(params_list)} {unit}(s)"
-        f" [{elapsed_time(time.time() - start)}]"
-    ))
+    log.log(
+        bold(
+            f" \u2514\u2500\u2192 {finished_msg} for {len(params_list)} {unit}(s)"
+            f" [{elapsed_time(time.time() - start)}]"
+        )
+    )
 
 
 def tqdm_parallel_nested_run(
     function, params_list, description_msg, finished_msg, unit, threads, show_less=False
-    ):
+):
     """
     Run a function in parallel allowing children processes to span their own
     parallel processes
@@ -162,15 +169,17 @@ def tqdm_parallel_nested_run(
         pbar.update()
     executor.shutdown()
     pbar.close()
-    log.log(bold(
-        f" \u2514\u2500\u2192 {finished_msg} for {len(params_list)} {unit}(s)"
-        f" [{elapsed_time(time.time() - start)}]"
-    ))
+    log.log(
+        bold(
+            f" \u2514\u2500\u2192 {finished_msg} for {len(params_list)} {unit}(s)"
+            f" [{elapsed_time(time.time() - start)}]"
+        )
+    )
 
 
 def tqdm_parallel_async_write(
     function, params_list, description_msg, finished_msg, unit, threads, file_out
-    ):
+):
     start = time.time()
     log.log(bold(f"{description_msg}:"))
     tqdm_cols = min(shutil.get_terminal_size().columns, 120)
@@ -184,10 +193,12 @@ def tqdm_parallel_async_write(
         pbar.update()
     executor.shutdown()
     pbar.close()
-    log.log(bold(
-        f" \u2514\u2500\u2192 {finished_msg} for {len(params_list)} {unit}(s)"
-        f" [{elapsed_time(time.time() - start)}]"
-    ))
+    log.log(
+        bold(
+            f" \u2514\u2500\u2192 {finished_msg} for {len(params_list)} {unit}(s)"
+            f" [{elapsed_time(time.time() - start)}]"
+        )
+    )
 
 
 def elapsed_time(total_seconds):
@@ -270,11 +281,11 @@ def dir_is_empty(dir_path, ignore_subdirectories=True):
     """
     dir_path = Path(dir_path)
     if ignore_subdirectories:
-        return not bool([f for f in dir_path.glob("*")
-                         if not f.name.startswith(".") and not f.is_dir()])
+        return not bool(
+            [f for f in dir_path.glob("*") if not f.name.startswith(".") and not f.is_dir()]
+        )
     else:
-        return not bool([f for f in dir_path.glob("*")
-                         if not f.name.startswith(".")])
+        return not bool([f for f in dir_path.glob("*") if not f.name.startswith(".")])
 
 
 def has_valid_ext(file_path, valid_extensions_list):
@@ -300,16 +311,25 @@ def find_and_match_fastqs(reads, recursive=False):
         reads = [reads]
     if len(reads) == 1 and Path(reads[0]).is_dir():
         if recursive:
-            reads = [file for file in Path(reads[0]).resolve().rglob("*")
-                    if has_valid_ext(file, valid_exts)]
+            reads = [
+                file
+                for file in Path(reads[0]).resolve().rglob("*")
+                if has_valid_ext(file, valid_exts)
+            ]
         else:
-            reads = [file for file in Path(reads[0]).resolve().glob("*")
-                    if has_valid_ext(file, valid_exts)]
+            reads = [
+                file
+                for file in Path(reads[0]).resolve().glob("*")
+                if has_valid_ext(file, valid_exts)
+            ]
     else:
-        reads = [Path(Path(file).parent.resolve(), Path(file).name) for file in reads
-                 if Path(file).resolve().is_file()
-                 and has_valid_ext(file, valid_exts)
-                 and " " not in Path(file).name]
+        reads = [
+            Path(Path(file).parent.resolve(), Path(file).name)
+            for file in reads
+            if Path(file).resolve().is_file()
+            and has_valid_ext(file, valid_exts)
+            and " " not in Path(file).name
+        ]
     # Remove hidden files from list
     reads = [Path(file) for file in reads if not f"{file.name}".startswith(".")]
     fastqs = {}
@@ -319,8 +339,10 @@ def find_and_match_fastqs(reads, recursive=False):
         file_dir = fastq_file.parent
         if "_R1." in file_name or "_R1_" in file_name:
             if settings.SEQ_NAME_SEP in file_name:
-                skipped.append(f"'{file_name}': SKIPPED, pattern"
-                               f" '{settings.SEQ_NAME_SEP}' not allowed in filenames")
+                skipped.append(
+                    f"'{file_name}': SKIPPED, pattern"
+                    f" '{settings.SEQ_NAME_SEP}' not allowed in filenames"
+                )
             else:
                 if "_R1." in file_name:
                     file_name_r2 = file_name.replace("_R1.", "_R2.")
@@ -331,8 +353,7 @@ def find_and_match_fastqs(reads, recursive=False):
                 else:
                     fastqs[file_name] = {"fastq_dir": file_dir, "fastq_r2": None}
         elif "_R2." not in file_name and "_R2_" not in file_name:
-            skipped.append(f"'{file_name}': SKIPPED, pattern '_R1'"
-                           f" or '_R2' not found in filename")
+            skipped.append(f"'{file_name}': SKIPPED, pattern '_R1' or '_R2' not found in filename")
     return fastqs, skipped
 
 
@@ -344,41 +365,59 @@ def find_and_match_fastas_gffs(markers, recursive=False):
     fastas_to_cluster[fasta_name] = {"containing_drectory", None} for FASTA only
     """
     valid_fasta_exts = settings.FASTA_VALID_EXTENSIONS
-    valid_gff_exts   = settings.GFF_VALID_EXTENSIONS
+    valid_gff_exts = settings.GFF_VALID_EXTENSIONS
     fastas, gffs = [], []
     if not isinstance(markers, list):
         markers = [markers]
     if len(markers) == 1 and Path(markers[0]).is_dir():
         if recursive:
-            fastas = [file for file in Path(markers[0]).resolve().rglob("*")
-                      if has_valid_ext(file, valid_fasta_exts)]
-            gffs   = [file for file in Path(markers[0]).resolve().rglob("*")
-                      if has_valid_ext(file, valid_gff_exts)]
+            fastas = [
+                file
+                for file in Path(markers[0]).resolve().rglob("*")
+                if has_valid_ext(file, valid_fasta_exts)
+            ]
+            gffs = [
+                file
+                for file in Path(markers[0]).resolve().rglob("*")
+                if has_valid_ext(file, valid_gff_exts)
+            ]
         else:
-            fastas = [file for file in Path(markers[0]).resolve().glob("*")
-                      if has_valid_ext(file, valid_fasta_exts)]
-            gffs   = [file for file in Path(markers[0]).resolve().glob("*")
-                      if has_valid_ext(file, valid_gff_exts)]
+            fastas = [
+                file
+                for file in Path(markers[0]).resolve().glob("*")
+                if has_valid_ext(file, valid_fasta_exts)
+            ]
+            gffs = [
+                file
+                for file in Path(markers[0]).resolve().glob("*")
+                if has_valid_ext(file, valid_gff_exts)
+            ]
     else:
-        fastas = [Path(Path(file).parent.resolve(), Path(file).name) for file in markers
-                  if Path(file).resolve().is_file()
-                  and has_valid_ext(file, valid_fasta_exts)
-                  and " " not in Path(file).name]
-        gffs   = [Path(Path(file).parent.resolve(), Path(file).name) for file in markers
-                  if Path(file).resolve().is_file()
-                  and has_valid_ext(file, valid_gff_exts)
-                  and " " not in Path(file).name]
+        fastas = [
+            Path(Path(file).parent.resolve(), Path(file).name)
+            for file in markers
+            if Path(file).resolve().is_file()
+            and has_valid_ext(file, valid_fasta_exts)
+            and " " not in Path(file).name
+        ]
+        gffs = [
+            Path(Path(file).parent.resolve(), Path(file).name)
+            for file in markers
+            if Path(file).resolve().is_file()
+            and has_valid_ext(file, valid_gff_exts)
+            and " " not in Path(file).name
+        ]
     # Remove hidden files from list
     fastas = [Path(file) for file in fastas if not file.name.startswith(".")]
-    gffs   = [Path(file) for file in gffs if not file.name.startswith(".")]
+    gffs = [Path(file) for file in gffs if not file.name.startswith(".")]
     # Get stem name (sample name) from each GFF with its corresponding path in a dictionary
-    gffs   = {file.name.replace("".join(file.suffixes), ""): file for file in gffs}
+    gffs = {file.name.replace("".join(file.suffixes), ""): file for file in gffs}
     # Match if possible a FASTA with a GFF with identical stem
     fastas_to_import = {}
     for fasta_file in fastas:
         fasta_name = fasta_file.name
         fasta_stem = fasta_file.name.replace("".join(fasta_file.suffixes), "")
-        fasta_dir  = fasta_file.parent
+        fasta_dir = fasta_file.parent
         if fasta_stem in gffs:
             fastas_to_import[fasta_name] = {"fasta_dir": fasta_dir, "gff_path": gffs[fasta_stem]}
         else:
@@ -434,14 +473,25 @@ def compress_list_files(files_list, threads):
         for ungz_file in files_list:
             if ungz_file.is_file():
                 compress_params.append((ungz_file, threads))
-        tqdm_serial_run(pigz_compress, compress_params, "Compressing with 'pigz'",
-                        "Completed 'pigz' compression", "file")
+        tqdm_serial_run(
+            pigz_compress,
+            compress_params,
+            "Compressing with 'pigz'",
+            "Completed 'pigz' compression",
+            "file",
+        )
     elif shutil.which("gzip"):
         for ungz_file in files_list:
             if ungz_file.is_file():
-                compress_params.append((ungz_file, ))
-        tqdm_parallel_async_run(gzip_compress, compress_params, "Compressing with 'gzip'",
-                                "Completed 'gzip' compression", "file", t)
+                compress_params.append((ungz_file,))
+        tqdm_parallel_async_run(
+            gzip_compress,
+            compress_params,
+            "Compressing with 'gzip'",
+            "Completed 'gzip' compression",
+            "file",
+            t,
+        )
 
 
 def execute_jupyter_report(out_dir, jupyter_notebook, title, prefix):
@@ -451,11 +501,15 @@ def execute_jupyter_report(out_dir, jupyter_notebook, title, prefix):
     qc_html_report = Path(out_dir, f"{prefix}.report.html")
     qc_html_report_log = Path(out_dir, f"{prefix}.report.log")
     nbconvert_cmd = [
-        "jupyter", "nbconvert",
-        "--to", "html",
-        "--execute", f'{Path(out_dir, title)}',
+        "jupyter",
+        "nbconvert",
+        "--to",
+        "html",
+        "--execute",
+        f"{Path(out_dir, title)}",
         "--no-input",
-        "--output", f'{qc_html_report}'
+        "--output",
+        f"{qc_html_report}",
     ]
     with open(qc_html_report_log, "wt") as report_log:
         subprocess.run(nbconvert_cmd, stderr=report_log)
@@ -476,7 +530,7 @@ def format_dep_msg(dep_text, dep_version, dep_status):
     if dep_status == "not used":
         return f"{dep_text}{dim(dep_status)}"
     elif dep_status == "OK":
-        return f'{dep_text}{bold(f"v{dep_version}")} {bold_green(dep_status)}'
+        return f"{dep_text}{bold(f'v{dep_version}')} {bold_green(dep_status)}"
     else:
         return f"{dep_text}{bold_red(dep_status)}"
 
@@ -498,6 +552,7 @@ def mafft_path_version(mafft_path):
     version = process.communicate()[0].decode().strip("\n").split()[0][1:]
     return found_mafft_path, version, "OK"
 
+
 def muscle_path_version(muscle_path):
     # Try "muscle" as default
     if muscle_path == "muscle":
@@ -512,6 +567,7 @@ def muscle_path_version(muscle_path):
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     version = process.communicate()[0].decode().strip("\n").split()[1]
     return found_muscle_path, version, "OK"
+
 
 def falco_path_version(falco_path):
     found_falco_path = shutil.which(falco_path)
@@ -589,7 +645,7 @@ def scipio_path_version(scipio_path):
 
 
 def bioperl_get_version():
-    command = ["perl", "-MBio::Root::Version", "-e" , "print $Bio::Root::Version::VERSION"]
+    command = ["perl", "-MBio::Root::Version", "-e", "print $Bio::Root::Version::VERSION"]
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     try:
         version = process.communicate()[0].decode()
@@ -599,7 +655,7 @@ def bioperl_get_version():
 
 
 def yaml_perl_get_version():
-    command = ["perl", "-MYAML", "-e" , "print $YAML::VERSION"]
+    command = ["perl", "-MYAML", "-e", "print $YAML::VERSION"]
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     try:
         version = process.communicate()[0].decode()
@@ -673,12 +729,14 @@ MAGENTA = "\033[35m"
 YELLOW = "\033[93m"
 DIM = "\033[2m"
 
+
 class MyHelpFormatter(argparse.HelpFormatter):
     """
     This is a custom formatter class for argparse. It allows for some custom formatting,
     in particular for the help texts with multiple options (like bridging mode and verbosity level).
     http://stackoverflow.com/questions/3853722
     """
+
     def __init__(self, prog):
         terminal_width = shutil.get_terminal_size().columns
         os.environ["COLUMNS"] = str(terminal_width)
@@ -695,8 +753,11 @@ class MyHelpFormatter(argparse.HelpFormatter):
         help text.
         """
         help_text = action.help
-        if (action.default != argparse.SUPPRESS and "default" not in help_text.lower()
-                and action.default is not None):
+        if (
+            action.default != argparse.SUPPRESS
+            and "default" not in help_text.lower()
+            and action.default is not None
+        ):
             help_text += f" (default: {action.default})"
         return help_text
 
@@ -729,7 +790,7 @@ class MyHelpFormatter(argparse.HelpFormatter):
                         wrap_column = 0
                     else:
                         wrap_column = 2
-                    current_line = f'{" " * wrap_column}{line_parts[0]}'
+                    current_line = f"{' ' * wrap_column}{line_parts[0]}"
                     if "=" in line:
                         wrap_column += line.find("=") + 2
                     for part in line_parts[1:]:
@@ -737,7 +798,7 @@ class MyHelpFormatter(argparse.HelpFormatter):
                             current_line += f" {part}"
                         else:
                             wrapped_text_lines.append(current_line)
-                            current_line = f'{" " * wrap_column}{part}'
+                            current_line = f"{' ' * wrap_column}{part}"
                     wrapped_text_lines.append(current_line)
                 first_line = False
             return wrapped_text_lines
@@ -859,4 +920,4 @@ def bold_red_underline(text):
 
 
 def remove_formatting(text):
-    return re.sub(r'\033.*?m', r'', text)
+    return re.sub(r"\033.*?m", r"", text)
