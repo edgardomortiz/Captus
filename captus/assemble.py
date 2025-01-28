@@ -674,11 +674,13 @@ def megahit(
             megahit_log.write(f"Captus' MEGAHIT Command:\n  {' '.join(megahit_cmd)}\n\n\n")
         with open(megahit_log_file, "a") as megahit_log:
             subprocess.run(megahit_cmd, stdout=megahit_log, stderr=megahit_log)
-        cleanup_megahit_out_dir(
+        if cleanup_megahit_out_dir(
             sample_megahit_out_dir, megahit_log_file, megahit_toolkit_path, keep_all
-        )
-        write_depth_coverage_tsv(sample_megahit_out_dir, "megahit", tsv_comment)
-        message = f"'{sample_name}': assembled [{elapsed_time(time.time() - start)}]"
+        ):
+            write_depth_coverage_tsv(sample_megahit_out_dir, "megahit", tsv_comment)
+            message = f"'{sample_name}': assembled [{elapsed_time(time.time() - start)}]"
+        else:
+            message = red(f"'{sample_name}': FAILED assembly (no contigs were produced)")
     else:
         message = dim(f"'{sample_name}': SKIPPED (output files already exist)")
 
@@ -712,32 +714,34 @@ def cleanup_megahit_out_dir(
     Tidy up the output folder, MEGAHIT leaves many unnecesary trace files, especially in the
     'intermediate_contigs' directory
     """
+
     # Move/rename logs into place
     megahit_log_file.replace(Path(sample_megahit_out_dir, "megahit_brief.log"))
     Path(sample_megahit_out_dir, "log").replace(Path(sample_megahit_out_dir, "megahit_full.log"))
     intermediate_contigs_dir = Path(sample_megahit_out_dir, "intermediate_contigs")
 
     # Generate 'fastg' assembly graph for 'final.contigs.fa' and reformat FASTA headers
-    if megahit_toolkit_path:
-        megahit_contig2fastg(
-            megahit_toolkit_path,
-            Path(sample_megahit_out_dir, "final.contigs.fa"),
-            Path(sample_megahit_out_dir, "assembly_graph.fastg"),
-        )
-    fasta_reheaded, _ = fasta_headers_to_spades(
-        fasta_to_dict(Path(sample_megahit_out_dir, "final.contigs.fa"))
-    )
-    dict_to_fasta(fasta_reheaded, Path(sample_megahit_out_dir, "assembly.fasta"), wrap=80)
+    assembly_file = Path(sample_megahit_out_dir, "final.contigs.fa")
+    assembly_size = assembly_file.stat().st_size
+    if assembly_size > 0:
+        if megahit_toolkit_path:
+            megahit_contig2fastg(
+                megahit_toolkit_path,
+                assembly_file,
+                Path(sample_megahit_out_dir, "assembly_graph.fastg"),
+            )
+        fasta_reheaded, _ = fasta_headers_to_spades(fasta_to_dict(assembly_file))
+        dict_to_fasta(fasta_reheaded, Path(sample_megahit_out_dir, "assembly.fasta"), wrap=80)
 
     # Delete unimportant/already-processed files
-    Path(sample_megahit_out_dir, "final.contigs.fa").unlink()
+    assembly_file.unlink()
     if not keep_all:
         shutil.rmtree(intermediate_contigs_dir, ignore_errors=True)
         Path(sample_megahit_out_dir, "checkpoints.txt").unlink()
         Path(sample_megahit_out_dir, "done").unlink()
         Path(sample_megahit_out_dir, "options.json").unlink()
 
-    return
+    return bool(assembly_size)
 
 
 def salmon(
@@ -761,6 +765,10 @@ def salmon(
     sample_index_dir = Path(sample_megahit_out_dir, settings.SALMON_INDEX_DIR)
     sample_quant_dir = Path(sample_megahit_out_dir, settings.SALMON_QUANT_DIR)
     k_min = k_list.split(",")[0]
+
+    if not assembly_fasta.exists() or assembly_fasta.stat().st_size == 0:
+        message = dim(f"'{sample_name}': SKIPPED (assembly file empty or not found)")
+        return message
 
     if overwrite is True or not sample_quant_dir.exists():
         if removed_fasta.is_file():
@@ -928,6 +936,10 @@ def filter_assembly(
     assembly_stats_tsv = Path(sample_megahit_out_dir, "assembly_stats.tsv")
     depth_stats_tsv = Path(sample_megahit_out_dir, "depth_stats.tsv")
     length_stats_tsv = Path(sample_megahit_out_dir, "length_stats.tsv")
+
+    if not assembly_fasta.exists() or assembly_fasta.stat().st_size == 0:
+        message = dim(f"'{sample_name}': SKIPPED (assembly file empty or not found)")
+        return message
 
     skip_gc = False
     if max_contig_gc >= 100 or max_contig_gc <= 0:
