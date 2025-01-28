@@ -864,35 +864,39 @@ def write_depth_coverage_tsv(
     fasta_asm_file = Path(sample_megahit_out_dir, "assembly.fasta")
     fasta_asm = fasta_to_dict(fasta_asm_file)
 
-    tsv_header = [
-        "megahit_contig_name",
-        "megahit_depth",
-        "length",
-        "salmon_contig_name",
-        "salmon_num_reads",
-        "salmon_depth",
-    ]
+    tsv_header = "\t".join(
+        [
+            "megahit_contig_name",
+            "megahit_depth",
+            "length",
+            "salmon_contig_name",
+            "salmon_num_reads",
+            "salmon_depth",
+        ]
+    )
     if depth_estimator == "megahit":
         with open(Path(sample_megahit_out_dir, settings.CONTIGS_DEPTH), "w") as tsv_out:
             tsv_out.write(tsv_comment)
-            tsv_out.write(f"{'\t'.join(tsv_header)}\n")
+            tsv_out.write(f"{tsv_header}\n")
             for ctg_name in fasta_asm:
                 name_parts = ctg_name.split("_")
-                tsv_record = [
-                    ctg_name,
-                    f"{float(name_parts[5])}",
-                    f"{int(name_parts[3])}",
-                    "NA",
-                    "NA",
-                    "NA",
-                ]
-                tsv_out.write(f"{'\t'.join(tsv_record)}\n")
+                tsv_record = "\t".join(
+                    [
+                        ctg_name,
+                        f"{float(name_parts[5])}",
+                        f"{int(name_parts[3])}",
+                        "NA",
+                        "NA",
+                        "NA",
+                    ]
+                )
+                tsv_out.write(f"{tsv_record}\n")
     elif depth_estimator == "salmon":
         reheaded_fasta_asm = {}
         salmon_quant_file = Path(sample_megahit_out_dir, settings.SALMON_QUANT_DIR, "quant.sf")
         with open(Path(sample_megahit_out_dir, settings.CONTIGS_DEPTH), "w") as tsv_out:
             tsv_out.write(tsv_comment)
-            tsv_out.write(f"{'\t'.join(tsv_header)}\n")
+            tsv_out.write(f"{tsv_header}\n")
             with open(salmon_quant_file, "r") as quant:
                 for line in quant:
                     if not line.startswith("Name"):
@@ -904,15 +908,17 @@ def write_depth_coverage_tsv(
                         salmon_contig_name = (
                             f"{'_'.join(name_parts[0:5])}_{salmon_depth}_{'_'.join(name_parts[6:])}"
                         )
-                        tsv_record = [
-                            record[0],
-                            f"{float(name_parts[5])}",
-                            f"{length}",
-                            f"{salmon_contig_name}",
-                            f"{salmon_num_reads}",
-                            f"{salmon_depth}",
-                        ]
-                        tsv_out.write(f"{'\t'.join(tsv_record)}\n")
+                        tsv_record = "\t".join(
+                            [
+                                record[0],
+                                f"{float(name_parts[5])}",
+                                f"{length}",
+                                f"{salmon_contig_name}",
+                                f"{salmon_num_reads}",
+                                f"{salmon_depth}",
+                            ]
+                        )
+                        tsv_out.write(f"{tsv_record}\n")
                         reheaded_fasta_asm[salmon_contig_name] = fasta_asm[record[0]]
         dict_to_fasta(reheaded_fasta_asm, fasta_asm_file, wrap=80)
 
@@ -1127,61 +1133,67 @@ def get_asm_stats(
         len_20kbp = round(sum(list(filter(lambda L: L >= 20000, lengths))) / tot_length * 100, 3)
         len_50kbp = round(sum(list(filter(lambda L: L >= 50000, lengths))) / tot_length * 100, 3)
 
-        asm_stats_record = [
-            sample_name,
-            stage,
-            f"{num_contigs}",
-            f"{num_1kbp}",
-            f"{num_2kbp}",
-            f"{num_5kbp}",
-            f"{num_10kbp}",
-            f"{num_20kbp}",
-            f"{num_50kbp}",
-            f"{tot_length}",
-            f"{len_1kbp}",
-            f"{len_2kbp}",
-            f"{len_5kbp}",
-            f"{len_10kbp}",
-            f"{len_20kbp}",
-            f"{len_50kbp}",
-            f"{min_length}",
-            f"{max_length}",
-            f"{avg_length}",
-            f"{med_length}",
-            f"{avg_depth}",
-            f"{med_depth}",
-            f"{gc}",
-            f"{n50}",
-            f"{n75}",
-            f"{l50}",
-            f"{l75}",
-        ]
+        asm_stats_record = "\t".join(
+            [
+                sample_name,
+                stage,
+                f"{num_contigs}",
+                f"{num_1kbp}",
+                f"{num_2kbp}",
+                f"{num_5kbp}",
+                f"{num_10kbp}",
+                f"{num_20kbp}",
+                f"{num_50kbp}",
+                f"{tot_length}",
+                f"{len_1kbp}",
+                f"{len_2kbp}",
+                f"{len_5kbp}",
+                f"{len_10kbp}",
+                f"{len_20kbp}",
+                f"{len_50kbp}",
+                f"{min_length}",
+                f"{max_length}",
+                f"{avg_length}",
+                f"{med_length}",
+                f"{avg_depth}",
+                f"{med_depth}",
+                f"{gc}",
+                f"{n50}",
+                f"{n75}",
+                f"{l50}",
+                f"{l75}",
+            ]
+        )
         with open(asm_stats_tsv_path, "a") as stats_tsv:
-            stats_tsv.write(f"{'\t'.join(asm_stats_record)}\n")
+            stats_tsv.write(f"{asm_stats_record}\n")
 
         with open(depth_stats_tsv_path, "a") as stats_tsv:
             for D in depths_hist:
-                depth_stats_record = [
-                    sample_name,
-                    stage,
-                    f"{D}",
-                    f"{depths_hist[D]['length']}",
-                    f"{depths_hist[D]['fraction']}",
-                    f"{depths_hist[D]['num_contigs']}",
-                ]
-                stats_tsv.write(f"{'\t'.join(depth_stats_record)}\n")
+                depth_stats_record = "\t".join(
+                    [
+                        sample_name,
+                        stage,
+                        f"{D}",
+                        f"{depths_hist[D]['length']}",
+                        f"{depths_hist[D]['fraction']}",
+                        f"{depths_hist[D]['num_contigs']}",
+                    ]
+                )
+                stats_tsv.write(f"{depth_stats_record}\n")
 
         with open(length_stats_tsv_path, "a") as stats_tsv:
             for L in lengths_hist:
-                length_stats_record = [
-                    sample_name,
-                    stage,
-                    f"{L}",
-                    f"{lengths_hist[L]['length']}",
-                    f"{lengths_hist[L]['fraction']}",
-                    f"{lengths_hist[L]['num_contigs']}",
-                ]
-                stats_tsv.write(f"{'\t'.join(length_stats_record)}\n")
+                length_stats_record = "\t".join(
+                    [
+                        sample_name,
+                        stage,
+                        f"{L}",
+                        f"{lengths_hist[L]['length']}",
+                        f"{lengths_hist[L]['fraction']}",
+                        f"{lengths_hist[L]['num_contigs']}",
+                    ]
+                )
+                stats_tsv.write(f"{length_stats_record}\n")
 
         msg = (
             f"'{sample_name}': {stage.upper()} {num_contigs:,} contigs, total {tot_length:,} bp,"
@@ -1189,60 +1201,66 @@ def get_asm_stats(
         )
         return msg
 
-    asm_stats_header = [
-        "sample_name",
-        "stage",
-        "num_contigs",
-        "pct_contigs_1kbp",
-        "pct_contigs_2kbp",
-        "pct_contigs_5kbp",
-        "pct_contigs_10kbp",
-        "pct_contigs_20kbp",
-        "pct_contigs_50kbp",
-        "total_length",
-        "pct_length_1kbp",
-        "pct_length_2kbp",
-        "pct_length_5kbp",
-        "pct_length_10kbp",
-        "pct_length_20kbp",
-        "pct_length_50kbp",
-        "shortest_contig",
-        "longest_contig",
-        "avg_length",
-        "median_length",
-        "avg_depth",
-        "median_depth",
-        "gc",
-        "N50",
-        "N75",
-        "L50",
-        "L75",
-    ]
-    depth_stats_header = [
-        "sample_name",
-        "stage",
-        "depth_bin",
-        "length",
-        "fraction",
-        "num_contigs",
-    ]
-    length_stats_header = [
-        "sample_name",
-        "stage",
-        "length_bin",
-        "length",
-        "fraction",
-        "num_contigs",
-    ]
+    asm_stats_header = "\t".join(
+        [
+            "sample_name",
+            "stage",
+            "num_contigs",
+            "pct_contigs_1kbp",
+            "pct_contigs_2kbp",
+            "pct_contigs_5kbp",
+            "pct_contigs_10kbp",
+            "pct_contigs_20kbp",
+            "pct_contigs_50kbp",
+            "total_length",
+            "pct_length_1kbp",
+            "pct_length_2kbp",
+            "pct_length_5kbp",
+            "pct_length_10kbp",
+            "pct_length_20kbp",
+            "pct_length_50kbp",
+            "shortest_contig",
+            "longest_contig",
+            "avg_length",
+            "median_length",
+            "avg_depth",
+            "median_depth",
+            "gc",
+            "N50",
+            "N75",
+            "L50",
+            "L75",
+        ]
+    )
+    depth_stats_header = "\t".join(
+        [
+            "sample_name",
+            "stage",
+            "depth_bin",
+            "length",
+            "fraction",
+            "num_contigs",
+        ]
+    )
+    length_stats_header = "\t".join(
+        [
+            "sample_name",
+            "stage",
+            "length_bin",
+            "length",
+            "fraction",
+            "num_contigs",
+        ]
+    )
     with open(asm_stats_tsv_path, "w") as stats_tsv:
         stats_tsv.write(tsv_comment)
-        stats_tsv.write(f"{'\t'.join(asm_stats_header)}\n")
+        stats_tsv.write(f"{asm_stats_header}\n")
     with open(depth_stats_tsv_path, "w") as stats_tsv:
         stats_tsv.write(tsv_comment)
-        stats_tsv.write(f"{'\t'.join(depth_stats_header)}\n")
+        stats_tsv.write(f"{depth_stats_header}\n")
     with open(length_stats_tsv_path, "w") as stats_tsv:
         stats_tsv.write(tsv_comment)
-        stats_tsv.write(f"{'\t'.join(length_stats_header)}\n")
+        stats_tsv.write(f"{length_stats_header}\n")
 
     msg_before = calc_asm_stats(
         sample_name,
@@ -1276,54 +1294,60 @@ def collect_asm_stats(out_dir, tsv_comment):
     if not assembly_tsv_files or not depth_tsv_files or not length_tsv_files:
         return None, None, None
     else:
-        assembly_stats_header = [
-            "sample_name",
-            "stage",
-            "num_contigs",
-            "pct_contigs_1kbp",
-            "pct_contigs_2kbp",
-            "pct_contigs_5kbp",
-            "pct_contigs_10kbp",
-            "pct_contigs_20kbp",
-            "pct_contigs_50kbp",
-            "total_length",
-            "pct_length_1kbp",
-            "pct_length_2kbp",
-            "pct_length_5kbp",
-            "pct_length_10kbp",
-            "pct_length_20kbp",
-            "pct_length_50kbp",
-            "shortest_contig",
-            "longest_contig",
-            "avg_length",
-            "median_length",
-            "avg_depth",
-            "median_depth",
-            "gc",
-            "N50",
-            "N75",
-            "L50",
-            "L75",
-        ]
-        depth_stats_header = [
-            "sample_name",
-            "stage",
-            "depth_bin",
-            "length",
-            "fraction",
-            "num_contigs",
-        ]
-        length_stats_header = [
-            "sample_name",
-            "stage",
-            "length_bin",
-            "length",
-            "fraction",
-            "num_contigs",
-        ]
-        assembly_stats_header = f"{'\t'.join(assembly_stats_header)}\n"
-        depth_stats_header = f"{'\t'.join(depth_stats_header)}\n"
-        length_stats_header = f"{'\t'.join(length_stats_header)}\n"
+        assembly_stats_header = "\t".join(
+            [
+                "sample_name",
+                "stage",
+                "num_contigs",
+                "pct_contigs_1kbp",
+                "pct_contigs_2kbp",
+                "pct_contigs_5kbp",
+                "pct_contigs_10kbp",
+                "pct_contigs_20kbp",
+                "pct_contigs_50kbp",
+                "total_length",
+                "pct_length_1kbp",
+                "pct_length_2kbp",
+                "pct_length_5kbp",
+                "pct_length_10kbp",
+                "pct_length_20kbp",
+                "pct_length_50kbp",
+                "shortest_contig",
+                "longest_contig",
+                "avg_length",
+                "median_length",
+                "avg_depth",
+                "median_depth",
+                "gc",
+                "N50",
+                "N75",
+                "L50",
+                "L75",
+            ]
+        )
+        depth_stats_header = "\t".join(
+            [
+                "sample_name",
+                "stage",
+                "depth_bin",
+                "length",
+                "fraction",
+                "num_contigs",
+            ]
+        )
+        length_stats_header = "\t".join(
+            [
+                "sample_name",
+                "stage",
+                "length_bin",
+                "length",
+                "fraction",
+                "num_contigs",
+            ]
+        )
+        assembly_stats_header = f"{assembly_stats_header}\n"
+        depth_stats_header = f"{depth_stats_header}\n"
+        length_stats_header = f"{length_stats_header}\n"
 
         with open(assembly_stats_tsv, "w") as tsv_out:
             tsv_out.write(tsv_comment)
