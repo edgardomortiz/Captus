@@ -2392,8 +2392,8 @@ def cleanup_post_extraction(
         gff_lines = 0
         with open(gff_file, "wt") as gff_out:
             gff_out.write("##gff-version 3\n")
-            gff_out.write(f"#{tsv_comment.split('\n')[0]}\n")
-            gff_out.write(f"#{tsv_comment.split('\n')[1]}\n")
+            tsv_comment = tsv_comment.split('\n')
+            gff_out.write(f"#{tsv_comment[0]}\n#{tsv_comment[1]}\n")
             if sample_gffs:
                 for gff in sorted(sample_gffs):
                     with open(gff, "rt") as gff_in:
@@ -2422,7 +2422,7 @@ def cleanup_post_extraction(
             ]
         tsv_lines = 0
         with open(stats_file, "wt") as tsv_out:
-            tsv_out.write(tsv_comment)
+            tsv_out.write(f"{tsv_comment[0]}\n{tsv_comment[1]}\n")
             tsv_out.write(stats_header)
             if sample_stats:
                 for table in sorted(sample_stats):
