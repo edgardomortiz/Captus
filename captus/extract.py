@@ -338,7 +338,7 @@ def extract(full_command, args):
             log.log(f"{'min_identity':>{mar}}: {bold(nuc_min_identity)}")
             nuc_min_coverage = adjust_min_coverage(args.nuc_min_coverage)
             log.log(f"{'min_coverage':>{mar}}: {bold(nuc_min_coverage)}")
-            nuc_dt_msg = depth_tolerance_msg(args.nuc_depth_tolerance, "NUC")
+            nuc_dt_msg = depth_tolerance_msg(args.nuc_depth_tolerance, "NUC", args.ignore_depth)
             log.log(f"{'depth_tolerance':>{mar}}: {nuc_dt_msg}")
         log.log("")
         log.log(bold(f"{'Plastidial proteins':>{mar}}:"))
@@ -351,7 +351,7 @@ def extract(full_command, args):
             log.log(f"{'min_identity':>{mar}}: {bold(ptd_min_identity)}")
             ptd_min_coverage = adjust_min_coverage(args.ptd_min_coverage)
             log.log(f"{'min_coverage':>{mar}}: {bold(ptd_min_coverage)}")
-            ptd_dt_msg = depth_tolerance_msg(args.ptd_depth_tolerance, "PTD")
+            ptd_dt_msg = depth_tolerance_msg(args.ptd_depth_tolerance, "PTD", args.ignore_depth)
             log.log(f"{'depth_tolerance':>{mar}}: {ptd_dt_msg}")
         log.log("")
         log.log(bold(f"{'Mitochondrial proteins':>{mar}}:"))
@@ -364,7 +364,7 @@ def extract(full_command, args):
             log.log(f"{'min_identity':>{mar}}: {bold(mit_min_identity)}")
             mit_min_coverage = adjust_min_coverage(args.mit_min_coverage)
             log.log(f"{'min_coverage':>{mar}}: {bold(mit_min_coverage)}")
-            mit_dt_msg = depth_tolerance_msg(args.mit_depth_tolerance, "MIT")
+            mit_dt_msg = depth_tolerance_msg(args.mit_depth_tolerance, "MIT", args.ignore_depth)
             log.log(f"{'depth_tolerance':>{mar}}: {mit_dt_msg}")
         log.log("")
         log.log("")
@@ -391,7 +391,7 @@ def extract(full_command, args):
             log.log(f"{'reference info':>{mar}}: {dna_query_info['info_msg']}")
             log.log(f"{'min_identity':>{mar}}: {bold(args.dna_min_identity)}")
             log.log(f"{'min_coverage':>{mar}}: {bold(args.dna_min_coverage)}")
-            dna_dt_msg = depth_tolerance_msg(args.dna_depth_tolerance, "DNA")
+            dna_dt_msg = depth_tolerance_msg(args.dna_depth_tolerance, "DNA", args.ignore_depth)
             log.log(f"{'depth_tolerance':>{mar}}: {dna_dt_msg}")
         log.log("")
         log.log("")
@@ -822,7 +822,7 @@ def extract(full_command, args):
                 log.log(f"{'reference info':>{mar}}: {clust_query_info['info_msg']}")
                 log.log(f"{'dna_min_identity':>{mar}}: {bold(dna_min_identity)}")
                 log.log(f"{'dna_min_coverage':>{mar}}: {bold(args.dna_min_coverage)}")
-                clr_dt_msg = depth_tolerance_msg(args.dna_depth_tolerance, "CLR")
+                clr_dt_msg = depth_tolerance_msg(args.dna_depth_tolerance, "CLR", args.ignore_depth)
                 log.log(f"{'depth_tolerance':>{mar}}: {clr_dt_msg}")
             log.log("")
             log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
@@ -1449,10 +1449,13 @@ def reference_info(query_dict):
     return ref_info
 
 
-def depth_tolerance_msg(depth_tolerance, marker_type):
-    msg = bold(f"{depth_tolerance} ")
-    msg += dim(f"(min = median {marker_type} contig depth / {depth_tolerance}, ")
-    msg += dim(f"max = median {marker_type} contig depth x {depth_tolerance})")
+def depth_tolerance_msg(depth_tolerance, marker_type, ignore_depth):
+    if ignore_depth is True:
+        msg = dim("Filter disabled, '--ignore_depth' is being used")
+    else:
+        msg = bold(f"{depth_tolerance} ")
+        msg += dim(f"(min = median {marker_type} contig depth / {depth_tolerance}, ")
+        msg += dim(f"max = median {marker_type} contig depth x {depth_tolerance})")
     return msg
 
 
