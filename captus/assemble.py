@@ -621,8 +621,9 @@ def megahit(
 
     # MEGAHIT won't run if 'out_dir' already exists, it needs to create it by itself, we can only
     # create or verify that 'sample_out_dir' exists
+    incomplete_log = Path(sample_out_dir, "megahit_brief.log")
     sample_megahit_out_dir = Path(sample_out_dir, "01_assembly")
-    if overwrite is True or not sample_megahit_out_dir.exists():
+    if overwrite is True or incomplete_log.exists() or not sample_megahit_out_dir.exists():
         if sample_megahit_out_dir.exists():
             shutil.rmtree(sample_megahit_out_dir, ignore_errors=True)
         if mean_read_length is False:

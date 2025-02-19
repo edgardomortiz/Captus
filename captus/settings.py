@@ -406,7 +406,7 @@ SCIPIO_GENOME_BASIC_SETTINGS = {
 SCIPIO_GENOME_EXTRA_SETTINGS = {
     # Change here the final settings for nuclear genes:
     "NUC": [
-        "--blat_params=-oneOff=1 -maxIntron=50000",
+        "--blat_params=-maxIntron=50000",
         "--blat_tilesize=6",
         "--exhaust_align_size=15000",
         "--exhaust_gap_size=21",
@@ -416,7 +416,6 @@ SCIPIO_GENOME_EXTRA_SETTINGS = {
     "PTD": [
         "--region_size=0",
         "--blat_params=-oneOff=1 -maxIntron=1300",
-        "--blat_tilesize=6",
         "--exhaust_align_size=1300",
         "--max_assemble_size=9000",
         "--min_intron_len=500",
@@ -426,7 +425,6 @@ SCIPIO_GENOME_EXTRA_SETTINGS = {
     "MIT": [
         "--region_size=0",
         "--blat_params=-oneOff=1 -maxIntron=9000",
-        "--blat_tilesize=6",
         "--exhaust_align_size=9000",
         "--max_assemble_size=50000",
         "--gap_to_close=84",  # Don't set >90, genes found in 1st round and lost in 2nd

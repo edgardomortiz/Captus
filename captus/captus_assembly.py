@@ -818,7 +818,7 @@ class CaptusAssembly(object):
         scipio_ptd_group.add_argument(
             "--ptd_depth_tolerance",
             action="store",
-            default=10,
+            default=20,
             type=float,
             dest="ptd_depth_tolerance",
             help="Allow plastidial contigs with a minimum depth equal to the median depth divided by"
@@ -879,7 +879,7 @@ class CaptusAssembly(object):
         scipio_mit_group.add_argument(
             "--mit_depth_tolerance",
             action="store",
-            default=10,
+            default=20,
             type=float,
             dest="mit_depth_tolerance",
             help="Allow mitochondrial contigs with a minimum depth equal to the median depth divided"
@@ -916,7 +916,7 @@ class CaptusAssembly(object):
         non_coding_group.add_argument(
             "--dna_depth_tolerance",
             action="store",
-            default=10,
+            default=20,
             type=float,
             dest="dna_depth_tolerance",
             help="Allow contigs with a minimum depth equal to the median depth divided by this"
