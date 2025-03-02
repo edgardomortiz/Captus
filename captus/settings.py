@@ -513,7 +513,7 @@ MMSEQS_SENSITIVITY = 7.5
 
 # A cluster must have at least this proportion of the total number of samples to be used as
 # reference
-CLR_MIN_SAMPLE_PROP = 0.3
+CLR_MIN_SAMPLE_PROP = 0.66
 
 # Minimum proportion of longest cluster representative to be retained for secondary cluster
 # representatives

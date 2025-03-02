@@ -834,11 +834,13 @@ def salmon(
             )
         with open(salmon_log_file, "a") as salmon_log:
             subprocess.run(salmon_quant_cmd, stdout=salmon_log, stderr=salmon_log)
-        cleanup_salmon_out_dirs(sample_index_dir, sample_quant_dir, keep_all)
-        write_depth_coverage_tsv(sample_megahit_out_dir, "salmon", tsv_comment, max_read_length)
-        message = (
-            f"'{sample_name}': depth of coverage estimated [{elapsed_time(time.time() - start)}]"
-        )
+        if cleanup_salmon_out_dirs(sample_index_dir, sample_quant_dir, keep_all):
+            write_depth_coverage_tsv(sample_megahit_out_dir, "salmon", tsv_comment, max_read_length)
+            message = (
+                f"'{sample_name}': depth of coverage estimated [{elapsed_time(time.time() - start)}]"
+            )
+        else:
+            message = red(f"'{sample_name}': FAILED depth estimation (Salmon output not found)")
     else:
         message = dim(f"'{sample_name}': SKIPPED (output files already exist)")
 
@@ -849,6 +851,10 @@ def cleanup_salmon_out_dirs(sample_index_dir, sample_quant_dir, keep_all):
     """
     Remove Salmon index and other Salmon quant unnecessary files
     """
+    # If the file quant.sf is not produced we should skip the cleanup and flag the task as failed
+    quant_sf = Path(sample_quant_dir, "quant.sf")
+    if not quant_sf.exists():
+        return False
     if not keep_all:
         shutil.rmtree(sample_index_dir, ignore_errors=True)
         shutil.rmtree(Path(sample_quant_dir, "aux_info"), ignore_errors=True)
@@ -856,7 +862,7 @@ def cleanup_salmon_out_dirs(sample_index_dir, sample_quant_dir, keep_all):
         shutil.rmtree(Path(sample_quant_dir, "logs"), ignore_errors=True)
         Path(sample_quant_dir, "cmd_info.json").unlink()
         Path(sample_quant_dir, "lib_format_counts.json").unlink()
-    return
+    return True
 
 
 def write_depth_coverage_tsv(
