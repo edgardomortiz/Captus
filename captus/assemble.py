@@ -801,7 +801,6 @@ def salmon(
             "--output",
             f"{sample_quant_dir}",
             "--validateMappings",
-            "--allowDovetail",
             "--recoverOrphans",
             "--threads",
             f"{threads}",
