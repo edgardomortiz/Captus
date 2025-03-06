@@ -2919,9 +2919,7 @@ def blat_misc_dna_psl_to_dict(
         return assembly
 
     def pair_is_compatible(h1, h2, max_overlap_bp):
-        if max(h1["identity"], h2["identity"]) * (1 - settings.DNA_TOLERANCE_PID) > min(
-            h1["identity"], h2["identity"]
-        ):
+        if abs(h1["identity"] - h2["identity"]) > (settings.DNA_TOLERANCE_PID * 100.0):
             return False
         overlap = min(h1["q_end"][-1], h2["q_end"][-1]) - max(h1["q_start"][0], h2["q_start"][0])
         if overlap < 1:
