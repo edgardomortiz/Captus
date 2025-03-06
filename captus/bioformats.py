@@ -2641,6 +2641,127 @@ def scipio_yaml_to_dict(
         return None
 
 
+def parse_psl_record(psl_line):
+    record = psl_line.strip().split()
+    psl = {
+        "matches": int(record[0]),
+        "mismatches": int(record[1]),
+        "rep_matches": int(record[2]),
+        "n_count": int(record[3]),
+        "q_num_insert": int(record[4]),
+        "q_base_insert": int(record[5]),
+        "t_num_insert": int(record[6]),
+        "t_base_insert": int(record[7]),
+        "strand": record[8],
+        "q_name": record[9],
+        "q_size": int(record[10]),
+        "q_start": int(record[11]),
+        "q_end": int(record[12]),
+        "t_name": record[13],
+        "t_size": int(record[14]),
+        "t_start": int(record[15]),
+        "t_end": int(record[16]),
+        "block_count": int(record[17]),
+        "block_sizes": [int(x) for x in record[18].strip(",").split(",")],
+        "q_starts": [int(x) for x in record[19].strip(",").split(",")],
+        "t_starts": [int(x) for x in record[20].strip(",").split(",")],
+    }
+    return psl
+
+
+def calculate_psl_identity(
+    matches: int,
+    rep_matches: int,
+    mismatches: int,
+    q_num_insert: int,
+    t_num_insert: int,
+    strand: str,
+    q_start: int,
+    q_end: int,
+    t_size: int,
+    t_start: int,
+    t_end: int,
+    block_sizes: list,
+    t_starts: list,
+    q_type="unknown",
+    q_is_mrna=False,
+):
+    """ Adapted from:
+        https://genome-source.gi.ucsc.edu/gitlist/kent.git/raw/master/src/utils/pslScore/pslScore.pl
+        Calculates pct_identity from blat record in .psl
+        query and target refer to BLAT nomenclature
+        BLAT query = Captus target loci
+        BLAT target = Captus assembled contigs
+
+    Args:
+        matches (int): number of matches that are not repeats
+        rep_matches (int): number of matches that are part of repeats
+        mismatches (int): number of mismatches
+        q_num_insert (int): number of inserts in query
+        t_num_insert (int): number of inserts in target
+        strand (str): query strand, a second + or - refers to the target strand when query is protein
+        q_start (int): alignment start position in query
+        q_end (int): alignment end position in query
+        t_size (int): target sequence size
+        t_start (int): alignment start position in target
+        t_end (int): alignment end position in target
+        block_sizes (list): list of integers corresponding to each block size
+        t_starts (list): list of integers corresponding to start positions of each block in target
+        q_type (str, optional): dna or protein, will determine if unknown. Defaults to "unknown".
+        q_is_mrna (bool, optional): if the query is mRNA. Defaults to False.
+    """
+    def psl_is_protein(strand, t_size, t_start, t_end, block_sizes, t_starts):
+        """ Returns a size multiplier of 1 if the PSL is DNA or 3 if the PSL is PROTEIN """        
+        # Returns a size multiplier of 1 if the PSL is DNA or 3 if the PSL is PROTEIN
+        size_mul = 1
+        if len(strand) > 1:
+            direction = strand[-1]
+            t_end_last_block = t_starts[-1] + (3 * block_sizes[-1])
+            if direction == "+":
+                if t_end == t_end_last_block:
+                    size_mul = 3
+            elif direction == "-":
+                if t_start == (t_size - t_end_last_block):
+                    size_mul = 3
+        return size_mul
+    
+    if q_type == "protein":
+        size_mul = 3
+    elif q_type == "dna":
+        size_mul = 1
+    else:
+        size_mul = psl_is_protein(strand, t_size, t_start, t_end, block_sizes, t_starts)
+
+    milli_bad = 0
+    q_ali_size = size_mul * (q_end - q_start)
+    t_ali_size = t_end - t_start
+    ali_size = q_ali_size
+    if t_ali_size < q_ali_size:
+        ali_size = t_ali_size
+    if ali_size <= 0:
+        return milli_bad
+    size_dif = q_ali_size - t_ali_size
+    if size_dif < 0:
+        if q_is_mrna is True:
+            size_dif = 0
+        else:
+            size_dif = -size_dif
+    insert_factor = q_num_insert
+    # Let's not penalize insertions in the contigs, disable next two lines
+    # if is_mrna is False:
+    #     insert_factor += t_num_insert
+    total = size_mul * (matches + rep_matches + mismatches)
+    if total != 0:
+        round_away_from_zero = 3 * math.log(1 + size_dif)
+        if round_away_from_zero < 0:
+            round_away_from_zero = int(round_away_from_zero - 0.5)
+        else:
+            round_away_from_zero = int(round_away_from_zero + 0.5)
+        milli_bad = (1000 * (mismatches * size_mul + insert_factor + round_away_from_zero)) / total
+
+    return 100.0 - milli_bad * 0.10
+
+
 def blat_misc_dna_psl_to_dict(
     psl_path, target_dict, min_identity, min_coverage, marker_type, disable_stitching, max_paralogs
 ):
@@ -2650,56 +2771,50 @@ def blat_misc_dna_psl_to_dict(
     file Angiosperms353.FAA)
     """
 
-    def split_blat_hit(q_size, block_sizes, q_starts, t_starts, q_end_pos, t_end_pos):
+    def merge_blocks(q_size: int, strand: str, block_sizes: list, q_starts: list, t_starts: list):
+        """ BLAT split alignments in block intercalated by insertions, we merge adjacent blocks
+            when an intervening insertion is not bigger than DNA_MAX_INSERT_SIZE or
+            qSize * DNA_MAX_INSERT_PROP
+            query and target refer to BLAT nomenclature
+            BLAT query = Captus target loci
+            BLAT target = Captus assembled contigs
+
+        Args:
+            q_size (int): size of query sequence
+            strand (str): + or -, applies to query
+            block_sizes (list): length in bp of each subaligment block
+            q_starts (list): start coordinates of query
+            t_starts (list): start coordinates of target
+
+        Returns:
+            q_starts_mb, q_ends_mb, t_starts_mb, t_ends_mb: list of starts and ends for query and 
+                                                            target, reordered for the query when
+                                                            strand is negative, adjacent blocks 
+                                                            merged when the insertions sizes are
+                                                            accepted (see above)
         """
-        Split aligned block so no block contains an insertion as long as the query size
-        """
-        t_inserts = 0
-        q_start, t_start = [q_starts[0]], [t_starts[0]]
-        q_end, t_end = [], []
+        q_ends = [q_starts[i] + block_sizes[i] for i in range(len(block_sizes))]
+        t_ends = [t_starts[i] + block_sizes[i] for i in range(len(block_sizes))]
+        q_starts_mb, t_starts_mb = [q_starts[0]], [t_starts[0]]
+        q_ends_mb, t_ends_mb = [], []
         for i in range(len(block_sizes) - 1):
-            if t_starts[i + 1] - (t_starts[i] + block_sizes[i]) >= min(
+            if t_starts[i + 1] - t_ends[i] >= min(
                 q_size * settings.DNA_MAX_INSERT_PROP, settings.DNA_MAX_INSERT_SIZE
             ):
-                t_inserts += t_starts[i + 1] - (t_starts[i] + block_sizes[i])
-                q_start.append(q_starts[i + 1])
-                t_start.append(t_starts[i + 1])
-                q_end.append(q_starts[i] + block_sizes[i])
-                t_end.append(t_starts[i] + block_sizes[i])
-        q_end.append(q_end_pos)
-        t_end.append(t_end_pos)
+                q_starts_mb.append(q_starts[i + 1])
+                t_starts_mb.append(t_starts[i + 1])
+                q_ends_mb.append(q_ends[i])
+                t_ends_mb.append(t_ends[i])
+        q_ends_mb.append(q_ends[-1])
+        t_ends_mb.append(t_ends[-1])
+        if strand == "-":
+            q_starts_mb_neg = [q_size - x for x in q_ends_mb[::-1]]
+            q_ends_mb_neg = [q_size - x for x in q_starts_mb[::-1]]
+            return q_starts_mb_neg, q_ends_mb_neg, t_starts_mb, t_ends_mb
+        else:
+            return q_starts_mb, q_ends_mb, t_starts_mb, t_ends_mb
 
-        return q_start, q_end, t_start, t_end, t_inserts
-
-    def calculate_psl_identity(
-        q_end, q_start, t_end, t_start, q_inserts, matches, rep_matches, mismatches
-    ):
-        """
-        Adapted for the case of DNA vs DNA search only from:
-        https://genome-source.gi.ucsc.edu/gitlist/kent.git/raw/master/src/utils/pslScore/pslScore.pl
-        """
-        millibad = 0
-        q_ali_size = q_end - q_start
-        t_ali_size = t_end - t_start
-        ali_size = q_ali_size
-        if t_ali_size < q_ali_size:
-            ali_size = t_ali_size
-        if ali_size <= 0:
-            return millibad
-        size_dif = abs(q_ali_size - t_ali_size)
-        insert_factor = q_inserts
-        total = matches + rep_matches + mismatches
-        if total != 0:
-            round_away_from_zero = 3 * math.log(1 + size_dif)
-            if round_away_from_zero < 0:
-                round_away_from_zero = int(round_away_from_zero - 0.5)
-            else:
-                round_away_from_zero = int(round_away_from_zero + 0.5)
-            millibad = (1000 * (mismatches + insert_factor + round_away_from_zero)) / total
-
-        return 100.0 - millibad * 0.1
-
-    def determine_matching_region(q_size, q_start, q_end, t_size, t_start, t_end, t_strand):
+    def determine_matching_region(q_size, q_start, q_end, t_size, t_start, t_end, strand):
         """
         Determine if a contig matches entirely the query, or if it is a partial hit. In cases of
         partial hits determine if it is a split hit (proximal, middle, or distal) or if the hit
@@ -2730,10 +2845,10 @@ def blat_misc_dna_psl_to_dict(
         if region == "middle":
             if left_flank_too_long or right_flank_too_long:
                 region = "wedged"
-        elif (region == "proximal" and t_strand == "+") or (region == "distal" and t_strand == "-"):
+        elif (region == "proximal" and strand == "+") or (region == "distal" and strand == "-"):
             if right_flank_too_long:
                 region = "wedged"
-        elif (region == "proximal" and t_strand == "-") or (region == "distal" and t_strand == "+"):
+        elif (region == "proximal" and strand == "-") or (region == "distal" and strand == "+"):
             if left_flank_too_long:
                 region = "wedged"
         return region
@@ -3063,74 +3178,78 @@ def blat_misc_dna_psl_to_dict(
     hit_num = 1
     with open(psl_path) as psl_in:
         for line in psl_in:
-            cols = line.split()
-            matches, mismatches, rep_matches = int(cols[0]), int(cols[1]), int(cols[2])
-            q_inserts, t_strand, q_name, q_size = int(cols[4]), cols[8], cols[9], int(cols[10])
-            t_base_inserts, t_name, t_size = int(cols[7]), cols[13], int(cols[14])
-            # When an insertion as long as the query size is detected we must attempt splitting hit
-            if t_base_inserts >= min(
-                q_size * settings.DNA_MAX_INSERT_PROP, settings.DNA_MAX_INSERT_SIZE
-            ):
-                block_sizes = [int(s) for s in cols[18].strip(",").split(",")]
-                q_starts = [int(p) for p in cols[19].strip(",").split(",")]
-                t_starts = [int(p) for p in cols[20].strip(",").split(",")]
-                q_start, q_end, t_start, t_end, _ = split_blat_hit(
-                    q_size, block_sizes, q_starts, t_starts, int(cols[12]), int(cols[16])
-                )
-            else:
-                q_start, q_end = [int(cols[11])], [int(cols[12])]
-                t_start, t_end = [int(cols[15])], [int(cols[16])]
-
-            coverage = (matches + rep_matches + mismatches) / q_size * 100
-            identity = calculate_psl_identity(
-                q_end[-1],
-                q_start[0],
-                t_end[-1],
-                t_start[0],
-                q_inserts,
-                matches,
-                rep_matches,
-                mismatches,
+            p = parse_psl_record(line)
+            q_starts_mb, q_ends_mb, t_starts_mb, t_ends_mb = merge_blocks(
+                p["q_size"],
+                p["strand"],
+                p["block_sizes"], 
+                p["q_starts"], 
+                p["t_starts"], 
             )
-            score = (matches + rep_matches - mismatches) / q_size
-            wscore = score * ((matches + rep_matches + mismatches) / q_size)
+            coverage = (p["matches"] + p["rep_matches"] + p["mismatches"]) / p["q_size"]
+            score = (p["matches"] + p["rep_matches"] - p["mismatches"]) / p["q_size"]
+            wscore = score * coverage
+            pct_coverage = coverage * 100
+            pct_identity = calculate_psl_identity(
+                p["matches"],
+                p["rep_matches"],
+                p["mismatches"],
+                p["q_num_insert"],
+                p["t_num_insert"],
+                p["strand"],
+                q_starts_mb[0],
+                q_ends_mb[-1],
+                p["t_size"],
+                t_starts_mb[0],
+                t_ends_mb[-1],
+                p["block_sizes"],
+                p["t_starts"],
+                q_type="dna",
+            )
+            
             if disable_stitching:  # prevent locus assembly across multiple contigs
                 region = "full"
             else:
                 region = determine_matching_region(
-                    q_size, q_start[0], q_end[-1], t_size, t_start[0], t_end[-1], t_strand
+                    p["q_size"], 
+                    q_starts_mb[0], 
+                    q_ends_mb[-1], 
+                    p["t_size"], 
+                    t_starts_mb[0], 
+                    t_ends_mb[-1], 
+                    p["strand"]
                 )
             gapped = not bool(region == "full")
 
-            # Ignore hits with not enough coverage of the reference, or partial hits immersed in
+            # Ignore hits with not enough pct_coverage of the reference, or partial hits immersed in
             # larger segments of unrelated sequence
-            if not (coverage < settings.DNA_MIN_COVERAGE_BEFORE_ASSEMBLY and region == "wedged"):
+            if not (pct_coverage < settings.DNA_MIN_COVERAGE_BEFORE_ASSEMBLY and region == "wedged"):
                 # Compose hit record with columns from the .psl line
                 hit = {
-                    "ref_name": q_name,
-                    "ref_size": q_size,
-                    "q_start": q_start,  # list of starts
-                    "q_end": q_end,  # list of ends
-                    "match_len": matches + rep_matches + mismatches,
+                    "ref_name": p["q_name"],
+                    "ref_size": p["q_size"],
+                    "q_start": q_starts_mb,
+                    "q_end": q_ends_mb,
+                    "match_len": p["matches"] + p["rep_matches"] + p["mismatches"],
                     "hit_id": f"{marker_type}{hit_num}",
-                    "hit_contig": t_name,
-                    "t_start": t_start,  # list of starts
-                    "t_end": t_end,  # list of ends
-                    "strand": t_strand,
-                    "matches": matches + rep_matches,
-                    "mismatches": mismatches,
-                    "coverage": coverage,
-                    "identity": identity,
+                    "hit_contig": p["t_name"],
+                    "t_start": t_starts_mb,
+                    "t_end": t_ends_mb,
+                    "strand": p["strand"],
+                    "matches": p["matches"] + p["rep_matches"],
+                    "mismatches": p["mismatches"],
+                    "coverage": pct_coverage,
+                    "identity": pct_identity,
                     "score": score,
                     "wscore": wscore,
                     "region": region,
                     "gapped": gapped,
                 }
                 hit_num += 1
-                if q_name not in raw_dna_hits:
-                    raw_dna_hits[q_name] = [dict(hit)]
+                if p["q_name"] not in raw_dna_hits:
+                    raw_dna_hits[p["q_name"]] = [dict(hit)]
                 else:
-                    raw_dna_hits[q_name].append(dict(hit))
+                    raw_dna_hits[p["q_name"]].append(dict(hit))
 
     # Use the name of the last contig to extract kmer size if the assembly was done within Captus
     # and determine the maximum overlap tolerated between adjacent contigs for assembly
