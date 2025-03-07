@@ -34,6 +34,7 @@ from .bioformats import (
     fix_premature_stops,
     import_busco_odb10,
     mmseqs_cluster,
+    prefilter_blat_psl,
     rehead_root_msa,
     scipio_yaml_to_dict,
     split_mmseqs_clusters_file,
@@ -1454,8 +1455,7 @@ def depth_tolerance_msg(depth_tolerance, marker_type, ignore_depth):
         msg = dim("Filter disabled, '--ignore_depth' is being used")
     else:
         msg = bold(f"{depth_tolerance} ")
-        msg += dim(f"(min = median {marker_type} contig depth / {depth_tolerance}, ")
-        msg += dim(f"max = median {marker_type} contig depth x {depth_tolerance})")
+        msg += dim(f"(min = 10^(log(depth of the contig with best hit in locus) / {depth_tolerance}))")
     return msg
 
 
@@ -1527,12 +1527,14 @@ def scipio_coding(
             target_path,
             query_path,
             query_parts_paths,
+            query_info,
             ignore_depth,
             depth_tolerance,
             disable_stitching,
             overwrite,
             threads,
             debug,
+            keep_all,
             stage="initial",
         )
         if yaml_initial_file is None:
@@ -1579,12 +1581,14 @@ def scipio_coding(
             final_target,
             final_query,
             query_parts_paths,
+            query_info,
             ignore_depth,
             depth_tolerance,
             disable_stitching,
             overwrite,
             threads,
             debug,
+            keep_all,
             stage="final",
         )
 
@@ -1595,12 +1599,14 @@ def scipio_coding(
             target_path,
             query_path,
             query_parts_paths,
+            query_info,
             ignore_depth,
             depth_tolerance,
             disable_stitching,
             overwrite,
             threads,
             debug,
+            keep_all,
             stage="single",
         )
 
@@ -1663,12 +1669,14 @@ def run_scipio_parallel(
     target,
     query,
     query_part_paths,
+    query_info,
     ignore_depth,
     depth_tolerance,
     disable_stitching,
     overwrite,
     threads,
     debug,
+    keep_all,
     stage,
 ):
     # Set output directory and files according to 'sample_dir' and 'stage'
@@ -1729,8 +1737,14 @@ def run_scipio_parallel(
             return "BLAT FAILED"
 
         # Second, filter hits according the depth of coverage of the contigs
-        if stage == "final" or stage == "single":
-            filter_depth_blat_psl(blat_out_file, ignore_depth, depth_tolerance)
+        prefilter_blat_psl(
+            marker_type,
+            blat_out_file,
+            bool(query_info["separators_found"]),
+            depth_tolerance,
+            ignore_depth,
+            keep_all,
+        )
 
         # Third, split the previous BLAT psl according to the reference splits
         split_blat_psl_params = []
@@ -1822,49 +1836,6 @@ def run_scipio_parallel(
 
     else:
         return None
-
-
-def filter_depth_blat_psl(blat_out_file: Path, ignore_depth: bool, depth_tolerance: float):
-    blat_unfiltered_file = Path(
-        blat_out_file.parent, blat_out_file.name.replace(".psl", "_unfiltered.psl")
-    )
-
-    if ignore_depth is True:
-        return
-
-    contig_names = []
-    with open(blat_out_file, "rt") as psl_in:
-        for line in psl_in:
-            contig_names.append(line.split()[13])
-    contig_names = list(set(contig_names))
-    depths = []
-    for ctg in contig_names:
-        if "_cov_" in ctg:
-            try:
-                depths.append(float(ctg.split("_cov_")[1].split("_")[0]))
-            except ValueError:
-                continue
-    if len(depths) != len(contig_names) or len(depths) == 0:
-        ignore_depth = True
-    if ignore_depth is False and len(depths) > 0:
-        psl_filtered = []
-        median_depth = statistics.median(depths)
-        min_depth = median_depth / depth_tolerance
-        max_depth = median_depth * depth_tolerance
-        with open(blat_out_file, "rt") as psl_in:
-            with open(blat_unfiltered_file, "wt") as psl_unfiltered:
-                for line in psl_in:
-                    psl_unfiltered.write(line)
-                    try:
-                        depth = float(line.split()[13].split("_cov_")[1].split("_")[0])
-                    except ValueError:
-                        depth = 0
-                    if min_depth <= depth <= max_depth:
-                        psl_filtered.append(line)
-        with open(blat_out_file, "wt") as psl_out:
-            for line in psl_filtered:
-                psl_out.write(line)
-    return
 
 
 def split_blat_psl(psl_path_in, seq_names_set, psl_out_path):
@@ -2308,7 +2279,14 @@ def blat_misc_dna(
             subprocess.run(blat_cmd, stdout=blat_log, stderr=blat_log)
 
         # Filter hits according the depth of coverage of the contigs
-        filter_depth_blat_psl(blat_dna_out_file, ignore_depth, depth_tolerance)
+        prefilter_blat_psl(
+            marker_type,
+            blat_dna_out_file,
+            bool(query_info["separators_found"]),
+            depth_tolerance,
+            ignore_depth, 
+            keep_all,
+        )
 
         dna_hits = blat_misc_dna_psl_to_dict(
             blat_dna_out_file,

@@ -757,13 +757,11 @@ class CaptusAssembly(object):
         scipio_nuc_group.add_argument(
             "--nuc_depth_tolerance",
             action="store",
-            default=20,
+            default=2.0,
             type=float,
             dest="nuc_depth_tolerance",
-            help="Allow nuclear contigs with a minimum depth equal to the median depth divided by"
-            " this number and a maximum depth equal to the median depth multipled by this"
-            " number. This median depth is calculated only from the contigs with hits to the"
-            " nuclear proteins",
+            help="Minimum depth = 10^(log(depth of contig with best hit in locus) / "
+            "nuc_depth_tolerance), values must be >= 1.0 (1 is the most strict)",
         )
 
         scipio_ptd_group = parser.add_argument_group("Plastidial proteins extraction (Scipio)")
@@ -818,13 +816,11 @@ class CaptusAssembly(object):
         scipio_ptd_group.add_argument(
             "--ptd_depth_tolerance",
             action="store",
-            default=20,
+            default=2.0,
             type=float,
             dest="ptd_depth_tolerance",
-            help="Allow plastidial contigs with a minimum depth equal to the median depth divided by"
-            " this number and a maximum depth equal to the median depth multipled by this"
-            " number. This median depth is calculated only from the contigs with hits to the"
-            " plastidial proteins",
+            help="Minimum depth = 10^(log(depth of contig with best hit in locus) / "
+            "ptd_depth_tolerance), values must be >= 1.0 (1 is the most strict)",
         )
 
         scipio_mit_group = parser.add_argument_group("Mitochondrial proteins extraction (Scipio)")
@@ -879,13 +875,11 @@ class CaptusAssembly(object):
         scipio_mit_group.add_argument(
             "--mit_depth_tolerance",
             action="store",
-            default=20,
+            default=2.0,
             type=float,
             dest="mit_depth_tolerance",
-            help="Allow mitochondrial contigs with a minimum depth equal to the median depth divided"
-            " by this number and a maximum depth equal to the median depth multipled by this"
-            " number. This median depth is calculated only from the contigs with hits to the"
-            " mitochondrial proteins",
+            help="Minimum depth = 10^(log(depth of contig with best hit in locus) / "
+            "mit_depth_tolerance), values must be >= 1.0 (1 is the most strict)",
         )
 
         non_coding_group = parser.add_argument_group("Miscellaneous DNA extraction (BLAT)")
@@ -916,13 +910,11 @@ class CaptusAssembly(object):
         non_coding_group.add_argument(
             "--dna_depth_tolerance",
             action="store",
-            default=20,
+            default=2.0,
             type=float,
             dest="dna_depth_tolerance",
-            help="Allow contigs with a minimum depth equal to the median depth divided by this"
-            " number and a maximum depth equal to the median depth multipled by this number."
-            " This median depth is calculated only from the contigs with hits to the"
-            " miscellaneous DNA reference targets",
+            help="Minimum depth = 10^(log(depth of contig with best hit in locus) / "
+            "dna_depth_tolerance), values must be >= 1.0 (1 is the most strict)",
         )
 
         mmseqs2_group = parser.add_argument_group("Assemblies clustering (MMseqs2)")

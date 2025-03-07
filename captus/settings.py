@@ -431,6 +431,21 @@ SCIPIO_GENOME_EXTRA_SETTINGS = {
     ],
 }
 
+# Minimum wscore allowed in PSL records
+MIN_WSCORE = 0.001
+
+# BLAT size multipliers per marker type
+SIZE_MUL = {
+    "NUC": 3, "PTD": 3, "MIT": 3, "DNA": 1, "CLR": 1,
+}
+
+# Genes that partially overlap
+VALID_OVERLAPS = [["ndhC", "ndhK"], ["psbC", "psbD"]]
+
+# Maximum percetange of overlap between two hits, nuclear genes should not overlap, but we allow
+# a small percentage of overlap
+HIT_MAX_PCT_OVERLAP = 1.0
+
 # Minimum length of terminal exon for organellar proteins
 SCIPIO_MIN_LEN_FINAL_EXON = 21
 
