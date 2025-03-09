@@ -339,7 +339,7 @@ def extract(full_command, args):
             log.log(f"{'min_identity':>{mar}}: {bold(nuc_min_identity)}")
             nuc_min_coverage = adjust_min_coverage(args.nuc_min_coverage)
             log.log(f"{'min_coverage':>{mar}}: {bold(nuc_min_coverage)}")
-            nuc_dt_msg = depth_tolerance_msg(args.nuc_depth_tolerance, "NUC", args.ignore_depth)
+            nuc_dt, nuc_dt_msg = depth_tolerance_check(args.nuc_depth_tolerance, args.ignore_depth)
             log.log(f"{'depth_tolerance':>{mar}}: {nuc_dt_msg}")
         log.log("")
         log.log(bold(f"{'Plastidial proteins':>{mar}}:"))
@@ -352,7 +352,7 @@ def extract(full_command, args):
             log.log(f"{'min_identity':>{mar}}: {bold(ptd_min_identity)}")
             ptd_min_coverage = adjust_min_coverage(args.ptd_min_coverage)
             log.log(f"{'min_coverage':>{mar}}: {bold(ptd_min_coverage)}")
-            ptd_dt_msg = depth_tolerance_msg(args.ptd_depth_tolerance, "PTD", args.ignore_depth)
+            ptd_dt, ptd_dt_msg = depth_tolerance_check(args.ptd_depth_tolerance, args.ignore_depth)
             log.log(f"{'depth_tolerance':>{mar}}: {ptd_dt_msg}")
         log.log("")
         log.log(bold(f"{'Mitochondrial proteins':>{mar}}:"))
@@ -365,7 +365,7 @@ def extract(full_command, args):
             log.log(f"{'min_identity':>{mar}}: {bold(mit_min_identity)}")
             mit_min_coverage = adjust_min_coverage(args.mit_min_coverage)
             log.log(f"{'min_coverage':>{mar}}: {bold(mit_min_coverage)}")
-            mit_dt_msg = depth_tolerance_msg(args.mit_depth_tolerance, "MIT", args.ignore_depth)
+            mit_dt, mit_dt_msg = depth_tolerance_check(args.mit_depth_tolerance, args.ignore_depth)
             log.log(f"{'depth_tolerance':>{mar}}: {mit_dt_msg}")
         log.log("")
         log.log("")
@@ -392,7 +392,7 @@ def extract(full_command, args):
             log.log(f"{'reference info':>{mar}}: {dna_query_info['info_msg']}")
             log.log(f"{'min_identity':>{mar}}: {bold(args.dna_min_identity)}")
             log.log(f"{'min_coverage':>{mar}}: {bold(args.dna_min_coverage)}")
-            dna_dt_msg = depth_tolerance_msg(args.dna_depth_tolerance, "DNA", args.ignore_depth)
+            dna_dt, dna_dt_msg = depth_tolerance_check(args.dna_depth_tolerance, args.ignore_depth)
             log.log(f"{'depth_tolerance':>{mar}}: {dna_dt_msg}")
         log.log("")
         log.log("")
@@ -448,7 +448,7 @@ def extract(full_command, args):
                             "NUC",
                             args.nuc_transtable,
                             args.ignore_depth,
-                            args.nuc_depth_tolerance,
+                            nuc_dt,
                             args.disable_stitching,
                             args.max_loci_files,
                             args.max_loci_scipio_x2,
@@ -479,7 +479,7 @@ def extract(full_command, args):
                             "PTD",
                             args.ptd_transtable,
                             args.ignore_depth,
-                            args.ptd_depth_tolerance,
+                            ptd_dt,
                             args.disable_stitching,
                             args.max_loci_files,
                             args.max_loci_scipio_x2,
@@ -510,7 +510,7 @@ def extract(full_command, args):
                             "MIT",
                             args.mit_transtable,
                             args.ignore_depth,
-                            args.mit_depth_tolerance,
+                            mit_dt,
                             args.disable_stitching,
                             args.max_loci_files,
                             args.max_loci_scipio_x2,
@@ -537,7 +537,7 @@ def extract(full_command, args):
                             dna_query_info,
                             "DNA",
                             args.ignore_depth,
-                            args.dna_depth_tolerance,
+                            dna_dt,
                             args.disable_stitching,
                             args.max_loci_files,
                             args.max_paralogs,
@@ -823,7 +823,7 @@ def extract(full_command, args):
                 log.log(f"{'reference info':>{mar}}: {clust_query_info['info_msg']}")
                 log.log(f"{'dna_min_identity':>{mar}}: {bold(dna_min_identity)}")
                 log.log(f"{'dna_min_coverage':>{mar}}: {bold(args.dna_min_coverage)}")
-                clr_dt_msg = depth_tolerance_msg(args.dna_depth_tolerance, "CLR", args.ignore_depth)
+                clr_dt, clr_dt_msg = depth_tolerance_check(args.dna_depth_tolerance, args.ignore_depth)
                 log.log(f"{'depth_tolerance':>{mar}}: {clr_dt_msg}")
             log.log("")
             log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
@@ -849,7 +849,7 @@ def extract(full_command, args):
                             clust_query_info,
                             "CLR",
                             args.ignore_depth,
-                            args.dna_depth_tolerance,
+                            clr_dt,
                             args.disable_stitching,
                             args.max_loci_files,
                             args.max_paralogs,
@@ -1450,7 +1450,8 @@ def reference_info(query_dict):
     return ref_info
 
 
-def depth_tolerance_msg(depth_tolerance, marker_type, ignore_depth):
+def depth_tolerance_check(depth_tolerance, ignore_depth):
+    depth_tolerance = max(1, depth_tolerance)
     if ignore_depth is True:
         msg = dim("Filter disabled, '--ignore_depth' is being used")
     else:

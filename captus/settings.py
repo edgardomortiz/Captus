@@ -440,7 +440,12 @@ SIZE_MUL = {
 }
 
 # Genes that partially overlap
-VALID_OVERLAPS = [["ndhC", "ndhK"], ["psbC", "psbD"]]
+VALID_OVERLAPS = [
+    ["atpB", "atpE"], 
+    ["ndhC", "ndhK"],
+    ["ndhF", "ycf1"], 
+    ["psbC", "psbD"],
+]
 
 # Maximum percetange of overlap between two hits, nuclear genes should not overlap, but we allow
 # a small percentage of overlap

@@ -2762,48 +2762,65 @@ def calculate_psl_identity(
     return 100.0 - milli_bad * 0.10
 
 
-def calculate_hit_overlap(hit1: dict, hit2: dict):
+def calculate_hit_overlap(hit1: dict, hit2: dict, size_mul: int):
     """Determine the percentage of overlap between two BLAT hits, dividing the
         number of overlapped bases by the length of the longest hit
 
     Args:
         hit1 (dict): BLAT hit1
         hit2 (dict): BLAT hit2
+        size_mul (int): 1 for DNA, 3 for PROTEIN
 
     Returns:
         overlapped bp / longest hit * 100, list of overlap types found
     """
+    def flip_coords(t_starts_minus, t_ends_minus, t_size):
+        t_starts_plus = [t_size - x for x in t_ends_minus[::-1]]
+        t_ends_plus = [t_size - x for x in t_starts_minus[::-1]]
+        return t_starts_plus, t_ends_plus
+
+    if sorted([hit1["locus"], hit2["locus"]]) in settings.VALID_OVERLAPS:
+        return 0.0 , "allowed"
+    
+    h1_starts, h1_ends = hit1["t_starts"], hit1["t_ends"]
+    h2_starts, h2_ends = hit2["t_starts"], hit2["t_ends"]
+    if size_mul == 3 and hit1["strand"] != hit2["strand"]:
+        t_size = hit1["t_size"]
+        if hit1["strand"] == "-":
+            h1_starts, h1_ends = flip_coords(h1_starts, h1_ends, t_size)
+        else:
+            h2_starts, h2_ends = flip_coords(h2_starts, h2_ends, t_size)
+
     overlapped_bp = 0
     overlap_types = []
-    if sorted([hit1["locus"], hit2["locus"]]) in settings.VALID_OVERLAPS:
-        overlap_types.append("allowed")
-    for i in range(len(hit1["t_starts"])):
-        for j in range(len(hit2["t_starts"])):
-            s1, e1 = hit1["t_starts"][i], hit1["t_ends"][i]
-            s2, e2 = hit2["t_starts"][j], hit2["t_ends"][j]
+    for i in range(len(h1_starts)):
+        for j in range(len(h2_starts)):
+            s1, e1 = h1_starts[i], h1_ends[i]
+            s2, e2 = h2_starts[j], h2_ends[j]
             hits_coords = f"hit1:{s1}-{e1}, hit2:{s2}-{e2}"
             if s1 >= e2 or s2 >= e1:
                 # print(f"{hits_coords}, NO OVERLAP")
+                overlap_types.append("N") # None
                 continue
             elif s2 <= s1 and e2 >= e1:
                 # print(f"{hits_coords}, OVERLAP hit1 contained in hit2")
                 overlapped_bp += e1 - s1
-                overlap_types.append("full")
+                overlap_types.append("F") # Full
             elif s1 <= s2 and e1 >= e2:
                 # print(f"{hits_coords}, OVERLAP hit2 contained in hit1")
                 overlapped_bp += e2 - s2
-                overlap_types.append("full")
+                overlap_types.append("F") # Full
             elif s1 < s2 and e1 < e2:
                 # print(f"{hits_coords}, OVERLAP hit1 extends to the left")
                 overlapped_bp += e1 - s2
-                overlap_types.append("partial")
+                overlap_types.append("P") # Partial
             elif s2 < s1 and e2 < e1:
                 # print(f"{hits_coords}, OVERLAP hit1 extends to the right")
                 overlapped_bp += e2 - s1
-                overlap_types.append("partial")
+                overlap_types.append("P") # Partial
             else:
                 print(f"{hits_coords}, UNDEFINED!")
-    overlap_types = ",".join(sorted(list(set(overlap_types))))
+    overlap_types = ",".join(overlap_types)
     pct_overlap = overlapped_bp / max(hit1["hit_length"], hit2["hit_length"]) * 100.0
     return pct_overlap, overlap_types
 
@@ -2824,43 +2841,50 @@ def prefilter_blat_psl(
         blat_out_file.parent, blat_out_file.name.replace(".psl", "_depths.tsv")
     )
 
-    contigs = {}
     size_mul = settings.SIZE_MUL[marker_type]
-    contigs_have_depth = False
+    contigs_have_depth = None
+    with open(blat_out_file, "rt") as psl_in:
+        for line in psl_in:
+            p = parse_psl_record(line)
+            if "_cov_" in p["t_name"]:
+                contigs_have_depth = True
+            else:
+                contigs_have_depth = False
+            break
+
+    contigs = {}
     with open(blat_out_file, "rt") as psl_in:
         with open(blat_psl_rejected, "wt") as psl_out:
             for line in psl_in:
                 p = parse_psl_record(line)
-                locus = p["q_name"]
-                if ref_has_separators is True:
-                    locus = p["q_name"].split(settings.REF_CLUSTER_SEP)[-1]
                 coverage = (p["matches"] + p["rep_matches"] + p["mismatches"]) / p["q_size"]
                 score = (p["matches"] + p["rep_matches"] - p["mismatches"]) / p["q_size"]
                 wscore = score * coverage
-                t_ends = [
-                    p["t_starts"][i] + size_mul * p["block_sizes"][i]
-                    for i in range(len(p["block_sizes"]))
-                ]
-                contig = p["t_name"]
-                contig_depth = None
-                if "_cov_" in contig:
-                    contig_depth = float(contig.split("_cov_")[1].split("_")[0])
-                    if contigs_have_depth is False:
-                        contigs_have_depth = True
-                hit_info = {
-                    "psl_record": line.strip(),
-                    "locus": locus,
-                    "target": p["q_name"],
-                    "contig": contig,
-                    "wscore": wscore,
-                    "t_starts": p["t_starts"],
-                    "t_ends": t_ends,
-                    "hit_length": size_mul * sum(p["block_sizes"]),
-                    "depth": contig_depth,
-                    "accepted": None,
-                    "reason": None,
-                }
                 if wscore >= settings.MIN_WSCORE:
+                    locus = p["q_name"]
+                    if ref_has_separators is True:
+                        locus = p["q_name"].split(settings.REF_CLUSTER_SEP)[-1]
+                    contig = p["t_name"]
+                    t_starts = p["t_starts"]
+                    t_ends = [
+                        p["t_starts"][i] + size_mul * p["block_sizes"][i]
+                        for i in range(len(p["block_sizes"]))
+                    ]
+                    hit_info = {
+                        "psl_record": line.strip(),
+                        "locus": locus,
+                        "target": p["q_name"],
+                        "contig": contig,
+                        "strand": p["strand"][-1],
+                        "t_size": p["t_size"],
+                        "t_starts": t_starts,
+                        "t_ends": t_ends,
+                        "wscore": wscore,
+                        "hit_length": size_mul * sum(p["block_sizes"]),
+                        "depth": None,
+                        "accepted": None,
+                        "reason": None,
+                    }
                     if contig not in contigs:
                         contigs[contig] = [hit_info]
                     else:
@@ -2872,9 +2896,7 @@ def prefilter_blat_psl(
     for contig in sorted(contigs):
         contigs[contig] = sorted(contigs[contig], key=lambda i: i["wscore"], reverse=True)
         contigs[contig][0]["accepted"] = True
-        if len(contigs[contig]) == 1:
-            continue
-        else:
+        if len(contigs[contig]) > 1:
             # print("\n\n\n" + contig)
             for i in range(len(contigs[contig])):
                 for j in range(i + 1, len(contigs[contig])):
@@ -2884,7 +2906,7 @@ def prefilter_blat_psl(
                     ):
                         if contigs[contig][j]["accepted"] is not False:
                             pct_overlap, overlap_types = calculate_hit_overlap(
-                                contigs[contig][i], contigs[contig][j]
+                                contigs[contig][i], contigs[contig][j], size_mul
                             )
                             if (pct_overlap > settings.HIT_MAX_PCT_OVERLAP 
                                 and "allowed" not in overlap_types):
@@ -2925,18 +2947,18 @@ def prefilter_blat_psl(
                 for i in range(len(loci[locus])):
                     psl_out.write(f"{loci[locus][i]['psl_record']}\n")
     else:
-        # Get highest wscore and longest hit length for every contig in a locus
+        # Get highest wscore and longest hit length from every contig in a locus
         loci_depths = {}
         for locus in sorted(loci):
             for i in range(len(loci[locus])):
                 contig = loci[locus][i]["contig"]
                 wscore = loci[locus][i]["wscore"]
                 hit_length = loci[locus][i]["hit_length"]
-                depth = loci[locus][i]["depth"]
+                loci[locus][i]["depth"] = float(contig.split("_cov_")[1].split("_")[0])
                 contig_info = {
                     "max_wscore": wscore,
                     "max_hit_length": hit_length,
-                    "depth": depth,
+                    "depth": loci[locus][i]["depth"],
                 }
                 if locus not in loci_depths:
                     loci_depths[locus] = {contig: contig_info}
