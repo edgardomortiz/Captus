@@ -1457,7 +1457,7 @@ def depth_tolerance_check(depth_tolerance, ignore_depth):
     else:
         msg = bold(f"{depth_tolerance} ")
         msg += dim(f"(min = 10^(log(depth of the contig with best hit in locus) / {depth_tolerance}))")
-    return msg
+    return depth_tolerance, msg
 
 
 def scipio_coding(
