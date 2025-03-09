@@ -1456,7 +1456,9 @@ def depth_tolerance_check(depth_tolerance, ignore_depth):
         msg = dim("Filter disabled, '--ignore_depth' is being used")
     else:
         msg = bold(f"{depth_tolerance} ")
-        msg += dim(f"(min = 10^(log(depth of the contig with best hit in locus) / {depth_tolerance}))")
+        msg += dim("(min = 10^(log(depth of the contig with best hit in locus) / ")
+        msg += bold(f"{depth_tolerance}")
+        msg += dim("))")
     return depth_tolerance, msg
 
 

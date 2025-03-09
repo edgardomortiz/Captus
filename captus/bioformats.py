@@ -2892,7 +2892,7 @@ def prefilter_blat_psl(
                 else:
                     psl_out.write(f"{line.strip()}\twscore={wscore:.4f}\n")
 
-    # Mark hits for deletion if cross-loci overlaps are detected
+    # Mark lower wscore hits for deletion if cross-loci overlaps are detected
     for contig in sorted(contigs):
         contigs[contig] = sorted(contigs[contig], key=lambda i: i["wscore"], reverse=True)
         contigs[contig][0]["accepted"] = True
