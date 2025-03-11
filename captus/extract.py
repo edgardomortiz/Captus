@@ -34,7 +34,7 @@ from .bioformats import (
     fix_premature_stops,
     import_busco_odb10,
     mmseqs_cluster,
-    prefilter_blat_psl,
+    parse_psl_record,
     rehead_root_msa,
     scipio_yaml_to_dict,
     split_mmseqs_clusters_file,
@@ -383,9 +383,7 @@ def extract(full_command, args):
             )
             log.log(f"{'Concurrent extractions':>{mar}}: {bold(dna_concurrent)}")
             log.log(f"{'RAM per extraction':>{mar}}: {bold(f'{dna_ram / 1024**3:.1f}GB')}")
-            log.log(
-                f"{'Threads per extraction':>{mar}}: {bold('1')} {dim('(BLAT is single-threaded)')}"
-            )
+            log.log(f"{'Threads per extraction':>{mar}}: {bold(dna_threads)}")
             log.log("")
         log.log(f"{'reference':>{mar}}: {dna_ref['DNA']['NT_msg']}")
         if dna_ref["DNA"]["NT_path"]:
@@ -542,6 +540,8 @@ def extract(full_command, args):
                             args.max_loci_files,
                             args.max_paralogs,
                             tsv_comment,
+                            dna_threads,
+                            args.debug,
                             args.overwrite,
                             args.keep_all,
                         )
@@ -628,7 +628,7 @@ def extract(full_command, args):
                         blat_misc_dna, blat_params, d_msg, f_msg, "extraction", args.show_less
                     )
                 else:
-                    tqdm_parallel_async_run(
+                    tqdm_parallel_nested_run(
                         blat_misc_dna,
                         blat_params,
                         d_msg,
@@ -813,17 +813,16 @@ def extract(full_command, args):
                 )
                 log.log(f"{'Concurrent extractions':>{mar}}: {bold(clust_concurrent)}")
                 log.log(f"{'RAM per extraction':>{mar}}: {bold(f'{clust_ram / 1024**3:.1f}GB')}")
-                log.log(
-                    f"{'Threads per extraction':>{mar}}: {bold('1')}"
-                    f" {dim('(BLAT is single-threaded)')}"
-                )
+                log.log(f"{'Threads per extraction':>{mar}}: {bold(clust_threads)}")
                 log.log("")
             log.log(f"{'reference':>{mar}}: {clust_ref['CLR']['NT_msg']}")
             if clust_ref["CLR"]["NT_path"]:
                 log.log(f"{'reference info':>{mar}}: {clust_query_info['info_msg']}")
                 log.log(f"{'dna_min_identity':>{mar}}: {bold(dna_min_identity)}")
                 log.log(f"{'dna_min_coverage':>{mar}}: {bold(args.dna_min_coverage)}")
-                clr_dt, clr_dt_msg = depth_tolerance_check(args.dna_depth_tolerance, args.ignore_depth)
+                clr_dt, clr_dt_msg = depth_tolerance_check(
+                    args.dna_depth_tolerance, args.ignore_depth
+                )
                 log.log(f"{'depth_tolerance':>{mar}}: {clr_dt_msg}")
             log.log("")
             log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
@@ -854,6 +853,8 @@ def extract(full_command, args):
                             args.max_loci_files,
                             args.max_paralogs,
                             tsv_comment,
+                            clust_threads,
+                            args.debug,
                             args.overwrite,
                             args.keep_all,
                         )
@@ -884,7 +885,7 @@ def extract(full_command, args):
                         args.show_less,
                     )
                 else:
-                    tqdm_parallel_async_run(
+                    tqdm_parallel_nested_run(
                         blat_misc_dna,
                         blat_clusters_params,
                         d_msg,
@@ -998,15 +999,25 @@ def adjust_concurrency(concurrent, num_samples, threads_max, ram_B, ref_type):
             concurrent = int(concurrent)
         except ValueError:
             quit_with_error("Invalid value for '--concurrent', set it to 'auto' or use a number")
+
     if ref_type == "protein":
         min_ram_b = settings.EXTRACTION_MIN_RAM_B * 3.75
     elif ref_type == "dna":
         min_ram_b = settings.EXTRACTION_MIN_RAM_B
-    if min_ram_b >= ram_B:
+    min_threads = settings.EXTRACTION_MIN_THREADS
+
+    if min_ram_b >= ram_B or min_threads >= threads_max:
         return 1, 1, ram_B
+
     if concurrent > 1:
+        while threads_max // concurrent < min_threads:
+            concurrent -= 1
+    ram_B_per_extraction = ram_B // concurrent
+
+    if ram_B_per_extraction < min_ram_b:
         while ram_B // concurrent < min_ram_b:
             concurrent -= 1
+
     threads_per_extraction = threads_max // concurrent
     ram_B_per_extraction = ram_B // concurrent
     return concurrent, threads_per_extraction, ram_B_per_extraction
@@ -1746,6 +1757,8 @@ def run_scipio_parallel(
             bool(query_info["separators_found"]),
             depth_tolerance,
             ignore_depth,
+            threads,
+            debug,
             keep_all,
         )
 
@@ -1759,12 +1772,13 @@ def run_scipio_parallel(
         psls_to_del = []
         if debug:
             for params in split_blat_psl_params:
-                blat_part_psl = split_blat_psl(*params)
+                blat_part_psl = split_psl_by_targets(*params)
                 psls_to_del.append(blat_part_psl)
         else:
             subexecutor = ProcessPoolExecutor(max_workers=threads)
             futures = [
-                subexecutor.submit(split_blat_psl, *params) for params in split_blat_psl_params
+                subexecutor.submit(split_psl_by_targets, *params)
+                for params in split_blat_psl_params
             ]
             for future in as_completed(futures):
                 blat_part_psl = future.result()
@@ -1841,7 +1855,7 @@ def run_scipio_parallel(
         return None
 
 
-def split_blat_psl(psl_path_in, seq_names_set, psl_out_path):
+def split_psl_by_targets(psl_path_in, seq_names_set, psl_out_path):
     with open(psl_out_path, "wt") as part_psl_out:
         with open(psl_path_in, "rt") as full_psl_in:
             for line in full_psl_in:
@@ -2243,6 +2257,8 @@ def blat_misc_dna(
     max_loci_files,
     max_paralogs,
     tsv_comment,
+    threads,
+    debug,
     overwrite,
     keep_all,
 ):
@@ -2287,7 +2303,9 @@ def blat_misc_dna(
             blat_dna_out_file,
             bool(query_info["separators_found"]),
             depth_tolerance,
-            ignore_depth, 
+            ignore_depth,
+            threads,
+            debug,
             keep_all,
         )
 
@@ -2335,6 +2353,482 @@ def blat_misc_dna(
         return message
 
 
+def prefilter_blat_psl(
+    marker_type: str,
+    blat_out_file: Path,
+    ref_has_separators: bool,
+    depth_tolerance: float,
+    ignore_depth: bool,
+    threads: int,
+    debug: bool,
+    keep_all: bool,
+):
+    size_mul = settings.SIZE_MUL[marker_type]
+
+    # 1. Determine if contigs contain depth of coverage info in their names
+    contigs_have_depth = None
+    with open(blat_out_file, "rt") as psl_in:
+        for line in psl_in:
+            p = parse_psl_record(line)
+            if "_cov_" in p["t_name"]:
+                contigs_have_depth = True
+            else:
+                contigs_have_depth = False
+            break
+
+    # 2. Filter psl hits by min wscore, split accepted hits in as many files as threads
+    psls_to_filter_paths, psl_rejected_path = split_psl_by_contigs_add_wscore(
+        blat_out_file, ref_has_separators, threads, debug
+    )
+
+    # 3. Filter the parts in parallel
+    filter_psl_overlaps_params = []
+    for path in psls_to_filter_paths:
+        filter_psl_overlaps_params.append((path, ref_has_separators, size_mul))
+    accepted_psls_to_cat = []
+    rejected_psls_to_cat = []
+    if debug:
+        for params in filter_psl_overlaps_params:
+            psl_accepted_part_path, psl_rejected_part_path = filter_psl_overlaps(*params)
+            accepted_psls_to_cat.append(psl_accepted_part_path)
+            rejected_psls_to_cat.append(psl_rejected_part_path)
+    else:
+        subexecutor = ProcessPoolExecutor(max_workers=threads)
+        futures = [
+            subexecutor.submit(filter_psl_overlaps, *params)
+            for params in filter_psl_overlaps_params
+        ]
+        for future in as_completed(futures):
+            psl_accepted_part_path, psl_rejected_part_path = future.result()
+            accepted_psls_to_cat.append(psl_accepted_part_path)
+            rejected_psls_to_cat.append(psl_rejected_part_path)
+        subexecutor.shutdown()
+
+    # 4. Append rejected files to initial rejected file
+    with open(psl_rejected_path, "ab") as psl_rej:
+        for path in rejected_psls_to_cat:
+            with open(path, "rb") as psl_part_rej:
+                while True:
+                    chunk = psl_part_rej.read(settings.CHUNK_SIZE)
+                    if not chunk:
+                        break
+                    psl_rej.write(chunk)
+    for path in rejected_psls_to_cat:
+        path.unlink()
+
+    # 5. Filter by depth or finish writing the accepted hits and finish
+    if ignore_depth is True or contigs_have_depth is False:
+        with open(blat_out_file, "wt") as psl_acc:
+            for path in accepted_psls_to_cat:
+                with open(path, "rt") as psl_part_acc:
+                    for line in psl_part_acc:
+                        psl_acc.write("\t".join(line.strip().split()[0:21]) + "\n")
+        for path in accepted_psls_to_cat:
+            path.unlink()
+        if keep_all is False:
+            psl_rejected_path.unlink()
+        return
+    else:
+        with open(blat_out_file, "wb") as psl_acc:
+            for path in accepted_psls_to_cat:
+                with open(path, "rb") as psl_part_acc:
+                    while True:
+                        chunk = psl_part_acc.read(settings.CHUNK_SIZE)
+                        if not chunk:
+                            break
+                        psl_acc.write(chunk)
+        for path in accepted_psls_to_cat:
+            path.unlink()
+
+        # 6. Load accepted hits and organize them by locus, add wscore and depth
+        loci = {}
+        with open(blat_out_file, "rt") as psl_in:
+            for line in psl_in:
+                p = parse_psl_record(line)
+                locus = p["q_name"]
+                if ref_has_separators is True:
+                    locus = p["q_name"].split(settings.REF_CLUSTER_SEP)[-1]
+                hit_info = {
+                    "psl_record": line.strip(),
+                    "locus": locus,
+                    "target": p["q_name"],
+                    "contig": p["t_name"],
+                    "wscore": p["wscore"],
+                    "depth": float(p["t_name"].split("_cov_")[1].split("_")[0]),
+                }
+                if locus not in loci:
+                    loci[locus] = [hit_info]
+                else:
+                    loci[locus].append(hit_info)
+
+        # 7. Get highest wscore per locus across contigs and store the depth of the contig
+        loci_depths = {}
+        for locus in sorted(loci):
+            for i in range(len(loci[locus])):
+                contig = loci[locus][i]["contig"]
+                wscore = loci[locus][i]["wscore"]
+                depth = loci[locus][i]["depth"]
+                contig_info = {
+                    "max_wscore": wscore,
+                    "depth": depth,
+                }
+                if locus not in loci_depths:
+                    loci_depths[locus] = {contig: contig_info}
+                else:
+                    if contig not in loci_depths[locus]:
+                        loci_depths[locus][contig] = contig_info
+                    else:
+                        if wscore > loci_depths[locus][contig]["max_wscore"]:
+                            loci_depths[locus][contig]["max_wscore"] = wscore
+
+        # 8. Determine min_depth per locus based on depth of contig with the best wscore in the locus
+        loci_min_depths = {}
+        for locus in sorted(loci_depths):
+            best_hit_wscore = 0
+            depth = 0
+            for contig in loci_depths[locus]:
+                if loci_depths[locus][contig]["max_wscore"] > best_hit_wscore:
+                    best_hit_wscore = loci_depths[locus][contig]["max_wscore"]
+                    depth = loci_depths[locus][contig]["depth"]
+            loci_min_depths[locus] = 10 ** (round(math.log10(depth) / depth_tolerance, 2))
+
+        # 9. Write rejected and accepted hits after filtering by depth
+        with open(blat_out_file, "wt") as psl_acc:
+            with open(psl_rejected_path, "at") as psl_rej:
+                for locus in sorted(loci):
+                    for i in range(len(loci[locus])):
+                        if loci[locus][i]["depth"] >= loci_min_depths[locus]:
+                            psl_record = "\t".join(loci[locus][i]["psl_record"].split()[0:21])
+                            psl_acc.write(f"{psl_record}\n")
+                        else:
+                            reason = f"min_locus_depth={loci_min_depths[locus]:.4f}"
+                            psl_rej.write(f"{loci[locus][i]['psl_record']};{reason}\n")
+
+        # 10. Write depth contig statistics for accepted hits
+        accepted_contigs_depths = Path(
+            blat_out_file.parent, blat_out_file.name.replace(".psl", "_depths.tsv")
+        )
+        depths_header = "\t".join(
+            [
+                "locus",
+                "contig",
+                "max_wscore",
+                "depth",
+            ]
+        )
+        with open(accepted_contigs_depths, "wt") as dep_out:
+            dep_out.write(f"{depths_header}\n")
+            for locus in sorted(loci_depths):
+                for contig in sorted(
+                    loci_depths[locus],
+                    key=lambda x: loci_depths[locus][x]["max_wscore"],
+                    reverse=True,
+                ):
+                    if loci_depths[locus][contig]["depth"] >= loci_min_depths[locus]:
+                        dep_out.write(
+                            "\t".join(
+                                [
+                                    locus,
+                                    contig,
+                                    f"{loci_depths[locus][contig]['max_wscore']:.5f}",
+                                    f"{loci_depths[locus][contig]['depth']:.4f}",
+                                ]
+                            )
+                            + "\n"
+                        )
+
+    if keep_all is False:
+        psl_rejected_path.unlink()
+        accepted_contigs_depths.unlink()
+
+    return
+
+
+def split_psl_by_contigs_add_wscore(
+    psl_raw_path: Path, ref_has_separators: bool, threads: int, debug: bool
+):
+    psl_rejected_path = Path(
+        psl_raw_path.parent, psl_raw_path.name.replace(".psl", "_rejected.psl")
+    )
+    psl_wscore_path = Path(psl_raw_path.parent, psl_raw_path.name.replace(".psl", "_wscore.psl"))
+
+    # If the number of targets per locus is high as in Mega353 for example, the potential number
+    # of cross-loci combinations to check for overlaps grows enormously. To reduce the total universe
+    # of combinations we can retain the hits from the targets that achieved the n-best wscores, in
+    # this way we still allow Captus to choose among n targets in a locus the best full assembly
+    # possible. The problem is not so bad with contigs assembled in Captus, but it gets super slow
+    # when trying to test all cross-loci overlaps in a full-size chromosome sequence
+
+    # 1. Calculate wscore per hit and write accepted/rejected, store contig sizes for accepted
+    contig_sizes = {}
+    target_wscores = {}
+    with open(psl_raw_path, "rt") as psl_in:
+        with open(psl_rejected_path, "wt") as psl_rej:
+            with open(psl_wscore_path, "wt") as psl_wsc:
+                for line in psl_in:
+                    p = parse_psl_record(line)
+                    coverage = (p["matches"] + p["rep_matches"] + p["mismatches"]) / p["q_size"]
+                    score = (p["matches"] + p["rep_matches"] - p["mismatches"]) / p["q_size"]
+                    wscore = score * coverage
+                    locus = p["q_name"]
+                    if ref_has_separators is True:
+                        locus = p["q_name"].split(settings.REF_CLUSTER_SEP)[-1]
+                    target = p["q_name"]
+                    line_out = f"{line.strip()}\t{wscore:.5f}\n"
+                    if wscore >= settings.MIN_WSCORE:
+                        if locus not in target_wscores:
+                            target_wscores[locus] = {target: wscore}
+                        else:
+                            if target not in target_wscores[locus]:
+                                target_wscores[locus][target] = wscore
+                            else:
+                                if wscore > target_wscores[locus][target]:
+                                    target_wscores[locus][target] = wscore
+                        contig_sizes[p["t_name"]] = p["t_size"]
+                        psl_wsc.write(line_out)
+                    else:
+                        psl_rej.write(line_out)
+
+    if ref_has_separators is True:
+        best_n_targets = settings.BEST_N_TARGETS
+        if max(contig_sizes.values()) >= settings.MIN_CHROM_SIZE:
+            best_n_targets /= 10
+        num_targets = sum([len(target_wscores[locus]) for locus in target_wscores])
+        potential_combos = (num_targets) * (num_targets - 1)
+        if potential_combos > settings.MAX_CROSS_LOCI_COMP:
+            # 2. Sort targets by wscores in reverse order inside each locus in target_wscores
+            for locus in target_wscores:
+                target_wscores[locus] = dict(
+                    sorted(target_wscores[locus].items(), key=lambda item: item[1], reverse=True)
+                )
+            # 3. Determine potential number of combinations to reduce n_best
+            num_loci = len(target_wscores)
+            for n in range(best_n_targets, 1, -1):
+                loci_target_combos = (num_loci * n) * ((num_loci - 1) * n)
+                if loci_target_combos > settings.MAX_CROSS_LOCI_COMP:
+                    best_n_targets -= 1
+                else:
+                    break
+            best_n_targets = max(1, best_n_targets)
+            # 4. Get n_best targets from every locus in target_wscores
+            allowed_targets = []
+            for locus in target_wscores:
+                counter = 0
+                for target in target_wscores[locus]:
+                    if counter < best_n_targets:
+                        allowed_targets.append(target)
+                        counter += 1
+                    else:
+                        break
+            del target_wscores
+
+            # 5. Remove hits to targets that are not present in allowed_targets
+            unfiltered_psl_wscore_path = Path(
+                psl_wscore_path.parent, psl_wscore_path.name.replace(".psl", "_unfiltered.psl")
+            )
+            psl_wscore_path.rename(unfiltered_psl_wscore_path)
+            with open(unfiltered_psl_wscore_path, "rt") as psl_in:
+                with open(psl_rejected_path, "at") as psl_rej:
+                    with open(psl_wscore_path, "wt") as psl_wsc:
+                        for line in psl_in:
+                            if line.split()[9] in allowed_targets:
+                                psl_wsc.write(line)
+                            else:
+                                line_out = f"{line.strip()};LWT\n"  # LWT = Low Wscore Target
+                                psl_rej.write(line_out)
+            unfiltered_psl_wscore_path.unlink()
+
+    # 6. Assign contigs to as many groups as threads, filling the groups with smaller contigs first
+    # and increasing size after that
+    contigs_lists = {i: [] for i in range(threads)}
+    part = 0
+    for contig in sorted(contig_sizes, key=contig_sizes.get, reverse=True):
+        contigs_lists[part].append(contig)
+        part += 1
+        if part == threads:
+            part = 0
+    contigs_parts = {}
+    for part in contigs_lists:
+        for contig in contigs_lists[part]:
+            contigs_parts[contig] = part
+
+    # 7. Prepare parameters to run the split in parallel
+    split_psl_wscore_params = []
+    for part in contigs_lists:
+        psl_wscore_part_path = Path(psl_raw_path.parent, f"{psl_raw_path.stem}_P{part:02}.psl")
+        split_psl_wscore_params.append((psl_wscore_path, contigs_parts, part, psl_wscore_part_path))
+    del contigs_lists
+
+    # 8. Split PSL file with wscores
+    psls_to_filter_paths = []
+    if debug:
+        for params in split_psl_wscore_params:
+            psl_wscore_part_path = split_psl_by_contigs(*params)
+            psls_to_filter_paths.append(psl_wscore_part_path)
+    else:
+        subexecutor = ProcessPoolExecutor(max_workers=threads)
+        futures = [
+            subexecutor.submit(split_psl_by_contigs, *params) for params in split_psl_wscore_params
+        ]
+        for future in as_completed(futures):
+            psl_wscore_part_path = future.result()
+            psls_to_filter_paths.append(psl_wscore_part_path)
+        subexecutor.shutdown()
+
+    psl_wscore_path.unlink()
+
+    return psls_to_filter_paths, psl_rejected_path
+
+
+def split_psl_by_contigs(
+    psl_path_wscore: Path, contigs_parts: dict, part: int, psl_wscore_part_path: Path
+):
+    with open(psl_path_wscore, "rt") as full_psl_in:
+        with open(psl_wscore_part_path, "wt") as part_psl_out:
+            for line in full_psl_in:
+                if contigs_parts[line.split()[13]] == part:
+                    part_psl_out.write(line)
+    return psl_wscore_part_path
+
+
+def filter_psl_overlaps(psl_wscore_part_path: Path, ref_has_separators: bool, size_mul: int):
+    def flip_coords(t_starts_minus, t_ends_minus, t_size):
+        t_starts_plus = [t_size - x for x in t_ends_minus[::-1]]
+        t_ends_plus = [t_size - x for x in t_starts_minus[::-1]]
+        return t_starts_plus, t_ends_plus
+
+    psl_wscore_part_rejected_path = Path(
+        psl_wscore_part_path.parent, psl_wscore_part_path.name.replace(".psl", "_rejected.psl")
+    )
+    contigs = {}
+    with open(psl_wscore_part_path, "rt") as psl_in:
+        for line in psl_in:
+            p = parse_psl_record(line)
+            locus = p["q_name"]
+            if ref_has_separators is True:
+                locus = p["q_name"].split(settings.REF_CLUSTER_SEP)[-1]
+            contig = p["t_name"]
+            t_starts = p["t_starts"]
+            t_ends = [
+                p["t_starts"][i] + size_mul * p["block_sizes"][i]
+                for i in range(len(p["block_sizes"]))
+            ]
+            if size_mul == 3 and p["strand"][-1] == "-":
+                t_starts, t_ends = flip_coords(t_starts, t_ends, p["t_size"])
+            hit_info = {
+                "psl_record": line.strip(),
+                "locus": locus,
+                "target": p["q_name"],
+                "contig": contig,
+                "strand": p["strand"][-1],
+                "t_size": p["t_size"],
+                "t_starts": t_starts,
+                "t_ends": t_ends,
+                "wscore": p["wscore"],
+                "hit_length": size_mul * sum(p["block_sizes"]),
+                "accepted": None,
+                "reason": None,
+            }
+            if contig not in contigs:
+                contigs[contig] = [hit_info]
+            else:
+                contigs[contig].append(hit_info)
+
+    # Mark lower wscore hits for deletion if cross-loci overlaps are detected
+    with open(psl_wscore_part_path, "wt") as psl_acc:
+        with open(psl_wscore_part_rejected_path, "wt") as psl_rej:
+            for contig in sorted(contigs):
+                contigs[contig] = sorted(contigs[contig], key=lambda i: i["wscore"], reverse=True)
+                contigs[contig][0]["accepted"] = True
+                if len(contigs[contig]) == 1:
+                    psl_acc.write(f"{contigs[contig][0]['psl_record']}\n")
+                else:
+                    for i in range(len(contigs[contig])):
+                        for j in range(i + 1, len(contigs[contig])):
+                            if (
+                                contigs[contig][i]["target"] == contigs[contig][j]["target"]
+                                or contigs[contig][i]["locus"] != contigs[contig][j]["locus"]
+                            ):
+                                if contigs[contig][j]["accepted"] is not False:
+                                    pct_overlap, overlap_types = calculate_hit_overlap(
+                                        contigs[contig][i], contigs[contig][j]
+                                    )
+                                    if (
+                                        pct_overlap > settings.HIT_MAX_PCT_OVERLAP
+                                        and "allowed" not in overlap_types
+                                    ):
+                                        contigs[contig][j]["accepted"] = False
+                                        contigs[contig][j]["reason"] = (
+                                            f"pct_overlap={pct_overlap:.2f};overlap_types={overlap_types}"
+                                        )
+                    for i in range(len(contigs[contig])):
+                        if (
+                            contigs[contig][i]["accepted"] is None
+                            or contigs[contig][i]["accepted"] is True
+                        ):
+                            psl_acc.write(f"{contigs[contig][i]['psl_record']}\n")
+                        else:
+                            psl_rej.write(
+                                f"{contigs[contig][i]['psl_record']};{contigs[contig][j]['reason']}\n"
+                            )
+                            # t_ends = ",".join([str(j) for j in contigs[contig][i]["t_ends"]])
+                            # printout = (f"{contigs[contig][i]['psl']}\t{t_ends}\t{contigs[contig][i]['locus']}\t"
+                            #             f"{contigs[contig][i]['wscore']:.4f}\t{contigs[contig][i]['accepted']}\t")
+                            # print(printout)
+
+    return psl_wscore_part_path, psl_wscore_part_rejected_path
+
+
+def calculate_hit_overlap(hit1: dict, hit2: dict):
+    """Determine the percentage of overlap between two BLAT hits, dividing the
+        number of overlapped bases by the length of the longest hit
+
+    Args:
+        hit1 (dict): BLAT hit1
+        hit2 (dict): BLAT hit2
+        size_mul (int): 1 for DNA, 3 for PROTEIN
+
+    Returns:
+        overlapped bp / longest hit * 100, list of overlap types found
+    """
+
+    if sorted([hit1["locus"], hit2["locus"]]) in settings.VALID_OVERLAPS:
+        return 0.0, "allowed"
+
+    overlapped_bp = 0
+    overlap_types = []
+    for i in range(len(hit1["t_starts"])):
+        for j in range(len(hit2["t_starts"])):
+            s1, e1 = hit1["t_starts"][i], hit1["t_ends"][i]
+            s2, e2 = hit2["t_starts"][j], hit2["t_ends"][j]
+            hits_coords = f"hit1:{s1}-{e1}, hit2:{s2}-{e2}"
+            if s1 >= e2 or s2 >= e1:
+                # print(f"{hits_coords}, NO OVERLAP")
+                overlap_types.append("N")  # None
+                continue
+            elif s2 <= s1 and e2 >= e1:
+                # print(f"{hits_coords}, OVERLAP hit1 contained in hit2")
+                overlapped_bp += e1 - s1
+                overlap_types.append("F")  # Full
+            elif s1 <= s2 and e1 >= e2:
+                # print(f"{hits_coords}, OVERLAP hit2 contained in hit1")
+                overlapped_bp += e2 - s2
+                overlap_types.append("F")  # Full
+            elif s1 < s2 and e1 < e2:
+                # print(f"{hits_coords}, OVERLAP hit1 extends to the left")
+                overlapped_bp += e1 - s2
+                overlap_types.append("P")  # Partial
+            elif s2 < s1 and e2 < e1:
+                # print(f"{hits_coords}, OVERLAP hit1 extends to the right")
+                overlapped_bp += e2 - s1
+                overlap_types.append("P")  # Partial
+            else:
+                print(f"{hits_coords}, UNDEFINED!")
+    overlap_types = ",".join(overlap_types)
+    pct_overlap = overlapped_bp / max(hit1["hit_length"], hit2["hit_length"]) * 100.0
+    return pct_overlap, overlap_types
+
+
 def cleanup_post_extraction(
     sample_name,
     sample_dir,
@@ -2376,7 +2870,7 @@ def cleanup_post_extraction(
         gff_lines = 0
         with open(gff_file, "wt") as gff_out:
             gff_out.write("##gff-version 3\n")
-            tsv_comment = tsv_comment.split('\n')
+            tsv_comment = tsv_comment.split("\n")
             gff_out.write(f"#{tsv_comment[0]}\n#{tsv_comment[1]}\n")
             if sample_gffs:
                 for gff in sorted(sample_gffs):
@@ -2803,7 +3297,7 @@ def check_strand_and_save_refs(
             mafft_auto_strand,
             mafft_params,
             "Verifying cluster strands with MAFFT",
-            "Strand verificiation completed",
+            "Strand verification completed",
             "cluster",
             show_less,
         )
@@ -2812,7 +3306,7 @@ def check_strand_and_save_refs(
             mafft_auto_strand,
             mafft_params,
             "Verifying cluster strands with MAFFT",
-            "Strand verificiation completed",
+            "Strand verification completed",
             "cluster",
             concurrent,
             show_less,

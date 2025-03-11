@@ -569,15 +569,17 @@ def adjust_megahit_concurrency(concurrent, threads_max, ram_B, num_samples, pres
             quit_with_error("Invalid value for '--concurrent', set it to 'auto' or use a number")
 
     min_ram_B = settings.MEGAHIT_MIN_RAM_B
+    min_threads = settings.MEGAHIT_MIN_THREADS
     if preset:
         if preset.upper() in settings.MEGAHIT_PRESETS:
             min_ram_B = settings.MEGAHIT_PRESETS[preset.upper()]["min_ram_B"]
+            min_threads = settings.MEGAHIT_PRESETS[preset.upper()]["min_threads"]
 
-    if threads_max < settings.MEGAHIT_MIN_THREADS or ram_B < min_ram_B:
+    if threads_max < min_threads or ram_B < min_ram_B:
         return 1, threads_max, ram_B
 
     if concurrent > 1:
-        while threads_max // concurrent < settings.MEGAHIT_MIN_THREADS:
+        while threads_max // concurrent < min_threads:
             concurrent -= 1
     ram_B_per_assembly = ram_B // concurrent
 

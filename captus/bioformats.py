@@ -2666,6 +2666,8 @@ def parse_psl_record(psl_line):
         "q_starts": [int(x) for x in record[19].strip(",").split(",")],
         "t_starts": [int(x) for x in record[20].strip(",").split(",")],
     }
+    if len(record) == 22:
+        psl["wscore"] = float(record[21])
     return psl
 
 
@@ -2711,8 +2713,7 @@ def calculate_psl_identity(
         q_is_mrna (bool, optional): if the query is mRNA. Defaults to False.
     """
     def psl_is_protein(strand, t_size, t_start, t_end, block_sizes, t_starts):
-        """ Returns a size multiplier of 1 if the PSL is DNA or 3 if the PSL is PROTEIN """        
-        # Returns a size multiplier of 1 if the PSL is DNA or 3 if the PSL is PROTEIN
+        """ Returns a size multiplier of 1 if the PSL is DNA or 3 if the PSL is PROTEIN """
         size_mul = 1
         if len(strand) > 1:
             direction = strand[-1]
@@ -2724,7 +2725,7 @@ def calculate_psl_identity(
                 if t_start == (t_size - t_end_last_block):
                     size_mul = 3
         return size_mul
-    
+
     if q_type == "protein":
         size_mul = 3
     elif q_type == "dna":
@@ -2747,7 +2748,7 @@ def calculate_psl_identity(
         else:
             size_dif = -size_dif
     insert_factor = q_num_insert
-    # Let's not penalize insertions in the contigs, disable next two lines
+    # Let's not penalize insertions in the contigs by disabling the next two lines
     # if is_mrna is False:
     #     insert_factor += t_num_insert
     total = size_mul * (matches + rep_matches + mismatches)
@@ -2760,275 +2761,6 @@ def calculate_psl_identity(
         milli_bad = (1000 * (mismatches * size_mul + insert_factor + round_away_from_zero)) / total
 
     return 100.0 - milli_bad * 0.10
-
-
-def calculate_hit_overlap(hit1: dict, hit2: dict, size_mul: int):
-    """Determine the percentage of overlap between two BLAT hits, dividing the
-        number of overlapped bases by the length of the longest hit
-
-    Args:
-        hit1 (dict): BLAT hit1
-        hit2 (dict): BLAT hit2
-        size_mul (int): 1 for DNA, 3 for PROTEIN
-
-    Returns:
-        overlapped bp / longest hit * 100, list of overlap types found
-    """
-    def flip_coords(t_starts_minus, t_ends_minus, t_size):
-        t_starts_plus = [t_size - x for x in t_ends_minus[::-1]]
-        t_ends_plus = [t_size - x for x in t_starts_minus[::-1]]
-        return t_starts_plus, t_ends_plus
-
-    if sorted([hit1["locus"], hit2["locus"]]) in settings.VALID_OVERLAPS:
-        return 0.0 , "allowed"
-    
-    h1_starts, h1_ends = hit1["t_starts"], hit1["t_ends"]
-    h2_starts, h2_ends = hit2["t_starts"], hit2["t_ends"]
-    if size_mul == 3 and hit1["strand"] != hit2["strand"]:
-        t_size = hit1["t_size"]
-        if hit1["strand"] == "-":
-            h1_starts, h1_ends = flip_coords(h1_starts, h1_ends, t_size)
-        else:
-            h2_starts, h2_ends = flip_coords(h2_starts, h2_ends, t_size)
-
-    overlapped_bp = 0
-    overlap_types = []
-    for i in range(len(h1_starts)):
-        for j in range(len(h2_starts)):
-            s1, e1 = h1_starts[i], h1_ends[i]
-            s2, e2 = h2_starts[j], h2_ends[j]
-            hits_coords = f"hit1:{s1}-{e1}, hit2:{s2}-{e2}"
-            if s1 >= e2 or s2 >= e1:
-                # print(f"{hits_coords}, NO OVERLAP")
-                overlap_types.append("N") # None
-                continue
-            elif s2 <= s1 and e2 >= e1:
-                # print(f"{hits_coords}, OVERLAP hit1 contained in hit2")
-                overlapped_bp += e1 - s1
-                overlap_types.append("F") # Full
-            elif s1 <= s2 and e1 >= e2:
-                # print(f"{hits_coords}, OVERLAP hit2 contained in hit1")
-                overlapped_bp += e2 - s2
-                overlap_types.append("F") # Full
-            elif s1 < s2 and e1 < e2:
-                # print(f"{hits_coords}, OVERLAP hit1 extends to the left")
-                overlapped_bp += e1 - s2
-                overlap_types.append("P") # Partial
-            elif s2 < s1 and e2 < e1:
-                # print(f"{hits_coords}, OVERLAP hit1 extends to the right")
-                overlapped_bp += e2 - s1
-                overlap_types.append("P") # Partial
-            else:
-                print(f"{hits_coords}, UNDEFINED!")
-    overlap_types = ",".join(overlap_types)
-    pct_overlap = overlapped_bp / max(hit1["hit_length"], hit2["hit_length"]) * 100.0
-    return pct_overlap, overlap_types
-
-
-def prefilter_blat_psl(
-    marker_type: str,
-    blat_out_file: Path,
-    ref_has_separators: bool,
-    depth_tolerance: float,
-    ignore_depth: bool,
-    keep_all: bool,
-):
-    blat_psl_accepted = blat_out_file
-    blat_psl_rejected = Path(
-        blat_out_file.parent, blat_out_file.name.replace(".psl", "_rejected.psl")
-    )
-    filtered_contigs_depths = Path(
-        blat_out_file.parent, blat_out_file.name.replace(".psl", "_depths.tsv")
-    )
-
-    size_mul = settings.SIZE_MUL[marker_type]
-    contigs_have_depth = None
-    with open(blat_out_file, "rt") as psl_in:
-        for line in psl_in:
-            p = parse_psl_record(line)
-            if "_cov_" in p["t_name"]:
-                contigs_have_depth = True
-            else:
-                contigs_have_depth = False
-            break
-
-    contigs = {}
-    with open(blat_out_file, "rt") as psl_in:
-        with open(blat_psl_rejected, "wt") as psl_out:
-            for line in psl_in:
-                p = parse_psl_record(line)
-                coverage = (p["matches"] + p["rep_matches"] + p["mismatches"]) / p["q_size"]
-                score = (p["matches"] + p["rep_matches"] - p["mismatches"]) / p["q_size"]
-                wscore = score * coverage
-                if wscore >= settings.MIN_WSCORE:
-                    locus = p["q_name"]
-                    if ref_has_separators is True:
-                        locus = p["q_name"].split(settings.REF_CLUSTER_SEP)[-1]
-                    contig = p["t_name"]
-                    t_starts = p["t_starts"]
-                    t_ends = [
-                        p["t_starts"][i] + size_mul * p["block_sizes"][i]
-                        for i in range(len(p["block_sizes"]))
-                    ]
-                    hit_info = {
-                        "psl_record": line.strip(),
-                        "locus": locus,
-                        "target": p["q_name"],
-                        "contig": contig,
-                        "strand": p["strand"][-1],
-                        "t_size": p["t_size"],
-                        "t_starts": t_starts,
-                        "t_ends": t_ends,
-                        "wscore": wscore,
-                        "hit_length": size_mul * sum(p["block_sizes"]),
-                        "depth": None,
-                        "accepted": None,
-                        "reason": None,
-                    }
-                    if contig not in contigs:
-                        contigs[contig] = [hit_info]
-                    else:
-                        contigs[contig].append(hit_info)
-                else:
-                    psl_out.write(f"{line.strip()}\twscore={wscore:.4f}\n")
-
-    # Mark lower wscore hits for deletion if cross-loci overlaps are detected
-    for contig in sorted(contigs):
-        contigs[contig] = sorted(contigs[contig], key=lambda i: i["wscore"], reverse=True)
-        contigs[contig][0]["accepted"] = True
-        if len(contigs[contig]) > 1:
-            # print("\n\n\n" + contig)
-            for i in range(len(contigs[contig])):
-                for j in range(i + 1, len(contigs[contig])):
-                    if (
-                        contigs[contig][i]["target"] == contigs[contig][j]["target"]
-                        or contigs[contig][i]["locus"] != contigs[contig][j]["locus"]
-                    ):
-                        if contigs[contig][j]["accepted"] is not False:
-                            pct_overlap, overlap_types = calculate_hit_overlap(
-                                contigs[contig][i], contigs[contig][j], size_mul
-                            )
-                            if (pct_overlap > settings.HIT_MAX_PCT_OVERLAP 
-                                and "allowed" not in overlap_types):
-                                contigs[contig][j]["accepted"] = False
-                                contigs[contig][j]["reason"] = (
-                                    f"pct_overlap={pct_overlap:.2f};overlap_types={overlap_types}"
-                                )
-            for i in range(len(contigs[contig])):
-                if contigs[contig][i]["accepted"] is None:
-                    contigs[contig][i]["accepted"] = True
-                # t_ends = ",".join([str(j) for j in contigs[contig][i]["t_ends"]])
-                # printout = (f"{contigs[contig][i]['psl']}\t{t_ends}\t{contigs[contig][i]['locus']}\t"
-                #             f"{contigs[contig][i]['wscore']:.4f}\t{contigs[contig][i]['accepted']}\t")
-                # print(printout)
-
-    # Write rejected hits due to cross-loci overlaps and reorganize hits by locus
-    loci = {}
-    with open(blat_psl_rejected, "at") as psl_out:
-        for contig in contigs:
-            for i in range(len(contigs[contig])):
-                if contigs[contig][i]["accepted"] is False:
-                    psl_out.write(
-                        f"{contigs[contig][i]['psl_record']}\t{contigs[contig][i]['reason']}\n"
-                    )
-                else:
-                    if contigs[contig][i]["locus"] not in loci:
-                        loci[contigs[contig][i]["locus"]] = [contigs[contig][i]]
-                    else:
-                        loci[contigs[contig][i]["locus"]].append(contigs[contig][i])
-    del contigs
-
-    # If _cov_ is not annotated in the contigs name or filtering by depth is disabled write hits
-    # and finish
-    if ignore_depth is True or contigs_have_depth is False:
-        with open(blat_psl_accepted, "wt") as psl_out:
-            for locus in sorted(loci):
-                loci[locus] = sorted(loci[locus], key=lambda i: i["target"], reverse=False)
-                for i in range(len(loci[locus])):
-                    psl_out.write(f"{loci[locus][i]['psl_record']}\n")
-    else:
-        # Get highest wscore and longest hit length from every contig in a locus
-        loci_depths = {}
-        for locus in sorted(loci):
-            for i in range(len(loci[locus])):
-                contig = loci[locus][i]["contig"]
-                wscore = loci[locus][i]["wscore"]
-                hit_length = loci[locus][i]["hit_length"]
-                loci[locus][i]["depth"] = float(contig.split("_cov_")[1].split("_")[0])
-                contig_info = {
-                    "max_wscore": wscore,
-                    "max_hit_length": hit_length,
-                    "depth": loci[locus][i]["depth"],
-                }
-                if locus not in loci_depths:
-                    loci_depths[locus] = {contig: contig_info}
-                else:
-                    if contig not in loci_depths[locus]:
-                        loci_depths[locus][contig] = contig_info
-                    else:
-                        if wscore > loci_depths[locus][contig]["max_wscore"]:
-                            loci_depths[locus][contig]["max_wscore"] = wscore
-                        if hit_length > loci_depths[locus][contig]["max_hit_length"]:
-                            loci_depths[locus][contig]["max_hit_length"] = hit_length
-
-        # Determine min_depth per locus based on depth of contig with the best wscore in the locus
-        loci_min_depths = {}
-        for locus in sorted(loci_depths):
-            best_hit_wscore = 0
-            depth = 0
-            for contig in loci_depths[locus]:
-                if loci_depths[locus][contig]["max_wscore"] > best_hit_wscore:
-                    best_hit_wscore = loci_depths[locus][contig]["max_wscore"]
-                    depth = loci_depths[locus][contig]["depth"]
-            loci_min_depths[locus] = 10 ** (round(math.log10(depth) / depth_tolerance, 2))
-
-        # Write rejected and accepted hits after filtering by depth
-        with open(blat_psl_accepted, "wt") as psl_acc:
-            with open(blat_psl_rejected, "at") as psl_rej:
-                for locus in sorted(loci):
-                    for i in range(len(loci[locus])):
-                        if loci[locus][i]["depth"] >= loci_min_depths[locus]:
-                            psl_acc.write(f"{loci[locus][i]['psl_record']}\n")
-                        else:
-                            reason = f"min_locus_depth={loci_min_depths[locus]:.4f}"
-                            psl_rej.write(f"{loci[locus][i]['psl_record']}\t{reason}\n")
-
-        # Write depth contig statistics for accepted hits
-        depths_header = "\t".join(
-            [
-                "locus",
-                "contig",
-                "max_wscore",
-                "max_hit_length",
-                "depth",
-            ]
-        )
-        with open(filtered_contigs_depths, "wt") as dep_out:
-            dep_out.write(f"{depths_header}\n")
-            for locus in sorted(loci_depths):
-                for contig in sorted(
-                    loci_depths[locus],
-                    key=lambda x: loci_depths[locus][x]["max_wscore"],
-                    reverse=True,
-                ):
-                    if loci_depths[locus][contig]["depth"] < loci_min_depths[locus]:
-                        dep_out.write(
-                            "\t".join(
-                                [
-                                    locus,
-                                    contig,
-                                    f"{loci_depths[locus][contig]['max_wscore']:.4f}",
-                                    f"{loci_depths[locus][contig]['max_hit_length']}",
-                                    f"{loci_depths[locus][contig]['depth']:.4f}",
-                                ]
-                            )
-                            + "\n"
-                        )
-
-    if keep_all is False:
-        blat_psl_rejected.unlink()
-
-    return
 
 
 def blat_misc_dna_psl_to_dict(
@@ -3056,9 +2788,9 @@ def blat_misc_dna_psl_to_dict(
             t_starts (list): start coordinates of target
 
         Returns:
-            q_starts_mb, q_ends_mb, t_starts_mb, t_ends_mb: list of starts and ends for query and 
+            q_starts_mb, q_ends_mb, t_starts_mb, t_ends_mb: list of starts and ends for query and
                                                             target, reordered for the query when
-                                                            strand is negative, adjacent blocks 
+                                                            strand is negative, adjacent blocks
                                                             merged when the insertions sizes are
                                                             accepted (see above)
         """
@@ -3449,9 +3181,9 @@ def blat_misc_dna_psl_to_dict(
             q_starts_mb, q_ends_mb, t_starts_mb, t_ends_mb = merge_blocks(
                 p["q_size"],
                 p["strand"],
-                p["block_sizes"], 
-                p["q_starts"], 
-                p["t_starts"], 
+                p["block_sizes"],
+                p["q_starts"],
+                p["t_starts"],
             )
             coverage = (p["matches"] + p["rep_matches"] + p["mismatches"]) / p["q_size"]
             score = (p["matches"] + p["rep_matches"] - p["mismatches"]) / p["q_size"]
@@ -3473,17 +3205,17 @@ def blat_misc_dna_psl_to_dict(
                 p["t_starts"],
                 q_type="dna",
             )
-            
+
             if disable_stitching:  # prevent locus assembly across multiple contigs
                 region = "full"
             else:
                 region = determine_matching_region(
-                    p["q_size"], 
-                    q_starts_mb[0], 
-                    q_ends_mb[-1], 
-                    p["t_size"], 
-                    t_starts_mb[0], 
-                    t_ends_mb[-1], 
+                    p["q_size"],
+                    q_starts_mb[0],
+                    q_ends_mb[-1],
+                    p["t_size"],
+                    t_starts_mb[0],
+                    t_ends_mb[-1],
                     p["strand"]
                 )
             gapped = not bool(region == "full")

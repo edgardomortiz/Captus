@@ -153,7 +153,8 @@ MEGAHIT_PRESETS = {
         "k_list": "31,39,47,63,79,95,111,127,143,159,175",
         "min_count": 2,
         "prune_level": 2,
-        "min_ram_B": 4 * 1024**3,  # 4GB
+        "min_ram_B": 6 * 1024**3,  # 4GB
+        "min_threads": 8,
         "extra_options": None,
     },
     "RNA": {
@@ -161,13 +162,15 @@ MEGAHIT_PRESETS = {
         "min_count": 2,
         "prune_level": 2,
         "min_ram_B": 8 * 1024**3,  # 8GB
+        "min_threads": 8,
         "extra_options": None,
     },
     "WGS": {
         "k_list": "31,39,49,69,89,109,129,149,169",
         "min_count": 3,
         "prune_level": 2,
-        "min_ram_B": 8 * 1024**3,  # 8GB
+        "min_ram_B": 12 * 1024**3,  # 12GB
+        "min_threads": 8,
         "extra_options": "--no-mercy",
     },
 }
@@ -188,6 +191,9 @@ SALMON_QUANT_DIR = "01_salmon_quant"
 
 # Minimum RAM reserved a BLAT/Scipio instances in bytes (2GB)
 EXTRACTION_MIN_RAM_B = 2 * 1024**3
+
+# BLAT/Scipio are now parallelized, is good to split the load across threads
+EXTRACTION_MIN_THREADS = 4
 
 # Hidden option: Switch to True to fill protein gaps with X
 FILL_GAP_WITH_X = False
@@ -441,15 +447,24 @@ SIZE_MUL = {
 
 # Genes that partially overlap
 VALID_OVERLAPS = [
-    ["atpB", "atpE"], 
+    ["atpB", "atpE"],
     ["ndhC", "ndhK"],
-    ["ndhF", "ycf1"], 
+    ["ndhF", "ycf1"],
     ["psbC", "psbD"],
 ]
 
 # Maximum percetange of overlap between two hits, nuclear genes should not overlap, but we allow
 # a small percentage of overlap
 HIT_MAX_PCT_OVERLAP = 1.0
+
+# During prefiltering of BLAT hits, keep this top N best targets per locus
+BEST_N_TARGETS = 100
+
+# Minimum contig size to be considered a full chromosome in bp
+MIN_CHROM_SIZE = 10_000_000
+
+# Maximum number of cross-loci comparisons to make when evaluating overlaps
+MAX_CROSS_LOCI_COMP = 400_000_000
 
 # Minimum length of terminal exon for organellar proteins
 SCIPIO_MIN_LEN_FINAL_EXON = 21
@@ -662,6 +677,9 @@ MAX_SEQ_LEN = {
 
 # Split bait file if chunks of this size
 BAITS_SPLIT_SIZE = 500000
+
+# Binary chunk size
+CHUNK_SIZE = 8192
 
 # Minimum proportion of the longest sequence to be considered as long in Captus design
 MIN_SEQ_LEN_PROP = 0.5
