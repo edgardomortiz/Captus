@@ -2390,8 +2390,10 @@ def prefilter_blat_psl(
     if debug:
         for params in filter_psl_overlaps_params:
             psl_accepted_part_path, psl_rejected_part_path = filter_psl_overlaps(*params)
-            accepted_psls_to_cat.append(psl_accepted_part_path)
-            rejected_psls_to_cat.append(psl_rejected_part_path)
+            if psl_accepted_part_path is not None:
+                accepted_psls_to_cat.append(psl_accepted_part_path)
+            if psl_rejected_part_path is not None:
+                rejected_psls_to_cat.append(psl_rejected_part_path)
     else:
         subexecutor = ProcessPoolExecutor(max_workers=threads)
         futures = [
@@ -2400,8 +2402,10 @@ def prefilter_blat_psl(
         ]
         for future in as_completed(futures):
             psl_accepted_part_path, psl_rejected_part_path = future.result()
-            accepted_psls_to_cat.append(psl_accepted_part_path)
-            rejected_psls_to_cat.append(psl_rejected_part_path)
+            if psl_accepted_part_path is not None:
+                accepted_psls_to_cat.append(psl_accepted_part_path)
+            if psl_rejected_part_path is not None:
+                rejected_psls_to_cat.append(psl_rejected_part_path)
         subexecutor.shutdown()
 
     # 4. Append rejected files to initial rejected file
@@ -2655,7 +2659,7 @@ def split_psl_by_contigs_add_wscore(
     # 7. Prepare parameters to run the split in parallel
     split_psl_wscore_params = []
     for part in contigs_lists:
-        psl_wscore_part_path = Path(psl_raw_path.parent, f"{psl_raw_path.stem}_P{part:02}.psl")
+        psl_wscore_part_path = Path(psl_raw_path.parent, f"{psl_raw_path.stem}_part{part}.psl")
         split_psl_wscore_params.append((psl_wscore_path, contigs_parts, part, psl_wscore_part_path))
     del contigs_lists
 
@@ -2664,7 +2668,8 @@ def split_psl_by_contigs_add_wscore(
     if debug:
         for params in split_psl_wscore_params:
             psl_wscore_part_path = split_psl_by_contigs(*params)
-            psls_to_filter_paths.append(psl_wscore_part_path)
+            if psl_wscore_part_path is not None:
+                psls_to_filter_paths.append(psl_wscore_part_path)
     else:
         subexecutor = ProcessPoolExecutor(max_workers=threads)
         futures = [
@@ -2672,7 +2677,8 @@ def split_psl_by_contigs_add_wscore(
         ]
         for future in as_completed(futures):
             psl_wscore_part_path = future.result()
-            psls_to_filter_paths.append(psl_wscore_part_path)
+            if psl_wscore_part_path is not None:
+                psls_to_filter_paths.append(psl_wscore_part_path)
         subexecutor.shutdown()
 
     psl_wscore_path.unlink()
@@ -2688,7 +2694,14 @@ def split_psl_by_contigs(
             for line in full_psl_in:
                 if contigs_parts[line.split()[13]] == part:
                     part_psl_out.write(line)
-    return psl_wscore_part_path
+    if psl_wscore_part_path.exists():
+        if psl_wscore_part_path.stat().st_size > 0:
+            return psl_wscore_part_path
+        else:
+            psl_wscore_part_path.unlink()
+            return None
+    else:
+        return None
 
 
 def filter_psl_overlaps(psl_wscore_part_path: Path, ref_has_separators: bool, size_mul: int):
@@ -2775,8 +2788,19 @@ def filter_psl_overlaps(psl_wscore_part_path: Path, ref_has_separators: bool, si
                             # printout = (f"{contigs[contig][i]['psl']}\t{t_ends}\t{contigs[contig][i]['locus']}\t"
                             #             f"{contigs[contig][i]['wscore']:.4f}\t{contigs[contig][i]['accepted']}\t")
                             # print(printout)
-
-    return psl_wscore_part_path, psl_wscore_part_rejected_path
+    psl_accepted = None
+    psl_rejected = None
+    if psl_wscore_part_path.exists():
+        if psl_wscore_part_path.stat().st_size > 0:
+            psl_accepted = psl_wscore_part_path
+        else:
+            psl_accepted.unlink()
+    if psl_wscore_part_rejected_path.exists():
+        if psl_wscore_part_rejected_path.stat().st_size > 0:
+            psl_rejected = psl_wscore_part_rejected_path
+        else:
+            psl_rejected.unlink()
+    return psl_accepted, psl_rejected
 
 
 def calculate_hit_overlap(hit1: dict, hit2: dict):
@@ -2792,15 +2816,21 @@ def calculate_hit_overlap(hit1: dict, hit2: dict):
         overlapped bp / longest hit * 100, list of overlap types found
     """
 
+    h1s, h1e = hit1["t_starts"], hit1["t_ends"]
+    h2s, h2e = hit2["t_starts"], hit2["t_ends"]
+
+    if h1e[-1] <= h2s[0] or h2e[-1] <= h1s[0]:
+        return 0.0, "N"
+
     if sorted([hit1["locus"], hit2["locus"]]) in settings.VALID_OVERLAPS:
         return 0.0, "allowed"
 
     overlapped_bp = 0
     overlap_types = []
-    for i in range(len(hit1["t_starts"])):
-        for j in range(len(hit2["t_starts"])):
-            s1, e1 = hit1["t_starts"][i], hit1["t_ends"][i]
-            s2, e2 = hit2["t_starts"][j], hit2["t_ends"][j]
+    for i in range(len(h1s)):
+        for j in range(len(h2s)):
+            s1, e1 = h1s[i], h1e[i]
+            s2, e2 = h2s[j], h2e[j]
             hits_coords = f"hit1:{s1}-{e1}, hit2:{s2}-{e2}"
             if s1 >= e2 or s2 >= e1:
                 # print(f"{hits_coords}, NO OVERLAP")
