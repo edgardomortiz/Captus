@@ -2519,8 +2519,7 @@ def scipio_yaml_to_dict(
         mod["hit_ids"] = "\n".join(list(dict.fromkeys(list(filter(None, mod["hit_ids"])))))
         mod["hit_contigs"] = "\n".join(mod["hit_contigs"])
         mod["strand"] = "\n".join(mod["strand"])
-        mismatch_rate = len(set(mod["mismatches"])) / prot_len_matched
-        mismatches = mismatch_rate * prot_len_matched
+        mismatches = len(set(mod["mismatches"]))
         matches = prot_len_matched - mismatches
         mod["coverage"] = prot_len_matched / mod["ref_size"] * 100
         mod["identity"] = matches / prot_len_matched * 100
