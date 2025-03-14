@@ -281,9 +281,7 @@ def dir_is_empty(dir_path, ignore_subdirectories=True):
     """
     dir_path = Path(dir_path)
     if ignore_subdirectories:
-        return not bool(
-            [f for f in dir_path.glob("*") if not f.name.startswith(".") and not f.is_dir()]
-        )
+        return not bool([f for f in dir_path.glob("*") if not f.name.startswith(".") and not f.is_dir()])
     else:
         return not bool([f for f in dir_path.glob("*") if not f.name.startswith(".")])
 
@@ -312,15 +310,11 @@ def find_and_match_fastqs(reads, recursive=False):
     if len(reads) == 1 and Path(reads[0]).is_dir():
         if recursive:
             reads = [
-                file
-                for file in Path(reads[0]).resolve().rglob("*")
-                if has_valid_ext(file, valid_exts)
+                file for file in Path(reads[0]).resolve().rglob("*") if has_valid_ext(file, valid_exts)
             ]
         else:
             reads = [
-                file
-                for file in Path(reads[0]).resolve().glob("*")
-                if has_valid_ext(file, valid_exts)
+                file for file in Path(reads[0]).resolve().glob("*") if has_valid_ext(file, valid_exts)
             ]
     else:
         reads = [
@@ -340,8 +334,7 @@ def find_and_match_fastqs(reads, recursive=False):
         if "_R1." in file_name or "_R1_" in file_name:
             if settings.SEQ_NAME_SEP in file_name:
                 skipped.append(
-                    f"'{file_name}': SKIPPED, pattern"
-                    f" '{settings.SEQ_NAME_SEP}' not allowed in filenames"
+                    f"'{file_name}': SKIPPED, pattern '{settings.SEQ_NAME_SEP}' not allowed in filenames"
                 )
             else:
                 if "_R1." in file_name:

@@ -63,9 +63,7 @@ class CaptusAssembly(object):
         )
 
         help_group = parser.add_argument_group("Help")
-        help_group.add_argument(
-            "-h", "--help", action="help", help="Show this help message and exit"
-        )
+        help_group.add_argument("-h", "--help", action="help", help="Show this help message and exit")
         help_group.add_argument(
             "--version",
             action="version",
@@ -281,9 +279,7 @@ class CaptusAssembly(object):
         )
 
         help_group = parser.add_argument_group("Help")
-        help_group.add_argument(
-            "-h", "--help", action="help", help="Show this help message and exit"
-        )
+        help_group.add_argument("-h", "--help", action="help", help="Show this help message and exit")
         help_group.add_argument(
             "--version",
             action="version",
@@ -558,9 +554,7 @@ class CaptusAssembly(object):
         )
 
         help_group = parser.add_argument_group("Help")
-        help_group.add_argument(
-            "-h", "--help", action="help", help="Show this help message and exit"
-        )
+        help_group.add_argument("-h", "--help", action="help", help="Show this help message and exit")
         help_group.add_argument(
             "--version",
             action="version",
@@ -751,8 +745,7 @@ class CaptusAssembly(object):
             default=20,
             type=float,
             dest="nuc_min_coverage",
-            help="Minimum coverage percentage of reference target protein to consider a hit by a"
-            " contig",
+            help="Minimum coverage percentage of reference target protein to consider a hit by a contig",
         )
         scipio_nuc_group.add_argument(
             "--nuc_depth_tolerance",
@@ -810,8 +803,7 @@ class CaptusAssembly(object):
             default=20,
             type=float,
             dest="ptd_min_coverage",
-            help="Minimum coverage percentage of reference target protein to consider a hit by a"
-            " contig",
+            help="Minimum coverage percentage of reference target protein to consider a hit by a contig",
         )
         scipio_ptd_group.add_argument(
             "--ptd_depth_tolerance",
@@ -869,8 +861,7 @@ class CaptusAssembly(object):
             default=20,
             type=float,
             dest="mit_min_coverage",
-            help="Minimum coverage percentage of reference target protein to consider a hit by a"
-            " contig",
+            help="Minimum coverage percentage of reference target protein to consider a hit by a contig",
         )
         scipio_mit_group.add_argument(
             "--mit_depth_tolerance",
@@ -1128,9 +1119,7 @@ class CaptusAssembly(object):
         )
 
         help_group = parser.add_argument_group("Help")
-        help_group.add_argument(
-            "-h", "--help", action="help", help="Show this help message and exit"
-        )
+        help_group.add_argument("-h", "--help", action="help", help="Show this help message and exit")
         help_group.add_argument(
             "--version",
             action="version",
@@ -1344,8 +1333,7 @@ class CaptusAssembly(object):
             default="gappy",
             type=str,
             dest="clipkit_method",
-            help="ClipKIT's algorithm, see"
-            " https://jlsteenwyk.com/ClipKIT/advanced/index.html#modes",
+            help="ClipKIT's algorithm, see https://jlsteenwyk.com/ClipKIT/advanced/index.html#modes",
         )
         clipkit_group.add_argument(
             "--clipkit_gaps",
@@ -1471,9 +1459,7 @@ class CaptusAssembly(object):
         )
 
         help_group = parser.add_argument_group("Help")
-        help_group.add_argument(
-            "-h", "--help", action="help", help="Show this help message and exit"
-        )
+        help_group.add_argument("-h", "--help", action="help", help="Show this help message and exit")
         help_group.add_argument(
             "--version",
             action="version",

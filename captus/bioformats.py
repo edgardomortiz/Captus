@@ -75,8 +75,8 @@ for a in sorted(NT_IUPAC):
     i += 1
 NT_PIDS["--"] = 0.0
 
-# Set of valid aminoacids, including IUPAC ambiguities
-# Set of valid aminoacids, including IUPAC ambiguities
+# fmt: off
+# # Set of valid aminoacids, including IUPAC ambiguities
 AA_IUPAC = {
     "A": ["A"],
     "B": ["D", "N"],
@@ -107,6 +107,7 @@ AA_IUPAC = {
     "*": ["*"],
     "-": ["-"],
 }
+# fmt: on
 
 # Calculate pairwise identities for aminoacids
 AA_PIDS = {}
@@ -177,6 +178,7 @@ CODONS = {
     "base3": "TCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAGTCAG",
 }
 
+# fmt: off
 # NCBI Genetic Codes (modified from ftp://ftp.ncbi.nih.gov/entrez/misc/data/gc.prt)
 GENETIC_CODES = {
     1: {
@@ -315,6 +317,7 @@ GENETIC_CODES = {
         "ss": "---M-------*-------M---------------M---------------M------------",
     },
 }
+# fmt: on
 
 
 def score_matrix_to_dict(matrix):
@@ -338,6 +341,7 @@ def score_matrix_to_dict(matrix):
     return matrix_as_dict
 
 
+# fmt: off
 # PAM250 matrix for scoring protein alignments
 PAM250 = score_matrix_to_dict(
     [
@@ -369,6 +373,7 @@ PAM250 = score_matrix_to_dict(
         ["*", -8, -8, -8, -8, -8, -8, -8, -8, -8, -8, -8, -8, -8, -8, -8, -8, -8, -8, -8, -8, -8, -8, -8, -8, +1],
     ]
 )
+# fmt: on
 
 
 def get_read_stats(fastq_path, num_reads):
@@ -490,9 +495,7 @@ def translate(seq, genetic_code: dict, frame=1, start_as_M=False):
     if frame < 0:
         seq = reverse_complement(seq)
 
-    codons = [
-        seq[p : p + 3] for p in range(abs(frame) - 1, len(seq), 3) if len(seq[p : p + 3]) == 3
-    ]
+    codons = [seq[p : p + 3] for p in range(abs(frame) - 1, len(seq), 3) if len(seq[p : p + 3]) == 3]
 
     if len(codons) < 1:
         return ""
@@ -534,9 +537,7 @@ def translate(seq, genetic_code: dict, frame=1, start_as_M=False):
     return seq_AA
 
 
-def translate_fasta_dict(
-    in_fasta_dict: dict, genetic_code_id: int, frame="guess", start_as_M=False
-):
+def translate_fasta_dict(in_fasta_dict: dict, genetic_code_id: int, frame="guess", start_as_M=False):
     """
     Translates `in_fasta_dict` with `genetic_code_id`. If `frame` is not specified, every sequence
     is translated in the 6 reading frames and the one with the fewest stop codons is returned, when
@@ -570,9 +571,7 @@ def translate_fasta_dict(
                 stops -= 1
             counts_stops.append(stops)
             translations.append(translation)
-        min_stops_idxs = [
-            i for i in range(len(counts_stops)) if counts_stops[i] == min(counts_stops)
-        ]
+        min_stops_idxs = [i for i in range(len(counts_stops)) if counts_stops[i] == min(counts_stops)]
         if len(min_stops_idxs) == 1:
             return translations[min_stops_idxs[0]]
         else:
@@ -1718,13 +1717,9 @@ def scipio_yaml_to_dict(
                             yaml[protein][hit_num][-1]["matchings"][-1]["seqshifts"].append(
                                 copy.deepcopy(seqshift)
                             )
-                            yaml[protein][hit_num][-1]["matchings"][-1]["seqshifts"][-1][
-                                skeys[k]
-                            ] = v
+                            yaml[protein][hit_num][-1]["matchings"][-1]["seqshifts"][-1][skeys[k]] = v
                         elif k in skeys:
-                            yaml[protein][hit_num][-1]["matchings"][-1]["seqshifts"][-1][
-                                skeys[k]
-                            ] = v
+                            yaml[protein][hit_num][-1]["matchings"][-1]["seqshifts"][-1][skeys[k]] = v
                     elif line.startswith("          - "):
                         mm = int(line.replace("          - ", ""))
                         yaml[protein][hit_num][-1]["matchings"][-1]["mismatchlist"].append(mm)
@@ -1988,9 +1983,7 @@ def scipio_yaml_to_dict(
                 if aln["s2_end"] - aln["s1_end"] > 0:
                     end_aa = aln["s1_end"] + 1 if aln["trail"] > 1 else aln["s1_end"]
                     mod["mat_aa"][i] = mod["mat_aa"][i][:end_aa]
-                mat_alns[i] = align_exon_nt_to_scipio_aa(
-                    mod["mat_nt"][i], gencode, mod["mat_aa"][i]
-                )
+                mat_alns[i] = align_exon_nt_to_scipio_aa(mod["mat_nt"][i], gencode, mod["mat_aa"][i])
         cds_nt, cds_aa = concat_cds(mod)
         if translate(cds_nt, gencode, frame=1, start_as_M=False) == cds_aa and len(cds_nt) % 3 == 0:
             return mod
@@ -2000,14 +1993,10 @@ def scipio_yaml_to_dict(
             if mod["mat_types"][i] == "exon":
                 if "gap before" in mod["mat_notes"][i]:
                     mod = remove_leading(mod, i, mat_alns[i]["lead"], mat_alns[i])
-                    mat_alns[i] = align_exon_nt_to_scipio_aa(
-                        mod["mat_nt"][i], gencode, mod["mat_aa"][i]
-                    )
+                    mat_alns[i] = align_exon_nt_to_scipio_aa(mod["mat_nt"][i], gencode, mod["mat_aa"][i])
                 if "gap after" in mod["mat_notes"][i]:
                     mod = remove_trailing(mod, i, mat_alns[i]["trail"], mat_alns[i], mod_len)
-                    mat_alns[i] = align_exon_nt_to_scipio_aa(
-                        mod["mat_nt"][i], gencode, mod["mat_aa"][i]
-                    )
+                    mat_alns[i] = align_exon_nt_to_scipio_aa(mod["mat_nt"][i], gencode, mod["mat_aa"][i])
         cds_nt, cds_aa = concat_cds(mod)
         if translate(cds_nt, gencode, frame=1, start_as_M=False) == cds_aa and len(cds_nt) % 3 == 0:
             return mod
@@ -2045,9 +2034,7 @@ def scipio_yaml_to_dict(
                 # Remove extra trailing nucleotides/aminoacids from last exon
                 if i == last_exon_i and mat_alns[i]["trail"] > 0:
                     mod = remove_trailing(mod, i, mat_alns[i]["trail"], mat_alns[i], mod_len)
-                mat_alns[i] = align_exon_nt_to_scipio_aa(
-                    mod["mat_nt"][i], gencode, mod["mat_aa"][i]
-                )
+                mat_alns[i] = align_exon_nt_to_scipio_aa(mod["mat_nt"][i], gencode, mod["mat_aa"][i])
                 prev_i = i
 
         cds_nt, cds_aa = concat_cds(mod)
@@ -2056,30 +2043,22 @@ def scipio_yaml_to_dict(
             return mod
         else:
             aln = align_prots(cds_nt_translated, cds_aa, "gapless")
-            mismatches = len(aln["mismatches"]) - sum(
-                aln["s2_aln"][i] == "X" for i in aln["mismatches"]
-            )
+            mismatches = len(aln["mismatches"]) - sum(aln["s2_aln"][i] == "X" for i in aln["mismatches"])
             if mismatches <= settings.SCIPIO_MAX_MISMATCHES:
                 return mod
             else:
                 return None
 
-    def translate_between_exons(
-        mod: dict, i: int, gencode: dict, predict: bool, min_identity: float
-    ):
+    def translate_between_exons(mod: dict, i: int, gencode: dict, predict: bool, min_identity: float):
         if (
             len(mod["mat_nt"][i]) > 2
             and mod["mat_types"][i - 1] == mod["mat_types"][i + 1] == "exon"
             and mod["hit_ids"][i - 1] == mod["hit_ids"][i] == mod["hit_ids"][i + 1]
         ):
             # Align previous exon to its translation to find out its trailing bases
-            prev_aln = align_exon_nt_to_scipio_aa(
-                mod["mat_nt"][i - 1], gencode, mod["mat_aa"][i - 1]
-            )
+            prev_aln = align_exon_nt_to_scipio_aa(mod["mat_nt"][i - 1], gencode, mod["mat_aa"][i - 1])
             # Align next exon to to its translation to find out its leading bases
-            next_aln = align_exon_nt_to_scipio_aa(
-                mod["mat_nt"][i + 1], gencode, mod["mat_aa"][i + 1]
-            )
+            next_aln = align_exon_nt_to_scipio_aa(mod["mat_nt"][i + 1], gencode, mod["mat_aa"][i + 1])
             # Take trailing bases from previous and leading bases from next and add to current chunk
             current_chunk = ""
             if prev_aln["trail"] > 0:
@@ -2110,10 +2089,7 @@ def scipio_yaml_to_dict(
                     len_chunk = len(current_chunk) // 3
                     overlap = min(len_gap, len_chunk) / max(len_gap, len_chunk)
                     # Don't align if 'current_chunk' is too long compared to the unmatched protein
-                    if (
-                        len_chunk <= max_gap_size
-                        and len_gap * len_chunk <= settings.RECURSION_LIMIT
-                    ):
+                    if len_chunk <= max_gap_size and len_gap * len_chunk <= settings.RECURSION_LIMIT:
                         rfs = {
                             i: translate(current_chunk, gencode, frame=i, start_as_M=False)
                             for i in [1, 2, 3]
@@ -2138,9 +2114,9 @@ def scipio_yaml_to_dict(
                         # Rank reading frames by their match rate penalized by the number of stops
                         else:
                             for rf in alns:
-                                alns[rf]["match_rate"] *= (
-                                    settings.SCIPIO_STOP_PENALTY ** alns[rf]["s1_aln"].count("*")
-                                )
+                                alns[rf]["match_rate"] *= settings.SCIPIO_STOP_PENALTY ** alns[rf][
+                                    "s1_aln"
+                                ].count("*")
                             rf, aln = max(alns.items(), key=(lambda x: x[1]["match_rate"]))
                             if aln["match_rate"] >= min_gap_identity and "*" not in aln["s1_aln"]:
                                 lead = rf - 1
@@ -2392,9 +2368,7 @@ def scipio_yaml_to_dict(
         add_separator = False
 
         for ctg in yaml_mod:  # ctg = contig (gene models can span several contigs)
-            if (
-                ctg["prot_start"] < ctg["prot_end"]
-            ):  # only accept protein stretches longer than 0 bp
+            if ctg["prot_start"] < ctg["prot_end"]:  # only accept protein stretches longer than 0 bp
                 ref_starts = []
                 ref_ends = []
                 hit_ids = []
@@ -2687,12 +2661,13 @@ def calculate_psl_identity(
     q_type="unknown",
     q_is_mrna=False,
 ):
-    """ Adapted from:
-        https://genome-source.gi.ucsc.edu/gitlist/kent.git/raw/master/src/utils/pslScore/pslScore.pl
-        Calculates pct_identity from blat record in .psl
-        query and target refer to BLAT nomenclature
-        BLAT query = Captus target loci
-        BLAT target = Captus assembled contigs
+    """
+    Adapted from:
+    https://genome-source.gi.ucsc.edu/gitlist/kent.git/raw/master/src/utils/pslScore/pslScore.pl
+    Calculates pct_identity from blat record in .psl
+    query and target refer to BLAT nomenclature
+    BLAT query = Captus target loci
+    BLAT target = Captus assembled contigs
 
     Args:
         matches (int): number of matches that are not repeats
@@ -2711,8 +2686,9 @@ def calculate_psl_identity(
         q_type (str, optional): dna or protein, will determine if unknown. Defaults to "unknown".
         q_is_mrna (bool, optional): if the query is mRNA. Defaults to False.
     """
+
     def psl_is_protein(strand, t_size, t_start, t_end, block_sizes, t_starts):
-        """ Returns a size multiplier of 1 if the PSL is DNA or 3 if the PSL is PROTEIN """
+        """Returns a size multiplier of 1 if the PSL is DNA or 3 if the PSL is PROTEIN"""
         size_mul = 1
         if len(strand) > 1:
             direction = strand[-1]
@@ -2772,12 +2748,13 @@ def blat_misc_dna_psl_to_dict(
     """
 
     def merge_blocks(q_size: int, strand: str, block_sizes: list, q_starts: list, t_starts: list):
-        """ BLAT split alignments in block intercalated by insertions, we merge adjacent blocks
-            when an intervening insertion is not bigger than DNA_MAX_INSERT_SIZE or
-            qSize * DNA_MAX_INSERT_PROP
-            query and target refer to BLAT nomenclature
-            BLAT query = Captus target loci
-            BLAT target = Captus assembled contigs
+        """
+        BLAT split alignments in block intercalated by insertions, we merge adjacent blocks
+        when an intervening insertion is not bigger than DNA_MAX_INSERT_SIZE or
+        qSize * DNA_MAX_INSERT_PROP
+        query and target refer to BLAT nomenclature
+        BLAT query = Captus target loci
+        BLAT target = Captus assembled contigs
 
         Args:
             q_size (int): size of query sequence
@@ -3215,7 +3192,7 @@ def blat_misc_dna_psl_to_dict(
                     p["t_size"],
                     t_starts_mb[0],
                     t_ends_mb[-1],
-                    p["strand"]
+                    p["strand"],
                 )
             gapped = not bool(region == "full")
 
@@ -3445,9 +3422,7 @@ def write_gff3(hits, marker_type, disable_stitching, tsv_comment, out_gff_path):
                 query = f"""Query={urllib.parse.quote(f"{hits[ref][h]['ref_name']}:{ref_min_max[0]}")}"""
                 attributes = ";".join([hit_id, name, wscore, cover_pct, ident_pct, query])
                 gff.append(
-                    "\t".join(
-                        [seq_id, source, "mRNA", start, end, score, strand, phase, attributes]
-                    )
+                    "\t".join([seq_id, source, "mRNA", start, end, score, strand, phase, attributes])
                 )
             hit_coords = split_coords(hits[ref][h]["hit_coords"])
             for c in range(len(hit_coords)):
@@ -3458,10 +3433,10 @@ def write_gff3(hits, marker_type, disable_stitching, tsv_comment, out_gff_path):
                 for p in range(len(hit_coords[c])):
                     start = str(hit_coords[c][p][0])
                     end = str(hit_coords[c][p][1])
-                    query = f"""Query={urllib.parse.quote(f"{hits[ref][h]['ref_name']}:{ref_coords[c]}")}"""
-                    attributes = ";".join(
-                        [hit_id, name, wscore, cover_pct, ident_pct, query, color]
+                    query = (
+                        f"""Query={urllib.parse.quote(f"{hits[ref][h]['ref_name']}:{ref_coords[c]}")}"""
                     )
+                    attributes = ";".join([hit_id, name, wscore, cover_pct, ident_pct, query, color])
                     gff.append(
                         "\t".join(
                             [
@@ -3730,9 +3705,7 @@ def mmseqs_cluster(
     mmseqs_thread.join()
     print()
 
-    message = bold(
-        f" \u2514\u2500\u2192 Clustering completed: [{elapsed_time(time.time() - start)}]"
-    )
+    message = bold(f" \u2514\u2500\u2192 Clustering completed: [{elapsed_time(time.time() - start)}]")
     return message
 
 
@@ -3786,9 +3759,7 @@ def vsearch_cluster(
     vsearch_thread.join()
     print()
 
-    message = bold(
-        f" \u2514\u2500\u2192 Clustering completed: [{elapsed_time(time.time() - start)}]"
-    )
+    message = bold(f" \u2514\u2500\u2192 Clustering completed: [{elapsed_time(time.time() - start)}]")
     return message
 
 

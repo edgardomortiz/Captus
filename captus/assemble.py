@@ -100,9 +100,7 @@ def assemble(full_command, args):
     log.log(f"{'Command':>{mar}}: {bold(full_command)}")
     tsv_comment = f"#Captus v{__version__}\n#Command: {full_command}\n"
     ram_B, ram_MB, ram_GB, ram_GB_total = set_ram(args.ram)
-    log.log(
-        f"{'Max. RAM':>{mar}}: {bold(f'{ram_GB:.1f}GB')} {dim(f'(out of {ram_GB_total:.1f}GB)')}"
-    )
+    log.log(f"{'Max. RAM':>{mar}}: {bold(f'{ram_GB:.1f}GB')} {dim(f'(out of {ram_GB_total:.1f}GB)')}")
     threads_max, threads_total = set_threads(args.threads)
     log.log(f"{'Max. Threads':>{mar}}: {bold(threads_max)} {dim(f'(out of {threads_total})')}")
     log.log("")
@@ -300,9 +298,7 @@ def assemble(full_command, args):
     log.log(f"{'Keep all files':>{mar}}: {bold(args.keep_all)}")
     log.log(f"{'Samples to assemble':>{mar}}: {bold(len(fastqs_to_assemble))}")
     log.log("")
-    log.log(
-        f"{'Output directories':>{mar}}: {bold(f'{out_dir}/[Sample_name]__captus-asm/01_assembly')}"
-    )
+    log.log(f"{'Output directories':>{mar}}: {bold(f'{out_dir}/[Sample_name]__captus-asm/01_assembly')}")
     log.log(f"{'':>{mar}}  {dim('A directory will be created for each sample')}")
     log.log("")
 
@@ -535,9 +531,7 @@ def find_and_match_subsampled_fastqs(fastqs_to_subsample, out_dir):
             sample_name = "_R1.".join(fastq_r1.split("_R1.")[:-1])
         elif "_R1_" in fastq_r1:
             sample_name = "_R1_".join(fastq_r1.split("_R1_")[:-1])
-        sample_subsampled_out_dir = Path(
-            out_dir, f"{sample_name}__captus-asm", "00_subsampled_reads"
-        )
+        sample_subsampled_out_dir = Path(out_dir, f"{sample_name}__captus-asm", "00_subsampled_reads")
         if Path(sample_subsampled_out_dir, fastq_r1).exists():
             fastqs_to_assemble[fastq_r1] = {
                 "fastq_dir": f"{sample_subsampled_out_dir}",
@@ -710,9 +704,7 @@ def adjust_megahit_min_contig_len(min_contig_len, mean_read_length, k_list):
         return 200
 
 
-def cleanup_megahit_out_dir(
-    sample_megahit_out_dir, megahit_log_file, megahit_toolkit_path, keep_all
-):
+def cleanup_megahit_out_dir(sample_megahit_out_dir, megahit_log_file, megahit_toolkit_path, keep_all):
     """
     Tidy up the output folder, MEGAHIT leaves many unnecesary trace files, especially in the
     'intermediate_contigs' directory
@@ -866,9 +858,7 @@ def cleanup_salmon_out_dirs(sample_index_dir, sample_quant_dir, keep_all):
     return True
 
 
-def write_depth_coverage_tsv(
-    sample_megahit_out_dir, depth_estimator, tsv_comment, max_read_length=150
-):
+def write_depth_coverage_tsv(sample_megahit_out_dir, depth_estimator, tsv_comment, max_read_length=150):
     fasta_asm_file = Path(sample_megahit_out_dir, "assembly.fasta")
     fasta_asm = fasta_to_dict(fasta_asm_file)
 
@@ -1008,9 +998,7 @@ def filter_assembly(
             length_stats_tsv,
             tsv_comment,
         )
-        message = (
-            f"{message}\n'{sample_name}': assembly filtered [{elapsed_time(time.time() - start)}]"
-        )
+        message = f"{message}\n'{sample_name}': assembly filtered [{elapsed_time(time.time() - start)}]"
     else:
         message = dim(f"'{sample_name}': SKIPPED (output files already exist)")
 

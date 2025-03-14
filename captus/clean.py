@@ -102,9 +102,7 @@ def clean(full_command, args):
     log.log(f"{'Command':>{mar}}: {bold(full_command)}")
     tsv_comment = f"#Captus v{__version__}\n#Command: {full_command}\n"
     _, ram_MB, ram_GB, ram_GB_total = set_ram(args.ram, java=True)
-    log.log(
-        f"{'Max. RAM':>{mar}}: {bold(f'{ram_GB:.1f}GB')} {dim(f'(out of {ram_GB_total:.1f}GB)')}"
-    )
+    log.log(f"{'Max. RAM':>{mar}}: {bold(f'{ram_GB:.1f}GB')} {dim(f'(out of {ram_GB_total:.1f}GB)')}")
     threads_max, threads_total = set_threads(args.threads)
     log.log(f"{'Max. Threads':>{mar}}: {bold(threads_max)} {dim(f'(out of {threads_total})')}")
     log.log("")
@@ -179,9 +177,7 @@ def clean(full_command, args):
     log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
     log.log(f"{'Keep all files':>{mar}}: {bold(args.keep_all)}")
     fastqs_raw, skipped_msgs = find_and_match_fastqs(args.reads, recursive=True)
-    adaptors_trimmed_dir, adaptors_trimmed_msg = make_output_dir(
-        Path(out_dir, "00_adaptors_trimmed")
-    )
+    adaptors_trimmed_dir, adaptors_trimmed_msg = make_output_dir(Path(out_dir, "00_adaptors_trimmed"))
     log.log(f"{'Samples to trim':>{mar}}: {bold(len(fastqs_raw))}")
     log.log("")
     log.log(f"{'Output directory':>{mar}}: {bold(adaptors_trimmed_dir)}")
@@ -361,9 +357,7 @@ def clean(full_command, args):
                     (
                         args.qc_program,
                         qc_program_path,
-                        Path(
-                            clean_fastqs[fastq_r1]["fastq_dir"], clean_fastqs[fastq_r1]["fastq_r2"]
-                        ),
+                        Path(clean_fastqs[fastq_r1]["fastq_dir"], clean_fastqs[fastq_r1]["fastq_r2"]),
                         qc_stats_after_dir,
                         args.overwrite,
                         "AFTER",
@@ -426,9 +420,7 @@ def clean(full_command, args):
     log.log(f"{'':>{mar}}  {dim(qc_extras_msg)}")
     log.log("")
     summarize_bbduk_logs(out_dir, qc_extras_dir, tsv_comment, mar)
-    summarize_qc_stats(
-        out_dir, qc_extras_dir, qc_stats_before_dir, qc_stats_after_dir, tsv_comment, mar
-    )
+    summarize_qc_stats(out_dir, qc_extras_dir, qc_stats_before_dir, qc_stats_after_dir, tsv_comment, mar)
     log.log("")
 
     if all([numpy_found, pandas_found, plotly_found]):
@@ -482,8 +474,7 @@ def clean(full_command, args):
     ################################################################################################
     ################################################################################# ENDING SECTION
     successful_exit(
-        "Captus-assembly: CLEAN -> successfully completed"
-        f" [{elapsed_time(time.time() - captus_start)}]"
+        f"Captus-assembly: CLEAN -> successfully completed [{elapsed_time(time.time() - captus_start)}]"
     )
 
 
@@ -775,9 +766,7 @@ def qc_stats(qc_program_name, qc_program_path, in_fastq, qc_stats_out_dir, overw
         shutil.rmtree(Path(qc_stats_out_dir, file_out_dir), ignore_errors=True)
         with open(qc_stats_log_file, "w") as qc_stats_log:
             subprocess.call(qc_stats_cmd, stdout=qc_stats_log, stderr=qc_stats_log)
-        message = (
-            f"{file_name_stage}: {qc_program_name} finished [{elapsed_time(time.time() - start)}]"
-        )
+        message = f"{file_name_stage}: {qc_program_name} finished [{elapsed_time(time.time() - start)}]"
     else:
         message = dim(f"{file_name_stage}: SKIPPED ({qc_program_name} report already exists)")
 
@@ -961,15 +950,12 @@ def summarize_bbduk_logs(out_dir, qc_extras_dir, tsv_comment, margin):
         summary_out.write(f"contaminant\ttotal_reads\t{samples_header}\n")
         contaminant_totals = {k: contaminants[k]["total"] for k in contaminants}
         for contaminant in {
-            k: v
-            for k, v in sorted(contaminant_totals.items(), key=lambda item: item[1], reverse=True)
+            k: v for k, v in sorted(contaminant_totals.items(), key=lambda item: item[1], reverse=True)
         }:
             samples_counts = "\t".join(
                 [f"{contaminants[contaminant][sample_name]}" for sample_name in sample_names]
             )
-            summary_out.write(
-                f"{contaminant}\t{contaminants[contaminant]['total']}\t{samples_counts}\n"
-            )
+            summary_out.write(f"{contaminant}\t{contaminants[contaminant]['total']}\t{samples_counts}\n")
     log.log(f"{'Contaminants':>{margin}}: {bold(contaminants_summary)}")
 
 
@@ -1000,15 +986,11 @@ def summarize_qc_stats(
                 ]
             )
         ],
-        "per_seq_qual_scores_data": [
-            "\t".join(["sample_name", "read", "stage", "quality", "count"])
-        ],
+        "per_seq_qual_scores_data": ["\t".join(["sample_name", "read", "stage", "quality", "count"])],
         "per_base_seq_content_data": [
             "\t".join(["sample_name", "read", "stage", "base", "G", "A", "T", "C"])
         ],
-        "per_seq_gc_content_data": [
-            "\t".join(["sample_name", "read", "stage", "gc_content", "count"])
-        ],
+        "per_seq_gc_content_data": ["\t".join(["sample_name", "read", "stage", "gc_content", "count"])],
         "seq_len_dist_data": ["\t".join(["sample_name", "read", "stage", "length", "count"])],
         "seq_dup_levels_data": [
             "\t".join(["sample_name", "read", "stage", "duplication_level", "percentage_of_total"])
@@ -1094,9 +1076,7 @@ def summarize_qc_stats(
                             else:
                                 while length + 1 < int(record[-2]):
                                     length += 1
-                                    qc_stats[add_to].append(
-                                        "\t".join(prepend + [str(length), "0.0"])
-                                    )
+                                    qc_stats[add_to].append("\t".join(prepend + [str(length), "0.0"]))
                                 length = int(record[-2])
                             qc_stats[add_to].append("\t".join(record))
                         elif add_to == "seq_dup_levels_data":

@@ -126,9 +126,7 @@ def cluster(full_command, args):
     log.log(f"{'Captus version':>{mar}}: {bold(f'v{__version__}')}")
     log.log(f"{'Command':>{mar}}: {bold(full_command)}")
     _, ram_MB, ram_GB, ram_GB_total = set_ram(args.ram)
-    log.log(
-        f"{'Max. RAM':>{mar}}: {bold(f'{ram_GB:.1f}GB')} {dim(f'(out of {ram_GB_total:.1f}GB)')}"
-    )
+    log.log(f"{'Max. RAM':>{mar}}: {bold(f'{ram_GB:.1f}GB')} {dim(f'(out of {ram_GB_total:.1f}GB)')}")
     threads_max, threads_total = set_threads(args.threads)
     log.log(f"{'Max. Threads':>{mar}}: {bold(threads_max)} {dim(f'(out of {threads_total})')}")
     log.log("")
@@ -168,9 +166,7 @@ def cluster(full_command, args):
             " '--mmseqs_path' or '--vsearch_path'"
         )
     if mafft_status == "not found":
-        quit_with_error(
-            "Captus could not find MAFFT, please provide a valid path with '--mafft_path'"
-        )
+        quit_with_error("Captus could not find MAFFT, please provide a valid path with '--mafft_path'")
 
     ################################################################################################
     ########################################################################## MARKER IMPORT SECTION
@@ -553,8 +549,7 @@ def cluster(full_command, args):
     ################################################################################################
     ################################################################################# ENDING SECTION
     successful_exit(
-        "Captus-design: CLUSTER -> successfully completed"
-        f" [{elapsed_time(time.time() - captus_start)}]"
+        f"Captus-design: CLUSTER -> successfully completed [{elapsed_time(time.time() - captus_start)}]"
     )
 
 
@@ -695,9 +690,7 @@ def filter_fasta(
                 fasta_out[seq_name] = fasta_in[seq_name]
         dict_to_fasta(fasta_out, fasta_out_path)
         if fasta_out_path.exists():
-            message = (
-                f"'{sample_name}': FASTA filtered by length [{elapsed_time(time.time() - start)}]"
-            )
+            message = f"'{sample_name}': FASTA filtered by length [{elapsed_time(time.time() - start)}]"
         else:
             message = red(f"'{sample_name}': FAILED filtering by length")
     else:
@@ -826,9 +819,7 @@ def rehead_and_concatenate_fastas(
                 fasta_rehead = {}
                 fasta_sample = fasta_to_dict(samples_to_concat[sample]["fasta_path"])
                 for seq_name in fasta_sample:
-                    fasta_rehead[f"{sample}{settings.SEQ_NAME_SEP}{seq_name}"] = fasta_sample[
-                        seq_name
-                    ]
+                    fasta_rehead[f"{sample}{settings.SEQ_NAME_SEP}{seq_name}"] = fasta_sample[seq_name]
                 dict_to_fasta(fasta_rehead, fasta_concat_path, append=True)
                 message = f"'{sample}': FASTA reheaded [{elapsed_time(time.time() - start)}]"
                 log.log(message, print_to_screen=False)
@@ -898,9 +889,7 @@ def cluster_markers(
             )
         log.log(message)
     else:
-        log.log(
-            dim(f"SKIPPED clustering, '{cluster_tsv_path.name}' already exists and is not empty")
-        )
+        log.log(dim(f"SKIPPED clustering, '{cluster_tsv_path.name}' already exists and is not empty"))
 
     start = time.time()
     log.log("")
@@ -1077,16 +1066,13 @@ def mafft_assembly(
             f"{long_aligned_fasta_path}",
         ]
 
-        mid_fasta_path = (
-            long_aligned_fasta_path if len(short_fasta) > 0 else intermediate_fasta_path
-        )
+        mid_fasta_path = long_aligned_fasta_path if len(short_fasta) > 0 else intermediate_fasta_path
 
         if len(long_fasta) > 1:
             with open(mid_fasta_path, "w") as mafft_mid_out:
                 with open(mafft_log_file, "w") as mafft_log:
                     mafft_log.write(
-                        f"Captus' MAFFT Command:\n  {' '.join(mafft_long_cmd)}"
-                        f" > {mid_fasta_path}\n\n\n"
+                        f"Captus' MAFFT Command:\n  {' '.join(mafft_long_cmd)} > {mid_fasta_path}\n\n\n"
                     )
                 with open(mafft_log_file, "a") as mafft_log:
                     try:
@@ -1393,17 +1379,11 @@ def curate(
                 ast["gene_len"] = exons_data[cds_id]["gene_len"]
                 ast["prop_exons_retained"] = median_len / exons_data[cds_id]["exons_len"]
                 ast["prop_long_exons"] = exons_data[cds_id]["prop_long_exons"]
-                ast["prop_long_exons_retained"] = (
-                    ast["prop_long_exons"] * ast["prop_exons_retained"]
-                )
+                ast["prop_long_exons_retained"] = ast["prop_long_exons"] * ast["prop_exons_retained"]
                 ast["len_long_exons_retained"] = ast["prop_long_exons_retained"] * ast["exons_len"]
                 ast["prop_short_exons"] = exons_data[cds_id]["prop_short_exons"]
-                ast["prop_short_exons_retained"] = (
-                    ast["prop_short_exons"] * ast["prop_exons_retained"]
-                )
-                ast["len_short_exons_retained"] = (
-                    ast["prop_short_exons_retained"] * ast["exons_len"]
-                )
+                ast["prop_short_exons_retained"] = ast["prop_short_exons"] * ast["prop_exons_retained"]
+                ast["len_short_exons_retained"] = ast["prop_short_exons_retained"] * ast["exons_len"]
                 # Format as text
                 ast["len_long_exons_retained"] = f"{ast['len_long_exons_retained']:.0f}"
                 ast["len_short_exons_retained"] = f"{ast['len_short_exons_retained']:.0f}"
@@ -1444,8 +1424,7 @@ def curate(
             message = f"'{curated_fasta_path.name}': curated [{elapsed_time(time.time() - start)}]"
         else:
             message = red(
-                f"'{input_fasta_path.name}': FAILED (trimmed"
-                f" alignment had {len(aln_trimmed)} sequences)"
+                f"'{input_fasta_path.name}': FAILED (trimmed alignment had {len(aln_trimmed)} sequences)"
             )
     else:
         message = dim(f"'{curated_fasta_path.name}': SKIPPED (output FASTA already exists)")

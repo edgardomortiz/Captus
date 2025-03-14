@@ -111,9 +111,7 @@ def extract(full_command, args):
     log.log(f"{'Command':>{mar}}: {bold(full_command)}")
     tsv_comment = f"#Captus v{__version__}\n#Command: {full_command}\n"
     ram_B, ram_MB, ram_GB, ram_GB_total = set_ram(args.ram)
-    log.log(
-        f"{'Max. RAM':>{mar}}: {bold(f'{ram_GB:.1f}GB')} {dim(f'(out of {ram_GB_total:.1f}GB)')}"
-    )
+    log.log(f"{'Max. RAM':>{mar}}: {bold(f'{ram_GB:.1f}GB')} {dim(f'(out of {ram_GB_total:.1f}GB)')}")
     threads_max, threads_total = set_threads(args.threads)
     log.log(f"{'Max. Threads':>{mar}}: {bold(threads_max)} {dim(f'(out of {threads_total})')}")
     log.log("")
@@ -249,8 +247,7 @@ def extract(full_command, args):
         extra_empty_lines_after=0,
     )
     log.log_explanation(
-        "Additionally, miscellaneous DNA references provided with '--dna_refs' will also be"
-        " extracted."
+        "Additionally, miscellaneous DNA references provided with '--dna_refs' will also be extracted."
     )
     if skip_extraction:
         log.log(
@@ -403,9 +400,7 @@ def extract(full_command, args):
         loci_files_msg = ""
         if args.max_loci_files == 0:
             loci_files_msg = dim("(Do not write separate loci files per sample)")
-        log.log(
-            f"{'Max. separate loci files':>{mar}}: {bold(args.max_loci_files)} {loci_files_msg}"
-        )
+        log.log(f"{'Max. separate loci files':>{mar}}: {bold(args.max_loci_files)} {loci_files_msg}")
         log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
         log.log(f"{'Keep all files':>{mar}}: {bold(args.keep_all)}")
         log.log("")
@@ -592,9 +587,7 @@ def extract(full_command, args):
                 f"{'Annotated assemblies':>{mar}}: "
                 f"{bold(f'{out_dir}/[Sample_name]__captus-ext/06_assembly_annotated')}"
             )
-            log.log(
-                f"{'':>{mar}}  {dim('(These output directories will be created for each sample)')}"
-            )
+            log.log(f"{'':>{mar}}  {dim('(These output directories will be created for each sample)')}")
             log.log("")
 
             json_path = update_refs_json({**protein_refs, **dna_ref}, out_dir)  # concat two dict
@@ -796,9 +789,7 @@ def extract(full_command, args):
             log.log("")
             log.log("")
             log.log(
-                bold_yellow(
-                    "  \u25ba STEP 2 OF 3: Extracting cluster-derived DNA markers with BLAT"
-                )
+                bold_yellow("  \u25ba STEP 2 OF 3: Extracting cluster-derived DNA markers with BLAT")
             )
             log.log("")
             clust_ref_size = 0
@@ -820,9 +811,7 @@ def extract(full_command, args):
                 log.log(f"{'reference info':>{mar}}: {clust_query_info['info_msg']}")
                 log.log(f"{'dna_min_identity':>{mar}}: {bold(dna_min_identity)}")
                 log.log(f"{'dna_min_coverage':>{mar}}: {bold(args.dna_min_coverage)}")
-                clr_dt, clr_dt_msg = depth_tolerance_check(
-                    args.dna_depth_tolerance, args.ignore_depth
-                )
+                clr_dt, clr_dt_msg = depth_tolerance_check(args.dna_depth_tolerance, args.ignore_depth)
                 log.log(f"{'depth_tolerance':>{mar}}: {clr_dt_msg}")
             log.log("")
             log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
@@ -1122,9 +1111,7 @@ def find_and_copy_fastas(fastas, captus_assemblies_dir, overwrite, threads_max, 
         ]
     check_and_copy_found_fasta_params = []
     for fasta in fastas:
-        check_and_copy_found_fasta_params.append(
-            (fasta, valid_exts, captus_assemblies_dir, overwrite)
-        )
+        check_and_copy_found_fasta_params.append((fasta, valid_exts, captus_assemblies_dir, overwrite))
     tqdm_parallel_async_run(
         check_and_copy_found_fasta,
         check_and_copy_found_fasta_params,
@@ -1520,7 +1507,7 @@ def scipio_coding(
     if blat_path == "bundled":
         blat_path = settings.BUNDLED_BLAT
 
-    # Group Scipio's basic parameters, the 'sample_dir', and the 'marker_type' into a list
+    # Group Scipio's basic parameters, the 'sample_dir', and the 'marker_type' into a dictionary
     scipio_params = {
         "scipio_path": scipio_path,
         "min_score": min_score,
@@ -1534,9 +1521,9 @@ def scipio_coding(
 
     # Run Scipio twice if 'query_info["num_loci"]' does not exceed 'max_loci_scipio_x2'
     if query_info["num_loci"] <= max_loci_scipio_x2:
-        # Use the function run_scipio() that to run Scipio and also get the name of the YAML
-        # output 'yaml_out_file'
-        yaml_initial_file = run_scipio_parallel(
+        # The function parallel_scipio() splits the PSL file according to groups of targets and runs
+        # Scipio simultaneouslo on each part
+        yaml_initial_file = parallel_scipio(
             scipio_params,
             target_path,
             query_path,
@@ -1558,9 +1545,7 @@ def scipio_coding(
             )
             return message
         elif yaml_initial_file == "BLAT FAILED":
-            message = red(
-                f"'{sample_name}': FAILED extraction of {genes[marker_type]} (No BLAT hits)"
-            )
+            message = red(f"'{sample_name}': FAILED extraction of {genes[marker_type]} (No BLAT hits)")
             return message
         else:
             yaml_initial_dir = yaml_initial_file.parent
@@ -1590,7 +1575,7 @@ def scipio_coding(
             )
 
         # Perform final Scipio's run (more exhaustive but with fewer contigs and reference proteins)
-        yaml_final_file = run_scipio_parallel(
+        yaml_final_file = parallel_scipio(
             scipio_params,
             final_target,
             final_query,
@@ -1608,7 +1593,7 @@ def scipio_coding(
 
     # Run a single Scipio run when 'num_refs' exceeds 'max_loci_scipio_x2'
     else:
-        yaml_final_file = run_scipio_parallel(
+        yaml_final_file = parallel_scipio(
             scipio_params,
             target_path,
             query_path,
@@ -1626,8 +1611,7 @@ def scipio_coding(
 
     if yaml_final_file is None:
         message = dim(
-            f"'{sample_name}': extraction of {genes[marker_type]}"
-            " SKIPPED (output files already exist)"
+            f"'{sample_name}': extraction of {genes[marker_type]} SKIPPED (output files already exist)"
         )
         return message
     elif yaml_final_file == "BLAT FAILED":
@@ -1678,7 +1662,7 @@ def scipio_coding(
         return message
 
 
-def run_scipio_parallel(
+def parallel_scipio(
     scipio_params: dict,
     target,
     query,
@@ -1703,9 +1687,7 @@ def run_scipio_parallel(
         scipio_log_file = Path(scipio_out_dir, f"{marker_type}_scipio_initial.log")
 
         # Adjust Scipio's 'min_score' for initial round allowing more lenient matching
-        scipio_min_score = round(
-            scipio_params["min_score"] * settings.SCIPIO_SCORE_INITIAL_FACTOR, 5
-        )
+        scipio_min_score = round(scipio_params["min_score"] * settings.SCIPIO_SCORE_INITIAL_FACTOR, 5)
     else:
         blat_out_file = Path(scipio_out_dir, f"{marker_type}_scipio_final.psl")
         scipio_out_file = Path(scipio_out_dir, f"{marker_type}_scipio_final.yaml")
@@ -1715,42 +1697,46 @@ def run_scipio_parallel(
     # Set minimum BLAT score according to number of references (too many hits created when using
     # a large number of reference proteins), higher score, fewer hits
     if stage == "single":
-        blat_score = f"{settings.SCIPIO_x1_BLAT_MIN_SCORE}"
+        blat_min_score = settings.SCIPIO_ROUND1_SETTINGS[marker_type]["blat"]["min_score"]
     else:
-        blat_score = f"{settings.SCIPIO_x2_BLAT_MIN_SCORE}"
+        blat_min_score = settings.SCIPIO_ROUND2_SETTINGS[marker_type]["blat"]["min_score"]
 
     # Additional Scipio settings according to first (or single) or second Scipio round
     if stage == "final":
-        extra_settings = settings.SCIPIO_GENOME_EXTRA_SETTINGS[marker_type]
+        extra_settings = settings.SCIPIO_ROUND2_SETTINGS[marker_type]["scipio"]
+        tile_size = settings.SCIPIO_ROUND2_SETTINGS[marker_type]["blat"]["tile_size"]
+        one_off = settings.SCIPIO_ROUND2_SETTINGS[marker_type]["blat"]["one_off"]
+        max_intron = settings.SCIPIO_ROUND2_SETTINGS[marker_type]["blat"]["max_intron"]
     else:
-        extra_settings = settings.SCIPIO_GENOME_BASIC_SETTINGS[marker_type]
+        extra_settings = settings.SCIPIO_ROUND1_SETTINGS[marker_type]["scipio"]
+        tile_size = settings.SCIPIO_ROUND1_SETTINGS[marker_type]["blat"]["tile_size"]
+        one_off = settings.SCIPIO_ROUND1_SETTINGS[marker_type]["blat"]["one_off"]
+        max_intron = settings.SCIPIO_ROUND1_SETTINGS[marker_type]["blat"]["max_intron"]
 
     scipio_out_dir, _ = make_output_dir(scipio_out_dir)
 
     if dir_is_empty(scipio_out_dir) is True or overwrite is True:
-        # First, run BLAT only using the complete target and query files
-        blat_only = True
-        blat_psl = run_scipio_command(
-            scipio_params["scipio_path"],
-            blat_out_file,
-            blat_only,
-            scipio_min_score,
-            scipio_params["min_identity"],
-            scipio_params["min_coverage"],
-            disable_stitching,
+        # 1. Run BLAT in parallel on the assembly file split in as many parts as threads
+        blat_psl = parallel_blat(
             scipio_params["blat_path"],
-            blat_score,
-            scipio_params["transtable"],
-            extra_settings,
+            "dnax",
+            "prot",
+            scipio_params["min_identity"],
             target,
             query,
-            scipio_out_file,
+            blat_out_file,
             scipio_log_file,
+            threads,
+            debug,
+            tile_size,
+            one_off,
+            blat_min_score,
+            max_intron,
         )
-        if not blat_psl:
+        if blat_psl is None:
             return "BLAT FAILED"
 
-        # Second, filter hits according the depth of coverage of the contigs
+        # 2. Filter hits according the depth of coverage of the contigs and by cross-loci overlaps
         prefilter_blat_psl(
             marker_type,
             blat_out_file,
@@ -1762,7 +1748,7 @@ def run_scipio_parallel(
             keep_all,
         )
 
-        # Third, split the previous BLAT psl according to the reference splits
+        # 3. Split the previous BLAT PSL according to the reference splits
         split_blat_psl_params = []
         for query in query_part_paths:
             part = query.stem
@@ -1777,8 +1763,7 @@ def run_scipio_parallel(
         else:
             subexecutor = ProcessPoolExecutor(max_workers=threads)
             futures = [
-                subexecutor.submit(split_psl_by_targets, *params)
-                for params in split_blat_psl_params
+                subexecutor.submit(split_psl_by_targets, *params) for params in split_blat_psl_params
             ]
             for future in as_completed(futures):
                 blat_part_psl = future.result()
@@ -1800,7 +1785,7 @@ def run_scipio_parallel(
                     scipio_params["min_coverage"],
                     disable_stitching,
                     scipio_params["blat_path"],
-                    blat_score,
+                    blat_min_score,
                     scipio_params["transtable"],
                     extra_settings,
                     target,
@@ -1818,8 +1803,7 @@ def run_scipio_parallel(
         else:
             subexecutor = ProcessPoolExecutor(max_workers=threads)
             futures = [
-                subexecutor.submit(run_scipio_command, *params)
-                for params in run_scipio_command_params
+                subexecutor.submit(run_scipio_command, *params) for params in run_scipio_command_params
             ]
             for future in as_completed(futures):
                 scipio_yaml = future.result()
@@ -1873,7 +1857,7 @@ def run_scipio_command(
     min_coverage,
     disable_stitching,
     blat_path,
-    blat_score,
+    blat_min_score,
     transtable,
     extra_settings,
     target_path,
@@ -1895,8 +1879,8 @@ def run_scipio_command(
         "--max_mismatch=0",  # 0 means infinite
         "--multiple_results",
         f"--blat_bin={blat_path}",
-        f"--blat_score={blat_score}",
-        f"--blat_identity={min_identity * settings.SCIPIO_BLAT_IDENT_FACTOR:.0f}",
+        f"--blat_score={blat_min_score}",
+        f"--blat_identity={min_identity * settings.PROT_BLAT_IDENT_PROP:.0f}",
         f"--transtable={transtable}",
         f"--accepted_intron_penalty={settings.SCIPIO_ACCEPTED_INTRON_PENALTY}",
     ]
@@ -2054,9 +2038,7 @@ def write_fastas_and_report(
 
             shifts_flanked, shifts_gene, shifts_nt, shifts_aa = "", "", "", ""
             if marker_type in ["NUC", "PTD", "MIT"]:
-                shifts_flanked = [
-                    str(p + 1) for p in range(len(seq_flanked)) if seq_flanked[p] == "N"
-                ]
+                shifts_flanked = [str(p + 1) for p in range(len(seq_flanked)) if seq_flanked[p] == "N"]
                 if shifts_flanked:
                     shifts_flanked = f"[frameshifts={','.join(shifts_flanked)}] "
                 else:
@@ -2282,22 +2264,28 @@ def blat_misc_dna(
 
     if dir_is_empty(blat_dna_out_dir) is True or overwrite is True:
         dna_target = fasta_to_dict(target_path)
-        blat_cmd = [
-            f"{blat_path}",
-            "-t=dna",
-            "-q=dna",
-            "-noHead",
-            f"-minIdentity={min_identity}",
-            f"{target_path}",
-            f"{query_path}",
-            f"{blat_dna_out_file}",
-        ]
-        with open(blat_dna_log_file, "w") as blat_log:
-            blat_log.write(f"Captus' BLAT command:\n  {' '.join(blat_cmd)}\n\n")
-        with open(blat_dna_log_file, "a") as blat_log:
-            subprocess.run(blat_cmd, stdout=blat_log, stderr=blat_log)
+        # 1. Run BLAT in parallel on the assembly file split in as many parts as threads
+        blat_psl = parallel_blat(
+            blat_path,
+            "dna",
+            "dna",
+            min_identity,
+            target_path,
+            query_path,
+            blat_dna_out_file,
+            blat_dna_log_file,
+            threads,
+            debug,
+            None,
+            None,
+            settings.DNA_BLAT_MIN_SCORE,
+            None,
+        )
+        if blat_psl is None:
+            message = red(f"'{sample_name}': BLAT FAILED")
+            return message
 
-        # Filter hits according the depth of coverage of the contigs
+        # 2. Filter hits according the depth of coverage of the contigs and by cross-loci overlaps
         prefilter_blat_psl(
             marker_type,
             blat_dna_out_file,
@@ -2353,6 +2341,218 @@ def blat_misc_dna(
         return message
 
 
+def parallel_blat(
+    blat_path: Path,
+    target_type: str,  # options: dna dnax, type of search in assembly
+    query_type: str,  # options: dna prot, if target loci are DNA or PROTEIN
+    min_identity: float,
+    assembly_path: Path,
+    targets_path: Path,
+    psl_out_path: Path,
+    psl_log_path: Path,
+    threads: int,
+    debug: bool,
+    tile_size: int,
+    one_off: int,
+    min_score: int,
+    max_intron: int,
+    no_head=True,
+):
+    # Disable parallelization for now, more tests needed to see why running multiple instances of
+    # BLAT is slower than a single one
+    threads = 1
+
+    # 1. Load assembly, sort by decreasing contig length split in as many parts as threads
+    contig_sizes = {}
+    asm_full = fasta_to_dict(assembly_path)
+    for contig in asm_full:
+        contig_sizes[contig] = len(asm_full[contig]["sequence"])
+    contigs_lists = {i: [] for i in range(threads)}
+    part = 0
+    for contig in sorted(contig_sizes, key=contig_sizes.get, reverse=True):
+        contigs_lists[part].append(contig)
+        part += 1
+        if part == threads:
+            part = 0
+    contigs_parts = {}
+    for part in contigs_lists:
+        for contig in contigs_lists[part]:
+            contigs_parts[contig] = part
+
+    # 2. Prepare parameters to run the assembly split in parallel
+    split_assembly_params = []
+    for part in contigs_lists:
+        asm_part_path = Path(psl_out_path.parent, f"asm_part{part}.fasta")
+        split_assembly_params.append((asm_full, contigs_parts, part, asm_part_path))
+    del contigs_lists
+
+    # 3. Split assembly in parallel
+    asm_parts_paths_to_blat = []
+    if debug:
+        for params in split_assembly_params:
+            asm_part_path = split_asm_by_contigs(*params)
+            if asm_part_path is not None:
+                asm_parts_paths_to_blat.append(asm_part_path)
+    else:
+        subexecutor = ProcessPoolExecutor(max_workers=threads)
+        futures = [subexecutor.submit(split_asm_by_contigs, *params) for params in split_assembly_params]
+        for future in as_completed(futures):
+            asm_part_path = future.result()
+            if asm_part_path is not None:
+                asm_parts_paths_to_blat.append(asm_part_path)
+        subexecutor.shutdown()
+
+    # 4. Prepare parameters to run as many instances of BLAT as threads
+    blat_params = []
+    for asm_part_path in asm_parts_paths_to_blat:
+        psl_part_path = Path(asm_part_path.parent, asm_part_path.name.replace(".fasta", ".psl"))
+        blat_params.append(
+            (
+                blat_path,
+                target_type,
+                query_type,
+                min_identity,
+                asm_part_path,
+                targets_path,
+                psl_part_path,
+                tile_size,
+                one_off,
+                min_score,
+                no_head,
+                max_intron,
+            )
+        )
+
+    # 5. BLAT assembly parts in parallel
+    psl_parts_paths_to_cat = []
+    psl_log_parts_paths_to_cat = []
+    if debug:
+        for params in blat_params:
+            psl_part_path, psl_log_part_path = run_blat_command(*params)
+            if psl_part_path is not None:
+                psl_parts_paths_to_cat.append(psl_part_path)
+            if psl_log_part_path is not None:
+                psl_log_parts_paths_to_cat.append(psl_log_part_path)
+    else:
+        subexecutor = ProcessPoolExecutor(max_workers=threads)
+        futures = [subexecutor.submit(run_blat_command, *params) for params in blat_params]
+        for future in as_completed(futures):
+            psl_part_path, psl_log_part_path = future.result()
+            if psl_part_path is not None:
+                psl_parts_paths_to_cat.append(psl_part_path)
+            if psl_log_part_path is not None:
+                psl_log_parts_paths_to_cat.append(psl_log_part_path)
+        subexecutor.shutdown()
+
+    # 6. Concatenate partial PSLs and the logs into a single file
+    with open(psl_out_path, "wb") as psl_log:
+        for psl_part_path in psl_parts_paths_to_cat:
+            with open(psl_part_path, "rb") as psl_part:
+                while True:
+                    chunk = psl_part.read(settings.CHUNK_SIZE)
+                    if not chunk:
+                        break
+                    psl_log.write(chunk)
+    with open(psl_log_path, "wb") as psl_log:
+        for psl_log_part_path in psl_log_parts_paths_to_cat:
+            with open(psl_log_part_path, "rb") as psl_part:
+                while True:
+                    chunk = psl_part.read(settings.CHUNK_SIZE)
+                    if not chunk:
+                        break
+                    psl_log.write(chunk)
+    for path in asm_parts_paths_to_blat:
+        path.unlink()
+    for path in psl_parts_paths_to_cat:
+        path.unlink()
+    for path in psl_log_parts_paths_to_cat:
+        path.unlink()
+
+    # 7. Check if concatenated PSL is not empty
+    if psl_out_path.exists():
+        if psl_out_path.stat().st_size > 0:
+            return psl_out_path
+        else:
+            psl_out_path.unlink()
+            return None
+    else:
+        return None
+
+
+def split_asm_by_contigs(
+    asm_full: dict,
+    contigs_parts: dict,
+    part: int,
+    asm_part_path: Path,
+):
+    asm_part = {}
+    for contig in asm_full:
+        if contigs_parts[contig] == part:
+            asm_part[contig] = asm_full[contig]
+    dict_to_fasta(asm_part, asm_part_path, write_if_empty=False)
+
+    if asm_part_path.exists():
+        return asm_part_path
+    else:
+        return None
+
+
+def run_blat_command(
+    blat_path: Path,
+    target_type: str,
+    query_type: str,
+    min_identity: float,
+    asm_path: Path,
+    targets_path: Path,
+    psl_part_path: Path,
+    tile_size,
+    one_off,
+    min_score,
+    no_head,
+    max_intron,
+):
+    if query_type == "prot":
+        min_identity *= settings.PROT_BLAT_IDENT_PROP
+    else:
+        min_identity *= settings.DNA_BLAT_IDENT_PROP
+    blat_cmd = [
+        f"{blat_path}",
+        f"-t={target_type}",
+        f"-q={query_type}",
+    ]
+    if tile_size:
+        blat_cmd += [f"-tileSize={tile_size}"]
+    if one_off:
+        blat_cmd += [f"-oneOff={one_off}"]
+    if min_score:
+        blat_cmd += [f"-minScore={min_score}"]
+    blat_cmd += [f"-minIdentity={min_identity:.0f}"]
+    if no_head:
+        blat_cmd += ["-noHead"]
+    if max_intron:
+        blat_cmd += [f"-maxIntron={max_intron}"]
+    blat_cmd += [
+        f"{asm_path}",
+        f"{targets_path}",
+        f"{psl_part_path}",
+    ]
+    psl_log_part_path = Path(psl_part_path.parent, psl_part_path.name.replace(".psl", ".log"))
+    with open(psl_log_part_path, "w") as blat_log:
+        blat_log.write(f"Captus' BLAT command:\n  {' '.join(blat_cmd)}\n\n")
+    with open(psl_log_part_path, "a") as blat_log:
+        subprocess.run(blat_cmd, stdout=blat_log, stderr=blat_log)
+        blat_log.write("\n\n")
+
+    if psl_part_path.exists():
+        if psl_part_path.stat().st_size > 0:
+            return psl_part_path, psl_log_part_path
+        else:
+            psl_part_path.unlink()
+            return None, psl_log_part_path
+    else:
+        return None, psl_log_part_path
+
+
 def prefilter_blat_psl(
     marker_type: str,
     blat_out_file: Path,
@@ -2397,8 +2597,7 @@ def prefilter_blat_psl(
     else:
         subexecutor = ProcessPoolExecutor(max_workers=threads)
         futures = [
-            subexecutor.submit(filter_psl_overlaps, *params)
-            for params in filter_psl_overlaps_params
+            subexecutor.submit(filter_psl_overlaps, *params) for params in filter_psl_overlaps_params
         ]
         for future in as_completed(futures):
             psl_accepted_part_path, psl_rejected_part_path = future.result()
@@ -2551,9 +2750,7 @@ def prefilter_blat_psl(
 def split_psl_by_contigs_add_wscore(
     psl_raw_path: Path, ref_has_separators: bool, threads: int, debug: bool
 ):
-    psl_rejected_path = Path(
-        psl_raw_path.parent, psl_raw_path.name.replace(".psl", "_rejected.psl")
-    )
+    psl_rejected_path = Path(psl_raw_path.parent, psl_raw_path.name.replace(".psl", "_rejected.psl"))
     psl_wscore_path = Path(psl_raw_path.parent, psl_raw_path.name.replace(".psl", "_wscore.psl"))
 
     # If the number of targets per locus is high as in Mega353 for example, the potential number
@@ -2723,8 +2920,7 @@ def filter_psl_overlaps(psl_wscore_part_path: Path, ref_has_separators: bool, si
             contig = p["t_name"]
             t_starts = p["t_starts"]
             t_ends = [
-                p["t_starts"][i] + size_mul * p["block_sizes"][i]
-                for i in range(len(p["block_sizes"]))
+                p["t_starts"][i] + size_mul * p["block_sizes"][i] for i in range(len(p["block_sizes"]))
             ]
             if size_mul == 3 and p["strand"][-1] == "-":
                 t_starts, t_ends = flip_coords(t_starts, t_ends, p["t_size"])
@@ -2799,7 +2995,7 @@ def filter_psl_overlaps(psl_wscore_part_path: Path, ref_has_separators: bool, si
         if psl_wscore_part_rejected_path.stat().st_size > 0:
             psl_rejected = psl_wscore_part_rejected_path
         else:
-            psl_rejected.unlink()
+            psl_wscore_part_rejected_path.unlink()
     return psl_accepted, psl_rejected
 
 
@@ -2883,9 +3079,7 @@ def cleanup_post_extraction(
     gff_file = Path(annotated_assembly_dir, f"{sample_name}_hit_contigs.gff")
     stats_file = Path(annotated_assembly_dir, f"{sample_name}_recovery_stats.tsv")
     hit_contigs_file = Path(annotated_assembly_dir, f"{sample_name}_hit_contigs.fasta")
-    leftovers_clust_file = Path(
-        annotated_assembly_dir, "leftover_contigs_after_clustering.fasta.gz"
-    )
+    leftovers_clust_file = Path(annotated_assembly_dir, "leftover_contigs_after_clustering.fasta.gz")
     leftovers_file = Path(annotated_assembly_dir, "leftover_contigs.fasta.gz")
     out_files = [gff_file, stats_file, hit_contigs_file, leftovers_clust_file, leftovers_file]
 
@@ -2894,9 +3088,7 @@ def cleanup_post_extraction(
         sample_gffs = sorted(list(sample_dir.resolve().rglob("[A-Z]*_contigs.gff")))
         sample_gffs = [gff for gff in sample_gffs if gff.parts[-2] != "06_assembly_annotated"]
         if not cluster and not skip_clustering:
-            sample_gffs = [
-                gff for gff in sample_gffs if gff.parts[-2] != settings.MARKER_DIRS["CLR"]
-            ]
+            sample_gffs = [gff for gff in sample_gffs if gff.parts[-2] != settings.MARKER_DIRS["CLR"]]
         gff_lines = 0
         with open(gff_file, "wt") as gff_out:
             gff_out.write("##gff-version 3\n")
@@ -2925,9 +3117,7 @@ def cleanup_post_extraction(
         sample_stats = sorted(list(sample_dir.resolve().rglob("[A-Z]*_recovery_stats.tsv")))
         sample_stats = [tsv for tsv in sample_stats if tsv.parts[-2] != "06_assembly_annotated"]
         if not cluster and not skip_clustering:
-            sample_stats = [
-                tsv for tsv in sample_stats if tsv.parts[-2] != settings.MARKER_DIRS["CLR"]
-            ]
+            sample_stats = [tsv for tsv in sample_stats if tsv.parts[-2] != settings.MARKER_DIRS["CLR"]]
         tsv_lines = 0
         with open(stats_file, "wt") as tsv_out:
             tsv_out.write(f"{tsv_comment[0]}\n{tsv_comment[1]}\n")
@@ -2946,9 +3136,7 @@ def cleanup_post_extraction(
         names_hit_contigs = []
         contig_lists = list(sample_dir.resolve().rglob("[A-Z]*_contigs.list.txt"))
         if not cluster and not skip_clustering:
-            contig_lists = [
-                cl for cl in contig_lists if cl.parts[-2] != settings.MARKER_DIRS["CLR"]
-            ]
+            contig_lists = [cl for cl in contig_lists if cl.parts[-2] != settings.MARKER_DIRS["CLR"]]
         if contig_lists:
             for cl in contig_lists:
                 with open(cl, "rt") as clin:
@@ -3136,12 +3324,7 @@ def cluster_and_select_refs(
     with tqdm(total=len(clust1_clusters), ncols=tqdm_cols, unit="cluster") as pbar:
         for cluster in clust1_clusters:
             samples_in_cluster = len(
-                set(
-                    [
-                        cluster[i][1:].split(settings.SEQ_NAME_SEP)[0]
-                        for i in range(0, len(cluster), 2)
-                    ]
-                )
+                set([cluster[i][1:].split(settings.SEQ_NAME_SEP)[0] for i in range(0, len(cluster), 2)])
             )
             avg_copies_in_cluster = len(cluster) / 2 / samples_in_cluster
             if samples_in_cluster == 1:
@@ -3191,9 +3374,7 @@ def cluster_and_select_refs(
         )
     )
     log.log(
-        dim(
-            f"     Filtered out {singletons + failed} clusters, of which {singletons} were singletons"
-        )
+        dim(f"     Filtered out {singletons + failed} clusters, of which {singletons} were singletons")
     )
     log.log(dim(f"     Retained sequences written to {clust2_input_fasta}"))
     log.log("")

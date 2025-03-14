@@ -130,9 +130,7 @@ def select(full_command, args):
 
                 log.log("")
                 log.log_explanation("Generating Alignment Statistics report...")
-                aln_html_report, aln_html_msg = build_design_report(
-                    out_dir, aln_stats_tsv, "select"
-                )
+                aln_html_report, aln_html_msg = build_design_report(out_dir, aln_stats_tsv, "select")
                 log.log(f"{'Alignment report':>{mar}}: {bold(aln_html_report)}")
                 log.log(f"{'':>{mar}}  {dim(aln_html_msg)}")
             else:
@@ -148,8 +146,7 @@ def select(full_command, args):
     ################################################################################################
     ################################################################################# ENDING SECTION
     successful_exit(
-        "Captus-design: SELECT -> successfully completed"
-        f" [{elapsed_time(time.time() - captus_start)}]"
+        f"Captus-design: SELECT -> successfully completed [{elapsed_time(time.time() - captus_start)}]"
     )
 
 
@@ -187,9 +184,7 @@ def load_aln_stats_tsv(clusters_dir: Path):
                         "perc_long_exons_retained": record[22],
                         "perc_short_exons_retained": record[23],
                     }
-        log.log(
-            bold(f"Data from {aln_stats_tsv_path} loaded in {elapsed_time(time.time() - start)}")
-        )
+        log.log(bold(f"Data from {aln_stats_tsv_path} loaded in {elapsed_time(time.time() - start)}"))
         return aln_stats
     else:
         quit_with_error(f"Alignment statistics file '{aln_stats_tsv_path}' not found.")
@@ -227,12 +222,9 @@ def filter_loci(
         min_par, max_par = (float(par) for par in avg_copies.split(","))
     except ValueError:
         quit_with_error(
-            "Average number of copies must be given as two decimals"
-            " separated by a comma without spaces"
+            "Average number of copies must be given as two decimals separated by a comma without spaces"
         )
-    aln_stats = {
-        k: aln_stats[k] for k in aln_stats if min_par <= aln_stats[k]["avg_copies"] <= max_par
-    }
+    aln_stats = {k: aln_stats[k] for k in aln_stats if min_par <= aln_stats[k]["avg_copies"] <= max_par}
     log.log(f"{'':>{mar}}  {len(aln_stats)} remaining loci")
     log.log("")
 
@@ -240,9 +232,7 @@ def filter_loci(
     try:
         min_par, max_par = (int(par) for par in length.split(","))
     except ValueError:
-        quit_with_error(
-            "Length range must be given as two integers separated by a comma without spaces"
-        )
+        quit_with_error("Length range must be given as two integers separated by a comma without spaces")
     aln_stats = {k: aln_stats[k] for k in aln_stats if min_par <= aln_stats[k]["length"] <= max_par}
     log.log(f"{'':>{mar}}  {len(aln_stats)} remaining loci")
     log.log("")
@@ -255,9 +245,7 @@ def filter_loci(
             "Average pairwise identity range must be given as"
             " two decimals separated by a comma without spaces"
         )
-    aln_stats = {
-        k: aln_stats[k] for k in aln_stats if min_par <= aln_stats[k]["avg_pid"] <= max_par
-    }
+    aln_stats = {k: aln_stats[k] for k in aln_stats if min_par <= aln_stats[k]["avg_pid"] <= max_par}
     log.log(f"{'':>{mar}}  {len(aln_stats)} remaining loci")
     log.log("")
 
@@ -269,9 +257,7 @@ def filter_loci(
             "GC content percentage range must be given as two"
             " decimals separated by a comma without spaces"
         )
-    aln_stats = {
-        k: aln_stats[k] for k in aln_stats if min_par <= aln_stats[k]["gc_content"] <= max_par
-    }
+    aln_stats = {k: aln_stats[k] for k in aln_stats if min_par <= aln_stats[k]["gc_content"] <= max_par}
     log.log(f"{'':>{mar}}  {len(aln_stats)} remaining loci")
     log.log("")
 
@@ -280,13 +266,10 @@ def filter_loci(
         min_par, max_par = (int(par) for par in informative_sites.split(","))
     except ValueError:
         quit_with_error(
-            "Informative sites range must be given as two integers"
-            " separated by a comma without spaces"
+            "Informative sites range must be given as two integers separated by a comma without spaces"
         )
     aln_stats = {
-        k: aln_stats[k]
-        for k in aln_stats
-        if min_par <= aln_stats[k]["informative_sites"] <= max_par
+        k: aln_stats[k] for k in aln_stats if min_par <= aln_stats[k]["informative_sites"] <= max_par
     }
     log.log(f"{'':>{mar}}  {len(aln_stats)} remaining loci")
     log.log("")
@@ -313,9 +296,7 @@ def filter_loci(
             "Missingness percentage range must be given as two"
             " decimals separated by a comma without spaces"
         )
-    aln_stats = {
-        k: aln_stats[k] for k in aln_stats if min_par <= aln_stats[k]["missingness"] <= max_par
-    }
+    aln_stats = {k: aln_stats[k] for k in aln_stats if min_par <= aln_stats[k]["missingness"] <= max_par}
     log.log(f"{'':>{mar}}  {len(aln_stats)} remaining loci")
     log.log("")
 
@@ -351,9 +332,7 @@ def filter_loci(
         min_par = int(num_outgroup_species)
     except ValueError:
         quit_with_error("Minimum number of outgroup species must be an integer")
-    aln_stats = {
-        k: aln_stats[k] for k in aln_stats if min_par <= aln_stats[k]["num_outgroup_species"]
-    }
+    aln_stats = {k: aln_stats[k] for k in aln_stats if min_par <= aln_stats[k]["num_outgroup_species"]}
     log.log(f"{'':>{mar}}  {len(aln_stats)} remaining loci")
     log.log("")
 
@@ -389,8 +368,7 @@ def filter_loci(
         min_par, max_par = (int(par) for par in cds_len.split(","))
     except ValueError:
         quit_with_error(
-            "Original CDS length range must be given as two integers"
-            " separated by a comma without spaces"
+            "Original CDS length range must be given as two integers separated by a comma without spaces"
         )
     aln_stats = {
         k: aln_stats[k]
@@ -504,9 +482,7 @@ def filter_loci(
 
     log.log("")
     log.log("")
-    log.log(
-        f"{'FINAL CAPTURE FOOTPRINT':>{mar}}: {bold(footprint)} bp in {bold(len(aln_stats))} loci"
-    )
+    log.log(f"{'FINAL CAPTURE FOOTPRINT':>{mar}}: {bold(footprint)} bp in {bold(len(aln_stats))} loci")
 
     return aln_stats
 

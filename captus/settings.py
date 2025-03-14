@@ -17,7 +17,6 @@ not, see <http://www.gnu.org/licenses/>.
 import platform
 from pathlib import Path
 
-
 # Seed for randomization
 RANDOM_SEED = 142857
 
@@ -362,14 +361,14 @@ SCIPIO_SCORE_INITIAL_FACTOR = 1.0
 # 1.2 = GT--AG, GC--AG, AT--AC, GG--AG, GA--AG
 SCIPIO_ACCEPTED_INTRON_PENALTY = 1.1
 
-# Minimum BLAT score for Scipio's only run when number of reference proteins is > 'max_loci_scipio_x2'
-SCIPIO_x1_BLAT_MIN_SCORE = 15
-
-# Minimum BLAT score for Scipio's runs when number of reference proteins is <= 'max_loci_scipio_x2'
-SCIPIO_x2_BLAT_MIN_SCORE = 15
-
 # BLAT identity as proportion of Scipio's 'min_identity' parameter
-SCIPIO_BLAT_IDENT_FACTOR = 0.9
+PROT_BLAT_IDENT_PROP = 0.90
+
+# BLAT identity proportion for DNA to DNA searches
+DNA_BLAT_IDENT_PROP = 1.00
+
+# BLAT identity proportion for DNA to DNA searches
+DNA_BLAT_MIN_SCORE = None
 
 # Default Genetic Codes to set Scipio's --transtable
 DEFAULT_GENETIC_CODES = {
@@ -387,54 +386,108 @@ SCIPIO_MAX_IDENT_DIV_CODE = 66
 
 # Basic Scipio setting that are genome-specific, more importantly make BLAT parameters more
 # restrictive in total assembly size and maximum intron sizes
-SCIPIO_GENOME_BASIC_SETTINGS = {
+SCIPIO_ROUND1_SETTINGS = {
     # Change here the initial settings for nuclear genes:
-    "NUC": [
-        "--blat_params=-maxIntron=50000",
-        "--min_dna_coverage=0.2",
-    ],
+    "NUC": {
+        "scipio": [
+            "--blat_params=-maxIntron=50000",
+            "--min_dna_coverage=0.2",
+        ],
+        # They keys and values of BLAT settings must match the string in Scipio settings
+        "blat": {
+            "tile_size": None,
+            "one_off": None,
+            "min_score": 15,
+            "max_intron": 50000,
+        },
+    },
     # Change here the initial settings for plastidial genes:
-    "PTD": [
-        "--region_size=0",
-        "--blat_params=-maxIntron=1300",
-        "--max_assemble_size=9000",
-    ],
+    "PTD": {
+        "scipio": [
+            "--region_size=0",
+            "--blat_params=-maxIntron=1300",
+            "--max_assemble_size=9000",
+        ],
+        # They keys and values of BLAT settings must match the string in Scipio settings
+        "blat": {
+            "tile_size": None,
+            "one_off": None,
+            "min_score": 15,
+            "max_intron": 1300,
+        },
+    },
     # Change here the initial settings for mitochondrial genes:
-    "MIT": [
-        "--region_size=0",
-        "--blat_params=-maxIntron=9000",
-        "--max_assemble_size=50000",
-    ],
+    "MIT": {
+        "scipio": [
+            "--region_size=0",
+            "--blat_params=-maxIntron=9000",
+            "--max_assemble_size=50000",
+        ],
+        # They keys and values of BLAT settings must match the string in Scipio settings
+        "blat": {
+            "tile_size": None,
+            "one_off": None,
+            "min_score": 15,
+            "max_intron": 9000,
+        },
+    },
 }
 
 # Extra settings for the final round of Scipio according to the genome of the genes
 # Always keep 'gap_to_close' <= 21 or reconstruction of genes across several contigs breaks down
-SCIPIO_GENOME_EXTRA_SETTINGS = {
+SCIPIO_ROUND2_SETTINGS = {
     # Change here the final settings for nuclear genes:
-    "NUC": [
-        "--blat_params=-maxIntron=50000",
-        "--blat_tilesize=6",
-        "--exhaust_align_size=15000",
-        "--exhaust_gap_size=21",
-        "--min_dna_coverage=0.2",
-    ],
+    "NUC": {
+        "scipio": [
+            "--blat_params=-maxIntron=50000",
+            "--blat_tilesize=6",
+            "--exhaust_align_size=15000",
+            "--exhaust_gap_size=21",
+            "--min_dna_coverage=0.2",
+        ],
+        # They keys and values of BLAT settings must match the string in Scipio settings
+        "blat": {
+            "tile_size": 6,
+            "one_off": None,
+            "min_score": 15,
+            "max_intron": 15000,
+        },
+    },
     # Change here the final settings for plastidial genes:
-    "PTD": [
-        "--region_size=0",
-        "--blat_params=-oneOff=1 -maxIntron=1300",
-        "--exhaust_align_size=1300",
-        "--max_assemble_size=9000",
-        "--min_intron_len=500",
-        "--gap_to_close=84",  # Don't set >90, genes found in 1st round and lost in 2nd
-    ],
+    "PTD": {
+        "scipio": [
+            "--region_size=0",
+            "--blat_params=-oneOff=1 -maxIntron=1300",
+            "--exhaust_align_size=1300",
+            "--max_assemble_size=9000",
+            "--min_intron_len=500",
+            "--gap_to_close=84",  # Don't set >90, genes found in 1st round and lost in 2nd
+        ],
+        # They keys and values of BLAT settings must match the string in Scipio settings
+        "blat": {
+            "tile_size": None,
+            "one_off": 1,
+            "min_score": 15,
+            "max_intron": 1300,
+        },
+    },
     # Change here the final settings for mitochondrial genes:
-    "MIT": [
-        "--region_size=0",
-        "--blat_params=-oneOff=1 -maxIntron=9000",
-        "--exhaust_align_size=9000",
-        "--max_assemble_size=50000",
-        "--gap_to_close=84",  # Don't set >90, genes found in 1st round and lost in 2nd
-    ],
+    "MIT": {
+        "scipio": [
+            "--region_size=0",
+            "--blat_params=-oneOff=1 -maxIntron=9000",
+            "--exhaust_align_size=9000",
+            "--max_assemble_size=50000",
+            "--gap_to_close=84",  # Don't set >90, genes found in 1st round and lost in 2nd
+        ],
+        # They keys and values of BLAT settings must match the string in Scipio settings
+        "blat": {
+            "tile_size": None,
+            "one_off": 1,
+            "min_score": 15,
+            "max_intron": 9000,
+        },
+    },
 }
 
 # Minimum wscore allowed in PSL records
@@ -442,7 +495,11 @@ MIN_WSCORE = 0.001
 
 # BLAT size multipliers per marker type
 SIZE_MUL = {
-    "NUC": 3, "PTD": 3, "MIT": 3, "DNA": 1, "CLR": 1,
+    "NUC": 3,
+    "PTD": 3,
+    "MIT": 3,
+    "DNA": 1,
+    "CLR": 1,
 }
 
 # Genes that partially overlap

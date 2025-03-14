@@ -78,9 +78,7 @@ def align(full_command, args):
     log.log(f"{'Command':>{mar}}: {bold(full_command)}")
     tsv_comment = f"#Captus v{__version__}\n#Command: {full_command}\n"
     _, _, ram_GB, ram_GB_total = set_ram(args.ram)
-    log.log(
-        f"{'Max. RAM':>{mar}}: {bold(f'{ram_GB:.1f}GB')} {dim(f'(out of {ram_GB_total:.1f}GB)')}"
-    )
+    log.log(f"{'Max. RAM':>{mar}}: {bold(f'{ram_GB:.1f}GB')} {dim(f'(out of {ram_GB_total:.1f}GB)')}")
     threads_max, threads_total = set_threads(args.threads)
     log.log(f"{'Max. Threads':>{mar}}: {bold(threads_max)} {dim(f'(out of {threads_total})')}")
     log.log("")
@@ -170,25 +168,19 @@ def align(full_command, args):
     refs_paths = prepare_refs(args.captus_extractions_dir, mar)
     if skip_collection:
         log.log(
-            red(
-                f"Skipping the marker collection step because you used '--redo_from {args.redo_from}'"
-            )
+            red(f"Skipping the marker collection step because you used '--redo_from {args.redo_from}'")
         )
         log.log("")
     else:
         log.log(f"{'Markers to collect':>{mar}}: {bold(markers)} {dim(markers_ignored)}")
         log.log(f"{'Alignment formats':>{mar}}: {bold(formats)} {dim(formats_ignored)}")
         max_paralogs_msg = dim("(Collect all paralogs)") if args.max_paralogs == -1 else ""
-        log.log(
-            f"{'Max. paralogs to collect':>{mar}}: {bold(args.max_paralogs)} {max_paralogs_msg}"
-        )
+        log.log(f"{'Max. paralogs to collect':>{mar}}: {bold(args.max_paralogs)} {max_paralogs_msg}")
         log.log(f"{'Min. samples to align':>{mar}}: {bold(args.min_samples)}")
         log.log("")
         log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
         log.log(f"{'Keep all files':>{mar}}: {bold(args.keep_all)}")
-        extracted_sample_dirs, skipped_align = find_extracted_sample_dirs(
-            args.captus_extractions_dir
-        )
+        extracted_sample_dirs, skipped_align = find_extracted_sample_dirs(args.captus_extractions_dir)
         log.log(f"{'Samples to process':>{mar}}: {bold(len(extracted_sample_dirs))}")
         log.log("")
         if skipped_align:
@@ -231,9 +223,7 @@ def align(full_command, args):
     )
     if skip_alignment:
         log.log(
-            red(
-                f"Skipping the marker alignment step because you used '--redo_from {args.redo_from}'"
-            )
+            red(f"Skipping the marker alignment step because you used '--redo_from {args.redo_from}'")
         )
         log.log("")
     elif args.align_method.startswith("mafft") and mafft_status == "not found":
@@ -257,9 +247,7 @@ def align(full_command, args):
             f"{'Algorithm':>{mar}}: {bold(args.align_method)}"
             f" {dim(settings.ALIGN_ALGORITHMS[args.align_method]['aka'])}"
         )
-        log.log(
-            f"{'Timeout':>{mar}}: {bold(args.timeout)} {dim(f'[{elapsed_time(args.timeout)}]')}"
-        )
+        log.log(f"{'Timeout':>{mar}}: {bold(args.timeout)} {dim(f'[{elapsed_time(args.timeout)}]')}")
         log.log(f"{'Codon-align CDS':>{mar}}: {bold(not (args.disable_codon_align))}")
         log.log(f"{'Outgroup':>{mar}}: {bold(args.outgroup)}")
         log.log("")
@@ -374,9 +362,7 @@ def align(full_command, args):
     concurrent = threads_max
     if skip_filtering:
         log.log(
-            red(
-                f"Skipping the paralog filtering step because you used '--redo_from {args.redo_from}'"
-            )
+            red(f"Skipping the paralog filtering step because you used '--redo_from {args.redo_from}'")
         )
         log.log("")
     else:
@@ -481,9 +467,7 @@ def align(full_command, args):
     )
     if skip_removal:
         log.log(
-            red(
-                f"Skipping the reference removal step because you used '--redo_from {args.redo_from}'"
-            )
+            red(f"Skipping the reference removal step because you used '--redo_from {args.redo_from}'")
         )
         log.log("")
     else:
@@ -717,9 +701,7 @@ def align(full_command, args):
     )
     fastas_to_stats = list(Path(out_dir, settings.ALN_DIRS["ALND"]).rglob("*.f[an]a"))
     fastas_to_stats += list(Path(out_dir, settings.ALN_DIRS["TRIM"]).rglob("*.f[an]a"))
-    fastas_to_stats = sorted(
-        [file for file in fastas_to_stats if not f"{file.name}".startswith(".")]
-    )
+    fastas_to_stats = sorted([file for file in fastas_to_stats if not f"{file.name}".startswith(".")])
     manager = Manager()
     shared_sam_stats = manager.list()
     shared_aln_stats = manager.list()
@@ -760,9 +742,7 @@ def align(full_command, args):
 
             log.log("")
             log.log_explanation("Generating Alignment Statistics report...")
-            aln_html_report, aln_html_msg = build_alignment_report(
-                out_dir, aln_stats_tsv, sam_stats_tsv
-            )
+            aln_html_report, aln_html_msg = build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv)
             log.log(f"{'Alignment report':>{mar}}: {bold(aln_html_report)}")
             log.log(f"{'':>{mar}}  {dim(aln_html_msg)}")
         else:
@@ -806,8 +786,7 @@ def align(full_command, args):
     ################################################################################################
     ################################################################################# ENDING SECTION
     successful_exit(
-        "Captus-assembly: ALIGN -> successfully completed"
-        f" [{elapsed_time(time.time() - captus_start)}]"
+        f"Captus-assembly: ALIGN -> successfully completed [{elapsed_time(time.time() - captus_start)}]"
     )
 
 
@@ -1170,9 +1149,7 @@ def collect_extracted_markers(
                     add_refs_params.append(
                         (
                             r,
-                            Path(
-                                out_dir, base_dir, settings.MARKER_DIRS[m], settings.FORMAT_DIRS[f]
-                            ),
+                            Path(out_dir, base_dir, settings.MARKER_DIRS[m], settings.FORMAT_DIRS[f]),
                             shared_ref_names,
                         )
                     )
@@ -1267,9 +1244,7 @@ def add_refs(ref_path, dest_dir, shared_ref_names):
             if "[query=" in fasta_in[seq_name]["description"] and not seq_name.endswith(
                 f"{settings.SEQ_NAME_SEP}ref"
             ):
-                refs_needed.append(
-                    fasta_in[seq_name]["description"].split("[query=")[1].split("]")[0]
-                )
+                refs_needed.append(fasta_in[seq_name]["description"].split("[query=")[1].split("]")[0])
         for ref_name in set(refs_needed):
             name_parts = ref_name.split(settings.REF_CLUSTER_SEP)
             ref_out = f"{settings.REF_CLUSTER_SEP.join(name_parts[0:-1])}{settings.SEQ_NAME_SEP}ref"
@@ -1371,9 +1346,7 @@ def msa(
 
     fasta_out_short = Path(*fasta_out.parts[-3:])
     if num_samples(fasta_to_dict(fasta_in)) < min_samples:
-        message = dim(
-            f"'{fasta_out_short}': SKIPPED (input FASTA has fewer than {min_samples} samples)"
-        )
+        message = dim(f"'{fasta_out_short}': SKIPPED (input FASTA has fewer than {min_samples} samples)")
         return message
     if fasta_out.exists():
         if len(fasta_to_dict(fasta_out)) == 0:
@@ -1406,23 +1379,19 @@ def msa(
                 ]
             mafft_log_file = Path(fasta_out.parent, f"{fasta_out.stem}.mafft.log")
             with open(mafft_log_file, "w") as mafft_log:
-                mafft_log.write(
-                    f"Captus' MAFFT Command:\n  {' '.join(mafft_cmd)} > {fasta_out}\n\n\n"
-                )
+                mafft_log.write(f"Captus' MAFFT Command:\n  {' '.join(mafft_cmd)} > {fasta_out}\n\n\n")
             with open(fasta_out, "w") as mafft_out:
                 with open(mafft_log_file, "a") as mafft_log:
                     try:
-                        subprocess.run(
-                            mafft_cmd, stdout=mafft_out, stderr=mafft_log, timeout=timeout
-                        )
+                        subprocess.run(mafft_cmd, stdout=mafft_out, stderr=mafft_log, timeout=timeout)
                         if file_is_empty(fasta_out):
-                            message = red(
-                                f"'{fasta_out_short}': FAILED alignment, empty output file"
-                            )
+                            message = red(f"'{fasta_out_short}': FAILED alignment, empty output file")
                             fasta_out.unlink()
                         else:
                             rehead_root_msa(fasta_in, fasta_out, outgroup)
-                            message = f"'{fasta_out_short}': aligned [{elapsed_time(time.time() - start)}]"
+                            message = (
+                                f"'{fasta_out_short}': aligned [{elapsed_time(time.time() - start)}]"
+                            )
                     except subprocess.TimeoutExpired:
                         message = red(
                             f"'{fasta_out_short}': FAILED alignment, timeout"
@@ -1462,21 +1431,15 @@ def msa(
                 muscle_log.write(f"Captus' MUSCLE Command:\n  {' '.join(muscle_cmd)}\n\n\n")
             with open(muscle_log_file, "a") as muscle_log:
                 try:
-                    subprocess.run(
-                        muscle_cmd, stdout=muscle_log, stderr=muscle_log, timeout=timeout
-                    )
+                    subprocess.run(muscle_cmd, stdout=muscle_log, stderr=muscle_log, timeout=timeout)
                     if file_is_empty(fasta_out):
                         message = red(f"'{fasta_out_short}': FAILED alignment, empty output file")
                         fasta_out.unlink()
                     elif not fasta_out.exists():
-                        message = red(
-                            f"'{fasta_out_short}': FAILED alignment, output not generated"
-                        )
+                        message = red(f"'{fasta_out_short}': FAILED alignment, output not generated")
                     else:
                         rehead_root_msa(fasta_in, fasta_out, outgroup)
-                        message = (
-                            f"'{fasta_out_short}': aligned [{elapsed_time(time.time() - start)}]"
-                        )
+                        message = f"'{fasta_out_short}': aligned [{elapsed_time(time.time() - start)}]"
                 except subprocess.TimeoutExpired:
                     message = (
                         f"'{red(fasta_out_short)}': FAILED alignment, timeout exceeded"
@@ -1784,9 +1747,7 @@ def filter_paralogs_informed(
                     ]
                 )
         for sample in samples_with_paralogs:
-            accepted.append(
-                max(samples_with_paralogs[sample], key=samples_with_paralogs[sample].get)
-            )
+            accepted.append(max(samples_with_paralogs[sample], key=samples_with_paralogs[sample].get))
 
         pids = [float(row[8]) for row in tsv if row[6] in accepted]
         min_pid = statistics.mean(pids) - (tolerance * statistics.stdev(pids))
@@ -1877,9 +1838,7 @@ def rem_refs(refs_paths, fastas_paths, min_samples, overwrite, concurrent, debug
             continue
         for seq_name in fasta_to_dict(ref_path):
             name_parts = seq_name.split(settings.REF_CLUSTER_SEP)
-            ref_name = (
-                f"{settings.REF_CLUSTER_SEP.join(name_parts[0:-1])}{settings.SEQ_NAME_SEP}ref"
-            )
+            ref_name = f"{settings.REF_CLUSTER_SEP.join(name_parts[0:-1])}{settings.SEQ_NAME_SEP}ref"
             if ref_name not in ref_names:
                 ref_names.append(ref_name)
 
@@ -1929,9 +1888,7 @@ def rem_refs_from_fasta(fasta_in: Path, fasta_out: Path, ref_names: list, min_sa
                 fasta_without_refs[seq_name] = dict(fasta_with_refs[seq_name])
         if num_samples(fasta_without_refs) >= min_samples:
             dict_to_fasta(fasta_without_refs, fasta_out)
-            message = (
-                f"'{fasta_out_short}': references removed [{elapsed_time(time.time() - start)}]"
-            )
+            message = f"'{fasta_out_short}': references removed [{elapsed_time(time.time() - start)}]"
         else:
             message = red(
                 f"'{fasta_out_short}': not saved (filtered FASTA had fewer than"

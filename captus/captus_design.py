@@ -57,9 +57,7 @@ class CaptusDesign(object):
         )
 
         help_group = parser.add_argument_group("Help")
-        help_group.add_argument(
-            "-h", "--help", action="help", help="Show this help message and exit"
-        )
+        help_group.add_argument("-h", "--help", action="help", help="Show this help message and exit")
         help_group.add_argument(
             "--version",
             action="version",
@@ -361,9 +359,7 @@ class CaptusDesign(object):
         )
 
         help_group = parser.add_argument_group("Help")
-        help_group.add_argument(
-            "-h", "--help", action="help", help="Show this help message and exit"
-        )
+        help_group.add_argument("-h", "--help", action="help", help="Show this help message and exit")
         help_group.add_argument(
             "--version",
             action="version",
@@ -383,9 +379,7 @@ class CaptusDesign(object):
     ################################################################################################
     ################################################################################# SELECT SECTION
     def select(self):
-        description = bold(
-            "Captus-design: Select; informed selection of clusters for bait creation\n"
-        )
+        description = bold("Captus-design: Select; informed selection of clusters for bait creation\n")
         parser = argparse.ArgumentParser(
             usage="captus_design select -c CAPTUS_CLUSTERS_DIR [options]",
             description=description,
@@ -610,9 +604,7 @@ class CaptusDesign(object):
         )
 
         help_group = parser.add_argument_group("Help")
-        help_group.add_argument(
-            "-h", "--help", action="help", help="Show this help message and exit"
-        )
+        help_group.add_argument("-h", "--help", action="help", help="Show this help message and exit")
         help_group.add_argument(
             "--version",
             action="version",
@@ -811,9 +803,7 @@ class CaptusDesign(object):
             " not use clustering thresholds lower than 0.75",
         )
 
-        final_baits_targets = parser.add_argument_group(
-            "Baitset and reference target file creation"
-        )
+        final_baits_targets = parser.add_argument_group("Baitset and reference target file creation")
         final_baits_targets.add_argument(
             "--tct",
             "--target_clust_threshold",
@@ -919,9 +909,7 @@ class CaptusDesign(object):
         )
 
         help_group = parser.add_argument_group("Help")
-        help_group.add_argument(
-            "-h", "--help", action="help", help="Show this help message and exit"
-        )
+        help_group.add_argument("-h", "--help", action="help", help="Show this help message and exit")
         help_group.add_argument(
             "--version",
             action="version",

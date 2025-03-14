@@ -81,9 +81,7 @@ def bait(full_command, args):
     log.log(f"{'Captus version':>{mar}}: {bold(f'v{__version__}')}")
     log.log(f"{'Command':>{mar}}: {bold(full_command)}")
     _, ram_MB, ram_GB, ram_GB_total = set_ram(args.ram, java=True)
-    log.log(
-        f"{'Max. RAM':>{mar}}: {bold(f'{ram_GB:.1f}GB')} {dim(f'(out of {ram_GB_total:.1f}GB)')}"
-    )
+    log.log(f"{'Max. RAM':>{mar}}: {bold(f'{ram_GB:.1f}GB')} {dim(f'(out of {ram_GB_total:.1f}GB)')}")
     threads_max, threads_total = set_threads(args.threads)
     log.log(f"{'Max. Threads':>{mar}}: {bold(threads_max)} {dim(f'(out of {threads_total})')}")
     log.log("")
@@ -356,8 +354,7 @@ def bait(full_command, args):
     ################################################################################################
     ################################################################################# ENDING SECTION
     successful_exit(
-        "Captus-design: BAIT -> successfully completed"
-        f" [{elapsed_time(time.time() - captus_start)}]"
+        f"Captus-design: BAIT -> successfully completed [{elapsed_time(time.time() - captus_start)}]"
     )
 
 
@@ -457,8 +454,7 @@ def create_baits(
                         sample = seq_name.split(settings.SEQ_NAME_SEP)[0]
                         seq_id = seq_name.split(settings.SEQ_NAME_SEP)[1]
                         des = (
-                            f"[sample={sample}] [seq_id={seq_id}]"
-                            f" {fasta_in[seq_name]['description']}"
+                            f"[sample={sample}] [seq_id={seq_id}] {fasta_in[seq_name]['description']}"
                         ).strip()
                     else:
                         sample = seq_name
@@ -576,9 +572,7 @@ def dereplicate_compress_baits(
                     pbar.update()
                 else:
                     inner_start = time.time()
-                    bait_derep_file = Path(
-                        bait_file.parent, f"{bait_file.name}".replace("_full", "")
-                    )
+                    bait_derep_file = Path(bait_file.parent, f"{bait_file.name}".replace("_full", ""))
                     derep_log_file = Path(f"{bait_file}".replace(".fasta", ".derep.log"))
                     derep_cmd = [
                         vsearch_path,
@@ -593,13 +587,9 @@ def dereplicate_compress_baits(
                         "--notrunclabels",
                     ]
                     with open(derep_log_file, "w") as derep_log:
-                        derep_log.write(
-                            f"Captus' Dereplication Command:\n  {' '.join(derep_cmd)}\n\n\n"
-                        )
+                        derep_log.write(f"Captus' Dereplication Command:\n  {' '.join(derep_cmd)}\n\n\n")
                     with open(derep_log_file, "a") as derep_log:
-                        subprocess.run(
-                            derep_cmd, stdout=derep_log, stdin=derep_log, stderr=derep_log
-                        )
+                        subprocess.run(derep_cmd, stdout=derep_log, stdin=derep_log, stderr=derep_log)
                     if not file_is_empty(bait_derep_file):
                         baits_to_compress.append(bait_derep_file)
                         bait_file.unlink()
@@ -782,12 +772,8 @@ def concat_refex_mask_baits(
         baits_tomap_path = Path(f"{baits_concat_path}".replace(".fasta", "_tomap.fasta.gz"))
         baits_unmap_path = Path(f"{baits_concat_path}".replace(".fasta", "_unmap.fasta.gz"))
         baits_unmap_log_path = Path(f"{baits_concat_path}".replace(".fasta", "_unmap.bbmap.log"))
-        baits_unmap_stdout_path = Path(
-            f"{baits_concat_path}".replace(".fasta", "_unmap.stdout.log")
-        )
-        baits_unmap_stderr_path = Path(
-            f"{baits_concat_path}".replace(".fasta", "_unmap.stderr.log")
-        )
+        baits_unmap_stdout_path = Path(f"{baits_concat_path}".replace(".fasta", "_unmap.stdout.log"))
+        baits_unmap_stderr_path = Path(f"{baits_concat_path}".replace(".fasta", "_unmap.stderr.log"))
         baits_mask_log_path = Path(f"{baits_concat_path}".replace(".fasta", "_mask.vsearch.log"))
 
         log.log(bold("Excluding baits matching a given reference and masking low-complexity:"))
@@ -863,9 +849,7 @@ def concat_refex_mask_baits(
                 "--notrunclabels",
             ]
             with open(baits_mask_log_path, "w") as mask_log:
-                mask_log.write(
-                    f"Captus' Low Complexity Masking Command:\n  {' '.join(mask_cmd)}\n\n\n"
-                )
+                mask_log.write(f"Captus' Low Complexity Masking Command:\n  {' '.join(mask_cmd)}\n\n\n")
             with open(baits_mask_log_path, "a") as mask_log:
                 subprocess.run(mask_cmd, stdout=mask_log, stdin=mask_log, stderr=mask_log)
             if not file_is_empty(baits_mask_path):
@@ -904,9 +888,7 @@ def concat_refex_mask_baits(
         return None
 
 
-def split_baits_file(
-    filtered_baits_dir_path: Path, baits_path: Path, threads_max: int, show_less: bool
-):
+def split_baits_file(filtered_baits_dir_path: Path, baits_path: Path, threads_max: int, show_less: bool):
     start = time.time()
     log.log(bold(f"Splitting '{baits_path.name}' for filtering:"))
     baits = fasta_to_dict(baits_path)
@@ -948,9 +930,7 @@ def split_baits_file(
                 part += 1
                 split_bait = {}
                 chunk_count = 0
-                msg = (
-                    f"'{split_bait_path.name}': saved in {elapsed_time(time.time() - inner_start)}"
-                )
+                msg = f"'{split_bait_path.name}': saved in {elapsed_time(time.time() - inner_start)}"
                 inner_start = time.time()
                 if not show_less:
                     tqdm.write(msg)
@@ -958,7 +938,7 @@ def split_baits_file(
                 pbar.update()
     log.log(
         bold(
-            f" \u2514\u2500\u2192 Baits file '{baits_path.name}' succesfully splitted"
+            f" \u2514\u2500\u2192 Baits file '{baits_path.name}' succesfully split"
             f" in {num_chunks} parts [{elapsed_time(time.time() - start)}]"
         )
     )
@@ -994,9 +974,7 @@ def filter_baits_chunk(
 
     bait_part = fasta_to_dict(bait_part_path)
     for bait_name in bait_part:
-        bs = bait_stats(
-            bait_part[bait_name]["sequence"], hybridization_chemistry, sodium, formamide
-        )
+        bs = bait_stats(bait_part[bait_name]["sequence"], hybridization_chemistry, sodium, formamide)
         bait_desc = (
             f"{bait_part[bait_name]['description']} [gc={bs['gc']:.2f}%]"
             f" [melt={bs['melt_temp']:.2f}C] [low_complex={bs['low_complexity']:.2f}%]"
@@ -1172,9 +1150,7 @@ def filter_baits(
         )
         log.log("")
     else:
-        log.log(
-            f"'{bold(baits_accepted_gz_path.name)}': output already exists, SKIPPED bait filtering"
-        )
+        log.log(f"'{bold(baits_accepted_gz_path.name)}': output already exists, SKIPPED bait filtering")
         log.log("")
 
     if baits_accepted_gz_path.exists():
@@ -1256,9 +1232,7 @@ def cluster_tile_baits(
             f" baits covering {len(loci)} loci [{elapsed_time(time.time() - start)}]"
         )
     else:
-        log.log(
-            f"'{bold(clust_baits_final_path.name)}': output already exists, SKIPPED bait clustering"
-        )
+        log.log(f"'{bold(clust_baits_final_path.name)}': output already exists, SKIPPED bait clustering")
     log.log("")
 
     if clust_baits_final_path.exists() and not file_is_empty(clust_baits_final_path):
@@ -1283,16 +1257,12 @@ def prepare_targets(
     show_more: bool,
     margin: int,
 ):
-    baitset_final_name = (
-        f"{clust_baits_path.name.replace('.fasta', '')}_met{min_expected_tiling:.2f}"
-    )
+    baitset_final_name = f"{clust_baits_path.name.replace('.fasta', '')}_met{min_expected_tiling:.2f}"
     if remove_ambiguous_loci:
         baitset_final_name += "_noamb"
     baitset_final_path = Path(baits_targets_dir_path, f"{baitset_final_name}.fasta")
     targets_concat_path = Path(baits_targets_dir_path, f"{baitset_final_name}_all_targets.fasta")
-    targets_final_name = (
-        f"targets_tct{target_clust_threshold:.2f}_tmc{target_min_coverage:.2f}.fasta"
-    )
+    targets_final_name = f"targets_tct{target_clust_threshold:.2f}_tmc{target_min_coverage:.2f}.fasta"
     targets_final_path = Path(baits_targets_dir_path, f"{baitset_final_name}_{targets_final_name}")
     targets_tsv_path = Path(f"{targets_final_path}".replace(".fasta", ".tsv"))
     fastas = fastas_auto + fastas_manual
@@ -1497,9 +1467,7 @@ def prepare_targets(
             )
             log.log("")
         else:
-            quit_with_error(
-                "Reference target file empty, try to relax your filtering parameters..."
-            )
+            quit_with_error("Reference target file empty, try to relax your filtering parameters...")
 
         log.log(bold("Saving final baitset for synthesis:"))
         start = time.time()
@@ -1524,14 +1492,7 @@ def prepare_targets(
         start = time.time()
         with open(targets_tsv_path, "wt") as tsv_out:
             tsv_out.write(
-                "locus\t"
-                "num_targets\t"
-                "num_baits\t"
-                "length\t"
-                "includes\t"
-                "included_in\t"
-                "exp_tiling\t"
-                "removed\n"
+                "locus\tnum_targets\tnum_baits\tlength\tincludes\tincluded_in\texp_tiling\tremoved\n"
             )
             for locus in sorted(loci_baitless):
                 tsv_out.write(

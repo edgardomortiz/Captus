@@ -156,9 +156,7 @@ def log_explanation(
         )
 
 
-def log_number_list(
-    numbers, verbosity=1, print_to_screen=True, write_to_log_file=True, indent_size=4
-):
+def log_number_list(numbers, verbosity=1, print_to_screen=True, write_to_log_file=True, indent_size=4):
     """
     Some lists of numbers are long, so this function makes them wrap nicely when displayed on
     stdout.
