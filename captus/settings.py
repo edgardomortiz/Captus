@@ -365,10 +365,10 @@ SCIPIO_ACCEPTED_INTRON_PENALTY = 1.1
 PROT_BLAT_IDENT_PROP = 0.90
 
 # BLAT identity proportion for DNA to DNA searches
-DNA_BLAT_IDENT_PROP = 1.00
+DNA_BLAT_IDENT_PROP = 0.99
 
 # BLAT identity proportion for DNA to DNA searches
-DNA_BLAT_MIN_SCORE = None
+DNA_BLAT_MIN_SCORE = 20
 
 # Default Genetic Codes to set Scipio's --transtable
 DEFAULT_GENETIC_CODES = {
@@ -393,7 +393,7 @@ SCIPIO_ROUND1_SETTINGS = {
             "--blat_params=-maxIntron=50000",
             "--min_dna_coverage=0.2",
         ],
-        # They keys and values of BLAT settings must match the string in Scipio settings
+        # They keys and values of BLAT settings must match the string in Scipio's '--blat_params'
         "blat": {
             "tile_size": None,
             "one_off": None,
@@ -408,7 +408,7 @@ SCIPIO_ROUND1_SETTINGS = {
             "--blat_params=-maxIntron=1300",
             "--max_assemble_size=9000",
         ],
-        # They keys and values of BLAT settings must match the string in Scipio settings
+        # They keys and values of BLAT settings must match the string in Scipio's '--blat_params'
         "blat": {
             "tile_size": None,
             "one_off": None,
@@ -423,7 +423,7 @@ SCIPIO_ROUND1_SETTINGS = {
             "--blat_params=-maxIntron=9000",
             "--max_assemble_size=50000",
         ],
-        # They keys and values of BLAT settings must match the string in Scipio settings
+        # They keys and values of BLAT settings must match the string in Scipio's '--blat_params'
         "blat": {
             "tile_size": None,
             "one_off": None,
@@ -445,7 +445,7 @@ SCIPIO_ROUND2_SETTINGS = {
             "--exhaust_gap_size=21",
             "--min_dna_coverage=0.2",
         ],
-        # They keys and values of BLAT settings must match the string in Scipio settings
+        # They keys and values of BLAT settings must match the string in Scipio's '--blat_params'
         "blat": {
             "tile_size": 6,
             "one_off": None,
@@ -463,7 +463,7 @@ SCIPIO_ROUND2_SETTINGS = {
             "--min_intron_len=500",
             "--gap_to_close=84",  # Don't set >90, genes found in 1st round and lost in 2nd
         ],
-        # They keys and values of BLAT settings must match the string in Scipio settings
+        # They keys and values of BLAT settings must match the string in Scipio's '--blat_params'
         "blat": {
             "tile_size": None,
             "one_off": 1,
@@ -480,7 +480,7 @@ SCIPIO_ROUND2_SETTINGS = {
             "--max_assemble_size=50000",
             "--gap_to_close=84",  # Don't set >90, genes found in 1st round and lost in 2nd
         ],
-        # They keys and values of BLAT settings must match the string in Scipio settings
+        # They keys and values of BLAT settings must match the string in Scipio's '--blat_params'
         "blat": {
             "tile_size": None,
             "one_off": 1,
@@ -515,7 +515,10 @@ VALID_OVERLAPS = [
 HIT_MAX_PCT_OVERLAP = 1.0
 
 # During prefiltering of BLAT hits, keep this top N best targets per locus
-BEST_N_TARGETS = 100
+BEST_N_TARGETS_GLOBAL = 100
+
+# For extractions with two rounds, keep this many targets after the first round (before was 1)
+BEST_N_TARGETS_INITIAL = 7
 
 # Minimum contig size to be considered a full chromosome in bp
 MIN_CHROM_SIZE = 10_000_000

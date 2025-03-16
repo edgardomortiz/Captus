@@ -14,6 +14,7 @@ not, see <http://www.gnu.org/licenses/>.
 
 import gzip
 import math
+import platform
 import shutil
 import subprocess
 import time
@@ -80,6 +81,7 @@ def bait(full_command, args):
 
     log.log(f"{'Captus version':>{mar}}: {bold(f'v{__version__}')}")
     log.log(f"{'Command':>{mar}}: {bold(full_command)}")
+    log.log(f"{'Host':>{mar}}: {bold(platform.node())}")
     _, ram_MB, ram_GB, ram_GB_total = set_ram(args.ram, java=True)
     log.log(f"{'Max. RAM':>{mar}}: {bold(f'{ram_GB:.1f}GB')} {dim(f'(out of {ram_GB_total:.1f}GB)')}")
     threads_max, threads_total = set_threads(args.threads)

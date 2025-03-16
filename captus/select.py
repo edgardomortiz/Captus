@@ -12,6 +12,7 @@ details. You should have received a copy of the GNU General Public License along
 not, see <http://www.gnu.org/licenses/>.
 """
 
+import platform
 import shutil
 import time
 from pathlib import Path
@@ -56,6 +57,7 @@ def select(full_command, args):
 
     log.log(f"{'Captus version':>{mar}}: {bold(f'v{__version__}')}")
     log.log(f"{'Command':>{mar}}: {bold(full_command)}")
+    log.log(f"{'Host':>{mar}}: {bold(platform.node())}")
     log.log("")
 
     log.log(f"{'Python libraries':>{mar}}:")

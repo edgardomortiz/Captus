@@ -13,6 +13,7 @@ not, see <http://www.gnu.org/licenses/>.
 """
 
 import json
+import platform
 import shutil
 import statistics
 import subprocess
@@ -76,6 +77,7 @@ def align(full_command, args):
 
     log.log(f"{'Captus version':>{mar}}: {bold(f'v{__version__}')}")
     log.log(f"{'Command':>{mar}}: {bold(full_command)}")
+    log.log(f"{'Host':>{mar}}: {bold(platform.node())}")
     tsv_comment = f"#Captus v{__version__}\n#Command: {full_command}\n"
     _, _, ram_GB, ram_GB_total = set_ram(args.ram)
     log.log(f"{'Max. RAM':>{mar}}: {bold(f'{ram_GB:.1f}GB')} {dim(f'(out of {ram_GB_total:.1f}GB)')}")

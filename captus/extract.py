@@ -14,6 +14,7 @@ not, see <http://www.gnu.org/licenses/>.
 
 import json
 import math
+import platform
 import random
 import shutil
 import statistics
@@ -109,6 +110,7 @@ def extract(full_command, args):
 
     log.log(f"{'Captus version':>{mar}}: {bold(f'v{__version__}')}")
     log.log(f"{'Command':>{mar}}: {bold(full_command)}")
+    log.log(f"{'Host':>{mar}}: {bold(platform.node())}")
     tsv_comment = f"#Captus v{__version__}\n#Command: {full_command}\n"
     ram_B, ram_MB, ram_GB, ram_GB_total = set_ram(args.ram)
     log.log(f"{'Max. RAM':>{mar}}: {bold(f'{ram_GB:.1f}GB')} {dim(f'(out of {ram_GB_total:.1f}GB)')}")
@@ -371,13 +373,14 @@ def extract(full_command, args):
         dna_ref = prepare_dna_refs(args.dna_refs)
         log.log(bold(f"{'MISCELLANEOUS DNA OPTIONS':>{mar}}:"))
         if dna_ref["DNA"]["NT_path"]:
-            dna_query = fasta_to_dict(dna_ref["DNA"]["NT_path"])
-            dna_query_info = reference_info(dna_query)
-            dna_ref_size = max(dna_ref_size, dna_query_info["total_size"])
             num_dna_extractions = len(fastas_to_extract)
             dna_concurrent, dna_threads, dna_ram = adjust_concurrency(
                 args.concurrent, num_dna_extractions, threads_max, ram_B, "dna"
             )
+            dna_query = fasta_to_dict(dna_ref["DNA"]["NT_path"])
+            dna_query_parts_paths = split_refs(dna_query, out_dir, "DNA", dna_threads)
+            dna_query_info = reference_info(dna_query)
+            dna_ref_size = max(dna_ref_size, dna_query_info["total_size"])
             log.log(f"{'Concurrent extractions':>{mar}}: {bold(dna_concurrent)}")
             log.log(f"{'RAM per extraction':>{mar}}: {bold(f'{dna_ram / 1024**3:.1f}GB')}")
             log.log(f"{'Threads per extraction':>{mar}}: {bold(dna_threads)}")
@@ -448,6 +451,7 @@ def extract(full_command, args):
                             args.max_paralogs,
                             args.predict,
                             prot_threads,
+                            prot_ram,
                             tsv_comment,
                             args.debug,
                             args.overwrite,
@@ -479,6 +483,7 @@ def extract(full_command, args):
                             args.max_paralogs,
                             args.predict,
                             prot_threads,
+                            prot_ram,
                             tsv_comment,
                             args.debug,
                             args.overwrite,
@@ -510,6 +515,7 @@ def extract(full_command, args):
                             args.max_paralogs,
                             args.predict,
                             prot_threads,
+                            prot_ram,
                             tsv_comment,
                             args.debug,
                             args.overwrite,
@@ -527,6 +533,7 @@ def extract(full_command, args):
                             sample,
                             dna_ref["DNA"]["NT_path"],
                             dna_query,
+                            dna_query_parts_paths,
                             dna_query_info,
                             "DNA",
                             args.ignore_depth,
@@ -536,6 +543,7 @@ def extract(full_command, args):
                             args.max_paralogs,
                             tsv_comment,
                             dna_threads,
+                            dna_ram,
                             args.debug,
                             args.overwrite,
                             args.keep_all,
@@ -795,13 +803,14 @@ def extract(full_command, args):
             clust_ref_size = 0
             clust_ref = prepare_dna_refs(captus_cluster_refs, cluster=True)
             if clust_ref["CLR"]["NT_path"]:
-                clust_query = fasta_to_dict(clust_ref["CLR"]["NT_path"])
-                clust_query_info = reference_info(clust_query)
-                clust_ref_size = max(clust_ref_size, clust_query_info["total_size"])
                 num_clr_extractions = len(fastas_to_extract)
                 clust_concurrent, clust_threads, clust_ram = adjust_concurrency(
                     args.concurrent, num_clr_extractions, threads_max, ram_B, "dna"
                 )
+                clust_query = fasta_to_dict(clust_ref["CLR"]["NT_path"])
+                clust_query_parts_paths = split_refs(clust_query, out_dir, "CLR", clust_threads)
+                clust_query_info = reference_info(clust_query)
+                clust_ref_size = max(clust_ref_size, clust_query_info["total_size"])
                 log.log(f"{'Concurrent extractions':>{mar}}: {bold(clust_concurrent)}")
                 log.log(f"{'RAM per extraction':>{mar}}: {bold(f'{clust_ram / 1024**3:.1f}GB')}")
                 log.log(f"{'Threads per extraction':>{mar}}: {bold(clust_threads)}")
@@ -834,6 +843,7 @@ def extract(full_command, args):
                             sample,
                             clust_ref["CLR"]["NT_path"],
                             clust_query,
+                            clust_query_parts_paths,
                             clust_query_info,
                             "CLR",
                             args.ignore_depth,
@@ -843,6 +853,7 @@ def extract(full_command, args):
                             args.max_paralogs,
                             tsv_comment,
                             clust_threads,
+                            clust_ram,
                             args.debug,
                             args.overwrite,
                             args.keep_all,
@@ -1358,7 +1369,7 @@ def adjust_min_coverage(min_coverage):
         return min_coverage
 
 
-def split_refs(query_dict, out_dir, marker_type, threads):
+def split_refs(query_dict, out_dir, marker_type, threads, final_round=False):
     # Split reference file in groups of roughly REFS_SPLIT_CHUNK_SIZE to run Scipio in parallel
     # on each
 
@@ -1383,6 +1394,8 @@ def split_refs(query_dict, out_dir, marker_type, threads):
         else:
             seqs_per_chunk = math.ceil(num_seqs / chunks_floor)
     ref_split_dir = Path(out_dir, settings.REF_TARGETS_SPLIT_DIR, settings.MARKER_DIRS[marker_type])
+    if final_round is True:
+        ref_split_dir = Path(out_dir)
     make_output_dir(ref_split_dir)
     ref_seqs_paths = {}
     part = 1
@@ -1390,7 +1403,7 @@ def split_refs(query_dict, out_dir, marker_type, threads):
         split_fasta = {}
         for seq_name in seq_names[i : i + seqs_per_chunk]:
             split_fasta[seq_name] = query_dict[seq_name]
-        split_fasta_path = Path(ref_split_dir, f"{marker_type}_part{part}.faa")
+        split_fasta_path = Path(ref_split_dir, f"{marker_type}_part{part}.fasta")
         dict_to_fasta(split_fasta, split_fasta_path)
         ref_seqs_paths[split_fasta_path] = set(split_fasta)
         part += 1
@@ -1483,6 +1496,7 @@ def scipio_coding(
     max_paralogs,
     predict,
     threads,
+    ram_bytes,
     tsv_comment,
     debug,
     overwrite,
@@ -1523,10 +1537,9 @@ def scipio_coding(
     if query_info["num_loci"] <= max_loci_scipio_x2:
         # The function parallel_scipio() splits the PSL file according to groups of targets and runs
         # Scipio simultaneouslo on each part
-        yaml_initial_file = parallel_scipio(
+        psl_initial_file = parallel_scipio(
             scipio_params,
             target_path,
-            query_path,
             query_parts_paths,
             query_info,
             ignore_depth,
@@ -1534,69 +1547,68 @@ def scipio_coding(
             disable_stitching,
             overwrite,
             threads,
+            ram_bytes,
             debug,
             keep_all,
             stage="initial",
         )
-        if yaml_initial_file is None:
+        if psl_initial_file is None:
             message = dim(
                 f"'{sample_name}': extraction of {genes[marker_type]}"
                 " SKIPPED (output files already exist)"
             )
             return message
-        elif yaml_initial_file == "BLAT FAILED":
+        elif psl_initial_file == "BLAT FAILED":
             message = red(f"'{sample_name}': FAILED extraction of {genes[marker_type]} (No BLAT hits)")
-            return message
-        else:
-            yaml_initial_dir = yaml_initial_file.parent
-            initial_models = scipio_yaml_to_dict(
-                yaml_initial_file,
-                min_score,
-                min_identity,
-                min_coverage,
-                marker_type,
-                transtable,
-                max_paralogs,
-                predict,
-            )
-
-        # Parse YAML to subselect only the best proteins from the 'query' and the contigs with hits
-        # from the assembly ('target')
-        if initial_models is None:
-            message = red(f"'{sample_name}': FAILED extraction of {genes[marker_type]}")
             return message
         else:
             final_target, final_query = filter_query_and_target(
                 query_dict,
                 fasta_to_dict(target_path),
-                yaml_initial_dir,
-                initial_models,
+                psl_initial_file,
                 marker_type,
+            )
+
+        # Parse YAML to subselect only the best proteins from the 'query' and the contigs with hits
+        # from the assembly ('target')
+        if final_target is None or final_query is None:
+            message = red(f"'{sample_name}': FAILED extraction of {genes[marker_type]}")
+            return message
+        else:
+            final_query_parts_paths = split_refs(
+                fasta_to_dict(final_query),
+                Path(final_query.parent),
+                marker_type,
+                threads,
+                final_round=True,
             )
 
         # Perform final Scipio's run (more exhaustive but with fewer contigs and reference proteins)
         yaml_final_file = parallel_scipio(
             scipio_params,
             final_target,
-            final_query,
-            query_parts_paths,
+            final_query_parts_paths,
             query_info,
             ignore_depth,
             depth_tolerance,
             disable_stitching,
             overwrite,
             threads,
+            ram_bytes,
             debug,
             keep_all,
             stage="final",
         )
+
+        # Remove split final refs
+        for path in final_query_parts_paths:
+            path.unlink()
 
     # Run a single Scipio run when 'num_refs' exceeds 'max_loci_scipio_x2'
     else:
         yaml_final_file = parallel_scipio(
             scipio_params,
             target_path,
-            query_path,
             query_parts_paths,
             query_info,
             ignore_depth,
@@ -1604,6 +1616,7 @@ def scipio_coding(
             disable_stitching,
             overwrite,
             threads,
+            ram_bytes,
             debug,
             keep_all,
             stage="single",
@@ -1664,15 +1677,15 @@ def scipio_coding(
 
 def parallel_scipio(
     scipio_params: dict,
-    target,
-    query,
-    query_part_paths,
+    target_path,
+    query_parts_paths,
     query_info,
     ignore_depth,
     depth_tolerance,
     disable_stitching,
     overwrite,
     threads,
+    ram_bytes,
     debug,
     keep_all,
     stage,
@@ -1682,14 +1695,14 @@ def parallel_scipio(
     scipio_out_dir = Path(scipio_params["sample_dir"], settings.MARKER_DIRS[marker_type])
     if stage == "initial":
         scipio_out_dir = Path(scipio_out_dir, f"00_initial_scipio_{marker_type}")
-        blat_out_file = Path(scipio_out_dir, f"{marker_type}_scipio_initial.psl")
+        blat_prot_out_file = Path(scipio_out_dir, f"{marker_type}_scipio_initial.psl")
         scipio_out_file = Path(scipio_out_dir, f"{marker_type}_scipio_initial.yaml")
         scipio_log_file = Path(scipio_out_dir, f"{marker_type}_scipio_initial.log")
 
         # Adjust Scipio's 'min_score' for initial round allowing more lenient matching
         scipio_min_score = round(scipio_params["min_score"] * settings.SCIPIO_SCORE_INITIAL_FACTOR, 5)
     else:
-        blat_out_file = Path(scipio_out_dir, f"{marker_type}_scipio_final.psl")
+        blat_prot_out_file = Path(scipio_out_dir, f"{marker_type}_scipio_final.psl")
         scipio_out_file = Path(scipio_out_dir, f"{marker_type}_scipio_final.yaml")
         scipio_log_file = Path(scipio_out_dir, f"{marker_type}_scipio_final.log")
         scipio_min_score = scipio_params["min_score"]
@@ -1722,11 +1735,12 @@ def parallel_scipio(
             "dnax",
             "prot",
             scipio_params["min_identity"],
-            target,
-            query,
-            blat_out_file,
+            target_path,
+            query_parts_paths,
+            blat_prot_out_file,
             scipio_log_file,
             threads,
+            ram_bytes,
             debug,
             tile_size,
             one_off,
@@ -1739,7 +1753,8 @@ def parallel_scipio(
         # 2. Filter hits according the depth of coverage of the contigs and by cross-loci overlaps
         prefilter_blat_psl(
             marker_type,
-            blat_out_file,
+            blat_prot_out_file,
+            stage,
             bool(query_info["separators_found"]),
             depth_tolerance,
             ignore_depth,
@@ -1747,13 +1762,19 @@ def parallel_scipio(
             debug,
             keep_all,
         )
+        if stage == "initial":
+            return blat_prot_out_file
 
         # 3. Split the previous BLAT PSL according to the reference splits
         split_blat_psl_params = []
-        for query in query_part_paths:
-            part = query.stem
+        for query_part_path in query_parts_paths:
+            part = query_part_path.stem
             split_blat_psl_params.append(
-                (blat_out_file, query_part_paths[query], Path(scipio_out_dir, f"{part}_scipio.psl"))
+                (
+                    blat_prot_out_file,
+                    query_parts_paths[query_part_path],
+                    Path(scipio_out_dir, f"{part}_scipio.psl"),
+                )
             )
         psls_to_del = []
         if debug:
@@ -1773,8 +1794,8 @@ def parallel_scipio(
         # Fourth, run a Scipio instance on each partial file
         blat_only = False
         run_scipio_command_params = []
-        for query in query_part_paths:
-            part = query.stem
+        for query_part_path in query_parts_paths:
+            part = query_part_path.stem
             run_scipio_command_params.append(
                 (
                     scipio_params["scipio_path"],
@@ -1788,8 +1809,8 @@ def parallel_scipio(
                     blat_min_score,
                     scipio_params["transtable"],
                     extra_settings,
-                    target,
-                    query,
+                    target_path,
+                    query_part_path,
                     Path(scipio_out_dir, f"{part}_scipio.yaml"),
                     Path(scipio_out_dir, f"{part}_scipio.log"),
                 )
@@ -1913,22 +1934,25 @@ def run_scipio_command(
             return scipio_out_file
 
 
-def filter_query_and_target(query_dict, target_dict, yaml_initial_dir, initial_models, marker_type):
+def filter_query_and_target(query_dict, target_dict, psl_initial_file, marker_type):
     """
     Retain only best model proteins and contigs that were hit after initial Scipio run
     """
+    psl_initial_dir = psl_initial_file.parent
     best_proteins, hit_contigs = {}, {}
-    for protein in initial_models:
-        best_protein_name = initial_models[protein][0]["ref_name"]
-        best_proteins[best_protein_name] = query_dict[best_protein_name]
-        for h in range(len(initial_models[protein])):
-            for contig in initial_models[protein][h]["hit_contigs"].split("\n"):
-                if contig not in hit_contigs:
-                    hit_contigs[contig] = target_dict[contig]
-    final_query = Path(yaml_initial_dir, f"{marker_type}_best_proteins.faa")
-    final_target = Path(yaml_initial_dir, f"{marker_type}_hit_contigs.fna")
+    with open(psl_initial_file, "rt") as psl_ini:
+        for line in psl_ini:
+            p = parse_psl_record(line)
+            best_proteins[p["q_name"]] = query_dict[p["q_name"]]
+            hit_contigs[p["t_name"]] = target_dict[p["t_name"]]
+    final_query = Path(psl_initial_dir, f"{marker_type}_best_proteins.faa")
+    final_target = Path(psl_initial_dir, f"{marker_type}_hit_contigs.fna")
     dict_to_fasta(best_proteins, final_query, wrap=80)
     dict_to_fasta(hit_contigs, final_target, wrap=80)
+    if not best_proteins:
+        final_query = None
+    if not hit_contigs:
+        final_target = None
     return final_target, final_query
 
 
@@ -2231,6 +2255,7 @@ def blat_misc_dna(
     sample_name,
     query_path,
     query_dict,
+    query_parts_paths: dict,
     query_info,
     marker_type,
     ignore_depth,
@@ -2240,6 +2265,7 @@ def blat_misc_dna(
     max_paralogs,
     tsv_comment,
     threads,
+    ram_bytes,
     debug,
     overwrite,
     keep_all,
@@ -2271,10 +2297,11 @@ def blat_misc_dna(
             "dna",
             min_identity,
             target_path,
-            query_path,
+            query_parts_paths,
             blat_dna_out_file,
             blat_dna_log_file,
             threads,
+            ram_bytes,
             debug,
             None,
             None,
@@ -2289,6 +2316,7 @@ def blat_misc_dna(
         prefilter_blat_psl(
             marker_type,
             blat_dna_out_file,
+            "single",
             bool(query_info["separators_found"]),
             depth_tolerance,
             ignore_depth,
@@ -2346,11 +2374,12 @@ def parallel_blat(
     target_type: str,  # options: dna dnax, type of search in assembly
     query_type: str,  # options: dna prot, if target loci are DNA or PROTEIN
     min_identity: float,
-    assembly_path: Path,
-    targets_path: Path,
+    target_path: Path,
+    query_parts_paths: dict,  # dictionary where keys are Paths to target file parts (query for BLAT)
     psl_out_path: Path,
     psl_log_path: Path,
     threads: int,
+    ram_bytes: int,
     debug: bool,
     tile_size: int,
     one_off: int,
@@ -2358,62 +2387,24 @@ def parallel_blat(
     max_intron: int,
     no_head=True,
 ):
-    # Disable parallelization for now, more tests needed to see why running multiple instances of
-    # BLAT is slower than a single one
-    threads = 1
+    # 1. Reduce number of threads if there is less than 1GB RAM per thread
+    while ram_bytes / threads < (settings.RAM_FRACTION * 1024**3):
+        threads -= 1
+    threads = max(1, threads)
 
-    # 1. Load assembly, sort by decreasing contig length split in as many parts as threads
-    contig_sizes = {}
-    asm_full = fasta_to_dict(assembly_path)
-    for contig in asm_full:
-        contig_sizes[contig] = len(asm_full[contig]["sequence"])
-    contigs_lists = {i: [] for i in range(threads)}
-    part = 0
-    for contig in sorted(contig_sizes, key=contig_sizes.get, reverse=True):
-        contigs_lists[part].append(contig)
-        part += 1
-        if part == threads:
-            part = 0
-    contigs_parts = {}
-    for part in contigs_lists:
-        for contig in contigs_lists[part]:
-            contigs_parts[contig] = part
-
-    # 2. Prepare parameters to run the assembly split in parallel
-    split_assembly_params = []
-    for part in contigs_lists:
-        asm_part_path = Path(psl_out_path.parent, f"asm_part{part}.fasta")
-        split_assembly_params.append((asm_full, contigs_parts, part, asm_part_path))
-    del contigs_lists
-
-    # 3. Split assembly in parallel
-    asm_parts_paths_to_blat = []
-    if debug:
-        for params in split_assembly_params:
-            asm_part_path = split_asm_by_contigs(*params)
-            if asm_part_path is not None:
-                asm_parts_paths_to_blat.append(asm_part_path)
-    else:
-        subexecutor = ProcessPoolExecutor(max_workers=threads)
-        futures = [subexecutor.submit(split_asm_by_contigs, *params) for params in split_assembly_params]
-        for future in as_completed(futures):
-            asm_part_path = future.result()
-            if asm_part_path is not None:
-                asm_parts_paths_to_blat.append(asm_part_path)
-        subexecutor.shutdown()
-
-    # 4. Prepare parameters to run as many instances of BLAT as threads
+    # 2. Prepare parameters to run as many instances of BLAT as threads
     blat_params = []
-    for asm_part_path in asm_parts_paths_to_blat:
-        psl_part_path = Path(asm_part_path.parent, asm_part_path.name.replace(".fasta", ".psl"))
+    for query_part_path in query_parts_paths:
+        part = query_part_path.stem.split("_part")[-1]
+        psl_part_path = Path(psl_out_path.parent, f"{psl_out_path.stem}_part{part}.psl")
         blat_params.append(
             (
                 blat_path,
                 target_type,
                 query_type,
                 min_identity,
-                asm_part_path,
-                targets_path,
+                target_path,
+                query_part_path,
                 psl_part_path,
                 tile_size,
                 one_off,
@@ -2423,7 +2414,7 @@ def parallel_blat(
             )
         )
 
-    # 5. BLAT assembly parts in parallel
+    # 3. BLAT assembly parts in parallel
     psl_parts_paths_to_cat = []
     psl_log_parts_paths_to_cat = []
     if debug:
@@ -2444,7 +2435,7 @@ def parallel_blat(
                 psl_log_parts_paths_to_cat.append(psl_log_part_path)
         subexecutor.shutdown()
 
-    # 6. Concatenate partial PSLs and the logs into a single file
+    # 4. Concatenate partial PSLs and the logs into a single file
     with open(psl_out_path, "wb") as psl_log:
         for psl_part_path in psl_parts_paths_to_cat:
             with open(psl_part_path, "rb") as psl_part:
@@ -2461,14 +2452,12 @@ def parallel_blat(
                     if not chunk:
                         break
                     psl_log.write(chunk)
-    for path in asm_parts_paths_to_blat:
-        path.unlink()
     for path in psl_parts_paths_to_cat:
         path.unlink()
     for path in psl_log_parts_paths_to_cat:
         path.unlink()
 
-    # 7. Check if concatenated PSL is not empty
+    # 5. Check if concatenated PSL is not empty
     if psl_out_path.exists():
         if psl_out_path.stat().st_size > 0:
             return psl_out_path
@@ -2502,8 +2491,8 @@ def run_blat_command(
     target_type: str,
     query_type: str,
     min_identity: float,
-    asm_path: Path,
-    targets_path: Path,
+    target_path: Path,
+    query_part_path: Path,
     psl_part_path: Path,
     tile_size,
     one_off,
@@ -2532,8 +2521,8 @@ def run_blat_command(
     if max_intron:
         blat_cmd += [f"-maxIntron={max_intron}"]
     blat_cmd += [
-        f"{asm_path}",
-        f"{targets_path}",
+        f"{target_path}",
+        f"{query_part_path}",
         f"{psl_part_path}",
     ]
     psl_log_part_path = Path(psl_part_path.parent, psl_part_path.name.replace(".psl", ".log"))
@@ -2556,7 +2545,8 @@ def run_blat_command(
 def prefilter_blat_psl(
     marker_type: str,
     blat_out_file: Path,
-    ref_has_separators: bool,
+    stage: str,
+    separators_found: bool, # Reference targets have potentially multiple seqs per locus
     depth_tolerance: float,
     ignore_depth: bool,
     threads: int,
@@ -2578,13 +2568,13 @@ def prefilter_blat_psl(
 
     # 2. Filter psl hits by min wscore, split accepted hits in as many files as threads
     psls_to_filter_paths, psl_rejected_path = split_psl_by_contigs_add_wscore(
-        blat_out_file, ref_has_separators, threads, debug
+        blat_out_file, stage, separators_found, threads, debug
     )
 
     # 3. Filter the parts in parallel
     filter_psl_overlaps_params = []
     for path in psls_to_filter_paths:
-        filter_psl_overlaps_params.append((path, ref_has_separators, size_mul))
+        filter_psl_overlaps_params.append((path, separators_found, size_mul))
     accepted_psls_to_cat = []
     rejected_psls_to_cat = []
     if debug:
@@ -2649,7 +2639,7 @@ def prefilter_blat_psl(
             for line in psl_in:
                 p = parse_psl_record(line)
                 locus = p["q_name"]
-                if ref_has_separators is True:
+                if separators_found is True:
                     locus = p["q_name"].split(settings.REF_CLUSTER_SEP)[-1]
                 hit_info = {
                     "psl_record": line.strip(),
@@ -2748,7 +2738,7 @@ def prefilter_blat_psl(
 
 
 def split_psl_by_contigs_add_wscore(
-    psl_raw_path: Path, ref_has_separators: bool, threads: int, debug: bool
+    psl_raw_path: Path, stage: str, separators_found: bool, threads: int, debug: bool
 ):
     psl_rejected_path = Path(psl_raw_path.parent, psl_raw_path.name.replace(".psl", "_rejected.psl"))
     psl_wscore_path = Path(psl_raw_path.parent, psl_raw_path.name.replace(".psl", "_wscore.psl"))
@@ -2772,7 +2762,7 @@ def split_psl_by_contigs_add_wscore(
                     score = (p["matches"] + p["rep_matches"] - p["mismatches"]) / p["q_size"]
                     wscore = score * coverage
                     locus = p["q_name"]
-                    if ref_has_separators is True:
+                    if separators_found is True:
                         locus = p["q_name"].split(settings.REF_CLUSTER_SEP)[-1]
                     target = p["q_name"]
                     line_out = f"{line.strip()}\t{wscore:.5f}\n"
@@ -2790,27 +2780,30 @@ def split_psl_by_contigs_add_wscore(
                     else:
                         psl_rej.write(line_out)
 
-    if ref_has_separators is True:
-        best_n_targets = settings.BEST_N_TARGETS
-        if max(contig_sizes.values()) >= settings.MIN_CHROM_SIZE:
-            best_n_targets /= 10
+    if separators_found is True:
         num_targets = sum([len(target_wscores[locus]) for locus in target_wscores])
         potential_combos = (num_targets) * (num_targets - 1)
-        if potential_combos > settings.MAX_CROSS_LOCI_COMP:
+        if potential_combos > settings.MAX_CROSS_LOCI_COMP or stage == "initial":
             # 2. Sort targets by wscores in reverse order inside each locus in target_wscores
             for locus in target_wscores:
                 target_wscores[locus] = dict(
                     sorted(target_wscores[locus].items(), key=lambda item: item[1], reverse=True)
                 )
-            # 3. Determine potential number of combinations to reduce n_best
-            num_loci = len(target_wscores)
-            for n in range(best_n_targets, 1, -1):
-                loci_target_combos = (num_loci * n) * ((num_loci - 1) * n)
-                if loci_target_combos > settings.MAX_CROSS_LOCI_COMP:
-                    best_n_targets -= 1
-                else:
-                    break
-            best_n_targets = max(1, best_n_targets)
+            # 3. Determine best_n_targets
+            if stage == "initial" and potential_combos < settings.MAX_CROSS_LOCI_COMP:
+                best_n_targets = settings.BEST_N_TARGETS_INITIAL
+            else:
+                best_n_targets = settings.BEST_N_TARGETS_GLOBAL
+                if max(contig_sizes.values()) >= settings.MIN_CHROM_SIZE:
+                    best_n_targets /= 10
+                num_loci = len(target_wscores)
+                for n in range(best_n_targets, 1, -1):
+                    loci_target_combos = (num_loci * n) * ((num_loci - 1) * n)
+                    if loci_target_combos > settings.MAX_CROSS_LOCI_COMP:
+                        best_n_targets -= 1
+                    else:
+                        break
+                best_n_targets = max(1, best_n_targets)
             # 4. Get n_best targets from every locus in target_wscores
             allowed_targets = []
             for locus in target_wscores:
@@ -2901,7 +2894,7 @@ def split_psl_by_contigs(
         return None
 
 
-def filter_psl_overlaps(psl_wscore_part_path: Path, ref_has_separators: bool, size_mul: int):
+def filter_psl_overlaps(psl_wscore_part_path: Path, separators_found: bool, size_mul: int):
     def flip_coords(t_starts_minus, t_ends_minus, t_size):
         t_starts_plus = [t_size - x for x in t_ends_minus[::-1]]
         t_ends_plus = [t_size - x for x in t_starts_minus[::-1]]
@@ -2915,7 +2908,7 @@ def filter_psl_overlaps(psl_wscore_part_path: Path, ref_has_separators: bool, si
         for line in psl_in:
             p = parse_psl_record(line)
             locus = p["q_name"]
-            if ref_has_separators is True:
+            if separators_found is True:
                 locus = p["q_name"].split(settings.REF_CLUSTER_SEP)[-1]
             contig = p["t_name"]
             t_starts = p["t_starts"]

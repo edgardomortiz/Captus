@@ -931,7 +931,7 @@ class CaptusAssembly(object):
             dest="mmseqs_method",
             help="B|MMseqs2 clustering algorithm, options are:\n"
             "easy-linclust = Fast linear time (for huge datasets), less sensitive clustering\n"
-            "easy-cluster = Sensitive homology search (slower)",
+            "easy-cluster = Sensitive homology search (recommended but slower)",
         )
         mmseqs2_group.add_argument(
             "--cl_sensitivity",
@@ -995,13 +995,13 @@ class CaptusAssembly(object):
             "to-set-the-right-alignment-coverage-to-cluster)",
         )
         mmseqs2_group.add_argument(
-            "--cl_max_seq_len",
+            "--cl_min_samples",
             action="store",
-            default=20000,
-            type=int,
-            dest="cl_max_seq_len",
-            help="Do not cluster sequences longer than this length in bp, the maximum allowed by"
-            " MMseqs2 is 65535. Use 0 to disable this filter",
+            default="auto",
+            type=str,
+            dest="cl_min_samples",
+            help="Minimum number of samples per cluster, if set to 'auto' the number is adjusted to"
+            f" {settings.CLR_MIN_SAMPLE_PROP:.0%}% of the total number of samples or at least 4",
         )
         mmseqs2_group.add_argument(
             "--cl_rep_min_len",
@@ -1014,15 +1014,6 @@ class CaptusAssembly(object):
             " disable this filter",
         )
         mmseqs2_group.add_argument(
-            "--cl_min_samples",
-            action="store",
-            default="auto",
-            type=str,
-            dest="cl_min_samples",
-            help="Minimum number of samples per cluster, if set to 'auto' the number is adjusted to"
-            f" {settings.CLR_MIN_SAMPLE_PROP:.0%}% of the total number of samples or at least 4",
-        )
-        mmseqs2_group.add_argument(
             "--cl_max_copies",
             action="store",
             default=3,
@@ -1030,6 +1021,15 @@ class CaptusAssembly(object):
             dest="cl_max_copies",
             help="Maximum average number of sequences per sample in a cluster. This can exclude loci"
             " that are extremely paralogous",
+        )
+        mmseqs2_group.add_argument(
+            "--cl_max_seq_len",
+            action="store",
+            default=20000,
+            type=int,
+            dest="cl_max_seq_len",
+            help="Do not cluster sequences longer than this length in bp, the maximum allowed by"
+            " MMseqs2 is 65535. Use 0 to disable this filter",
         )
         mmseqs2_group.add_argument(
             "--cl_tmp_dir",
@@ -1476,10 +1476,8 @@ class CaptusAssembly(object):
         align(full_command, args)
         exit(1)
 
-
 def main():
     CaptusAssembly()
-
 
 if __name__ == "__main__":
     main()
