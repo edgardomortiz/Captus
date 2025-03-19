@@ -1373,29 +1373,31 @@ def split_refs(query_dict, out_dir, marker_type, threads, final_round=False):
     # Split reference file in groups of roughly REFS_SPLIT_CHUNK_SIZE to run Scipio in parallel
     # on each
 
+    ref_split_chunk_size = settings.REF_SPLIT_CHUNK_SIZE
+    ref_split_dir = Path(out_dir, settings.REF_TARGETS_SPLIT_DIR, settings.MARKER_DIRS[marker_type])
+    if final_round is True:
+        ref_split_dir = Path(out_dir)
+        ref_split_chunk_size = ref_split_chunk_size // settings.BEST_N_TARGETS_INITIAL
     seq_names = list(query_dict)
     random.Random(settings.RANDOM_SEED).shuffle(seq_names)
     num_seqs = len(seq_names)
     if num_seqs < threads:
         seqs_per_chunk = num_seqs
     else:
-        cc = math.ceil(num_seqs / settings.REF_SPLIT_CHUNK_SIZE)
-        cf = math.floor(num_seqs / settings.REF_SPLIT_CHUNK_SIZE)
+        cc = math.ceil(num_seqs / ref_split_chunk_size)
+        cf = math.floor(num_seqs / ref_split_chunk_size)
         if cc % threads != 0:
             cc += threads - (cc % threads)
         if cf % threads != 0:
             cf += threads - (cf % threads)
         chunks_ceiling = max(threads, cc)
         chunks_floor = max(threads, cf)
-        if abs(settings.REF_SPLIT_CHUNK_SIZE - (num_seqs / chunks_ceiling)) <= abs(
-            settings.REF_SPLIT_CHUNK_SIZE - (num_seqs / chunks_floor)
+        if abs(ref_split_chunk_size - (num_seqs / chunks_ceiling)) <= abs(
+            ref_split_chunk_size - (num_seqs / chunks_floor)
         ):
             seqs_per_chunk = math.ceil(num_seqs / chunks_ceiling)
         else:
             seqs_per_chunk = math.ceil(num_seqs / chunks_floor)
-    ref_split_dir = Path(out_dir, settings.REF_TARGETS_SPLIT_DIR, settings.MARKER_DIRS[marker_type])
-    if final_round is True:
-        ref_split_dir = Path(out_dir)
     make_output_dir(ref_split_dir)
     ref_seqs_paths = {}
     part = 1
@@ -1558,8 +1560,13 @@ def scipio_coding(
                 " SKIPPED (output files already exist)"
             )
             return message
-        elif psl_initial_file == "BLAT FAILED":
-            message = red(f"'{sample_name}': FAILED extraction of {genes[marker_type]} (No BLAT hits)")
+        elif psl_initial_file == "0 BLAT HITS":
+            message = red(f"'{sample_name}': FAILED extraction of {genes[marker_type]} (0 BLAT hits)")
+            return message
+        elif psl_initial_file == "0 BLAT HITS ACCEPTED":
+            message = red(
+                f"'{sample_name}': FAILED extraction of {genes[marker_type]} (0 BLAT hits accepted)"
+            )
             return message
         else:
             final_target, final_query = filter_query_and_target(
@@ -1627,8 +1634,8 @@ def scipio_coding(
             f"'{sample_name}': extraction of {genes[marker_type]} SKIPPED (output files already exist)"
         )
         return message
-    elif yaml_final_file == "BLAT FAILED":
-        message = red(f"'{sample_name}': FAILED extraction of {genes[marker_type]} (No BLAT hits)")
+    elif yaml_final_file == "0 BLAT HITS":
+        message = red(f"'{sample_name}': FAILED extraction of {genes[marker_type]} (0 BLAT hits)")
         return message
     else:
         yaml_final_dir = yaml_final_file.parent
@@ -1748,10 +1755,10 @@ def parallel_scipio(
             max_intron,
         )
         if blat_psl is None:
-            return "BLAT FAILED"
+            return "0 BLAT HITS"
 
         # 2. Filter hits according the depth of coverage of the contigs and by cross-loci overlaps
-        prefilter_blat_psl(
+        blat_psl_prefiltered = prefilter_blat_psl(
             marker_type,
             blat_prot_out_file,
             stage,
@@ -1762,6 +1769,8 @@ def parallel_scipio(
             debug,
             keep_all,
         )
+        if blat_psl_prefiltered is None:
+            return "0 BLAT HITS ACCEPTED"
         if stage == "initial":
             return blat_prot_out_file
 
@@ -2309,11 +2318,13 @@ def blat_misc_dna(
             None,
         )
         if blat_psl is None:
-            message = red(f"'{sample_name}': BLAT FAILED")
+            message = red(
+                f"'{sample_name}': FAILED extraction of miscellaneous DNA markers (0 BLAT hits)"
+            )
             return message
 
         # 2. Filter hits according the depth of coverage of the contigs and by cross-loci overlaps
-        prefilter_blat_psl(
+        blat_psl_prefiltered = prefilter_blat_psl(
             marker_type,
             blat_dna_out_file,
             "single",
@@ -2324,6 +2335,11 @@ def blat_misc_dna(
             debug,
             keep_all,
         )
+        if blat_psl_prefiltered is None:
+            message = red(
+                f"'{sample_name}': FAILED extraction of miscellaneous DNA markers (0 BLAT hits accepted)"
+            )
+            return message
 
         dna_hits = blat_misc_dna_psl_to_dict(
             blat_dna_out_file,
@@ -2335,7 +2351,9 @@ def blat_misc_dna(
             max_paralogs,
         )
         if not dna_hits:
-            message = red(f"'{sample_name}': FAILED extraction of miscellaneous DNA markers")
+            message = red(
+                f"'{sample_name}': FAILED extraction of miscellaneous DNA markers (0 BLAT hits assembled)"
+            )
             return message
         else:
             if not keep_all:
@@ -2546,7 +2564,7 @@ def prefilter_blat_psl(
     marker_type: str,
     blat_out_file: Path,
     stage: str,
-    separators_found: bool, # Reference targets have potentially multiple seqs per locus
+    separators_found: bool,  # Reference targets have potentially multiple seqs per locus
     depth_tolerance: float,
     ignore_depth: bool,
     threads: int,
@@ -2570,6 +2588,8 @@ def prefilter_blat_psl(
     psls_to_filter_paths, psl_rejected_path = split_psl_by_contigs_add_wscore(
         blat_out_file, stage, separators_found, threads, debug
     )
+    if psls_to_filter_paths is None:
+        return None
 
     # 3. Filter the parts in parallel
     filter_psl_overlaps_params = []
@@ -2620,7 +2640,7 @@ def prefilter_blat_psl(
             path.unlink()
         if keep_all is False:
             psl_rejected_path.unlink()
-        return
+        return blat_out_file
     else:
         with open(blat_out_file, "wb") as psl_acc:
             for path in accepted_psls_to_cat:
@@ -2661,28 +2681,29 @@ def prefilter_blat_psl(
                 contig = loci[locus][i]["contig"]
                 wscore = loci[locus][i]["wscore"]
                 depth = loci[locus][i]["depth"]
-                contig_info = {
-                    "max_wscore": wscore,
-                    "depth": depth,
-                }
+                wscoreld = wscore * math.log10(depth)
+                contig_info = {"wscore": wscore, "depth": depth, "max_wscoreld": wscoreld}
                 if locus not in loci_depths:
                     loci_depths[locus] = {contig: contig_info}
                 else:
                     if contig not in loci_depths[locus]:
                         loci_depths[locus][contig] = contig_info
                     else:
-                        if wscore > loci_depths[locus][contig]["max_wscore"]:
-                            loci_depths[locus][contig]["max_wscore"] = wscore
+                        if wscoreld > loci_depths[locus][contig]["max_wscoreld"]:
+                            loci_depths[locus][contig] = contig_info
 
         # 8. Determine min_depth per locus based on depth of contig with the best wscore in the locus
         loci_min_depths = {}
         for locus in sorted(loci_depths):
-            best_hit_wscore = 0
+            best_hit_wscoreld = 0
             depth = 0
             for contig in loci_depths[locus]:
-                if loci_depths[locus][contig]["max_wscore"] > best_hit_wscore:
-                    best_hit_wscore = loci_depths[locus][contig]["max_wscore"]
+                if loci_depths[locus][contig]["max_wscoreld"] > best_hit_wscoreld:
+                    best_hit_wscoreld = loci_depths[locus][contig]["max_wscoreld"]
                     depth = loci_depths[locus][contig]["depth"]
+                elif loci_depths[locus][contig]["max_wscoreld"] == best_hit_wscoreld:
+                    if loci_depths[locus][contig]["depth"] > depth:
+                        depth = loci_depths[locus][contig]["depth"]
             loci_min_depths[locus] = 10 ** (round(math.log10(depth) / depth_tolerance, 2))
 
         # 9. Write rejected and accepted hits after filtering by depth
@@ -2705,8 +2726,9 @@ def prefilter_blat_psl(
             [
                 "locus",
                 "contig",
-                "max_wscore",
+                "wscore",
                 "depth",
+                "max_wscoreld",
             ]
         )
         with open(accepted_contigs_depths, "wt") as dep_out:
@@ -2714,7 +2736,7 @@ def prefilter_blat_psl(
             for locus in sorted(loci_depths):
                 for contig in sorted(
                     loci_depths[locus],
-                    key=lambda x: loci_depths[locus][x]["max_wscore"],
+                    key=lambda x: loci_depths[locus][x]["max_wscoreld"],
                     reverse=True,
                 ):
                     if loci_depths[locus][contig]["depth"] >= loci_min_depths[locus]:
@@ -2723,8 +2745,9 @@ def prefilter_blat_psl(
                                 [
                                     locus,
                                     contig,
-                                    f"{loci_depths[locus][contig]['max_wscore']:.5f}",
+                                    f"{loci_depths[locus][contig]['wscore']:.5f}",
                                     f"{loci_depths[locus][contig]['depth']:.4f}",
+                                    f"{loci_depths[locus][contig]['max_wscoreld']:.5f}",
                                 ]
                             )
                             + "\n"
@@ -2734,7 +2757,7 @@ def prefilter_blat_psl(
         psl_rejected_path.unlink()
         accepted_contigs_depths.unlink()
 
-    return
+    return blat_out_file
 
 
 def split_psl_by_contigs_add_wscore(
@@ -2779,6 +2802,9 @@ def split_psl_by_contigs_add_wscore(
                         psl_wsc.write(line_out)
                     else:
                         psl_rej.write(line_out)
+    # Exit if there were no accepted hits
+    if len(contig_sizes) == 0:
+        return None, psl_rejected_path
 
     if separators_found is True:
         num_targets = sum([len(target_wscores[locus]) for locus in target_wscores])
@@ -2792,6 +2818,8 @@ def split_psl_by_contigs_add_wscore(
             # 3. Determine best_n_targets
             if stage == "initial" and potential_combos < settings.MAX_CROSS_LOCI_COMP:
                 best_n_targets = settings.BEST_N_TARGETS_INITIAL
+                if max(contig_sizes.values()) >= settings.MIN_CHROM_SIZE:
+                    best_n_targets = max(1, best_n_targets // 2)
             else:
                 best_n_targets = settings.BEST_N_TARGETS_GLOBAL
                 if max(contig_sizes.values()) >= settings.MIN_CHROM_SIZE:
@@ -3126,7 +3154,7 @@ def cleanup_post_extraction(
             tsv_out.unlink()
 
         # Write FASTAs of contigs with and without hits
-        names_hit_contigs = []
+        hit_contigs = {}
         contig_lists = list(sample_dir.resolve().rglob("[A-Z]*_contigs.list.txt"))
         if not cluster and not skip_clustering:
             contig_lists = [cl for cl in contig_lists if cl.parts[-2] != settings.MARKER_DIRS["CLR"]]
@@ -3134,14 +3162,14 @@ def cleanup_post_extraction(
             for cl in contig_lists:
                 with open(cl, "rt") as clin:
                     for line in clin:
-                        names_hit_contigs.append(line.strip("\n"))
+                        hit_contigs[line.strip("\n")] = {}
         all_contigs = fasta_to_dict(assembly_path)
-        hit_contigs = {}
-        leftover_contigs = dict(all_contigs)
+        leftover_contigs = {}
         for contig_name in all_contigs:
-            if contig_name in names_hit_contigs:
-                hit_contigs[contig_name] = dict(all_contigs[contig_name])
-                del leftover_contigs[contig_name]
+            if contig_name in hit_contigs:
+                hit_contigs[contig_name] = all_contigs[contig_name]
+            else:
+                leftover_contigs[contig_name] = all_contigs[contig_name]
         dict_to_fasta(hit_contigs, hit_contigs_file, wrap=80)
         if cluster:
             dict_to_fasta(leftover_contigs, leftovers_clust_file, wrap=80, write_if_empty=True)

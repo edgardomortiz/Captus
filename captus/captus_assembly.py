@@ -1025,7 +1025,7 @@ class CaptusAssembly(object):
         mmseqs2_group.add_argument(
             "--cl_max_seq_len",
             action="store",
-            default=20000,
+            default=5000,
             type=int,
             dest="cl_max_seq_len",
             help="Do not cluster sequences longer than this length in bp, the maximum allowed by"

@@ -300,7 +300,7 @@ if os_type == "Darwin":
 elif os_type == "Linux":
     BUNDLED_BLAT = Path(DEPS_DIR, "blat", "blat_37x1_linux")
 else:
-    BUNDLED_BLAT = "unknown system"
+    BUNDLED_BLAT = f"No support for {os_type} systems at this time."
 
 # Ddirectory for storing imported reference target files
 REF_TARGETS_DIR = "00_ref_targets"
