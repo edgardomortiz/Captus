@@ -101,6 +101,7 @@ def clean(full_command, args):
 
     log.log(f"{'Captus version':>{mar}}: {bold(f'v{__version__}')}")
     log.log(f"{'Command':>{mar}}: {bold(full_command)}")
+    log.log(f"{'OS':>{mar}}: {bold(platform.platform())}")
     log.log(f"{'Host':>{mar}}: {bold(platform.node())}")
     tsv_comment = f"#Captus v{__version__}\n#Command: {full_command}\n"
     _, ram_MB, ram_GB, ram_GB_total = set_ram(args.ram, java=True)

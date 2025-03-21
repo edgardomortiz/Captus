@@ -365,7 +365,7 @@ SCIPIO_ACCEPTED_INTRON_PENALTY = 1.1
 PROT_BLAT_IDENT_PROP = 0.90
 
 # BLAT identity proportion for DNA to DNA searches
-DNA_BLAT_IDENT_PROP = 0.99
+SEARCH_IDENT_PROP = 0.99
 
 # BLAT identity proportion for DNA to DNA searches
 DNA_BLAT_MIN_SCORE = 20

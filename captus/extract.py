@@ -110,6 +110,7 @@ def extract(full_command, args):
 
     log.log(f"{'Captus version':>{mar}}: {bold(f'v{__version__}')}")
     log.log(f"{'Command':>{mar}}: {bold(full_command)}")
+    log.log(f"{'OS':>{mar}}: {bold(platform.platform())}")
     log.log(f"{'Host':>{mar}}: {bold(platform.node())}")
     tsv_comment = f"#Captus v{__version__}\n#Command: {full_command}\n"
     ram_B, ram_MB, ram_GB, ram_GB_total = set_ram(args.ram)
@@ -1896,6 +1897,8 @@ def run_scipio_command(
     scipio_log_file,
 ):
     # Build the basic part of the command
+    min_identity_scipio = math.floor(min_identity * settings.SEARCH_IDENT_PROP)
+    min_identity_blat = math.floor(min_identity * settings.PROT_BLAT_IDENT_PROP)
     basic = [
         "perl",
         f"{scipio_path}",
@@ -1904,13 +1907,13 @@ def run_scipio_command(
         "--keep_blat_output",
         "--show_blatline",
         f"--min_score={scipio_min_score}",
-        f"--min_identity={min_identity}",
+        f"--min_identity={min_identity_scipio}",
         f"--min_coverage={min_coverage}",
         "--max_mismatch=0",  # 0 means infinite
         "--multiple_results",
         f"--blat_bin={blat_path}",
         f"--blat_score={blat_min_score}",
-        f"--blat_identity={min_identity * settings.PROT_BLAT_IDENT_PROP:.0f}",
+        f"--blat_identity={min_identity_blat}",
         f"--transtable={transtable}",
         f"--accepted_intron_penalty={settings.SCIPIO_ACCEPTED_INTRON_PENALTY}",
     ]
@@ -2519,9 +2522,9 @@ def run_blat_command(
     max_intron,
 ):
     if query_type == "prot":
-        min_identity *= settings.PROT_BLAT_IDENT_PROP
+        min_identity_blat = math.floor(min_identity * settings.PROT_BLAT_IDENT_PROP)
     else:
-        min_identity *= settings.DNA_BLAT_IDENT_PROP
+        min_identity_blat = math.floor(min_identity * settings.SEARCH_IDENT_PROP)
     blat_cmd = [
         f"{blat_path}",
         f"-t={target_type}",
@@ -2533,7 +2536,7 @@ def run_blat_command(
         blat_cmd += [f"-oneOff={one_off}"]
     if min_score:
         blat_cmd += [f"-minScore={min_score}"]
-    blat_cmd += [f"-minIdentity={min_identity:.0f}"]
+    blat_cmd += [f"-minIdentity={min_identity_blat:.0f}"]
     if no_head:
         blat_cmd += ["-noHead"]
     if max_intron:
