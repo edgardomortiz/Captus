@@ -34,7 +34,7 @@ conda create -n captus -c bioconda -c conda-forge captus
 > For Mac computers with Apple silicon (M processors), you can use the following `conda` (or `mamba`) command:
 >
 > ```shell
-> conda create --platform osx-64 -n captus -c bioconda -c conda-forge captus megahit=1.2.9=hfbae3c0_0 mmseqs2=15.6f452
+> conda create --platform osx-64 -n captus -c bioconda -c conda-forge captus megahit=1.2.9=hfbae3c0_0 mmseqs2=16.747c6
 > ```
 
 Check that `Captus` was correctly installed:
