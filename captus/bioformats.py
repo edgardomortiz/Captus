@@ -3671,10 +3671,14 @@ def mmseqs_cluster(
         f"{clustering_input_file}",
         f"{result_prefix}",
         f"{clustering_tmp_dir}",
+        "--spaced-kmer-mode",
+        f"{0}",
         "-c",
         f"{min_coverage}",
         "--cov-mode",
         f"{cov_mode}",
+        "--alignment-mode",
+        f"{3}",
         "--min-seq-id",
         f"{min_identity}",
         "--seq-id-mode",
@@ -3693,7 +3697,7 @@ def mmseqs_cluster(
     if mmseqs_method == "easy-cluster":
         mmseqs_cmd += ["-s", f"{sensitivity}"]
         if cluster_mode != 0:
-            mmseqs_cmd += ["--cluster-reassign"]
+            mmseqs_cmd += ["--cluster-reassign", f"{1}"]
     mmseqs_log_file = Path(clustering_dir, f"{cluster_prefix}_mmseqs.log")
     mmseqs_thread = ElapsedTimeThread()
     mmseqs_thread.start()
