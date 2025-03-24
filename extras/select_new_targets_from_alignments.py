@@ -254,6 +254,9 @@ def select_refs_per_locus(
         else:
             if cluster_info["size"] > loci[locus]["size"]:
                 loci[locus] = cluster_info
+            elif cluster_info["size"] == loci[locus]["size"]:
+                if cluster_info["length"] > loci[locus]["length"]:
+                    loci[locus] = cluster_info
 
     # 4. Select and format cluster representatives
     loci_reps = {}
