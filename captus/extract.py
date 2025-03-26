@@ -1968,7 +1968,14 @@ def filter_query_and_target(query_dict, target_dict, psl_initial_file, marker_ty
     final_query = Path(psl_initial_dir, f"{marker_type}_best_proteins.faa")
     final_target = Path(psl_initial_dir, f"{marker_type}_hit_contigs.fna")
     dict_to_fasta(best_proteins, final_query, wrap=80)
-    dict_to_fasta(hit_contigs, final_target, wrap=80)
+    if marker_type in ["MIT", "PTD"]:
+        filtered_contigs = {}
+        for contig in hit_contigs:
+            if len(hit_contigs[contig]["sequence"]) <= settings.MAX_ORGANELLE_SIZE[marker_type]:
+                filtered_contigs[contig] = hit_contigs[contig]
+        dict_to_fasta(filtered_contigs, final_target, wrap=80)
+    else:
+        dict_to_fasta(hit_contigs, final_target, wrap=80)
     if not best_proteins:
         final_query = None
     if not hit_contigs:

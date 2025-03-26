@@ -494,6 +494,14 @@ SCIPIO_ROUND2_SETTINGS = {
     },
 }
 
+# Maximum organellar genome size, avoid looking for organellar genes in larger contigs
+MAX_ORGANELLE_SIZE = {
+    "PTD": 550_000,
+    "MIT": 7_500_000,
+}
+
+MAX_PTD_SIZE = 550_000
+
 # Minimum wscore allowed in PSL records
 MIN_WSCORE = 0.001
 
