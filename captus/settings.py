@@ -500,8 +500,6 @@ MAX_ORGANELLE_SIZE = {
     "MIT": 7_500_000,
 }
 
-MAX_PTD_SIZE = 550_000
-
 # Minimum wscore allowed in PSL records
 MIN_WSCORE = 0.001
 
