@@ -2539,8 +2539,11 @@ def run_blat_command(
     blat_cmd += [f"-minIdentity={min_identity_blat:.0f}"]
     if no_head:
         blat_cmd += ["-noHead"]
-    if max_intron:
-        blat_cmd += [f"-maxIntron={max_intron}"]
+    if query_type == "prot":
+        if max_intron:
+            blat_cmd += [f"-maxIntron={max_intron}"]
+    else:
+        blat_cmd += [f"-maxIntron={settings.DNA_BLAT_MAX_INSERTION}"]
     blat_cmd += [
         f"{target_path}",
         f"{query_part_path}",

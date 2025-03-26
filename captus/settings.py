@@ -370,6 +370,10 @@ SEARCH_IDENT_PROP = 0.99
 # BLAT identity proportion for DNA to DNA searches
 DNA_BLAT_MIN_SCORE = 20
 
+# Maximum gap between adjacent partial BLAT hits (-maxIntron), to limit the hit assembly size
+# when searching in chromosome level assemblies (should be increased for synteny analysis?)
+DNA_BLAT_MAX_INSERTION = 50000
+
 # Default Genetic Codes to set Scipio's --transtable
 DEFAULT_GENETIC_CODES = {
     "NUC": {"id": 1, "name": "Standard"},
