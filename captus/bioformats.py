@@ -1495,7 +1495,15 @@ def fasta_headers_to_spades(fasta_dict):
 
 
 def scipio_yaml_to_dict(
-    yaml_path, min_score, min_identity, min_coverage, marker_type, transtable, max_paralogs, predict
+    yaml_path,
+    min_score,
+    min_identity,
+    min_coverage,
+    marker_type,
+    transtable,
+    max_paralogs,
+    paralog_tolerance,
+    predict,
 ):
     """
     Process Scipio's YAML output, verify translation of each model, add extra aminoacid in gaps if
@@ -2541,7 +2549,7 @@ def scipio_yaml_to_dict(
                 max_len_aa_recov[ref_cluster] = unfilter_models[prot][model]["match_len"]
 
     # Filter models by 'min_score', 'min_identity', and 'min_coverage', calculate 'wscore'
-    # penalize 'wscore' by number of frameshifts
+    # penalize 'wscore' by number of frameshifts, remove paralogs according to 'paralog_tolerance'
     filter_models = {}
     for prot in unfilter_models:
         accepted_models = []
@@ -2576,6 +2584,10 @@ def scipio_yaml_to_dict(
                 accepted_models.append(unfilter_models[prot][model])
         if accepted_models:
             accepted_models = sorted(accepted_models, key=lambda i: i["wscore"], reverse=True)
+            max_wscore = accepted_models[0]["wscore"]
+            accepted_models = [
+                model for model in accepted_models if model["wscore"] >= max_wscore / paralog_tolerance
+            ]
             if max_paralogs > -1:
                 accepted_models = accepted_models[: max_paralogs + 1]
             filter_models[prot] = accepted_models
@@ -2739,7 +2751,14 @@ def calculate_psl_identity(
 
 
 def blat_misc_dna_psl_to_dict(
-    psl_path, target_dict, min_identity, min_coverage, marker_type, disable_stitching, max_paralogs
+    psl_path,
+    target_dict,
+    min_identity,
+    min_coverage,
+    marker_type,
+    disable_stitching,
+    max_paralogs,
+    paralog_tolerance,
 ):
     """
     Parse .psl from BLAT, assemble greedily the partial hits, and return the best set of hits if
@@ -2891,7 +2910,7 @@ def blat_misc_dna_psl_to_dict(
         assembly_paths = [[full_hits[f]] for f in range(len(full_hits))] + sorted_paths
 
         # Search FASTA assembly input ('target_dict') and extract/stitch needed sequence fragments
-        assembly = extract_and_stitch_edges(assembly_paths, max_overlap_bp, max_paralogs)
+        assembly = extract_and_stitch_edges(assembly_paths, max_paralogs)
         assembly_paths = None
         return assembly
 
@@ -2908,7 +2927,7 @@ def blat_misc_dna_psl_to_dict(
             return False
         return bool(overlap <= max_overlap_bp)
 
-    def extract_and_stitch_edges(assembly_paths, max_overlap_bp: int, max_paralogs: int):
+    def extract_and_stitch_edges(assembly_paths, max_paralogs: int):
         """
         Returns a list of stitched sequences with metadata, sorted by relevance: 'full' hits first
         sorted by 'wscore', followed by assembled hits sorted by 'wscore', and finally
@@ -3282,6 +3301,11 @@ def blat_misc_dna_psl_to_dict(
                 )
             # Sort hits from largest to smallest 'wscore'
             dna_hits[dna_ref] = sorted(dna_hits[dna_ref], key=lambda i: i["wscore"], reverse=True)
+            # Filter by 'paralog_tolerance'
+            max_wscore = dna_hits[dna_ref][0]["wscore"]
+            dna_hits[dna_ref] = [
+                hit for hit in dna_hits[dna_ref] if hit["wscore"] >= max_wscore / paralog_tolerance
+            ]
 
         # If multiple references of the same kind exist in the reference, then choose the one with
         # the best hit that has the highest 'wscore', break ties by averaging the 'wscore' of all

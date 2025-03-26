@@ -401,6 +401,7 @@ def extract(full_command, args):
         log.log(f"{'Disable contig stitching':>{mar}}: {bold(args.disable_stitching)}")
         max_paralogs_msg = dim("(Keep all paralogs)") if args.max_paralogs == -1 else ""
         log.log(f"{'Max. paralogs':>{mar}}: {bold(args.max_paralogs)} {max_paralogs_msg}")
+        log.log(f"{'Paralog tolerance':>{mar}}: {bold(args.paralog_tolerance)}")
         loci_files_msg = ""
         if args.max_loci_files == 0:
             loci_files_msg = dim("(Do not write separate loci files per sample)")
@@ -450,6 +451,7 @@ def extract(full_command, args):
                             args.max_loci_files,
                             args.max_loci_scipio_x2,
                             args.max_paralogs,
+                            args.paralog_tolerance,
                             args.predict,
                             prot_threads,
                             prot_ram,
@@ -482,6 +484,7 @@ def extract(full_command, args):
                             args.max_loci_files,
                             args.max_loci_scipio_x2,
                             args.max_paralogs,
+                            args.paralog_tolerance,
                             args.predict,
                             prot_threads,
                             prot_ram,
@@ -514,6 +517,7 @@ def extract(full_command, args):
                             args.max_loci_files,
                             args.max_loci_scipio_x2,
                             args.max_paralogs,
+                            args.paralog_tolerance,
                             args.predict,
                             prot_threads,
                             prot_ram,
@@ -542,6 +546,7 @@ def extract(full_command, args):
                             args.disable_stitching,
                             args.max_loci_files,
                             args.max_paralogs,
+                            args.paralog_tolerance,
                             tsv_comment,
                             dna_threads,
                             dna_ram,
@@ -852,6 +857,7 @@ def extract(full_command, args):
                             args.disable_stitching,
                             args.max_loci_files,
                             args.max_paralogs,
+                            args.paralog_tolerance,
                             tsv_comment,
                             clust_threads,
                             clust_ram,
@@ -1497,6 +1503,7 @@ def scipio_coding(
     max_loci_files,
     max_loci_scipio_x2,
     max_paralogs,
+    paralog_tolerance,
     predict,
     threads,
     ram_bytes,
@@ -1648,6 +1655,7 @@ def scipio_coding(
             marker_type,
             transtable,
             max_paralogs,
+            paralog_tolerance,
             predict,
         )
 
@@ -2275,6 +2283,7 @@ def blat_misc_dna(
     disable_stitching,
     max_loci_files,
     max_paralogs,
+    paralog_tolerance,
     tsv_comment,
     threads,
     ram_bytes,
@@ -2352,6 +2361,7 @@ def blat_misc_dna(
             marker_type,
             disable_stitching,
             max_paralogs,
+            paralog_tolerance,
         )
         if not dna_hits:
             message = red(

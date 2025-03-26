@@ -654,6 +654,15 @@ class CaptusAssembly(object):
             " more sophisticated filter for paralogs. -1 disables the removal of paralogs",
         )
         output_group.add_argument(
+            "--paralog_tolerance",
+            action="store",
+            default=5,
+            type=int,
+            dest="paralog_tolerance",
+            help="Only paralogs with a wscore >= locus best hit wscore / paralog_tolerance will be"
+            " retained",
+        )
+        output_group.add_argument(
             "--max_loci_files",
             action="store",
             default=0,
