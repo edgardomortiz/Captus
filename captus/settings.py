@@ -501,7 +501,10 @@ MAX_ORGANELLE_SIZE = {
 }
 
 # Minimum wscore allowed in PSL records
-MIN_WSCORE = 0.001
+MIN_ABS_WSCORE = 0.001
+
+# Minimum wscore as proportio of the best wscore for the target sequence in PSL records
+MIN_PROP_WSCORE = 0.05
 
 # BLAT size multipliers per marker type
 SIZE_MUL = {

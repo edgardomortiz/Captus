@@ -188,7 +188,7 @@ def select_refs_per_locus(
 ):
     prefix = f"{prefix}_i{min_identity:.2f}_c{min_coverage:.2f}_w{wscore_proportion:.2f}"
     prefix += f"_v{coverage_proportion:.2f}_l{length_proportion:.2f}_s{size_proportion:.2f}"
-    clust_log_file = Path(out_dir, f"{prefix}_mmseqs.log")
+    clust_log_file = Path(out_dir, f"{prefix}.log")
     # 1. Disalign sequences, replace "__" with "_", add locus to each seq, concatenate for clustering
     # keep track of highest wscore per locus in 'max_wscores'
     full_clust_input = {}

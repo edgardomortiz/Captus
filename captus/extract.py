@@ -2798,7 +2798,8 @@ def split_psl_by_contigs_add_wscore(
 
     # 1. Calculate wscore per hit and write accepted/rejected, store contig sizes for accepted
     contig_sizes = {}
-    target_wscores = {}
+    target_all_wscores = {}
+    target_max_wscores = {}
     with open(psl_raw_path, "rt") as psl_in:
         with open(psl_rejected_path, "wt") as psl_rej:
             with open(psl_wscore_path, "wt") as psl_wsc:
@@ -2812,31 +2813,53 @@ def split_psl_by_contigs_add_wscore(
                         locus = p["q_name"].split(settings.REF_CLUSTER_SEP)[-1]
                     target = p["q_name"]
                     line_out = f"{line.strip()}\t{wscore:.5f}\n"
-                    if wscore >= settings.MIN_WSCORE:
-                        if locus not in target_wscores:
-                            target_wscores[locus] = {target: wscore}
+                    if wscore >= settings.MIN_ABS_WSCORE:
+                        if locus not in target_all_wscores:
+                            target_all_wscores[locus] = {target: wscore}
                         else:
-                            if target not in target_wscores[locus]:
-                                target_wscores[locus][target] = wscore
+                            if target not in target_all_wscores[locus]:
+                                target_all_wscores[locus][target] = wscore
                             else:
-                                if wscore > target_wscores[locus][target]:
-                                    target_wscores[locus][target] = wscore
+                                if wscore > target_all_wscores[locus][target]:
+                                    target_all_wscores[locus][target] = wscore
                         contig_sizes[p["t_name"]] = p["t_size"]
                         psl_wsc.write(line_out)
                     else:
                         psl_rej.write(line_out)
+                    if target not in target_max_wscores:
+                        target_max_wscores[target] = wscore
+                    else:
+                        if wscore >= target_max_wscores[target]:
+                            target_max_wscores[target] = wscore
+    unfiltered_psl_wscore_path = Path(
+        psl_wscore_path.parent, psl_wscore_path.name.replace(".psl", "_unfiltered.psl")
+    )
+    psl_wscore_path.rename(unfiltered_psl_wscore_path)
+    with open(unfiltered_psl_wscore_path, "rt") as psl_in:
+        with open(psl_rejected_path, "at") as psl_rej:
+            with open(psl_wscore_path, "wt") as psl_wsc:
+                for line in psl_in:
+                    p = parse_psl_record(line)
+                    max_target_wscore = target_max_wscores[p["q_name"]]
+                    if p["wscore"] >= max_target_wscore * settings.MIN_PROP_WSCORE:
+                        psl_wsc.write(line)
+                    else:
+                        line_out = f"{line.strip()};max_target_wscore={max_target_wscore:.5f}\n"
+                        psl_rej.write(line_out)
+    unfiltered_psl_wscore_path.unlink()
+
     # Exit if there were no accepted hits
     if len(contig_sizes) == 0:
         return None, psl_rejected_path
 
     if separators_found is True:
-        num_targets = sum([len(target_wscores[locus]) for locus in target_wscores])
+        num_targets = sum([len(target_all_wscores[locus]) for locus in target_all_wscores])
         potential_combos = (num_targets) * (num_targets - 1)
         if potential_combos > settings.MAX_CROSS_LOCI_COMP or stage == "initial":
             # 2. Sort targets by wscores in reverse order inside each locus in target_wscores
-            for locus in target_wscores:
-                target_wscores[locus] = dict(
-                    sorted(target_wscores[locus].items(), key=lambda item: item[1], reverse=True)
+            for locus in target_all_wscores:
+                target_all_wscores[locus] = dict(
+                    sorted(target_all_wscores[locus].items(), key=lambda item: item[1], reverse=True)
                 )
             # 3. Determine best_n_targets
             if stage == "initial" and potential_combos < settings.MAX_CROSS_LOCI_COMP:
@@ -2847,7 +2870,7 @@ def split_psl_by_contigs_add_wscore(
                 best_n_targets = settings.BEST_N_TARGETS_GLOBAL
                 if max(contig_sizes.values()) >= settings.MIN_CHROM_SIZE:
                     best_n_targets /= 10
-                num_loci = len(target_wscores)
+                num_loci = len(target_all_wscores)
                 for n in range(best_n_targets, 1, -1):
                     loci_target_combos = (num_loci * n) * ((num_loci - 1) * n)
                     if loci_target_combos > settings.MAX_CROSS_LOCI_COMP:
@@ -2857,15 +2880,15 @@ def split_psl_by_contigs_add_wscore(
                 best_n_targets = max(1, best_n_targets)
             # 4. Get n_best targets from every locus in target_wscores
             allowed_targets = []
-            for locus in target_wscores:
+            for locus in target_all_wscores:
                 counter = 0
-                for target in target_wscores[locus]:
+                for target in target_all_wscores[locus]:
                     if counter < best_n_targets:
                         allowed_targets.append(target)
                         counter += 1
                     else:
                         break
-            del target_wscores
+            del target_all_wscores
 
             # 5. Remove hits to targets that are not present in allowed_targets
             unfiltered_psl_wscore_path = Path(
