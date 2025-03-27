@@ -17,18 +17,34 @@ import gzip
 import os
 import random
 import shutil
+import statistics
 import subprocess
 import sys
 from pathlib import Path
 
-# Locus name separator
+# Captus directories
+CAPTUS_DIRS = {
+    "unaligned": "01_unaligned",
+    "untrimmed": "02_untrimmed",
+    "trimmed": "03_trimmed",
+    "unfiltered": "04_unfiltered",
+    "naive": "05_naive",
+    "informed": "06_informed",
+    "NUC": "01_coding_NUC",
+    "PTD": "02_coding_PTD",
+    "MIT": "03_coding_MIT",
+    "DNA": "04_misc_DNA",
+    "CLR": "05_clusters",
+    "AA": "01_AA",
+    "NT": "02_NT",
+    "GE": "03_genes",
+    "GF": "04_genes_flanked",
+    "MA": "01_matches",
+    "MF": "02_matches_flannked",
+}
+
+# Locus name separator in target files
 REF_CLUSTER_SEP = "-"
-
-# Retain cluster reps that are at least CLR_MIN_LENGTH_PROP * longest cluster representative seq
-CLR_MIN_LENGTH_PROP = 0.66
-
-# Retain cluster reps that are at least CLR_MIN_SIZE_PROP * deepest cluster
-CLR_MIN_SIZE_PROP = 0.10
 
 
 def fasta_to_dict(fasta_path):
@@ -159,29 +175,130 @@ def split_mmseqs_clusters_file(all_seqs_file_path):
 def select_refs_per_locus(
     fastas_paths: list,
     fasta_ext: str,
-    min_identity: float,
-    min_coverage: float,
     out_dir: Path,
     prefix: str,
+    include_references: bool,
+    min_identity: float,
+    min_coverage: float,
+    wscore_proportion: float,
+    coverage_proportion: float,
+    length_proportion: float,
+    size_proportion: float,
     threads,
 ):
+    prefix = f"{prefix}_i{min_identity:.2f}_c{min_coverage:.2f}_w{wscore_proportion:.2f}"
+    prefix += f"_v{coverage_proportion:.2f}_l{length_proportion:.2f}_s{size_proportion:.2f}"
+    clust_log_file = Path(out_dir, f"{prefix}_mmseqs.log")
     # 1. Disalign sequences, replace "__" with "_", add locus to each seq, concatenate for clustering
-    clust_input = {}
+    # keep track of highest wscore per locus in 'max_wscores'
+    full_clust_input = {}
+    max_wscores_covers = {}
     for fasta_path in fastas_paths:
         fasta = fasta_to_dict(fasta_path)
         locus_name = fasta_path.name.replace(f".{fasta_ext}", "")
         for seq_name in fasta:
-            new_seq_name = f"{seq_name.replace('__', '_')}-{locus_name}"
-            new_seq = fasta[seq_name]["sequence"].replace("-", "").replace("n", "")
-            clust_input[new_seq_name] = {
-                "sequence": new_seq,
-                "description": fasta[seq_name]["description"],
-            }
+            if include_references is True:
+                new_seq_name = f"{seq_name.replace('__', '_')}-{locus_name}"
+                new_seq = fasta[seq_name]["sequence"].replace("-", "").replace("n", "")
+                full_clust_input[new_seq_name] = {
+                    "sequence": new_seq,
+                    "description": fasta[seq_name]["description"],
+                }
+                if "wscore" in fasta[seq_name]["description"]:
+                    wscore = float(fasta[seq_name]["description"].split("wscore=")[-1].split("]")[0])
+                else:
+                    wscore = 1
+                if "cover" in fasta[seq_name]["description"]:
+                    coverage = float(fasta[seq_name]["description"].split("cover=")[-1].split("]")[0])
+                else:
+                    coverage = 1
+                seq_info = {
+                    "wscore": wscore,
+                    "coverage": coverage,
+                }
+                if locus_name not in max_wscores_covers:
+                    max_wscores_covers[locus_name] = seq_info
+                else:
+                    if wscore > max_wscores_covers[locus_name]["wscore"]:
+                        max_wscores_covers[locus_name] = seq_info
+                    elif wscore == max_wscores_covers[locus_name]["wscore"]:
+                        if coverage >= max_wscores_covers[locus_name]["coverage"]:
+                            max_wscores_covers[locus_name] = seq_info
+            else:
+                if seq_name.endswith("__ref"):
+                    continue
+                else:
+                    new_seq_name = f"{seq_name.replace('__', '_')}-{locus_name}"
+                    new_seq = fasta[seq_name]["sequence"].replace("-", "").replace("n", "")
+                    full_clust_input[new_seq_name] = {
+                        "sequence": new_seq,
+                        "description": fasta[seq_name]["description"],
+                    }
+                    if "wscore" in fasta[seq_name]["description"]:
+                        wscore = float(fasta[seq_name]["description"].split("wscore=")[-1].split("]")[0])
+                    else:
+                        wscore = 1
+                    if "cover" in fasta[seq_name]["description"]:
+                        coverage = float(
+                            fasta[seq_name]["description"].split("cover=")[-1].split("]")[0]
+                        )
+                    else:
+                        coverage = 1
+                    seq_info = {
+                        "wscore": wscore,
+                        "coverage": coverage,
+                    }
+                    if locus_name not in max_wscores_covers:
+                        max_wscores_covers[locus_name] = seq_info
+                    else:
+                        if wscore > max_wscores_covers[locus_name]["wscore"]:
+                            max_wscores_covers[locus_name] = seq_info
+                        elif wscore == max_wscores_covers[locus_name]["wscore"]:
+                            if coverage >= max_wscores_covers[locus_name]["coverage"]:
+                                max_wscores_covers[locus_name] = seq_info
+    msg = (
+        f"PREFIX: {prefix}\n"
+        f"LOG: {clust_log_file}\n"
+        "\n"
+        f"Starting with a total of {len(full_clust_input)} sequences in {len(max_wscores_covers)} loci\n"
+        "\n"
+    )
+    print(msg)
+    with open(clust_log_file, "w") as log:
+        log.write(msg)
+
+    # 2. Filter clustering input by 'wscore_proportion' and 'length_proportion'
+    clust_input = {}
+    for seq_name in full_clust_input:
+        locus_name = seq_name.split(REF_CLUSTER_SEP)[-1]
+        if "wscore" in full_clust_input[seq_name]["description"]:
+            wscore = float(full_clust_input[seq_name]["description"].split("wscore=")[-1].split("]")[0])
+        else:
+            wscore = 1
+        if "cover" in full_clust_input[seq_name]["description"]:
+            coverage = float(full_clust_input[seq_name]["description"].split("cover=")[-1].split("]")[0])
+        else:
+            coverage = 1
+        if (
+            wscore >= max_wscores_covers[locus_name]["wscore"] * wscore_proportion
+            and coverage >= max_wscores_covers[locus_name]["coverage"] * coverage_proportion
+        ):
+            clust_input[seq_name] = full_clust_input[seq_name]
     clust_input_path = Path(out_dir, "clust_input.fasta")
     dict_to_fasta(clust_input, clust_input_path)
+    msg = (
+        f"Retained {len(clust_input)} ({len(clust_input)/len(full_clust_input):.2%})"
+        f" sequences after filtering by 'WSCORE_PROPORTION' of {wscore_proportion:.2f}"
+        f" and 'COVERAGE_PROPORTION' of {coverage_proportion:.2f}\n"
+        "\n"
+        "CLUSTERING...\n"
+        "\n"
+    )
+    print(msg)
+    with open(clust_log_file, "a") as log:
+        log.write(msg)
 
-    # 2. Cluster
-    prefix = f"{prefix}_cl{min_identity:.2f}_cov{min_coverage:.2f}"
+    # 3. Cluster
     tmp_path = Path(out_dir, "tmp")
     min_identity = float(min_identity / 100)
     min_coverage = float(min_coverage / 100)
@@ -230,20 +347,21 @@ def select_refs_per_locus(
             "--gap-open",
             f"{9}",
         ]
-    mmseqs_log_file = Path(out_dir, f"{prefix}_mmseqs.log")
-    with open(mmseqs_log_file, "w") as mmseqs_log:
-        mmseqs_log.write(f"Captus' MMseqs2 Command:\n  {' '.join(mmseqs_cmd)}\n\n")
-    with open(mmseqs_log_file, "a") as mmseqs_log:
-        subprocess.run(mmseqs_cmd, stdout=mmseqs_log, stdin=mmseqs_log)
+    with open(clust_log_file, "a") as log:
+        log.write(f"Captus' MMseqs2 Command:\n  {' '.join(mmseqs_cmd)}\n\n")
+    with open(clust_log_file, "a") as log:
+        subprocess.run(mmseqs_cmd, stdout=log, stdin=log)
 
     all_seqs = Path(out_dir, f"{prefix}_all_seqs.fasta")
     cluster_tsv = Path(out_dir, f"{prefix}_cluster.tsv")
     rep_seq = Path(out_dir, f"{prefix}_rep_seq.fasta")
 
-    # 3. Get max depth and length for each locus' clusters
+    # 4. Get max depth and length for each locus' clusters
     clusters = split_mmseqs_clusters_file(all_seqs)
+    cluster_sizes = []
     loci = {}
     for cluster in clusters:
+        cluster_sizes.append(len(cluster) / 2)
         locus = cluster[0].split()[0].split(REF_CLUSTER_SEP)[-1]
         cluster_info = {
             "size": len(cluster) / 2,
@@ -257,16 +375,29 @@ def select_refs_per_locus(
             elif cluster_info["size"] == loci[locus]["size"]:
                 if cluster_info["length"] > loci[locus]["length"]:
                     loci[locus] = cluster_info
+    msg = (
+        "\n"
+        f"TOTAL NUMBER OF CLUSTERS: {len(cluster_sizes)}\n"
+        f"MEAN CLUSTER SIZE: {statistics.mean(cluster_sizes):.2f}\n"
+        f"MEDIAN CLUSTER SIZE: {statistics.median(cluster_sizes):.2f}\n"
+        f"STD DEV CLUSTER SIZE: {statistics.stdev(cluster_sizes):.2f}\n"
+        f"MAX CLUSTER SIZE: {max(cluster_sizes):.0f}\n"
+        f"SINGLETON CLUSTERS: {cluster_sizes.count(1)}\n"
+        "\n"
+    )
+    print(msg)
+    with open(clust_log_file, "a") as log:
+        log.write(msg)
 
-    # 4. Select and format cluster representatives
+    # 5. Select and format cluster representatives
     loci_reps = {}
     for cluster in clusters:
         locus = cluster[0].split()[0].split(REF_CLUSTER_SEP)[-1]
         size = len(cluster) / 2
         length = len(cluster[1])
         if (
-            size >= loci[locus]["size"] * CLR_MIN_SIZE_PROP
-            and length >= loci[locus]["length"] * CLR_MIN_LENGTH_PROP
+            size >= loci[locus]["size"] * size_proportion
+            and length >= loci[locus]["length"] * length_proportion
         ):
             seq_name = cluster[0].split()[0].replace(">", "")
             sequence = cluster[1]
@@ -284,13 +415,44 @@ def select_refs_per_locus(
                     "sequence": sequence,
                     "description": description,
                 }
+    reps_per_locus = []
+    msg = "Loci with more than 3 representatives:\n"
+    print(msg)
+    with open(clust_log_file, "a") as log:
+        log.write(msg)
+        for locus in loci_reps:
+            reps_per_locus.append(len(loci_reps[locus]))
+            if len(loci_reps[locus]) > 3:
+                print(f"{locus}:")
+                log.write(f"{locus}:\n")
+                for seq_name in loci_reps[locus]:
+                    print(f"{seq_name} {loci_reps[locus][seq_name]['description']}")
+                    log.write(f"{seq_name} {loci_reps[locus][seq_name]['description']}\n")
+    msg = (
+        "\n"
+        f"TOTAL LOCI REMAINING: {len(reps_per_locus)}\n"
+        f"TOTAL SEQS IN TARGET FILE: {sum(reps_per_locus)}\n"
+        f"MEAN REPRESENTATIVES PER LOCUS: {statistics.mean(reps_per_locus):.2f}\n"
+        f"MEDIAN REPRESENTATIVES PER LOCUS: {statistics.median(reps_per_locus):.2f}\n"
+        f"STD DEV REPRESENTATIVES PER LOCUS: {statistics.stdev(reps_per_locus):.2f}\n"
+        f"MAX REPRESENTATIVES PER LOCUS: {max(reps_per_locus):.0f}\n"
+        f"LOCI WITH A SINGLE REPRESENTATIVE: {reps_per_locus.count(1)}\n"
+        "\n"
+    )
+    print(msg)
+    with open(clust_log_file, "a") as log:
+        log.write(msg)
 
-    # 5. SAve new target file
+    # 6. Save new target file
     new_targets_path = Path(out_dir, f"{prefix}.fasta")
     for locus in sorted(loci_reps):
         dict_to_fasta(loci_reps[locus], new_targets_path, append=True, sort=True)
+    msg = f"NEW TARGET FILE SAVED TO: '{new_targets_path}'\n"
+    print(msg)
+    with open(clust_log_file, "a") as log:
+        log.write(msg)
 
-    # 6. Intermediate file cleanup
+    # 7. Intermediate file cleanup
     clust_input_path.unlink()
     all_seqs.unlink()
     cluster_tsv.unlink()
@@ -314,35 +476,35 @@ def main():
         help="Path to the directory that contains the output from the alignment step of Captus",
     )
     parser.add_argument(
-        "--stage_dir",
+        "--stage",
         action="store",
-        default="03_trimmed",
-        dest="stage_dir",
-        choices=["01_unaligned", "02_untrimmed", "03_trimmed"],
+        default="untrimmed",
+        dest="stage",
+        choices=["unaligned", "untrimmed", "trimmed"],
         help="Alignment stage",
     )
     parser.add_argument(
-        "--filter_dir",
+        "--filter",
         action="store",
-        default="06_informed",
-        dest="filter_dir",
-        choices=["04_unfiltered", "05_naive", "06_informed"],
-        help="Paralog filter",
+        default="unfiltered",
+        dest="filter",
+        choices=["unfiltered", "naive", "informed"],
+        help="Paralog filter, this is ignored when '--stage' is 'unaligned'",
     )
     parser.add_argument(
-        "--marker_dir",
+        "--marker",
         action="store",
-        default="01_coding_NUC",
-        dest="marker_dir",
-        choices=["01_coding_NUC", "02_coding_PTD", "03_coding_MIT", "04_misc_DNA", "05_clusters"],
+        default="NUC",
+        dest="marker",
+        choices=["NUC", "PTD", "MIT", "DNA", "CLR"],
         help="Marker type",
     )
     parser.add_argument(
-        "--format_dir",
+        "--format",
         action="store",
         default="02_NT",
-        dest="format_dir",
-        choices=["01_AA", "02_NT", "03_genes", "04_genes_flanked", "01_matches", "02_matches_flanked"],
+        dest="format",
+        choices=["AA", "NT", "GE", "GF", "MA", "MF"],
         help="Alignment data format",
     )
     parser.add_argument(
@@ -354,29 +516,78 @@ def main():
         help="Output directory name",
     )
     parser.add_argument(
-        "--min_identity",
-        action="store",
-        default=75,
-        type=float,
-        dest="min_identity",
-        help="Minimum identity percentage between sequences in a cluster",
-    )
-    parser.add_argument(
-        "--min_coverage",
-        action="store",
-        default=33,
-        type=float,
-        dest="min_coverage",
-        help="Any sequence in a cluster has to be at least this percent included in the length"
-        " of the longest sequence in the cluster",
-    )
-    parser.add_argument(
         "-p",
         "--prefix",
         action="store",
         default="new_targets",
         dest="prefix",
         help="Prefix for output files, maybe use the original name of target file e.g. Mega353",
+    )
+    parser.add_argument(
+        "-r",
+        "--include_references",
+        action="store_true",
+        dest="include_references",
+        help="Enable to include reference target sequences (if present in the alignments) for clustering",
+    )
+    parser.add_argument(
+        "-i",
+        "--min_identity",
+        action="store",
+        default=70,
+        type=float,
+        dest="min_identity",
+        help="Minimum identity percentage between sequences in a cluster",
+    )
+    parser.add_argument(
+        "-c",
+        "--min_coverage",
+        action="store",
+        default=20,
+        type=float,
+        dest="min_coverage",
+        help="Any sequence in a cluster has to be at least this percent included in the length"
+        " of the longest sequence in the cluster",
+    )
+    parser.add_argument(
+        "-w",
+        "--wscore_proportion",
+        action="store",
+        default=0.55,
+        type=float,
+        dest="wscore_proportion",
+        help="Keep sequences with at least this proportion of the wscore of the highest wscore"
+        " in the locus",
+    )
+    parser.add_argument(
+        "-v",
+        "--coverage_proportion",
+        action="store",
+        default=0.55,
+        type=float,
+        dest="coverage_proportion",
+        help="Keep sequences with at least this proportion of the coverage of the highest wscore"
+        " sequence in the locus",
+    )
+    parser.add_argument(
+        "-l",
+        "--length_proportion",
+        action="store",
+        default=0.75,
+        type=float,
+        dest="length_proportion",
+        help="Keep cluster representatives with at least this proportion of the length of the"
+        " longest cluster representative in the locus",
+    )
+    parser.add_argument(
+        "-s",
+        "--size_proportion",
+        action="store",
+        default=0.55,
+        type=float,
+        dest="size_proportion",
+        help="Keep cluster representatives with least this proportion of the size of the largest"
+        " cluster in the locus",
     )
     parser.add_argument(
         "--threads",
@@ -393,33 +604,45 @@ def main():
         except OSError:
             quit_with_error(f"Captus was unable to make the output directory {Path(args.out)}")
 
-    aln_dir = Path(
-        args.captus_alignments_dir,
-        args.stage_dir,
-        args.filter_dir,
-        args.marker_dir,
-        args.format_dir,
-    )
+    if args.stage == "unaligned":
+        aln_dir = Path(
+            args.captus_alignments_dir,
+            CAPTUS_DIRS[args.stage],
+            CAPTUS_DIRS[args.marker],
+            CAPTUS_DIRS[args.format],
+        )
+    else:
+        aln_dir = Path(
+            args.captus_alignments_dir,
+            CAPTUS_DIRS[args.stage],
+            CAPTUS_DIRS[args.filter],
+            CAPTUS_DIRS[args.marker],
+            CAPTUS_DIRS[args.format],
+        )
 
     if not aln_dir.is_dir():
         quit_with_error(f"'{aln_dir}' not found, verify this is a valid Captus alignment directory")
 
     fasta_ext = "fna"
-    if args.format_dir == "01_AA":
+    if args.format == "AA":
         fasta_ext = "faa"
 
     fastas_paths = list(aln_dir.glob(f"*.{fasta_ext}"))
 
-    new_targets_path = select_refs_per_locus(
+    select_refs_per_locus(
         fastas_paths,
         fasta_ext,
-        args.min_identity,
-        args.min_coverage,
         args.out,
         args.prefix,
+        args.include_references,
+        args.min_identity,
+        args.min_coverage,
+        args.wscore_proportion,
+        args.coverage_proportion,
+        args.length_proportion,
+        args.size_proportion,
         args.threads,
     )
-    print(f"New target file saved to '{new_targets_path}'")
 
 if __name__ == "__main__":
     main()
