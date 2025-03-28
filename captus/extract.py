@@ -2796,24 +2796,44 @@ def split_psl_by_contigs_add_wscore(
     # possible. The problem is not so bad with contigs assembled in Captus, but it gets super slow
     # when trying to test all cross-loci overlaps in a full-size chromosome sequence
 
-    # 1. Calculate wscore per hit and write accepted/rejected, store contig sizes for accepted
+    def calc_wscore(psl_record: dict):
+        coverage = (
+            psl_record["matches"] + psl_record["rep_matches"] + psl_record["mismatches"]
+        ) / psl_record["q_size"]
+        score = (
+            psl_record["matches"] + psl_record["rep_matches"] - psl_record["mismatches"]
+        ) / psl_record["q_size"]
+        return score * coverage
+
+    # 1. Store 'max_wscore' per target sequence
+    target_max_wscores = {}
+    with open(psl_raw_path, "rt") as psl_in:
+        for line in psl_in:
+            p = parse_psl_record(line)
+            wscore = calc_wscore(p)
+            target = p["q_name"]
+            if target not in target_max_wscores:
+                target_max_wscores[target] = wscore
+            else:
+                if wscore > target_max_wscores[target]:
+                    target_max_wscores[target] = wscore
+
+    # 1. Filter hits according to 'MIN_PROP_WSCORE', store contig sizes for accepted hits
     contig_sizes = {}
     target_all_wscores = {}
-    target_max_wscores = {}
     with open(psl_raw_path, "rt") as psl_in:
         with open(psl_rejected_path, "wt") as psl_rej:
             with open(psl_wscore_path, "wt") as psl_wsc:
                 for line in psl_in:
                     p = parse_psl_record(line)
-                    coverage = (p["matches"] + p["rep_matches"] + p["mismatches"]) / p["q_size"]
-                    score = (p["matches"] + p["rep_matches"] - p["mismatches"]) / p["q_size"]
-                    wscore = score * coverage
+                    wscore = calc_wscore(p)
                     locus = p["q_name"]
                     if separators_found is True:
                         locus = p["q_name"].split(settings.REF_CLUSTER_SEP)[-1]
                     target = p["q_name"]
-                    line_out = f"{line.strip()}\t{wscore:.5f}\n"
-                    if wscore >= settings.MIN_ABS_WSCORE:
+                    line_out = f"{line.strip()}\t{wscore:.5f}"
+                    max_target_wscore = target_max_wscores[target]
+                    if wscore >= max_target_wscore * settings.MIN_PROP_WSCORE:
                         if locus not in target_all_wscores:
                             target_all_wscores[locus] = {target: wscore}
                         else:
@@ -2823,30 +2843,9 @@ def split_psl_by_contigs_add_wscore(
                                 if wscore > target_all_wscores[locus][target]:
                                     target_all_wscores[locus][target] = wscore
                         contig_sizes[p["t_name"]] = p["t_size"]
-                        psl_wsc.write(line_out)
+                        psl_wsc.write(f"{line_out}\n")
                     else:
-                        psl_rej.write(line_out)
-                    if target not in target_max_wscores:
-                        target_max_wscores[target] = wscore
-                    else:
-                        if wscore >= target_max_wscores[target]:
-                            target_max_wscores[target] = wscore
-    unfiltered_psl_wscore_path = Path(
-        psl_wscore_path.parent, psl_wscore_path.name.replace(".psl", "_unfiltered.psl")
-    )
-    psl_wscore_path.rename(unfiltered_psl_wscore_path)
-    with open(unfiltered_psl_wscore_path, "rt") as psl_in:
-        with open(psl_rejected_path, "at") as psl_rej:
-            with open(psl_wscore_path, "wt") as psl_wsc:
-                for line in psl_in:
-                    p = parse_psl_record(line)
-                    max_target_wscore = target_max_wscores[p["q_name"]]
-                    if p["wscore"] >= max_target_wscore * settings.MIN_PROP_WSCORE:
-                        psl_wsc.write(line)
-                    else:
-                        line_out = f"{line.strip()};max_target_wscore={max_target_wscore:.5f}\n"
-                        psl_rej.write(line_out)
-    unfiltered_psl_wscore_path.unlink()
+                        psl_rej.write(f"{line_out};max_target_wscore={max_target_wscore:.5f}\n")
 
     # Exit if there were no accepted hits
     if len(contig_sizes) == 0:
