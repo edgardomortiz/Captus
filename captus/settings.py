@@ -500,6 +500,9 @@ MAX_ORGANELLE_SIZE = {
     "MIT": 7_500_000,
 }
 
+# Minimum wscore for a PSL records
+MIN_ABS_WSCORE = 0.001
+
 # Minimum wscore as proportio of the best wscore for the target sequence in PSL records
 MIN_PROP_WSCORE = 0.02
 

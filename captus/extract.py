@@ -2833,7 +2833,9 @@ def split_psl_by_contigs_add_wscore(
                     target = p["q_name"]
                     line_out = f"{line.strip()}\t{wscore:.5f}"
                     max_target_wscore = target_max_wscores[target]
-                    if wscore >= max_target_wscore * settings.MIN_PROP_WSCORE:
+                    if wscore >= max(
+                        settings.MIN_ABS_WSCORE, max_target_wscore * settings.MIN_PROP_WSCORE
+                    ):
                         if locus not in target_all_wscores:
                             target_all_wscores[locus] = {target: wscore}
                         else:
