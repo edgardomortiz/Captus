@@ -2977,8 +2977,8 @@ def blat_misc_dna_psl_to_dict(
                 ref_starts = [list(path[0]["q_start"])]
                 ref_ends = [list(path[0]["q_end"])]
                 hit_ids = [path[0]["identity"]]
-                sum_matches = [path[0]["matches"]]
-                sum_mismatches = [path[0]["mismatches"]]
+                sum_matches = path[0]["matches"]
+                sum_mismatches = path[0]["mismatches"]
                 for h in range(len(path) - 1):
                     asm_hit["hit_ids"] += f"\n{path[h + 1]['hit_id']}"
                     asm_hit["hit_contigs"] += f"\n{path[h + 1]['hit_contig']}"
