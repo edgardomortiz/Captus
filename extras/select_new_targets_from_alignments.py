@@ -420,7 +420,7 @@ def select_refs_per_locus(
     print(msg)
     with open(clust_log_file, "a") as log:
         log.write(msg)
-        for locus in loci_reps:
+        for locus in sorted(loci_reps):
             reps_per_locus.append(len(loci_reps[locus]))
             if len(loci_reps[locus]) > 3:
                 print(f"{locus}:")

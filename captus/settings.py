@@ -361,19 +361,6 @@ SCIPIO_SCORE_INITIAL_FACTOR = 1.0
 # 1.2 = GT--AG, GC--AG, AT--AC, GG--AG, GA--AG
 SCIPIO_ACCEPTED_INTRON_PENALTY = 1.1
 
-# BLAT identity as proportion of Scipio's 'min_identity' parameter
-PROT_BLAT_IDENT_PROP = 0.90
-
-# BLAT identity proportion for DNA to DNA searches
-SEARCH_IDENT_PROP = 0.99
-
-# BLAT identity proportion for DNA to DNA searches
-DNA_BLAT_MIN_SCORE = 20
-
-# Maximum gap between adjacent partial BLAT hits (-maxIntron), to limit the hit assembly size
-# when searching in chromosome level assemblies (should be increased for synteny analysis?)
-DNA_BLAT_MAX_INSERTION = 50000
-
 # Default Genetic Codes to set Scipio's --transtable
 DEFAULT_GENETIC_CODES = {
     "NUC": {"id": 1, "name": "Standard"},
@@ -494,10 +481,23 @@ SCIPIO_ROUND2_SETTINGS = {
     },
 }
 
+# BLAT identity as proportion of Scipio's 'min_identity' parameter
+PROT_BLAT_IDENT_PROP = 0.90
+
+# BLAT identity proportion for DNA to DNA searches
+SEARCH_IDENT_PROP = 0.99
+
+# BLAT identity proportion for DNA to DNA searches
+DNA_BLAT_MIN_SCORE = 20
+
+# Maximum gap between adjacent partial BLAT hits (-maxIntron), to limit the hit assembly size
+# when searching in chromosome level assemblies (should be increased for synteny analysis?)
+DNA_BLAT_MAX_INSERTION = 50000
+
 # Maximum organellar genome size, avoid looking for organellar genes in larger contigs
 MAX_ORGANELLE_SIZE = {
     "PTD": 550_000,
-    "MIT": 7_500_000,
+    "MIT": 1_000_000,
 }
 
 # Minimum wscore for a PSL records

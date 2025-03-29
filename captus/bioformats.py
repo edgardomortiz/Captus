@@ -2977,7 +2977,8 @@ def blat_misc_dna_psl_to_dict(
                 ref_starts = [list(path[0]["q_start"])]
                 ref_ends = [list(path[0]["q_end"])]
                 hit_ids = [path[0]["identity"]]
-                match_props = [path[0]["matches"] / len(asm_hit["seq_gene"])]
+                sum_matches = [path[0]["matches"]]
+                sum_mismatches = [path[0]["mismatches"]]
                 for h in range(len(path) - 1):
                     asm_hit["hit_ids"] += f"\n{path[h + 1]['hit_id']}"
                     asm_hit["hit_contigs"] += f"\n{path[h + 1]['hit_contig']}"
@@ -2991,7 +2992,8 @@ def blat_misc_dna_psl_to_dict(
                         target_dict, path[h + 1], settings.DNA_UP_DOWN_STREAM_BP, flanked=True
                     )
                     next_seq_gene = extract_psl_sequence(target_dict, path[h + 1], 0)
-                    match_props.append(path[h + 1]["matches"] / len(next_seq_gene))
+                    sum_matches += path[h + 1]["matches"]
+                    sum_mismatches += path[h + 1]["mismatches"]
 
                     overlap = path[h]["q_end"][-1] - path[h + 1]["q_start"][0]
                     # Negative 'overlap' is a gap that has to be filled with 'n's
@@ -3036,11 +3038,9 @@ def blat_misc_dna_psl_to_dict(
                 asm_hit["identity"] = statistics.mean(hit_ids)
                 # Recalculate the 'score' and 'wscore' using sum of matches/mismatches from all
                 # partial hits used in the assemble path
-                ave_match_prop = statistics.mean(match_props)
-                ave_mismatch_prop = 1 - ave_match_prop
-                asm_hit["score"] = (
-                    (ave_match_prop * match_len) - (ave_mismatch_prop * match_len)
-                ) / asm_hit["ref_size"]
+                matches = (sum_matches * match_len) / (sum_matches + sum_mismatches)
+                mismatches = (sum_mismatches * match_len) / (sum_matches + sum_mismatches)
+                asm_hit["score"] = (matches - mismatches) / asm_hit["ref_size"]
                 full_len = len(asm_hit["seq_gene"].replace("n", ""))
                 asm_hit["wscore"] = asm_hit["score"] * (full_len / asm_hit["ref_size"])
                 asm_hit["gapped"] = bool("n" in asm_hit["seq_gene"])
