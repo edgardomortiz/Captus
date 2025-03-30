@@ -312,6 +312,7 @@ def cluster(full_command, args):
                 args.dedup_threshold,
                 args.strand,
                 threads_max,
+                ram_MB,
                 args.overwrite,
                 args.keep_all,
             )
@@ -715,6 +716,7 @@ def dedup_fasta(
     dedup_threshold: float,
     strand: str,
     threads_max: int,
+    ram_mb: int,
     overwrite: bool,
     keep_all: bool,
 ):
@@ -752,6 +754,10 @@ def dedup_fasta(
                 f"{fasta_path}",
                 f"{result_prefix}",
                 f"{tmp_dir}",
+                "--split-memory-limit",
+                f"{ram_mb * settings.MMSEQS_RAM_FRACTION:.0f}M",
+                "--spaced-kmer-mode",
+                f"{0}",
                 "-s",
                 f"{mmseqs_sensitivity}",
                 "--min-seq-id",
@@ -852,6 +858,7 @@ def cluster_markers(
     clust_threshold: float,
     align_singletons: bool,
     threads: int,
+    ram_mb: int,
     overwrite: bool,
 ):
     log.log(bold(f"Clustering '{fasta_concat_path.name}' at {clust_threshold}% identity:"))
@@ -876,6 +883,7 @@ def cluster_markers(
                 1,
                 mmseqs_cluster_mode,
                 threads,
+                ram_mb,
             )
         elif clust_program == "vsearch":
             message = vsearch_cluster(

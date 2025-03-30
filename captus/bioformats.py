@@ -3673,6 +3673,7 @@ def mmseqs_cluster(
     cov_mode,
     cluster_mode,
     threads,
+    ram_mb,
 ):
     """
     Run MMseqs2 easy-linclust but perform some parameter checking/conversion before, the FASTA input
@@ -3695,6 +3696,8 @@ def mmseqs_cluster(
         f"{clustering_input_file}",
         f"{result_prefix}",
         f"{clustering_tmp_dir}",
+        "--split-memory-limit",
+        f"{ram_mb * settings.MMSEQS_RAM_FRACTION:.0f}M",
         "--spaced-kmer-mode",
         f"{0}",
         "-c",

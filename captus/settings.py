@@ -432,7 +432,7 @@ SCIPIO_ROUND2_SETTINGS = {
         "scipio": [
             "--blat_params=-maxIntron=50000",
             "--blat_tilesize=6",
-            "--exhaust_align_size=15000",
+            "--exhaust_align_size=30000",
             "--exhaust_gap_size=21",
             "--min_dna_coverage=0.2",
         ],
@@ -441,7 +441,7 @@ SCIPIO_ROUND2_SETTINGS = {
             "tile_size": 6,
             "one_off": None,
             "min_score": 15,
-            "max_intron": 15000,
+            "max_intron": 50000,
         },
     },
     # Change here the final settings for plastidial genes:
@@ -618,6 +618,9 @@ MMSEQS_KMER_PER_SEQ_SCALE = 0.3
 
 # MMseqs sensitivity set at the max 7.5 (If too slow for a dataset, this can be decreased via options)
 MMSEQS_SENSITIVITY = 7.5
+
+# Memory proportion to allocate to MMseqs
+MMSEQS_RAM_FRACTION = 0.99
 
 # A cluster must have at least this proportion of the total number of samples to be used as
 # reference

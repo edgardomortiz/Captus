@@ -349,6 +349,7 @@ def bait(full_command, args):
         fastas_auto,
         fastas_manual,
         threads_max,
+        ram_MB,
         args.overwrite,
         args.show_more,
         mar,
@@ -1256,6 +1257,7 @@ def prepare_targets(
     fastas_auto: list,
     fastas_manual: list,
     threads: int,
+    ram_mb: int,
     overwrite: bool,
     show_more: bool,
     margin: int,
@@ -1374,6 +1376,7 @@ def prepare_targets(
             1,
             2,
             threads,
+            ram_mb,
         )
         log.log(message)
         log.log("")

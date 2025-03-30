@@ -798,6 +798,7 @@ def extract(full_command, args):
                 clust_tmp_dir,
                 args.mafft_path,
                 threads_max,
+                ram_MB,
                 args.debug,
             )
             log.log("")
@@ -3356,6 +3357,7 @@ def cluster_and_select_refs(
     clust_tmp_dir,
     mafft_path,
     max_threads,
+    ram_mb,
     debug,
 ):
     log.log("")
@@ -3375,6 +3377,7 @@ def cluster_and_select_refs(
         cov_mode,
         cluster_mode,
         max_threads,
+        ram_mb,
     )
     log.log(clust1_message)
     log.log("")
@@ -3463,6 +3466,7 @@ def cluster_and_select_refs(
         cov_mode,
         cluster_mode,
         max_threads,
+        ram_mb,
     )
     log.log(clust2_message)
     log.log("")
