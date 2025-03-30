@@ -189,16 +189,17 @@ def select_refs_per_locus(
     prefix = f"{prefix}_i{min_identity:.2f}_c{min_coverage:.2f}_w{wscore_proportion:.2f}"
     prefix += f"_v{coverage_proportion:.2f}_l{length_proportion:.2f}_s{size_proportion:.2f}"
     clust_log_file = Path(out_dir, f"{prefix}.log")
+
     # 1. Disalign sequences, replace "__" with "_", add locus to each seq, concatenate for clustering
     # keep track of highest wscore per locus in 'max_wscores'
     full_clust_input = {}
-    max_wscores_covers = {}
+    all_targets_info = {}
     for fasta_path in fastas_paths:
         fasta = fasta_to_dict(fasta_path)
-        locus_name = fasta_path.name.replace(f".{fasta_ext}", "")
+        locus = fasta_path.name.replace(f".{fasta_ext}", "")
         for seq_name in fasta:
             if include_references is True:
-                new_seq_name = f"{seq_name.replace('__', '_')}-{locus_name}"
+                new_seq_name = f"{seq_name.replace('__', '_')}{REF_CLUSTER_SEP}{locus}"
                 new_seq = fasta[seq_name]["sequence"].replace("-", "").replace("n", "")
                 full_clust_input[new_seq_name] = {
                     "sequence": new_seq,
@@ -207,35 +208,43 @@ def select_refs_per_locus(
                 if "wscore" in fasta[seq_name]["description"]:
                     wscore = float(fasta[seq_name]["description"].split("wscore=")[-1].split("]")[0])
                 else:
-                    wscore = 1
+                    wscore = 1.0
                 if "cover" in fasta[seq_name]["description"]:
                     coverage = float(fasta[seq_name]["description"].split("cover=")[-1].split("]")[0])
                 else:
-                    coverage = 1
-                seq_info = {
-                    "wscore": wscore,
-                    "coverage": coverage,
-                }
-                if locus_name not in max_wscores_covers:
-                    max_wscores_covers[locus_name] = seq_info
+                    coverage = 1.0
+                if "query" in fasta[seq_name]["description"]:
+                    target = fasta[seq_name]["description"].split("query=")[-1].split("]")[0]
                 else:
-                    if wscore > max_wscores_covers[locus_name]["wscore"]:
-                        max_wscores_covers[locus_name] = seq_info
-                    elif wscore == max_wscores_covers[locus_name]["wscore"]:
-                        if coverage >= max_wscores_covers[locus_name]["coverage"]:
-                            max_wscores_covers[locus_name] = seq_info
+                    target = new_seq_name.replace("__ref", "")
+                if target not in all_targets_info:
+                    all_targets_info[target] = {
+                        "wscore": wscore,
+                        "coverage": coverage,
+                        "count": 1,
+                    }
+                else:
+                    all_targets_info[target]["count"] += 1
+                    if wscore > all_targets_info[target]["wscore"]:
+                        all_targets_info[target]["wscore"] = wscore
+                        all_targets_info[target]["coverage"] = coverage
+                    elif wscore == all_targets_info[target]["wscore"]:
+                        if coverage > all_targets_info[target]["coverage"]:
+                            all_targets_info[target]["coverage"] = coverage
             else:
                 if seq_name.endswith("__ref"):
                     continue
                 else:
-                    new_seq_name = f"{seq_name.replace('__', '_')}-{locus_name}"
+                    new_seq_name = f"{seq_name.replace('__', '_')}-{locus}"
                     new_seq = fasta[seq_name]["sequence"].replace("-", "").replace("n", "")
                     full_clust_input[new_seq_name] = {
                         "sequence": new_seq,
                         "description": fasta[seq_name]["description"],
                     }
                     if "wscore" in fasta[seq_name]["description"]:
-                        wscore = float(fasta[seq_name]["description"].split("wscore=")[-1].split("]")[0])
+                        wscore = float(
+                            fasta[seq_name]["description"].split("wscore=")[-1].split("]")[0]
+                        )
                     else:
                         wscore = 1
                     if "cover" in fasta[seq_name]["description"]:
@@ -244,33 +253,61 @@ def select_refs_per_locus(
                         )
                     else:
                         coverage = 1
-                    seq_info = {
-                        "wscore": wscore,
-                        "coverage": coverage,
-                    }
-                    if locus_name not in max_wscores_covers:
-                        max_wscores_covers[locus_name] = seq_info
+                    if "query" in fasta[seq_name]["description"]:
+                        target = fasta[seq_name]["description"].split("query=")[-1].split("]")[0]
                     else:
-                        if wscore > max_wscores_covers[locus_name]["wscore"]:
-                            max_wscores_covers[locus_name] = seq_info
-                        elif wscore == max_wscores_covers[locus_name]["wscore"]:
-                            if coverage >= max_wscores_covers[locus_name]["coverage"]:
-                                max_wscores_covers[locus_name] = seq_info
+                        target = new_seq_name.replace("__ref", "")
+                    if target not in all_targets_info:
+                        all_targets_info[target] = {
+                            "wscore": wscore,
+                            "coverage": coverage,
+                            "count": 1,
+                        }
+                    else:
+                        all_targets_info[target]["count"] += 1
+                        if wscore > all_targets_info[target]["wscore"]:
+                            all_targets_info[target]["wscore"] = wscore
+                            all_targets_info[target]["coverage"] = coverage
+                        elif wscore == all_targets_info[target]["wscore"]:
+                            if coverage > all_targets_info[target]["coverage"]:
+                                all_targets_info[target]["coverage"] = coverage
     msg = (
         f"PREFIX: {prefix}\n"
         f"LOG: {clust_log_file}\n"
         "\n"
-        f"Starting with a total of {len(full_clust_input)} sequences in {len(max_wscores_covers)} loci\n"
+        f"Starting with a total of {len(full_clust_input)} sequences in {len(all_targets_info)} loci\n"
         "\n"
     )
     print(msg)
     with open(clust_log_file, "w") as log:
         log.write(msg)
 
-    # 2. Filter clustering input by 'wscore_proportion' and 'length_proportion'
+    # 2. Retain only most common target per locus and its data
+    best_targets_info = {}
+    for target in all_targets_info:
+        locus = target.split(REF_CLUSTER_SEP)[-1]
+        target_info = {
+            "target": target,
+            "wscore": all_targets_info[target]["wscore"],
+            "coverage": all_targets_info[target]["coverage"],
+            "count": all_targets_info[target]["count"],
+        }
+        if locus not in best_targets_info:
+            best_targets_info[locus] = target_info
+        else:
+            if all_targets_info[target]["count"] > best_targets_info[locus]["count"]:
+                best_targets_info[locus] = target_info
+            elif all_targets_info[target]["count"] == best_targets_info[locus]["count"]:
+                if all_targets_info[target]["wscore"] > best_targets_info[locus]["wscore"]:
+                    best_targets_info[locus] = target_info
+                elif all_targets_info[target]["wscore"] == best_targets_info[locus]["wscore"]:
+                    if all_targets_info[target]["coverage"] > best_targets_info[locus]["coverage"]:
+                        best_targets_info[locus] = target_info
+
+    # 3. Filter according to most common target, "WSCORE_PROPORTION", and "COVERAGE_PROPORTION"
     clust_input = {}
     for seq_name in full_clust_input:
-        locus_name = seq_name.split(REF_CLUSTER_SEP)[-1]
+        locus = seq_name.split(REF_CLUSTER_SEP)[-1]
         if "wscore" in full_clust_input[seq_name]["description"]:
             wscore = float(full_clust_input[seq_name]["description"].split("wscore=")[-1].split("]")[0])
         else:
@@ -279,15 +316,20 @@ def select_refs_per_locus(
             coverage = float(full_clust_input[seq_name]["description"].split("cover=")[-1].split("]")[0])
         else:
             coverage = 1
-        if (
-            wscore >= max_wscores_covers[locus_name]["wscore"] * wscore_proportion
-            and coverage >= max_wscores_covers[locus_name]["coverage"] * coverage_proportion
-        ):
-            clust_input[seq_name] = full_clust_input[seq_name]
-    clust_input_path = Path(out_dir, "clust_input.fasta")
+        if "query" in full_clust_input[seq_name]["description"]:
+            target = full_clust_input[seq_name]["description"].split("query=")[-1].split("]")[0]
+        else:
+            target = seq_name.replace("__ref", "")
+        if target == best_targets_info[locus]["target"]:
+            if (
+                wscore >= best_targets_info[locus]["wscore"] * wscore_proportion
+                and coverage >= best_targets_info[locus]["coverage"] * coverage_proportion
+            ):
+                clust_input[seq_name] = full_clust_input[seq_name]
+    clust_input_path = Path(out_dir, f"{prefix}_clust_input.fasta")
     dict_to_fasta(clust_input, clust_input_path)
     msg = (
-        f"Retained {len(clust_input)} ({len(clust_input)/len(full_clust_input):.2%})"
+        f"Retained {len(clust_input)} ({len(clust_input) / len(full_clust_input):.2%})"
         f" sequences after filtering by 'WSCORE_PROPORTION' of {wscore_proportion:.2f}"
         f" and 'COVERAGE_PROPORTION' of {coverage_proportion:.2f}\n"
         "\n"
@@ -298,7 +340,7 @@ def select_refs_per_locus(
     with open(clust_log_file, "a") as log:
         log.write(msg)
 
-    # 3. Cluster
+    # 4. Cluster
     tmp_path = Path(out_dir, "tmp")
     min_identity = float(min_identity / 100)
     min_coverage = float(min_coverage / 100)
@@ -356,7 +398,7 @@ def select_refs_per_locus(
     cluster_tsv = Path(out_dir, f"{prefix}_cluster.tsv")
     rep_seq = Path(out_dir, f"{prefix}_rep_seq.fasta")
 
-    # 4. Get max depth and length for each locus' clusters
+    # 5. Get max depth and length for each locus' clusters
     clusters = split_mmseqs_clusters_file(all_seqs)
     cluster_sizes = []
     loci = {}
@@ -389,7 +431,7 @@ def select_refs_per_locus(
     with open(clust_log_file, "a") as log:
         log.write(msg)
 
-    # 5. Select and format cluster representatives
+    # 6. Select and format cluster representatives
     loci_reps = {}
     for cluster in clusters:
         locus = cluster[0].split()[0].split(REF_CLUSTER_SEP)[-1]
@@ -443,7 +485,7 @@ def select_refs_per_locus(
     with open(clust_log_file, "a") as log:
         log.write(msg)
 
-    # 6. Save new target file
+    # 7. Save new target file
     new_targets_path = Path(out_dir, f"{prefix}.fasta")
     for locus in sorted(loci_reps):
         dict_to_fasta(loci_reps[locus], new_targets_path, append=True, sort=True)
@@ -452,7 +494,7 @@ def select_refs_per_locus(
     with open(clust_log_file, "a") as log:
         log.write(msg)
 
-    # 7. Intermediate file cleanup
+    # 8. Intermediate file cleanup
     clust_input_path.unlink()
     all_seqs.unlink()
     cluster_tsv.unlink()
@@ -627,7 +669,7 @@ def main():
     if args.format == "AA":
         fasta_ext = "faa"
 
-    fastas_paths = list(aln_dir.glob(f"*.{fasta_ext}"))
+    fastas_paths = list(sorted(aln_dir.glob(f"*.{fasta_ext}")))
 
     select_refs_per_locus(
         fastas_paths,
