@@ -622,6 +622,9 @@ MMSEQS_SENSITIVITY = 7.5
 # Memory proportion to allocate to MMseqs
 MMSEQS_RAM_FRACTION = 0.99
 
+# MMask low complexity regions prior to clustering 1 = True, 0 = False
+MMSEQS_MASK_LOW_COMPLEXITY = 1
+
 # A cluster must have at least this proportion of the total number of samples to be used as
 # reference
 CLR_MIN_SAMPLE_PROP = 0.66

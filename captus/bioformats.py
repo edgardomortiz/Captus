@@ -3698,6 +3698,8 @@ def mmseqs_cluster(
         f"{clustering_tmp_dir}",
         "--split-memory-limit",
         f"{ram_mb * settings.MMSEQS_RAM_FRACTION:.0f}M",
+        "--mask",
+        f"{settings.MMSEQS_MASK_LOW_COMPLEXITY}"
         "--spaced-kmer-mode",
         f"{0}",
         "-c",

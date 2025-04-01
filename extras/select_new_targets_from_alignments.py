@@ -207,11 +207,15 @@ def select_refs_per_locus(
                     "description": fasta[seq_name]["description"],
                 }
                 if "wscore" in fasta[seq_name]["description"]:
-                    wscore = float(fasta[seq_name]["description"].split("wscore=")[-1].split("]")[0])
+                    wscore = float(
+                        fasta[seq_name]["description"].split("wscore=")[-1].split("]")[0]
+                    )
                 else:
                     wscore = 1.0
                 if "cover" in fasta[seq_name]["description"]:
-                    coverage = float(fasta[seq_name]["description"].split("cover=")[-1].split("]")[0])
+                    coverage = float(
+                        fasta[seq_name]["description"].split("cover=")[-1].split("]")[0]
+                    )
                 else:
                     coverage = 1.0
                 if "query" in fasta[seq_name]["description"]:
@@ -272,16 +276,6 @@ def select_refs_per_locus(
                         elif wscore == all_targets_info[target]["wscore"]:
                             if coverage > all_targets_info[target]["coverage"]:
                                 all_targets_info[target]["coverage"] = coverage
-    msg = (
-        f"PREFIX: {prefix}\n"
-        f"LOG: {clust_log_file}\n"
-        "\n"
-        f"Starting with a total of {len(full_clust_input)} sequences in {len(all_targets_info)} loci\n"
-        "\n"
-    )
-    print(msg)
-    with open(clust_log_file, "w") as log:
-        log.write(msg)
 
     # 2. Retain only most common target per locus and its data
     best_targets_info = {}
@@ -304,6 +298,16 @@ def select_refs_per_locus(
                 elif all_targets_info[target]["wscore"] == best_targets_info[locus]["wscore"]:
                     if all_targets_info[target]["coverage"] > best_targets_info[locus]["coverage"]:
                         best_targets_info[locus] = target_info
+    msg = (
+        f"PREFIX: {prefix}\n"
+        f"LOG: {clust_log_file}\n"
+        "\n"
+        f"Starting with a total of {len(full_clust_input)} sequences in {len(best_targets_info)} loci\n"
+        "\n"
+    )
+    print(msg)
+    with open(clust_log_file, "w") as log:
+        log.write(msg)
 
     # 3. Filter according to most common target, "WSCORE_PROPORTION", and "COVERAGE_PROPORTION"
     clust_input = {}
@@ -355,6 +359,8 @@ def select_refs_per_locus(
         f"{clust_input_path}",
         f"{Path(out_dir, prefix)}",
         f"{tmp_path}",
+        "--mask",
+        f"{1}",
         "--spaced-kmer-mode",
         f"{0}",
         "-c",
@@ -409,7 +415,7 @@ def select_refs_per_locus(
         cluster_info = {
             "size": len(cluster) / 2,
             "length": len(cluster[1]),
-            "wscore": float(cluster[0].split("wscore=")[-1].split("]")[0])
+            "wscore": float(cluster[0].split("wscore=")[-1].split("]")[0]),
         }
         if locus not in loci:
             loci[locus] = cluster_info
@@ -475,11 +481,11 @@ def select_refs_per_locus(
                     elif length == loci[locus]["length"]:
                         loci_reps[locus] = locus_rep
     reps_per_locus = []
-    msg = "Loci with more than 3 representatives:\n"
-    print(msg)
     min4 = 0
     with open(clust_log_file, "a") as log:
-        log.write(msg)
+        msg = "Loci with more than 3 representatives:"
+        print(msg)
+        log.write(f"{msg}\n")
         for locus in sorted(loci_reps):
             reps_per_locus.append(len(loci_reps[locus]))
             if len(loci_reps[locus]) > 3:
