@@ -184,6 +184,7 @@ def select_refs_per_locus(
     coverage_proportion: float,
     length_proportion: float,
     size_proportion: float,
+    best_only: bool,
     threads,
 ):
     prefix = f"{prefix}_i{min_identity:.2f}_c{min_coverage:.2f}_w{wscore_proportion:.2f}"
@@ -408,6 +409,7 @@ def select_refs_per_locus(
         cluster_info = {
             "size": len(cluster) / 2,
             "length": len(cluster[1]),
+            "wscore": float(cluster[0].split("wscore=")[-1].split("]")[0])
         }
         if locus not in loci:
             loci[locus] = cluster_info
@@ -415,8 +417,13 @@ def select_refs_per_locus(
             if cluster_info["size"] > loci[locus]["size"]:
                 loci[locus] = cluster_info
             elif cluster_info["size"] == loci[locus]["size"]:
-                if cluster_info["length"] > loci[locus]["length"]:
+                if cluster_info["wscore"] > loci[locus]["wscore"]:
                     loci[locus] = cluster_info
+                elif cluster_info["wscore"] == loci[locus]["wscore"]:
+                    if cluster_info["length"] > loci[locus]["length"]:
+                        loci[locus] = cluster_info
+                    elif cluster_info["length"] == loci[locus]["length"]:
+                        loci[locus] = cluster_info
     msg = (
         "\n"
         f"TOTAL NUMBER OF CLUSTERS: {len(cluster_sizes)}\n"
@@ -437,39 +444,54 @@ def select_refs_per_locus(
         locus = cluster[0].split()[0].split(REF_CLUSTER_SEP)[-1]
         size = len(cluster) / 2
         length = len(cluster[1])
-        if (
-            size >= loci[locus]["size"] * size_proportion
-            and length >= loci[locus]["length"] * length_proportion
-        ):
-            seq_name = cluster[0].split()[0].replace(">", "")
-            sequence = cluster[1]
-            description = " ".join(cluster[0].split()[1:])
-            description = f"[cluster_size={size:.0f}] {description}"
-            if locus not in loci_reps:
-                loci_reps[locus] = {
-                    seq_name: {
-                        "sequence": sequence,
-                        "description": description,
-                    }
-                }
-            else:
-                loci_reps[locus][seq_name] = {
-                    "sequence": sequence,
-                    "description": description,
-                }
+        seq_name = cluster[0].split()[0].replace(">", "")
+        sequence = cluster[1]
+        description = " ".join(cluster[0].split()[1:])
+        description = f"[cluster_size={size:.0f}] {description}"
+        seq_desc = {
+            "sequence": sequence,
+            "description": description,
+        }
+        if best_only is False:
+            if (
+                size >= loci[locus]["size"] * size_proportion
+                and length >= loci[locus]["length"] * length_proportion
+            ):
+                if locus not in loci_reps:
+                    loci_reps[locus] = {seq_name: seq_desc}
+                else:
+                    loci_reps[locus][seq_name] = seq_desc
+        else:
+            wscore = float(cluster[0].split("wscore=")[-1].split("]")[0])
+            locus_rep = {seq_name: seq_desc}
+            if size > loci[locus]["size"]:
+                loci_reps[locus] = locus_rep
+            elif size == loci[locus]["size"]:
+                if wscore > loci[locus]["wscore"]:
+                    loci_reps[locus] = locus_rep
+                elif wscore == loci[locus]["wscore"]:
+                    if length > loci[locus]["length"]:
+                        loci_reps[locus] = locus_rep
+                    elif length == loci[locus]["length"]:
+                        loci_reps[locus] = locus_rep
     reps_per_locus = []
     msg = "Loci with more than 3 representatives:\n"
     print(msg)
+    min4 = 0
     with open(clust_log_file, "a") as log:
         log.write(msg)
         for locus in sorted(loci_reps):
             reps_per_locus.append(len(loci_reps[locus]))
             if len(loci_reps[locus]) > 3:
+                min4 += 1
                 print(f"{locus}:")
                 log.write(f"{locus}:\n")
                 for seq_name in loci_reps[locus]:
                     print(f"{seq_name} {loci_reps[locus][seq_name]['description']}")
                     log.write(f"{seq_name} {loci_reps[locus][seq_name]['description']}\n")
+        msg = f"A total of {min4} loci had more than 3 representative sequences"
+        print(msg)
+        log.write(f"{msg}\n")
     msg = (
         "\n"
         f"TOTAL LOCI REMAINING: {len(reps_per_locus)}\n"
@@ -550,6 +572,13 @@ def main():
         help="Alignment data format",
     )
     parser.add_argument(
+        "-r",
+        "--include_references",
+        action="store_true",
+        dest="include_references",
+        help="Enable to include reference target sequences (if present in the alignments) for clustering",
+    )
+    parser.add_argument(
         "-o",
         "--out",
         action="store",
@@ -563,14 +592,7 @@ def main():
         action="store",
         default="new_targets",
         dest="prefix",
-        help="Prefix for output files, maybe use the original name of target file e.g. Mega353",
-    )
-    parser.add_argument(
-        "-r",
-        "--include_references",
-        action="store_true",
-        dest="include_references",
-        help="Enable to include reference target sequences (if present in the alignments) for clustering",
+        help="Prefix for output files, maybe use the original name of target file e.g. Allium353",
     )
     parser.add_argument(
         "-i",
@@ -598,7 +620,7 @@ def main():
         default=0.55,
         type=float,
         dest="wscore_proportion",
-        help="Keep sequences with at least this proportion of the wscore of the highest wscore"
+        help="Cluster sequences with at least this proportion of the wscore of the highest wscore"
         " in the locus",
     )
     parser.add_argument(
@@ -608,7 +630,7 @@ def main():
         default=0.55,
         type=float,
         dest="coverage_proportion",
-        help="Keep sequences with at least this proportion of the coverage of the highest wscore"
+        help="Cluster sequences with at least this proportion of the coverage of the highest wscore"
         " sequence in the locus",
     )
     parser.add_argument(
@@ -630,6 +652,13 @@ def main():
         dest="size_proportion",
         help="Keep cluster representatives with least this proportion of the size of the largest"
         " cluster in the locus",
+    )
+    parser.add_argument(
+        "-b",
+        "--best_only",
+        action="store_true",
+        dest="best_only",
+        help="Enable to include a single representative per locus in the target file",
     )
     parser.add_argument(
         "--threads",
@@ -683,6 +712,7 @@ def main():
         args.coverage_proportion,
         args.length_proportion,
         args.size_proportion,
+        args.best_only,
         args.threads,
     )
 
