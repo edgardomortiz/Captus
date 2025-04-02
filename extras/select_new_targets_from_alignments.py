@@ -181,6 +181,7 @@ def select_refs_per_locus(
     prefix: str,
     include_references: bool,
     exclude_samples,
+    min_seq_len: int,
     min_identity: float,
     min_coverage: float,
     wscore_proportion: float,
@@ -208,7 +209,9 @@ def select_refs_per_locus(
         locus = fasta_path.name.replace(f".{fasta_ext}", "")
         for seq_name in fasta:
             sample_name = seq_name.split(SEQ_NAME_SEP)[0]
-            if sample_name not in exclude_samples:
+            new_seq = fasta[seq_name]["sequence"].replace("-", "").replace("n", "")
+            new_seq_len = len(new_seq)
+            if sample_name not in exclude_samples and new_seq_len >= min_seq_len:
                 if include_references is True:
                     new_seq_name = f"{seq_name.replace(SEQ_NAME_SEP, '_')}{REF_CLUSTER_SEP}{locus}"
                     new_seq = fasta[seq_name]["sequence"].replace("-", "").replace("n", "")
@@ -623,6 +626,14 @@ def main():
         help="Prefix for output files, maybe use the original name of target file e.g. Allium353",
     )
     parser.add_argument(
+        "--min_seq_len",
+        action="store",
+        default=33,
+        type=int,
+        dest="min_seq_len",
+        help="Minimum sequence length to include in clustering",
+    )
+    parser.add_argument(
         "-i",
         "--min_identity",
         action="store",
@@ -735,6 +746,7 @@ def main():
         args.prefix,
         args.include_references,
         args.exclude_samples,
+        args.min_seq_len,
         args.min_identity,
         args.min_coverage,
         args.wscore_proportion,
