@@ -46,6 +46,8 @@ CAPTUS_DIRS = {
 # Locus name separator in target files
 REF_CLUSTER_SEP = "-"
 
+# Separator between sample name and paralog number
+SEQ_NAME_SEP = "__"
 
 def fasta_to_dict(fasta_path):
     """
@@ -178,6 +180,7 @@ def select_refs_per_locus(
     out_dir: Path,
     prefix: str,
     include_references: bool,
+    exclude_samples,
     min_identity: float,
     min_coverage: float,
     wscore_proportion: float,
@@ -191,6 +194,11 @@ def select_refs_per_locus(
     prefix += f"_v{coverage_proportion:.2f}_l{length_proportion:.2f}_s{size_proportion:.2f}"
     clust_log_file = Path(out_dir, f"{prefix}.log")
 
+    if exclude_samples is None:
+        exclude_samples = []
+    else:
+        exclude_samples = [str(x) for x in exclude_samples.split(",")]
+
     # 1. Disalign sequences, replace "__" with "_", add locus to each seq, concatenate for clustering
     # keep track of highest wscore per locus in 'max_wscores'
     full_clust_input = {}
@@ -199,48 +207,10 @@ def select_refs_per_locus(
         fasta = fasta_to_dict(fasta_path)
         locus = fasta_path.name.replace(f".{fasta_ext}", "")
         for seq_name in fasta:
-            if include_references is True:
-                new_seq_name = f"{seq_name.replace('__', '_')}{REF_CLUSTER_SEP}{locus}"
-                new_seq = fasta[seq_name]["sequence"].replace("-", "").replace("n", "")
-                full_clust_input[new_seq_name] = {
-                    "sequence": new_seq,
-                    "description": fasta[seq_name]["description"],
-                }
-                if "wscore" in fasta[seq_name]["description"]:
-                    wscore = float(
-                        fasta[seq_name]["description"].split("wscore=")[-1].split("]")[0]
-                    )
-                else:
-                    wscore = 1.0
-                if "cover" in fasta[seq_name]["description"]:
-                    coverage = float(
-                        fasta[seq_name]["description"].split("cover=")[-1].split("]")[0]
-                    )
-                else:
-                    coverage = 1.0
-                if "query" in fasta[seq_name]["description"]:
-                    target = fasta[seq_name]["description"].split("query=")[-1].split("]")[0]
-                else:
-                    target = new_seq_name.replace("__ref", "")
-                if target not in all_targets_info:
-                    all_targets_info[target] = {
-                        "wscore": wscore,
-                        "coverage": coverage,
-                        "count": 1,
-                    }
-                else:
-                    all_targets_info[target]["count"] += 1
-                    if wscore > all_targets_info[target]["wscore"]:
-                        all_targets_info[target]["wscore"] = wscore
-                        all_targets_info[target]["coverage"] = coverage
-                    elif wscore == all_targets_info[target]["wscore"]:
-                        if coverage > all_targets_info[target]["coverage"]:
-                            all_targets_info[target]["coverage"] = coverage
-            else:
-                if seq_name.endswith("__ref"):
-                    continue
-                else:
-                    new_seq_name = f"{seq_name.replace('__', '_')}-{locus}"
+            sample_name = seq_name.split(SEQ_NAME_SEP)[0]
+            if sample_name not in exclude_samples:
+                if include_references is True:
+                    new_seq_name = f"{seq_name.replace(SEQ_NAME_SEP, '_')}{REF_CLUSTER_SEP}{locus}"
                     new_seq = fasta[seq_name]["sequence"].replace("-", "").replace("n", "")
                     full_clust_input[new_seq_name] = {
                         "sequence": new_seq,
@@ -251,13 +221,13 @@ def select_refs_per_locus(
                             fasta[seq_name]["description"].split("wscore=")[-1].split("]")[0]
                         )
                     else:
-                        wscore = 1
+                        wscore = 1.0
                     if "cover" in fasta[seq_name]["description"]:
                         coverage = float(
                             fasta[seq_name]["description"].split("cover=")[-1].split("]")[0]
                         )
                     else:
-                        coverage = 1
+                        coverage = 1.0
                     if "query" in fasta[seq_name]["description"]:
                         target = fasta[seq_name]["description"].split("query=")[-1].split("]")[0]
                     else:
@@ -276,6 +246,46 @@ def select_refs_per_locus(
                         elif wscore == all_targets_info[target]["wscore"]:
                             if coverage > all_targets_info[target]["coverage"]:
                                 all_targets_info[target]["coverage"] = coverage
+                else:
+                    if seq_name.endswith("__ref"):
+                        continue
+                    else:
+                        new_seq_name = f"{seq_name.replace('__', '_')}-{locus}"
+                        new_seq = fasta[seq_name]["sequence"].replace("-", "").replace("n", "")
+                        full_clust_input[new_seq_name] = {
+                            "sequence": new_seq,
+                            "description": fasta[seq_name]["description"],
+                        }
+                        if "wscore" in fasta[seq_name]["description"]:
+                            wscore = float(
+                                fasta[seq_name]["description"].split("wscore=")[-1].split("]")[0]
+                            )
+                        else:
+                            wscore = 1
+                        if "cover" in fasta[seq_name]["description"]:
+                            coverage = float(
+                                fasta[seq_name]["description"].split("cover=")[-1].split("]")[0]
+                            )
+                        else:
+                            coverage = 1
+                        if "query" in fasta[seq_name]["description"]:
+                            target = fasta[seq_name]["description"].split("query=")[-1].split("]")[0]
+                        else:
+                            target = new_seq_name.replace("__ref", "")
+                        if target not in all_targets_info:
+                            all_targets_info[target] = {
+                                "wscore": wscore,
+                                "coverage": coverage,
+                                "count": 1,
+                            }
+                        else:
+                            all_targets_info[target]["count"] += 1
+                            if wscore > all_targets_info[target]["wscore"]:
+                                all_targets_info[target]["wscore"] = wscore
+                                all_targets_info[target]["coverage"] = coverage
+                            elif wscore == all_targets_info[target]["wscore"]:
+                                if coverage > all_targets_info[target]["coverage"]:
+                                    all_targets_info[target]["coverage"] = coverage
 
     # 2. Retain only most common target per locus and its data
     best_targets_info = {}
@@ -298,9 +308,14 @@ def select_refs_per_locus(
                 elif all_targets_info[target]["wscore"] == best_targets_info[locus]["wscore"]:
                     if all_targets_info[target]["coverage"] > best_targets_info[locus]["coverage"]:
                         best_targets_info[locus] = target_info
+    if not exclude_samples:
+        exclude_samples = None
+    else:
+        exclude_samples = ",".join(exclude_samples)
     msg = (
         f"PREFIX: {prefix}\n"
         f"LOG: {clust_log_file}\n"
+        f"SAMPLES TO EXCLUDE: {exclude_samples}\n"
         "\n"
         f"Starting with a total of {len(full_clust_input)} sequences in {len(best_targets_info)} loci\n"
         "\n"
@@ -578,6 +593,13 @@ def main():
         help="Alignment data format",
     )
     parser.add_argument(
+        "-e",
+        "--exclude_samples",
+        action="store",
+        dest="exclude_samples",
+        help="Comma-separated list of samples to exclude (no spaces)",
+    )
+    parser.add_argument(
         "-r",
         "--include_references",
         action="store_true",
@@ -712,6 +734,7 @@ def main():
         args.out,
         args.prefix,
         args.include_references,
+        args.exclude_samples,
         args.min_identity,
         args.min_coverage,
         args.wscore_proportion,
