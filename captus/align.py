@@ -32,6 +32,7 @@ from .bioformats import (
     pairwise_identity,
     rehead_root_msa,
     sample_stats,
+    taper_correction,
 )
 from .misc import (
     bold,
@@ -552,9 +553,11 @@ def align(full_command, args):
 
     ################################################################################################
     ############################################################################### TRIMMING SECTION
-    log.log_section_header("Alignment Trimming with ClipKIT")
+    log.log_section_header("Alignment Trimming with TAPER and ClipKIT")
     log.log_explanation(
-        "Now Captus will trim all the alignments using ClipKIT. The trimming strategy can be"
+        "Now Captus will trim all the alignments using TAPER and ClipKIT. Captus will run first the"
+        " TAPER algorithm or its '--taper_aggressive' alternative using '--taper_cutoff' unless"
+        " '--disable_taper' is chosen. Then it proceeds with ClipKIT trimming, the strategy can be"
         " specified with the flag '--clipkit_method'. Once columns are trimmed by ClipKIT, Captus"
         " will remove sequences with less than '--min_coverage' than the mean length of sequences,"
         " ignoring gaps. Trimmed alignments are saved separately in a new directory called "
@@ -570,7 +573,16 @@ def align(full_command, args):
     else:
         log.log(f"{'Concurrent processes':>{mar}}: {bold(concurrent)}")
         log.log("")
-        log.log(f"{'Algorithm':>{mar}}: {bold(args.clipkit_method)}")
+        if args.disable_taper is True:
+            log.log(f"{'TAPER':>{mar}}: {dim('disable')}")
+        else:
+            log.log(f"{'TAPER mask':>{mar}}: {bold(settings.TAPER_MASK)} {dim('(edit in settings.py)')}")
+            log.log(f"{'TAPER cutoff':>{mar}}: {bold(args.taper_cutoff)}")
+            log.log(f"{'TAPER aggressive':>{mar}}: {bold(args.taper_aggressive)}")
+            log.log(f"{'TAPER unfiltered alns':>{mar}}: {bold(args.taper_unfiltered)}")
+        log.log("")
+        log.log(f"{'ClipKIT algorithm':>{mar}}: {bold(args.clipkit_method)}")
+        log.log(f"{'Ends only':>{mar}}: {bold(args.ends_only)}")
         clipkit_gaps = "auto" if args.clipkit_method == "smart-gap" else args.clipkit_gaps
         clipkit_gaps = "auto" if args.min_data_per_column > 0 else args.clipkit_gaps
         log.log(f"{'Gaps threshold':>{mar}}: {bold(clipkit_gaps)}")
@@ -656,16 +668,23 @@ def align(full_command, args):
             )
             log.log("")
 
-        clipkit_params = []
+        taper_clipkit_params = []
+        clipkit_version_float = float(".".join(clipkit_version.split(".")[:2]))
         for fasta_orig in fastas_to_trim:
-            clipkit_params.append(
+            taper_clipkit_params.append(
                 (
+                    args.taper_cutoff,
+                    args.taper_aggressive,
+                    args.taper_unfiltered,
+                    args.disable_taper,
                     clipkit_path,
+                    clipkit_version_float,
                     args.clipkit_method,
                     args.clipkit_gaps,
                     fasta_orig,
                     fastas_to_trim[fasta_orig],
                     args.min_data_per_column,
+                    args.ends_only,
                     args.min_coverage,
                     args.min_samples,
                     args.overwrite,
@@ -674,19 +693,19 @@ def align(full_command, args):
 
         if args.debug:
             tqdm_serial_run(
-                clipkit,
-                clipkit_params,
-                "Trimming alignments with ClipKIT",
-                "ClipKIT trimming completed",
+                taper_clipkit,
+                taper_clipkit_params,
+                "Trimming alignments with TAPER and ClipKIT",
+                "TAPER and ClipKIT trimming completed",
                 "alignment",
                 show_less,
             )
         else:
             tqdm_parallel_async_run(
-                clipkit,
-                clipkit_params,
-                "Trimming alignments with ClipKIT",
-                "ClipKIT trimming completed",
+                taper_clipkit,
+                taper_clipkit_params,
+                "Trimming alignments with TAPER and ClipKIT",
+                "TAPER and ClipKIT trimming completed",
                 "alignment",
                 concurrent,
                 show_less,
@@ -1903,13 +1922,19 @@ def rem_refs_from_fasta(fasta_in: Path, fasta_out: Path, ref_names: list, min_sa
     return message
 
 
-def clipkit(
+def taper_clipkit(
+    taper_cutoff: float,
+    taper_aggressive: bool,
+    taper_unfiltered: bool,
+    disable_taper: bool,
     clipkit_path,
+    clipkit_version_float,
     clipkit_method,
     clipkit_gaps,
     fasta_in: Path,
     fasta_out: Path,
     min_data_per_column,
+    ends_only,
     min_coverage,
     min_samples,
     overwrite,
@@ -1927,9 +1952,25 @@ def clipkit(
                 clipkit_gaps = 1
             else:
                 clipkit_gaps = 1 - (min(num_seqs, min_data_per_column) / num_seqs)
+        is_unfiltered = bool("unfiltered" in f"{fasta_in.parent}")
+        if is_unfiltered is True and taper_unfiltered is False:
+            disable_taper = True
+        clipkit_fasta_in = fasta_in
+        if disable_taper is False:
+            ambig = "X" if fasta_in.suffix == ".faa" else "N"
+            clipkit_fasta_in = Path(fasta_out.parent, f"{fasta_out.name}.taper")
+            clipkit_fasta_in = taper_correction(
+                fasta_in,
+                clipkit_fasta_in,
+                ambig,
+                taper_cutoff,
+                taper_aggressive,
+            )
+            if file_is_empty(clipkit_fasta_in):
+                return red(f"'{fasta_out_short}': FAILED alignment trimming, no TAPER output")
         clipkit_cmd = [
             clipkit_path,
-            f"{fasta_in}",
+            f"{clipkit_fasta_in}",
             "--output",
             f"{fasta_out}",
             "--mode",
@@ -1942,6 +1983,8 @@ def clipkit(
             "fasta",
             "--log",
         ]
+        if clipkit_version_float >= 2.3 and ends_only is True:
+            clipkit_cmd += ["--ends_only"]
         clipkit_log_file = Path(fasta_out.parent, f"{fasta_out.stem}.clipkit.log")
         with open(clipkit_log_file, "w") as clipkit_log:
             clipkit_log.write(f"Captus' ClipKIT Command:\n  {' '.join(clipkit_cmd)}\n\n\n")
@@ -1954,6 +1997,8 @@ def clipkit(
                 for line in clipkit_stats:
                     clipkit_log.write(line)
         clipkit_stats_file.unlink()
+        if disable_taper is False:
+            clipkit_fasta_in.unlink()
         # Initially added because IQ-TREE fails when a sample has empty sequence:
         # Calculate mean ungapped length, remove individual sequences under 'min_coverage'
         # as proportion of the mean of ungapped lengths

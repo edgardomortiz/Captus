@@ -14,6 +14,7 @@ not, see <http://www.gnu.org/licenses/>.
 
 import copy
 import gzip
+import itertools
 import math
 import random
 import re
@@ -3339,6 +3340,290 @@ def blat_misc_dna_psl_to_dict(
         return False
 
 
+def taper_correction(
+    fasta_in_path: Path,
+    fasta_out_path: Path,
+    ambig: str,
+    cutoff_threshold: float,
+    aggressive: bool,
+):
+    """TAPER algorithm published in https://doi.org/10.1111/2041-210X.13696
+       The Julia code translated to Python by an AI language model (Gemini) was then adapted to fit
+       in the trimming stage from the 'align' module of Captus and tested
+
+    Args:
+        fasta_in_path (Path): Path to input FASTA file
+        fasta_out_path (Path): Path to output FASTA file
+        mask (str): Masking character to indicate where the modifications by TAPER
+        ambig (str): Ambiguity character, N for nucleotides, X for aminoacids
+        cutoff_threshold (float): 3.0 as recommended in the TAPER, option available in command line
+        tpars (list of dict): k,p,q,L stored in settings.py, option not available in command line
+        aggressive (bool): enable aggressive mode for correction, option available in command line
+    """
+
+    def correct_sequences(
+        sequences: list,
+        k: int,
+        ambig: str,
+        mask: str,
+        pvalue: float,
+        qvalue: float,
+        cutoff_threshold: float,
+        aggressive: bool,
+    ):
+        seq_upper = [seq.upper() for seq in sequences]
+        seq_array = [list(seq) for seq in sequences]
+        ncols = len(sequences[0]) if sequences else 0
+        nrows = len(sequences)
+        sequences_corrected = []
+
+        if ncols == 0:
+            return
+
+        weights_raw = [[0.0] * nrows for _ in range(ncols)]
+
+        for c_idx in range(ncols):
+            char_counts = [0] * 128
+            for r_idx in range(nrows):
+                if c_idx < len(seq_upper[r_idx]):
+                    char_counts[ord(seq_upper[r_idx][c_idx])] += 1
+
+            if "a" <= ambig <= "z":
+                char_counts[ord(ambig.upper())] = 0
+            if "-" in [seq[c_idx] for seq in sequences if c_idx < len(seq)]:
+                char_counts[ord("-")] = 0
+
+            unq = sum(1 for t in char_counts if t > 0)
+            total = sum(char_counts)
+
+            for r_idx in range(nrows):
+                if c_idx < len(seq_upper[r_idx]):
+                    weights_raw[c_idx][r_idx] = (
+                        total / (unq * char_counts[ord(seq_upper[r_idx][c_idx])])
+                        if total > 0 and unq > 0 and char_counts[ord(seq_upper[r_idx][c_idx])] > 0
+                        else 0
+                    )
+
+        weights = []
+        for r_idx in range(nrows):
+            row_weights = []
+            if len(seq_array[r_idx]) > c_idx:
+                row_weights = [
+                    weights_raw[idx][r_idx]
+                    for idx, char in enumerate(seq_array[r_idx])
+                    if char != "-" and char != ambig
+                ]
+            weights.append(row_weights)
+
+        if aggressive:
+            P = int(round(k * 2 / 3))
+            win = []
+            for arr in weights:
+                win_row = []
+                if len(arr) >= k:
+                    for c_idx in range(len(arr) - k + 1):
+                        win_row.append(sorted(arr[c_idx : c_idx + k])[P])
+                win.append(win_row)
+        else:
+            win = []
+            for arr in weights:
+                win_row = []
+                if len(arr) >= k:
+                    for c_idx in range(len(arr) - k + 1):
+                        win_row.append(statistics.median(arr[c_idx : c_idx + k]))
+                win.append(win_row)
+
+        win_sum = []
+        for arr in weights:
+            win_sum_row = []
+            if len(arr) >= k:
+                for c_idx in range(len(arr) - k + 1):
+                    win_sum_row.append(sum(arr[c_idx : c_idx + k]))
+            win_sum.append(win_sum_row)
+
+        win_sort = [sorted(arr) for arr in win]
+        win_acc = [list(itertools.accumulate(arr)) if arr else [] for arr in win_sort]
+
+        def f(x, y, n_val, m_val):
+            return x**2 / n_val + (0 if n_val == m_val else (y - x) ** 2 / (m_val - n_val))
+
+        v_scores = []
+        for arr in win_acc:
+            if arr:
+                v_scores.append([f(val, arr[-1], idx + 1, len(arr)) for idx, val in enumerate(arr)])
+            else:
+                v_scores.append([])
+
+        win_cutoffs = []
+        for r_idx in range(nrows):
+            if v_scores[r_idx]:
+                max_var_index = v_scores[r_idx].index(max(v_scores[r_idx]))
+                win_cutoffs.append(win_sort[r_idx][max_var_index])
+            else:
+                win_cutoffs.append(0)
+
+        cutoffs_sort = sorted([cutoff for cutoff, v_arr in zip(win_cutoffs, v_scores) if v_arr])
+        cutoff_floor = 0
+        if cutoffs_sort and pvalue < 1:
+            cutoff_floor = cutoffs_sort[len(cutoffs_sort) - 1 - math.floor(len(cutoffs_sort) * pvalue)]
+
+        for r_idx in range(nrows):
+            wr = win[r_idx]
+            wsr = win_sum[r_idx]
+            L = len(wr)
+            original_seq = list(sequences[r_idx])
+
+            if L <= k:
+                sequences_corrected.append("".join(original_seq))
+                continue
+
+            s = [[0] * 2 for _ in range(L)]
+            tiebreaker = [[0] * 2 for _ in range(L)]
+            bt = [[0] * 2 for _ in range(L)]
+
+            cutoff = max(
+                win_cutoffs[r_idx],
+                cutoff_floor,
+                win_sort[r_idx][len(win_sort[r_idx]) - 1 - math.floor(len(win_sort[r_idx]) * qvalue)]
+                if win_sort[r_idx] and qvalue < 1
+                else 0,
+                cutoff_threshold,
+            )
+
+            for c_idx in range(L):
+                v = 0 if wr[c_idx] > cutoff else 1
+                if c_idx == 0:
+                    s[c_idx][0] = v
+                    s[c_idx][1] = 1 - v
+                    tiebreaker[c_idx][0] = 0
+                    tiebreaker[c_idx][1] = wsr[c_idx]
+                else:
+                    s[c_idx][0] = s[c_idx - 1][0] + v
+                    s[c_idx][1] = s[c_idx - 1][1] + 1 - v
+                    tiebreaker[c_idx][0] = tiebreaker[c_idx - 1][0]
+                    tiebreaker[c_idx][1] = tiebreaker[c_idx - 1][1] + wsr[c_idx]
+                    bt[c_idx][0] = 1
+                    bt[c_idx][1] = 2
+
+                if c_idx > k - 1 and (s[c_idx][0], tiebreaker[c_idx][0]) < (
+                    s[c_idx - k][1] + v,
+                    tiebreaker[c_idx - k][1],
+                ):
+                    s[c_idx][0] = s[c_idx - k][1] + v
+                    tiebreaker[c_idx][0] = tiebreaker[c_idx - k][1]
+                    bt[c_idx][0] = 2
+
+                if c_idx > k - 1 and (s[c_idx][1], tiebreaker[c_idx][1]) < (
+                    s[c_idx - k][0] + 1 - v,
+                    tiebreaker[c_idx - k][0],
+                ):
+                    s[c_idx][1] = s[c_idx - k][0] + 1 - v
+                    tiebreaker[c_idx][1] = tiebreaker[c_idx - k][0] + wsr[c_idx]
+                    bt[c_idx][1] = 1
+
+            seq_masked = [char for char in seq_array[r_idx] if char != "-" and char != ambig]
+            icur = L - 1
+            bcur = 1 if s[L - 1][0] >= s[L - 1][1] else 2
+
+            if L > 0:
+                if bcur == 2:
+                    for idx in range(L - k, L):
+                        if 0 <= idx < len(seq_masked):
+                            seq_masked[idx] = mask
+                else:
+                    pass  # bcur is 1, no initial masking
+
+                while True:
+                    if bcur == 1 and bt[icur][bcur - 1] == 1:
+                        icur -= 1
+                        bcur = 1
+                    elif bcur == 1 and bt[icur][bcur - 1] == 2:
+                        icur -= k
+                        bcur = 2
+                        for idx in range(icur, icur + k):
+                            if 0 <= idx < len(seq_masked):
+                                seq_masked[idx] = mask
+                    elif bcur == 2 and bt[icur][bcur - 1] == 1:
+                        icur -= k
+                        bcur = 1
+                    elif bcur == 2 and bt[icur][bcur - 1] == 2:
+                        icur -= 1
+                        bcur = 2
+                        if 0 <= icur < len(seq_masked):
+                            seq_masked[icur] = mask
+                    elif bcur == 1:
+                        break
+                    else:
+                        for idx in range(icur):
+                            if 0 <= idx < len(seq_masked):
+                                seq_masked[idx] = mask
+                        break
+
+            seq_corrected = ""
+            seq_masked_idx = 0
+            for char_orig in original_seq:
+                if char_orig == ambig or char_orig == "-":
+                    seq_corrected += char_orig
+                else:
+                    if seq_masked_idx < len(seq_masked):
+                        seq_corrected += seq_masked[seq_masked_idx]
+                        seq_masked_idx += 1
+                    else:
+                        # Handle potential index out of bounds (shouldn't happen if logic is correct)
+                        seq_corrected += mask  # Or some other appropriate handling
+            sequences_corrected.append(seq_corrected)
+        return sequences_corrected
+
+    fasta_in = fasta_to_dict(fasta_in_path)
+    seq_names = []
+    seq_descs = []
+    sequences = []
+    for seq_name in fasta_in:
+        seq_names.append(seq_name)
+        seq_descs.append(fasta_in[seq_name]["description"])
+        sequences.append(fasta_in[seq_name]["sequence"])
+    seq_array = [list(seq) for seq in sequences]
+    ncols = len(sequences[0]) if sequences else 0
+    nrows = len(sequences)
+    mask = settings.TAPER_MASK
+
+    for t in settings.TAPER_PARAMS:
+        tmp_mask = "@"
+        output = correct_sequences(
+            sequences, t["k"], ambig, tmp_mask, t["p"], t["q"], cutoff_threshold, aggressive
+        )
+        L = t["L"]
+        for r_idx in range(nrows):
+            start = 0
+            count = 0
+            for c_idx in range(ncols):
+                if start == 0 and output[r_idx][c_idx] == tmp_mask:
+                    start = c_idx
+                    count = 1
+                elif start != 0 and output[r_idx][c_idx] == tmp_mask:
+                    count += 1
+                elif start != 0 and output[r_idx][c_idx] != tmp_mask and output[r_idx][c_idx] != "-":
+                    if count < L:
+                        for k_idx in range(start, c_idx):
+                            seq_array[r_idx][k_idx] = "-" if output[r_idx][k_idx] == "-" else mask
+                    start = 0
+                    count = 0
+            if start != 0 and count < L:
+                for k_idx in range(start, ncols):
+                    seq_array[r_idx][k_idx] = "-" if output[r_idx][k_idx] == "-" else mask
+
+    sequences_corrected = ["".join(seq_array[j]) for j in range(nrows)]
+    fasta_out = {}
+    for r_idx in range(len(sequences_corrected)):
+        fasta_out[seq_names[r_idx]] = {
+            "sequence": sequences_corrected[r_idx],
+            "description": seq_descs[r_idx],
+        }
+    dict_to_fasta(fasta_out, fasta_out_path)
+
+    return fasta_out_path
+
+
 def write_gff3(hits, marker_type, disable_stitching, tsv_comment, out_gff_path):
     def split_coords(coords, as_strings=False):
         """
@@ -3699,7 +3984,7 @@ def mmseqs_cluster(
         "--split-memory-limit",
         f"{ram_mb * settings.MMSEQS_RAM_FRACTION:.0f}M",
         "--mask",
-        f"{settings.MMSEQS_MASK_LOW_COMPLEXITY}"
+        f"{settings.MMSEQS_MASK_LOW_COMPLEXITY}",
         "--spaced-kmer-mode",
         f"{0}",
         "-c",

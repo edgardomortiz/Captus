@@ -1219,6 +1219,7 @@ class CaptusAssembly(object):
             " might be useful if you expect very high ploidy levels for example",
         )
         input_group.add_argument(
+            "-s",
             "--min_samples",
             action="store",
             default=4,
@@ -1325,8 +1326,40 @@ class CaptusAssembly(object):
             " stricter the filter)",
         )
 
-        clipkit_group = parser.add_argument_group("ClipKIT")
-        clipkit_group.add_argument(
+        trimming_group = parser.add_argument_group("Trimming")
+        trimming_group.add_argument(
+            "-c",
+            "--taper_cutoff",
+            action="store",
+            default=3.0,
+            type=float,
+            dest="taper_cutoff",
+            help="TAPER cutoff threshold, values greater than 1.0 are recommended, the lower the"
+            " value the more aggressive the correction, 3.0 recommended by TAPER's authors",
+        )
+        trimming_group.add_argument(
+            "--taper_aggressive",
+            action="store_true",
+            dest="taper_aggressive",
+            help="Enable the more aggressive mode of TAPER, see 'correction_multi_aggressive.jl'"
+            " at https://github.com/chaoszhang/TAPER",
+        )
+        trimming_group.add_argument(
+            "--taper_unfiltered",
+            action="store_true",
+            dest="taper_unfiltered",
+            help="Enable TAPER correction even for alignments than have not been paralog-filtered,"
+            " TAPER is only able to distinguish error when an unfiltered alignment contains copies"
+            " of the locus that are not extremely divergent",
+        )
+        trimming_group.add_argument(
+            "--disable_taper",
+            action="store_true",
+            dest="disable_taper",
+            help="Disable TAPER algorithm for masking for erroneous regions in alignments see"
+            " https://doi.org/10.1111/2041-210X.13696",
+        )
+        trimming_group.add_argument(
             "--clipkit_method",
             action="store",
             choices=[
@@ -1344,7 +1377,8 @@ class CaptusAssembly(object):
             dest="clipkit_method",
             help="ClipKIT's algorithm, see https://jlsteenwyk.com/ClipKIT/advanced/index.html#modes",
         )
-        clipkit_group.add_argument(
+        trimming_group.add_argument(
+            "-g",
             "--clipkit_gaps",
             action="store",
             default=0.90,
@@ -1352,9 +1386,10 @@ class CaptusAssembly(object):
             dest="clipkit_gaps",
             help="Gappyness threshold per position. Accepted values between 0 and 1. This argument"
             " is ignored when using the 'kpi' and 'kpic' algorithms or intermediate steps that"
-            " use 'smart-gap'",
+            " use 'smart-gap', the higher the value the more columns are preserved",
         )
-        clipkit_group.add_argument(
+        trimming_group.add_argument(
+            "-d",
             "--min_data_per_column",
             action="store",
             default=0,
@@ -1364,7 +1399,14 @@ class CaptusAssembly(object):
             " will dynamically calculate a '--clipkit_gaps' threshold per alignment to keep"
             " this minimum amount of data per column",
         )
-        clipkit_group.add_argument(
+        trimming_group.add_argument(
+            "--ends_only",
+            action="store_true",
+            dest="ends_only",
+            help="Trim only the ends of the alignments (do not trim internal gaps)",
+        )
+        trimming_group.add_argument(
+            "-v",
             "--min_coverage",
             action="store",
             default=0.40,

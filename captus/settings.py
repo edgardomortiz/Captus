@@ -699,6 +699,16 @@ ALIGN_ALGORITHMS = {
     "muscle_super5": {"arg": "-super5", "aka": "(a.k.a. MUSCLE 5's Super5)"},
 }
 
+# TAPER default parameters
+TAPER_PARAMS = [
+    {"k": 5, "p": 0.25, "q": 0.1, "L": 30},
+    {"k": 9, "p": 0.25, "q": 0.25, "L": 54},
+    {"k": 17, "p": 0.1, "q": 0.5, "L": float("inf")},
+]
+
+# TAPER default mask character
+TAPER_MASK = "-"
+
 # Default MAFFT algorithm for Captus Design, use keys from ALIGN_ALGORITHMS (above)
 DESIGN_ALIGN_ALGORITHM = "mafft_genafpair"
 

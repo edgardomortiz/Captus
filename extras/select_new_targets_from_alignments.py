@@ -354,7 +354,8 @@ def select_refs_per_locus(
     msg = (
         f"Retained {len(clust_input)} ({len(clust_input) / len(full_clust_input):.2%})"
         f" sequences after filtering by 'WSCORE_PROPORTION' of {wscore_proportion:.2f}"
-        f" and 'COVERAGE_PROPORTION' of {coverage_proportion:.2f}\n"
+        f" and 'COVERAGE_PROPORTION' of {coverage_proportion:.2f}"
+        f" and 'MIN_SEQ_LEN' of {min_seq_len}\n"
         "\n"
         "CLUSTERING...\n"
         "\n"
