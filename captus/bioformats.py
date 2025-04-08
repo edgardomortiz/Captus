@@ -3345,7 +3345,7 @@ def taper_correction(
     fasta_out_path: Path,
     ambig: str,
     cutoff_threshold: float,
-    aggressive: bool,
+    conservative: bool,
 ):
     """TAPER algorithm published in https://doi.org/10.1111/2041-210X.13696
        The Julia code translated to Python by an AI language model (Gemini) was then adapted to fit
@@ -3358,7 +3358,7 @@ def taper_correction(
         ambig (str): Ambiguity character, N for nucleotides, X for aminoacids
         cutoff_threshold (float): 3.0 as recommended in the TAPER, option available in command line
         tpars (list of dict): k,p,q,L stored in settings.py, option not available in command line
-        aggressive (bool): enable aggressive mode for correction, option available in command line
+        conservative (bool): enable conservative mode for correction, option available in command line
     """
 
     def correct_sequences(
@@ -3369,7 +3369,7 @@ def taper_correction(
         pvalue: float,
         qvalue: float,
         cutoff_threshold: float,
-        aggressive: bool,
+        conservative: bool,
     ):
         seq_upper = [seq.upper() for seq in sequences]
         seq_array = [list(seq) for seq in sequences]
@@ -3415,7 +3415,15 @@ def taper_correction(
                 ]
             weights.append(row_weights)
 
-        if aggressive:
+        if conservative:
+            win = []
+            for arr in weights:
+                win_row = []
+                if len(arr) >= k:
+                    for c_idx in range(len(arr) - k + 1):
+                        win_row.append(statistics.median(arr[c_idx : c_idx + k]))
+                win.append(win_row)
+        else:
             P = int(round(k * 2 / 3))
             win = []
             for arr in weights:
@@ -3423,14 +3431,6 @@ def taper_correction(
                 if len(arr) >= k:
                     for c_idx in range(len(arr) - k + 1):
                         win_row.append(sorted(arr[c_idx : c_idx + k])[P])
-                win.append(win_row)
-        else:
-            win = []
-            for arr in weights:
-                win_row = []
-                if len(arr) >= k:
-                    for c_idx in range(len(arr) - k + 1):
-                        win_row.append(statistics.median(arr[c_idx : c_idx + k]))
                 win.append(win_row)
 
         win_sum = []
@@ -3590,7 +3590,7 @@ def taper_correction(
     for t in settings.TAPER_PARAMS:
         tmp_mask = "@"
         output = correct_sequences(
-            sequences, t["k"], ambig, tmp_mask, t["p"], t["q"], cutoff_threshold, aggressive
+            sequences, t["k"], ambig, tmp_mask, t["p"], t["q"], cutoff_threshold, conservative
         )
         L = t["L"]
         for r_idx in range(nrows):

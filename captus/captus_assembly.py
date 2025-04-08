@@ -1338,11 +1338,11 @@ class CaptusAssembly(object):
             " value the more aggressive the correction, 3.0 recommended by TAPER's authors",
         )
         trimming_group.add_argument(
-            "--taper_aggressive",
+            "--taper_conservative",
             action="store_true",
-            dest="taper_aggressive",
-            help="Enable the more aggressive mode of TAPER, see 'correction_multi_aggressive.jl'"
-            " at https://github.com/chaoszhang/TAPER",
+            dest="taper_conservative",
+            help="Enable the more conservative mode of TAPER. Captus uses the aggressive mode by"
+            " default, see 'correction_multi_aggressive.jl' at https://github.com/chaoszhang/TAPER",
         )
         trimming_group.add_argument(
             "--taper_unfiltered",

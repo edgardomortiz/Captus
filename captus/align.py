@@ -556,12 +556,12 @@ def align(full_command, args):
     log.log_section_header("Alignment Trimming with TAPER and ClipKIT")
     log.log_explanation(
         "Now Captus will trim all the alignments using TAPER and ClipKIT. Captus will run first the"
-        " TAPER algorithm or its '--taper_aggressive' alternative using '--taper_cutoff' unless"
-        " '--disable_taper' is chosen. Then it proceeds with ClipKIT trimming, the strategy can be"
-        " specified with the flag '--clipkit_method'. Once columns are trimmed by ClipKIT, Captus"
-        " will remove sequences with less than '--min_coverage' than the mean length of sequences,"
-        " ignoring gaps. Trimmed alignments are saved separately in a new directory called "
-        "'03_aligned_trimmed'"
+        " aggressive mode of the TAPER algorithm or its alternative '--taper_conservative' using"
+        " '--taper_cutoff' unless '--disable_taper' is chosen. Then it proceeds with ClipKIT"
+        " trimming, the strategy can be specified with the flag '--clipkit_method'. Once columns are"
+        " trimmed by ClipKIT, Captus will remove sequences with less than '--min_coverage' than the"
+        " mean length of sequences, ignoring gaps. Trimmed alignments are saved separately in a new"
+        " directory called '03_aligned_trimmed'"
     )
     if clipkit_status == "not found":
         log.log(
@@ -578,7 +578,7 @@ def align(full_command, args):
         else:
             log.log(f"{'TAPER mask':>{mar}}: {bold(settings.TAPER_MASK)} {dim('(edit in settings.py)')}")
             log.log(f"{'TAPER cutoff':>{mar}}: {bold(args.taper_cutoff)}")
-            log.log(f"{'TAPER aggressive':>{mar}}: {bold(args.taper_aggressive)}")
+            log.log(f"{'TAPER conservative':>{mar}}: {bold(args.taper_conservative)}")
             log.log(f"{'TAPER unfiltered alns':>{mar}}: {bold(args.taper_unfiltered)}")
         log.log("")
         log.log(f"{'ClipKIT algorithm':>{mar}}: {bold(args.clipkit_method)}")
@@ -674,7 +674,7 @@ def align(full_command, args):
             taper_clipkit_params.append(
                 (
                     args.taper_cutoff,
-                    args.taper_aggressive,
+                    args.taper_conservative,
                     args.taper_unfiltered,
                     args.disable_taper,
                     clipkit_path,
@@ -1924,7 +1924,7 @@ def rem_refs_from_fasta(fasta_in: Path, fasta_out: Path, ref_names: list, min_sa
 
 def taper_clipkit(
     taper_cutoff: float,
-    taper_aggressive: bool,
+    taper_conservative: bool,
     taper_unfiltered: bool,
     disable_taper: bool,
     clipkit_path,
@@ -1964,7 +1964,7 @@ def taper_clipkit(
                 clipkit_fasta_in,
                 ambig,
                 taper_cutoff,
-                taper_aggressive,
+                taper_conservative,
             )
             if file_is_empty(clipkit_fasta_in):
                 return red(f"'{fasta_out_short}': FAILED alignment trimming, no TAPER output")
