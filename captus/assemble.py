@@ -256,15 +256,7 @@ def assemble(full_command, args):
     log.log(f"{'Threads per assembly':>{mar}}: {bold(threads_per_assembly)}")
     log.log("")
 
-    if not args.preset:
-        args.preset = "CAPSKIM"
-    if args.preset.upper() not in settings.MEGAHIT_PRESETS:
-        invalid_preset = args.preset
-        args.preset = "CAPSKIM"
-        log.log(f"{'preset':>{mar}}: {bold(args.preset)} ({invalid_preset} is not a valid preset)")
-    else:
-        args.preset = args.preset.upper()
-        log.log(f"{'preset':>{mar}}: {bold(args.preset.upper())}")
+    log.log(f"{'preset':>{mar}}: {bold(args.preset.upper())}")
     if not args.k_list:
         args.k_list = settings.MEGAHIT_PRESETS[args.preset]["k_list"]
     log.log(f"{'k_list':>{mar}}: {bold(args.k_list)}")

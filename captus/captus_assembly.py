@@ -403,6 +403,12 @@ class CaptusAssembly(object):
         megahit_group.add_argument(
             "--preset",
             action="store",
+            choices=[
+                "CAPSKIM",
+                "RNA",
+                "WGS",
+            ],
+            default="CAPSKIM",
             type=str,
             dest="preset",
             help="B|The default preset is 'CAPSKIM', these settings work well with either"
