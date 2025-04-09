@@ -52,6 +52,11 @@ Maximum number of secondary hits (copies) of any particular reference marker all
 
 This argument is optional, the default is **-1** (include all paralogs in the output).
 ___
+### **`--paralog_tolerance`**
+Only paralogs with a wscore >= (locus best hit wscore / paralog_tolerance will be retained)
+
+This argument is optional, the default is **5**
+___
 #### **`--max_loci_files`**
 When the number of loci in the reference exceeds this value, `Captus` will not write a separate FASTA file per sample per marker, otherwise the hard drive fills up with tons of small files. The file that includes all the extracted markers grouped per sample is still written (this is the only file needed by the final step `align` to produce the marker alignments across all samples).
 
@@ -78,7 +83,7 @@ ___
 ### **`-n, --nuc_refs`**
 The reference set of nuclear proteins to search and extract from the assemblies. `Captus` includes two sets:
 - `Angiosperms353` = extract the original Angiosperms353.
-- `Mega353` = extract the later expanded version of Angiosperms353; because `Mega353` includes many more sequences, processing times become longer. 
+- `Mega353` = extract the later expanded version of Angiosperms353; because `Mega353` includes many more sequences, processing times become longer.
 - Alternatively, you can provide the path to a FASTA file (e.g. `-n my_refs/my_nuclear_prots.fa`) that includes your own coding references either in nucleotide or aminoacid.
 
 If you provide a nucleotide file, please also specify the translation table to be used, otherwise `Captus` will translate it using `--nuc_transtable 1`, the "Standard code". See the [complete list of translation tables](https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi).
@@ -251,7 +256,7 @@ For a sequence to be included in a cluster, this percentage of its length has to
 
 This only affects the clustering used for the creation of the new reference of DNA markers, the actual marker extraction still depends of `dna_min_coverage`.
 
-This argument is optional, the default is **80**. 
+This argument is optional, the default is **80**.
 ___
 ### **`--cl_cov_mode`**
 Select [MMseqs2's sequence coverage mode](https://github.com/soedinglab/mmseqs2/wiki#how-to-set-the-right-alignment-coverage-to-cluster). Valid options are:
@@ -262,25 +267,25 @@ Select [MMseqs2's sequence coverage mode](https://github.com/soedinglab/mmseqs2/
 
 This argument is optional, the default is **1**.
 ___
-### **`--cl_max_seq_len`**
-Do not cluster sequences longer than this length in bp, the maximum allowed by MMseqs2 is 65535. Use the value `0` to disable this filter.
+### **`--cl_min_samples`**
+Minimum number of samples per cluster.
 
-This argument is optional, the default is **20000**.
+This argument is optional, the default is **auto** (= 66% of the total number of samples or at least 4).
 ___
 ### **`--cl_rep_min_len`**
 After clustering is finished, only accept cluster representatives of at least this length to be part of the new miscellaneous DNA reference. This avoids the creation of very short locus alignments. Use the value `0` to disable this filter.
 
 This argument is optional, the default is **500**.
 ___
-### **`--cl_min_samples`**
-Minimum number of samples per cluster.
+### **`--cl_max_seq_len`**
+Do not cluster sequences longer than this length in bp, the maximum allowed by MMseqs2 is 65535. Use the value `0` to disable this filter.
 
-This argument is optional, the default is **auto** (= 30% of the total number of samples or at least 4).
+This argument is optional, the default is **5000**.
 ___
 ### **`--cl_max_copies`**
 Maximum average number of sequences per sample in a cluster. Helpful for excluding excessively paralogous loci.
 
-This argument is optional, the default is **5**.
+This argument is optional, the default is **3**.
 ___
 ### **`--cl_tmp_dir`**
 Path where to create the temporary directory for `MMseqs2`. Clustering can become slow when done on external drives, set this location to an internal drive.
@@ -303,5 +308,5 @@ ___
 See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
-Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (18.12.2024)
+Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (09.04.2024)

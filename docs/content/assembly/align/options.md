@@ -58,7 +58,7 @@ Maximum number of secondary hits (copies) per sample to import from the extracti
 
 This argument is optional, the default is **5**
 ___
-### **`--min_samples`**
+### **`-s, --min_samples`**
 Minimum number of samples in a marker to proceed with alignment. Markers with fewer samples will be skipped. The default **4** corresponds to smallest number of sequences to build a rooted phylogeny.
 
 This argument is optional, the default is **4**
@@ -100,7 +100,7 @@ ___
 When `AA`s and their corresponding `NT`s are aligned in the same run, `Captus` uses the `AA` alignment as template for aligning the `NT` format, thus obtaining a codon-aware alignment for the coding sequences in nucleotides. Use this flag to disable this method and use the regular `MAFFT`/`MUSCLE` nucleotide alignment.
 ___
 ### **`--outgroup`**
-Outgroup sample names, separated by commas, no spaces. `Captus` will place these samples whenever possible at the beginning of the alignments, since many phylogenetic programs root the resulting phylogeny at the first sample in the alignment your trees will be automatically rooted.  
+Outgroup sample names, separated by commas, no spaces. `Captus` will place these samples whenever possible at the beginning of the alignments, since many phylogenetic programs root the resulting phylogeny at the first sample in the alignment your trees will be automatically rooted.
 Example: `--outgroup sample2,sample5`
 
 This argument is optional and has no default.
@@ -122,7 +122,21 @@ Only applicable to the `informed` filter. If the selected copy's identity to the
 
 This argument is optional, the default is **2.0**.
 ___
-## *Trimming (ClipKIT)*
+## *Trimming (TAPER and ClipKIT)*
+___
+### **`-c, --taper_cutoff`**
+TAPER cutoff threshold, values greater than 1.0 are recommended, the lower the value the more aggressive the correction, 3.0 recommended by TAPER's authors.
+
+This argument is optional, the default is **3.0**.
+___
+### **`--taper_conservative`**
+Enable the more conservative mode of TAPER. Captus uses the aggressive mode by default, see 'correction_multi_aggressive.jl' at https://github.com/chaoszhang/TAPER".
+___
+### **`--taper_ufiltered`**
+Enable TAPER correction even for alignments than have not been paralog-filtered, TAPER is only able to distinguish error when an unfiltered alignment contains copies of the locus that are not extremely divergent.
+___
+### **`--disable_taper`**
+Disable TAPER algorithm for masking for erroneous regions in alignments, see https://doi.org/10.1111/2041-210X.13696
 ___
 ### **`--clipkit_method`**
 Select [ClipKIT's trimming mode](https://jlsteenwyk.com/ClipKIT/advanced/index.html#modes). Valid trimming modes are:
@@ -137,17 +151,20 @@ Select [ClipKIT's trimming mode](https://jlsteenwyk.com/ClipKIT/advanced/index.h
 
 This argument is optional, the default is **gappy**.
 ___
-### **`--clipkit_gaps`**
+### **`-g, --clipkit_gaps`**
 Gappyness threshold per position. Accepted values between 0 and 1. This argument is ignored when using the `kpi` and `kpic` algorithms or intermediate steps that use `smart-gap`.
 
 This argument is optional, the default is **0.9**.
 ___
-### **`--min_data_per_column`**
+### **`-d, --min_data_per_column`**
 Minimum number of non-missing sites per column. When this parameter is > 0, Captus will dynamically calculate a `--clipkit_gaps` threshold per alignment to keep this minimum amount of data per column.
 
 This argument is optional, the default is **0**.
 ___
-### **`--min_coverage`**
+### **`--ends_only`**
+Trim only the ends of the alignments (do not trim internal gaps).
+___
+### **`-v, --min_coverage`**
 Minimum coverage of sequence as proportion of the mean of sequence lengths in the alignment, ignoring gaps. After `ClipKIT` finishes trimming columns, `Captus` will also remove short sequences below this threshold.
 
 This argument is optional, the default is **0.4**.
@@ -155,7 +172,7 @@ ___
 ## *Other*
 ___
 ### **`--collect_only`**
-Only collect the markers from the extraction folder and exit, it skips the addition of reference target sequences and subsequent steps
+Only collect the markers from the extraction folder and exit, it skips the addition of reference target sequences and subsequent steps.
 ___
 ### **`--redo_from`**
 You can repeat the analysis without undoing all the steps. These are the points from which you can restart the `align` command:
@@ -174,9 +191,9 @@ ___
 ### **`--show_less`**
 Enable this flag to show individual alignment information during the run. Detailed information is written regardless to the log.
 ___
-### **`--ram`**, **`--threads`**, **`--concurrent`**, **`--debug`**, 
+### **`--ram`**, **`--threads`**, **`--concurrent`**, **`--debug`**,
 See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
-Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (18.12.2024)
+Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (09.04.2024)

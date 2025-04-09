@@ -665,7 +665,7 @@ class CaptusAssembly(object):
             default=5,
             type=int,
             dest="paralog_tolerance",
-            help="Only paralogs with a wscore >= locus best hit wscore / paralog_tolerance will be"
+            help="Only paralogs with a wscore >= (locus best hit wscore / paralog_tolerance) will be"
             " retained",
         )
         output_group.add_argument(
@@ -949,15 +949,6 @@ class CaptusAssembly(object):
             "easy-cluster = Sensitive homology search (recommended but slower)",
         )
         mmseqs2_group.add_argument(
-            "--cl_sensitivity",
-            action="store",
-            default=settings.MMSEQS_SENSITIVITY,
-            type=float,
-            dest="cl_sensitivity",
-            help="MMseqs2 sensitivity, from 1 to 7.5, only applicable when using 'easy-cluster'."
-            " Common reference points are: 1 (faster), 4 (fast), 7.5 (sens)",
-        )
-        mmseqs2_group.add_argument(
             "--cl_mode",
             action="store",
             default=2,
@@ -969,6 +960,15 @@ class CaptusAssembly(object):
             "0 = Greedy set cover\n"
             "1 = Connected component\n"
             "2 = Greedy incremental (analogous to CD-HIT)",
+        )
+        mmseqs2_group.add_argument(
+            "--cl_sensitivity",
+            action="store",
+            default=settings.MMSEQS_SENSITIVITY,
+            type=float,
+            dest="cl_sensitivity",
+            help="MMseqs2 sensitivity, from 1 to 7.5, only applicable when using 'easy-cluster'."
+            " Common reference points are: 1 (faster), 4 (fast), 7.5 (sens)",
         )
         mmseqs2_group.add_argument(
             "--cl_min_identity",
@@ -1029,15 +1029,6 @@ class CaptusAssembly(object):
             " disable this filter",
         )
         mmseqs2_group.add_argument(
-            "--cl_max_copies",
-            action="store",
-            default=3,
-            type=float,
-            dest="cl_max_copies",
-            help="Maximum average number of sequences per sample in a cluster. This can exclude loci"
-            " that are extremely paralogous",
-        )
-        mmseqs2_group.add_argument(
             "--cl_max_seq_len",
             action="store",
             default=5000,
@@ -1045,6 +1036,15 @@ class CaptusAssembly(object):
             dest="cl_max_seq_len",
             help="Do not cluster sequences longer than this length in bp, the maximum allowed by"
             " MMseqs2 is 65535. Use 0 to disable this filter",
+        )
+        mmseqs2_group.add_argument(
+            "--cl_max_copies",
+            action="store",
+            default=3,
+            type=float,
+            dest="cl_max_copies",
+            help="Maximum average number of sequences per sample in a cluster. This can exclude loci"
+            " that are extremely paralogous",
         )
         mmseqs2_group.add_argument(
             "--cl_tmp_dir",
@@ -1362,7 +1362,7 @@ class CaptusAssembly(object):
             "--disable_taper",
             action="store_true",
             dest="disable_taper",
-            help="Disable TAPER algorithm for masking for erroneous regions in alignments see"
+            help="Disable the TAPER algorithm for masking for erroneous regions in alignments, see"
             " https://doi.org/10.1111/2041-210X.13696",
         )
         trimming_group.add_argument(
