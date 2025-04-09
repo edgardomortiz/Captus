@@ -4,7 +4,7 @@
 
 ### *Assembly of Phylogenomic Datasets from High-Throughput Sequencing data*
 
-Documentation: [https://edgardomortiz.github.io/captus.docs](https://edgardomortiz.github.io/captus.docs)  
+Documentation: [https://edgardomortiz.github.io/captus.docs](https://edgardomortiz.github.io/captus.docs)
 
 [![Install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](http://bioconda.github.io/recipes/captus/README.html)
 [![Bioconda downloads](https://anaconda.org/bioconda/captus/badges/downloads.svg)](https://anaconda.org/bioconda/captus)
@@ -17,27 +17,34 @@ Documentation: [https://edgardomortiz.github.io/captus.docs](https://edgardomort
 
 `Captus` is available as a [conda package](https://anaconda.org/bioconda/captus). If you have [`conda`](https://docs.conda.io/projects/conda/en/latest/index.html) or [`mamba`](https://mamba.readthedocs.io/en/latest/index.html) installed, you can easily create a new environment and install `Captus` with all dependencies using the following command:
 
+#### _For Linux:_
 ```shell
 conda create -n captus -c bioconda -c conda-forge captus
 ```
+or
+```shell
+mamba create -n captus -c bioconda -c conda-forge captus
+```
 
-> [!WARNING]
->
-> ### Important for macOS users
->
-> One of the builds of the latest version of `MEGAHIT` (v1.2.9) on `Bioconda` is broken. To ensure you install a functional one, please specify the build number as follows:
->
-> ```shell
-> conda create -n captus -c bioconda -c conda-forge captus megahit=1.2.9=hfbae3c0_0
-> ```
-> 
-> For Mac computers with Apple silicon (M processors), you can use the following `conda` (or `mamba`) command:
->
-> ```shell
-> conda create --platform osx-64 -n captus -c bioconda -c conda-forge captus megahit=1.2.9=hfbae3c0_0 mmseqs2=16.747c6
-> ```
+#### _For Mac computers with Intel processors:_
+```shell
+conda create -n captus -c bioconda -c conda-forge captus megahit=1.2.9=hfbae3c0_0
+```
+or
+```shell
+mamba create -n captus -c bioconda -c conda-forge captus megahit=1.2.9=hfbae3c0_0
+```
 
-Check that `Captus` was correctly installed:
+#### _For Mac computers with Apple silicon (M processors):_
+```shell
+conda create --platform osx-64 -n captus -c bioconda -c conda-forge captus megahit=1.2.9=hfbae3c0_0 mmseqs2=16.747c6
+```
+or
+```shell
+mamba create --platform osx-64 -n captus -c bioconda -c conda-forge captus megahit=1.2.9=hfbae3c0_0 mmseqs2=16.747c6
+```
+
+Then check that `Captus` was correctly installed:
 
 ```shell
 conda activate captus
@@ -49,7 +56,7 @@ If the program was correctly installed, you will see the following help message:
 ```text
 usage: captus command [options]
 
-Captus 1.1.0: Assembly of Phylogenomic Datasets from High-Throughput Sequencing data
+Captus 1.3.3: Assembly of Phylogenomic Datasets from High-Throughput Sequencing data
 
 Captus-assembly commands:
   command     Program commands (in typical order of execution)
