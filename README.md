@@ -17,7 +17,7 @@ Documentation: [https://edgardomortiz.github.io/captus.docs](https://edgardomort
 
 `Captus` is available as a [conda package](https://anaconda.org/bioconda/captus). If you have [`conda`](https://docs.conda.io/projects/conda/en/latest/index.html) or [`mamba`](https://mamba.readthedocs.io/en/latest/index.html) installed, you can easily create a new environment and install `Captus` with all dependencies using the following command:
 
-#### _For Linux:_
+#### _Linux:_
 ```shell
 conda create -n captus -c bioconda -c conda-forge captus
 ```
@@ -26,7 +26,7 @@ or
 mamba create -n captus -c bioconda -c conda-forge captus
 ```
 
-#### _For Mac computers with Intel processors:_
+#### _Mac computers with Intel processors:_
 ```shell
 conda create -n captus -c bioconda -c conda-forge captus megahit=1.2.9=hfbae3c0_0
 ```
@@ -35,7 +35,7 @@ or
 mamba create -n captus -c bioconda -c conda-forge captus megahit=1.2.9=hfbae3c0_0
 ```
 
-#### _For Mac computers with Apple silicon (M processors):_
+#### _Mac computers with Apple silicon (M processors):_
 ```shell
 conda create --platform osx-64 -n captus -c bioconda -c conda-forge captus megahit=1.2.9=hfbae3c0_0 mmseqs2=16.747c6
 ```

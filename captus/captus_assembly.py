@@ -59,7 +59,8 @@ class CaptusAssembly(object):
             " other assemblies in FASTA format are also allowed\n"
             "align = Align extracted markers across samples with MAFFT or MUSCLE: Marker"
             " alignment depends on the directory structure created by the 'extract' command."
-            " This step also performs paralog filtering and alignment trimming using ClipKIT",
+            " This step also performs paralog filtering and alignment trimming using TAPER and"
+            " ClipKIT",
         )
 
         help_group = parser.add_argument_group("Help")

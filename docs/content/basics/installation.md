@@ -7,7 +7,7 @@ weight = 15
 
 `Captus` is available as a [conda package](https://anaconda.org/bioconda/captus). If you have `conda` [<i class="fas fa-question-circle fa-sm"></i>](https://docs.conda.io/projects/conda/en/latest/index.html) or `mamba` [<i class="fas fa-question-circle fa-sm"></i>](https://mamba.readthedocs.io/en/latest/index.html) installed, you can easily create a new environment and install `Captus` with all dependencies using the following command:
 
-#### _For Linux:_
+##### Linux:
 ```shell
 conda create -n captus -c bioconda -c conda-forge captus
 ```
@@ -16,7 +16,7 @@ or
 mamba create -n captus -c bioconda -c conda-forge captus
 ```
 
-#### _For Mac computers with Intel processors:_
+##### Mac computers with Intel processors:
 ```shell
 conda create -n captus -c bioconda -c conda-forge captus megahit=1.2.9=hfbae3c0_0
 ```
@@ -25,7 +25,7 @@ or
 mamba create -n captus -c bioconda -c conda-forge captus megahit=1.2.9=hfbae3c0_0
 ```
 
-#### _For Mac computers with Apple silicon (M processors):_
+##### Mac computers with Apple silicon (M processors):
 ```shell
 conda create --platform osx-64 -n captus -c bioconda -c conda-forge captus megahit=1.2.9=hfbae3c0_0 mmseqs2=16.747c6
 ```
@@ -64,7 +64,7 @@ Captus-assembly commands:
                         MUSCLE: Marker alignment depends on the directory
                         structure created by the 'extract' command. This step
                         also performs paralog filtering and alignment trimming
-                        using ClipKIT
+                        using TAPER and ClipKIT
 
 Help:
   -h, --help  Show this help message and exit
