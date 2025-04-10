@@ -123,5 +123,5 @@ git clone https://github.com/edgardomortiz/Captus.git
 ```
 
 ___
-Created by [Edgardo M. Ortiz]({{< ref "../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#gentaro-shigita">}}) (09.04.2024)
+Created by [Edgardo M. Ortiz]({{< ref "../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)<br>
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#gentaro-shigita">}}) (09.04.2025)
