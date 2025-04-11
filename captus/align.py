@@ -375,7 +375,7 @@ def align(full_command, args):
                 "Skipping the paralog filtering step because the 'w_dirs' do not exist, to repeat"
                 " try '--redo_from alignment' or enable '--keep_w_refs' in the future if you plan"
                 " to repeat the filtering multiple times"
-                )
+            )
         )
         log.log("")
     else:
@@ -580,7 +580,6 @@ def align(full_command, args):
                 )
             )
             log.log("")
-
 
     ################################################################################################
     ############################################################################### TRIMMING SECTION
@@ -844,11 +843,12 @@ def align(full_command, args):
 
 
 def prepare_redo(out_dir, redo_from):
-    if (redo_from.lower() == "filtering"
-        and not list(Path(out_dir, settings.ALN_DIRS["ALND"]).rglob("*_w_refs"))):
+    if redo_from.lower() == "filtering" and not list(
+        Path(out_dir, settings.ALN_DIRS["ALND"]).rglob("*_w_refs")
+    ):
         quit_with_error(
             red(
-                f"'w_refs' directories were not found in {settings.ALN_DIRS["ALND"]}, impossible"
+                f"'w_refs' directories were not found in {settings.ALN_DIRS['ALND']}, impossible"
                 " to '--redo_from filtering'. Try instead '--redo_from alignment' to re-create the"
                 " 'w_refs' directories. If you plan to repeat the paralog filtering multiple times"
                 " please enable '--keep_w_refs' in future 'captus align' runs."
