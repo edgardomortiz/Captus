@@ -75,7 +75,7 @@ Captus-assembly commands:
                         MUSCLE: Marker alignment depends on the directory
                         structure created by the 'extract' command. This step
                         also performs paralog filtering and alignment trimming
-                        using ClipKIT
+                        using TAPER and ClipKIT
 
 Help:
   -h, --help  Show this help message and exit
