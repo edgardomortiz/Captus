@@ -577,7 +577,7 @@ def main():
     parser.add_argument(
         "--filter",
         action="store",
-        default="unfiltered",
+        default="informed",
         dest="filter",
         choices=["unfiltered", "naive", "informed"],
         help="Paralog filter, this is ignored when '--stage' is 'unaligned'",
