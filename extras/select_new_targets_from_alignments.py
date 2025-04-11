@@ -553,7 +553,9 @@ def select_refs_per_locus(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Filter most common target per locus to create new reference target files"
+        description="Create a new target file from your own data by clustering the aligned sequences"
+        " and choosing the best representatives per locus",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "-a",
@@ -591,7 +593,7 @@ def main():
     parser.add_argument(
         "--format",
         action="store",
-        default="02_NT",
+        default="NT",
         dest="format",
         choices=["AA", "NT", "GE", "GF", "MA", "MF"],
         help="Alignment data format",
