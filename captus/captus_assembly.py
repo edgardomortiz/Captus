@@ -1247,6 +1247,22 @@ class CaptusAssembly(object):
             help="Output directory name",
         )
         output_group.add_argument(
+            "--collect_only",
+            action="store_true",
+            dest="collect_only",
+            help="Only collect the markers from the extraction folder and exit (skips addition of"
+            " reference target sequences and subsequent steps)",
+        )
+        output_group.add_argument(
+            "--keep_w_refs",
+            action="store_true",
+            dest="keep_w_refs",
+            help="Keep the directories containing the alignments that include target reference"
+            " sequences. The deletion of these directories is performed after alignments are"
+            " filtered for paralogs and before trimming. Enable if you plan to repeat the paralog"
+            " filtering in the future with '--redo_from filtering'",
+        )
+        output_group.add_argument(
             "--keep_all",
             action="store_true",
             dest="keep_all",
@@ -1425,13 +1441,6 @@ class CaptusAssembly(object):
         )
 
         other_group = parser.add_argument_group("Other")
-        other_group.add_argument(
-            "--collect_only",
-            action="store_true",
-            dest="collect_only",
-            help="Only collect the markers from the extraction folder and exit (skips addition of"
-            " reference target sequences and subsequent steps)",
-        )
         other_group.add_argument(
             "--redo_from",
             action="store",

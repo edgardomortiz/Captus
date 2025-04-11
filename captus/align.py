@@ -369,6 +369,15 @@ def align(full_command, args):
             red(f"Skipping the paralog filtering step because you used '--redo_from {args.redo_from}'")
         )
         log.log("")
+    elif not list(Path(out_dir, settings.ALN_DIRS["ALND"]).rglob("*_w_refs")):
+        log.log(
+            red(
+                "Skipping the paralog filtering step because the 'w_dirs' do not exist, to repeat"
+                " try '--redo_from alignment' or enable '--keep_w_refs' in the future if you plan"
+                " to repeat the filtering multiple times"
+                )
+        )
+        log.log("")
     else:
         filtering_refs = select_filtering_refs(refs_paths, markers, formats, args.filter_method)
         filter_method = args.filter_method.lower()
@@ -482,6 +491,9 @@ def align(full_command, args):
         except TypeError:
             remove_references = False
 
+        log.log(f"{'Keep w_refs directories':>{mar}}: {bold(args.keep_w_refs)}")
+        log.log("")
+
         if remove_references:
             log.log("Creating output directories:")
             fastas_to_rem_refs = {}
@@ -550,6 +562,25 @@ def align(full_command, args):
                 show_less,
             )
             log.log("")
+
+        if args.keep_w_refs is False:
+            start = time.time()
+            w_refs_dirs = list(Path(out_dir, settings.ALN_DIRS["ALND"]).rglob("*_w_refs"))
+            log.log(bold("Deleting 'w_refs' directories:"))
+            tqdm_cols = min(shutil.get_terminal_size().columns, 120)
+            with tqdm(total=len(w_refs_dirs), ncols=tqdm_cols, unit="directory") as pbar:
+                for del_dir in w_refs_dirs:
+                    shutil.rmtree(del_dir, ignore_errors=True)
+                    tqdm.write(f"'{del_dir}': deleted")
+                    pbar.update()
+            log.log(
+                bold(
+                    f" \u2514\u2500\u2192 {len(w_refs_dirs)} 'w_refs'"
+                    f" directories deleted [{elapsed_time(time.time() - start)}]"
+                )
+            )
+            log.log("")
+
 
     ################################################################################################
     ############################################################################### TRIMMING SECTION
@@ -813,6 +844,16 @@ def align(full_command, args):
 
 
 def prepare_redo(out_dir, redo_from):
+    if (redo_from.lower() == "filtering"
+        and not list(Path(out_dir, settings.ALN_DIRS["ALND"]).rglob("*_w_refs"))):
+        quit_with_error(
+            red(
+                f"'w_refs' directories were not found in {settings.ALN_DIRS["ALND"]}, impossible"
+                " to '--redo_from filtering'. Try instead '--redo_from alignment' to re-create the"
+                " 'w_refs' directories. If you plan to repeat the paralog filtering multiple times"
+                " please enable '--keep_w_refs' in future 'captus align' runs."
+            )
+        )
     alignment = [Path(out_dir, settings.ALN_DIRS["ALND"])]
     filtering = [
         Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIR"]),
