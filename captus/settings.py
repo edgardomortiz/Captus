@@ -320,6 +320,15 @@ MARKER_DIRS = {
     "CLR": "05_clusters",  # Cluster-derived DNA markers
 }
 
+# Extraction directories per marker type
+DIR_MARKERS = {
+    "01_coding_NUC": "NUC",  # Nuclear protein markers
+    "02_coding_PTD": "PTD",  # Plastidial protein markers
+    "03_coding_MIT": "MIT",  # Mitochondrial protein markers
+    "04_misc_DNA": "DNA",  # Miscellaneous DNA markers
+    "05_clusters": "CLR",  # Cluster-derived DNA markers
+}
+
 # Filename suffixes for the different extraction FASTA formats
 FORMAT_SUFFIXES = {
     "AA": "_coding_AA.faa",  # coding sequences in aminoacids

@@ -1748,7 +1748,7 @@ def filter_paralogs_informed(
             return red(f"'{fasta_model_short}': FAILED paralog removal, input file was empty")
 
         aln = fasta_to_dict(fasta_model)
-        fasta_model_marker = fasta_model.parts[-3][-3:]
+        fasta_model_marker = settings.DIR_MARKERS[fasta_model.parts[-3]]
         if fasta_model.parts[-2] == "01_AA":
             fasta_model_format = "AA"
         elif fasta_model.parts[-2] == "02_NT":

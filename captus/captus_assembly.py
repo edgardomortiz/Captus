@@ -1351,7 +1351,7 @@ class CaptusAssembly(object):
 
         trimming_group = parser.add_argument_group("Trimming")
         trimming_group.add_argument(
-            "-c",
+            "-t",
             "--taper_cutoff",
             action="store",
             default=3.0,
@@ -1429,7 +1429,7 @@ class CaptusAssembly(object):
             help="Trim only the ends of the alignments (do not trim internal gaps)",
         )
         trimming_group.add_argument(
-            "-v",
+            "-c",
             "--min_coverage",
             action="store",
             default=0.40,

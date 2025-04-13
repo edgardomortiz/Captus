@@ -16,39 +16,43 @@ not, see <http://www.gnu.org/licenses/>.
 
 # Make sure this is being run with Python 3.6 or later.
 import sys
+
 if sys.version_info.major != 3 or sys.version_info.minor < 6:
-    sys.exit('Error: you must execute setup.py using Python 3.6 or later')
+    sys.exit("Error: you must execute setup.py using Python 3.6 or later")
 
 from setuptools import setup, find_packages
 
 # Get the program version from another file.
 __version__ = "0.0.0"
-exec(open('captus/version.py').read())
+exec(open("captus/version.py").read())
 
 setup(
-    name = "captus",
-    version = __version__,
-    url = "https://github.com/edgardomortiz/Captus",
-    author = "Edgardo M. Ortiz",
-    author_email = "e.ortiz.v@gmail.com",
-    description = "Tools for hybridization capture-based target enrichment: "
-                  "Probe Design, Data Assembly, Marker Extraction and Alignment",
-    long_description = open("README.md").read(),
-    long_description_content_type = "text/markdown",
-    packages = find_packages(),
-    package_data = {
-        "data": ["*"],
-        "dependencies": ["scipio-1.4/*", "blat/*"]
-        },
+    name="captus",
+    version=__version__,
+    url="https://github.com/edgardomortiz/Captus",
+    author="Edgardo M. Ortiz",
+    author_email="e.ortiz.v@gmail.com",
+    description="Tools for hybridization capture-based target enrichment: "
+    "Probe Design, Data Assembly, Marker Extraction and Alignment",
+    long_description=open("README.md").read(),
+    long_description_content_type="text/markdown",
+    packages=find_packages(),
+    package_data={"data": ["*"], "dependencies": ["scipio-1.4/*", "blat/*"], "extras": ["*"]},
     include_package_data=True,
-    entry_points = {
-        "console_scripts": ["captus_assembly = captus.captus_assembly:main",
-                            "captus = captus.captus_assembly:main",
-                            "captus_design = captus.captus_design:main",
-                            "captusd = captus.captus_design:main"]
-        },
-    license = "GPL",
-    classifiers = [
+    entry_points={
+        "console_scripts": [
+            "captus_assembly = captus.captus_assembly:main",
+            "captus = captus.captus_assembly:main",
+            "captus_design = captus.captus_design:main",
+            "captusd = captus.captus_design:main",
+            "concatenate_alignments = extras.concatenate_alignments.main",
+            "most_common_target_per_locus = extras.most_common_target_per_locus.main",
+            "new_targets_from_alignments = extras.new_targets_from_alignments.main",
+            "phylo_commands = extras.phylo_commands.main",
+        ]
+    },
+    license="GPL",
+    classifiers=[
         "Programming Language :: Python",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
@@ -56,5 +60,6 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
-    ]
+        "Programming Language :: Python :: 3.12",
+    ],
 )

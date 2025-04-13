@@ -12,7 +12,6 @@ details. You should have received a copy of the GNU General Public License along
 not, see <http://www.gnu.org/licenses/>.
 """
 
-
 import argparse
 import gzip
 import os
@@ -42,7 +41,7 @@ def fasta_to_dict(fasta_path):
         opener = open
     fasta_out = {}
     with opener(fasta_path, "rt") as fasta_in:
-        seq  = ""
+        seq = ""
         name = ""
         desc = ""
         for line in fasta_in:
@@ -73,8 +72,7 @@ def fasta_to_dict(fasta_path):
 
 
 def dict_to_fasta(
-    in_fasta_dict, out_fasta_path, wrap=0, sort=False,
-    shuffle=False, append=False, write_if_empty=False
+    in_fasta_dict, out_fasta_path, wrap=0, sort=False, shuffle=False, append=False, write_if_empty=False
 ):
     """
     Saves a `in_fasta_dict` from function `fasta_to_dict()` as a FASTA file to `out_fasta_path`
@@ -93,13 +91,13 @@ def dict_to_fasta(
             in_fasta_dict = dict(in_fasta_dict_shuffled)
         with open(out_fasta_path, action) as fasta_out:
             for name in in_fasta_dict:
-                header = f'>{name} {in_fasta_dict[name]["description"]}'.strip()
+                header = f">{name} {in_fasta_dict[name]['description']}".strip()
                 seq = in_fasta_dict[name]["sequence"]
                 if wrap > 0:
-                    seq_out = "\n".join([seq[i:i + wrap] for i in range(0, len(seq), wrap)])
+                    seq_out = "\n".join([seq[i : i + wrap] for i in range(0, len(seq), wrap)])
                 else:
                     seq_out = seq
-                fasta_out.write(f'{header}\n{seq_out}\n')
+                fasta_out.write(f"{header}\n{seq_out}\n")
     else:
         if write_if_empty:
             with open(out_fasta_path, action) as fasta_out:
@@ -117,10 +115,13 @@ def quit_with_error(message):
 
 
 def main():
-
-    parser = argparse.ArgumentParser(description="Filter most common target per locus to create new reference target files")
+    parser = argparse.ArgumentParser(
+        description="Filter most common target per locus to create new reference target files",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     parser.add_argument(
-        "-a", "--captus_alignments_dir",
+        "-a",
+        "--captus_alignments_dir",
         action="store",
         default="./04_alignments",
         dest="captus_alignments_dir",
@@ -128,18 +129,20 @@ def main():
         help="Path to the directory that contains the output from the alignment step of Captus",
     )
     parser.add_argument(
-        "-o", "--out",
+        "-o",
+        "--out_dir",
         action="store",
-        default="./",
-        dest="out",
+        default="./new_targets",
+        dest="out_dir",
         help="Output directory name",
     )
     parser.add_argument(
-        "-s", "--suffix",
+        "-s",
+        "--suffix",
         action="store",
-        default= "_single_target",
+        default="_MCT",
         dest="suffix",
-        help="Suffix to add to the output reference target files",
+        help="Suffix to add to the output reference target files (MCT = Most Common Target)",
     )
     args = parser.parse_args()
 
@@ -147,30 +150,57 @@ def main():
     paralog_file = Path(args.captus_alignments_dir, "captus-align_paralogs.tsv")
 
     targets_paths = {
-        "NUC": {"AA_path": None, "AA_fasta": None, "AA_names": [], "NT_path": None, "NT_fasta": None, "NT_names": []},
-        "PTD": {"AA_path": None, "AA_fasta": None, "AA_names": [], "NT_path": None, "NT_fasta": None, "NT_names": []},
-        "MIT": {"AA_path": None, "AA_fasta": None, "AA_names": [], "NT_path": None, "NT_fasta": None, "NT_names": []},
+        "NUC": {
+            "AA_path": None,
+            "AA_fasta": None,
+            "AA_names": [],
+            "NT_path": None,
+            "NT_fasta": None,
+            "NT_names": [],
+        },
+        "PTD": {
+            "AA_path": None,
+            "AA_fasta": None,
+            "AA_names": [],
+            "NT_path": None,
+            "NT_fasta": None,
+            "NT_names": [],
+        },
+        "MIT": {
+            "AA_path": None,
+            "AA_fasta": None,
+            "AA_names": [],
+            "NT_path": None,
+            "NT_fasta": None,
+            "NT_names": [],
+        },
         "DNA": {"NT_path": None, "NT_fasta": None, "NT_names": []},
         "CLR": {"NT_path": None, "NT_fasta": None, "NT_names": []},
     }
 
-    if not Path(args.out).exists():
+    if not Path(args.out_dir).exists():
         try:
-            Path(args.out).mkdir(parents=True)
+            Path(args.out_dir).mkdir(parents=True)
         except OSError:
-            quit_with_error(f"Captus was unable to make the output directory {Path(args.out)}")
+            quit_with_error(f"Captus was unable to make the output directory {Path(args.out_dir)}")
 
     if not aln_log_file.is_file():
-        quit_with_error(f"'{aln_log_file.name}' not found in '{args.out}', verify this is a valid Captus alignment directory")
+        quit_with_error(
+            f"'{aln_log_file.name}' not found in '{args.out_dir}', verify this is a valid Captus alignment directory"
+        )
 
     if not paralog_file.is_file():
-        quit_with_error(f"'{paralog_file.name}' not found in '{args.out}', verify this is a valid Captus alignment directory")
+        quit_with_error(
+            f"'{paralog_file.name}' not found in '{args.out_dir}', verify this is a valid Captus alignment directory"
+        )
 
     with open(aln_log_file, "rt") as log_in:
         for line in log_in:
-            if ("                       NUC: " in line or
-                "                       PTD: " in line or
-                "                       MIT: " in line):
+            if (
+                "                       NUC: " in line
+                or "                       PTD: " in line
+                or "                       MIT: " in line
+            ):
                 marker = line.split()[0].strip(":")
                 if "(AA_path)" in line:
                     target_path = Path(line.split()[1])
@@ -182,8 +212,7 @@ def main():
                     if target_path.is_file():
                         targets_paths[marker]["NT_path"] = target_path
                         targets_paths[marker]["NT_fasta"] = fasta_to_dict(target_path)
-            elif ("                       DNA: " in line or
-                  "                       CLR: " in line):
+            elif "                       DNA: " in line or "                       CLR: " in line:
                 marker = line.split()[0].strip(":")
                 if "(NT_path)" in line:
                     target_path = Path(line.split()[1])
@@ -208,7 +237,7 @@ def main():
             if len(targets_paths[marker]["AA_names"]) > 0:
                 fasta_out = {}
                 fasta_file_name = targets_paths[marker]["AA_path"]
-                fasta_out_file_name = Path(args.out, f'{fasta_file_name.stem}{args.suffix}.faa')
+                fasta_out_file_name = Path(args.out_dir, f"{fasta_file_name.stem}{args.suffix}.faa")
                 for target_name in targets_paths[marker]["AA_names"]:
                     try:
                         fasta_out[target_name] = targets_paths[marker]["AA_fasta"][target_name]
@@ -221,7 +250,7 @@ def main():
             if len(targets_paths[marker]["NT_names"]) > 0:
                 fasta_out = {}
                 fasta_file_name = targets_paths[marker]["NT_path"]
-                fasta_out_file_name = Path(args.out, f'{fasta_file_name.stem}{args.suffix}.fna')
+                fasta_out_file_name = Path(args.out_dir, f"{fasta_file_name.stem}{args.suffix}.fna")
                 for target_name in targets_paths[marker]["NT_names"]:
                     try:
                         fasta_out[target_name] = targets_paths[marker]["NT_fasta"][target_name]
@@ -229,9 +258,10 @@ def main():
                         print(f"'{target_name}' not found in '{fasta_file_name}'")
                 dict_to_fasta(fasta_out, fasta_out_file_name)
                 if fasta_file_name.is_file():
-                    print(f"'{marker}' nucleotide reference target file saved to '{fasta_out_file_name}'")
+                    print(
+                        f"'{marker}' nucleotide reference target file saved to '{fasta_out_file_name}'"
+                    )
 
-    print("Done!")
 
 if __name__ == "__main__":
     main()

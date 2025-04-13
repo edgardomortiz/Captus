@@ -30,6 +30,9 @@ CAPTUS_DIRS = {
     "unfiltered": "04_unfiltered",
     "naive": "05_naive",
     "informed": "06_informed",
+    "unfiltered_w_refs": "01_unfiltered_w_refs",
+    "naive_w_refs": "02_naive_w_refs",
+    "informed_w_refs": "03_informed_w_refs",
     "NUC": "01_coding_NUC",
     "PTD": "02_coding_PTD",
     "MIT": "03_coding_MIT",
@@ -48,6 +51,7 @@ REF_CLUSTER_SEP = "-"
 
 # Separator between sample name and paralog number
 SEQ_NAME_SEP = "__"
+
 
 def fasta_to_dict(fasta_path):
     """
@@ -191,8 +195,8 @@ def select_refs_per_locus(
     best_only: bool,
     threads,
 ):
-    prefix = f"{prefix}_i{min_identity:.2f}_c{min_coverage:.2f}_w{wscore_proportion:.2f}"
-    prefix += f"_v{coverage_proportion:.2f}_l{length_proportion:.2f}_s{size_proportion:.2f}"
+    prefix = f"{prefix}_i{min_identity:.2f}_c{min_coverage:.2f}_W{wscore_proportion:.2f}"
+    prefix += f"_C{coverage_proportion:.2f}_L{length_proportion:.2f}_S{size_proportion:.2f}"
     clust_log_file = Path(out_dir, f"{prefix}.log")
 
     if exclude_samples is None:
@@ -220,9 +224,7 @@ def select_refs_per_locus(
                         "description": fasta[seq_name]["description"],
                     }
                     if "wscore" in fasta[seq_name]["description"]:
-                        wscore = float(
-                            fasta[seq_name]["description"].split("wscore=")[-1].split("]")[0]
-                        )
+                        wscore = float(fasta[seq_name]["description"].split("wscore=")[-1].split("]")[0])
                     else:
                         wscore = 1.0
                     if "cover" in fasta[seq_name]["description"]:
@@ -567,6 +569,7 @@ def main():
         help="Path to the directory that contains the output from the alignment step of Captus",
     )
     parser.add_argument(
+        "-s",
         "--stage",
         action="store",
         default="untrimmed",
@@ -575,14 +578,23 @@ def main():
         help="Alignment stage",
     )
     parser.add_argument(
+        "-f",
         "--filter",
         action="store",
         default="informed",
         dest="filter",
-        choices=["unfiltered", "naive", "informed"],
+        choices=[
+            "unfiltered",
+            "naive",
+            "informed",
+            "unfiltered_w_refs",
+            "naive_w_refs",
+            "informed_w_refs",
+        ],
         help="Paralog filter, this is ignored when '--stage' is 'unaligned'",
     )
     parser.add_argument(
+        "-M",
         "--marker",
         action="store",
         default="NUC",
@@ -591,6 +603,7 @@ def main():
         help="Marker type",
     )
     parser.add_argument(
+        "-F",
         "--format",
         action="store",
         default="NT",
@@ -599,25 +612,17 @@ def main():
         help="Alignment data format",
     )
     parser.add_argument(
-        "-e",
         "--exclude_samples",
         action="store",
         dest="exclude_samples",
         help="Comma-separated list of samples to exclude (no spaces)",
     )
     parser.add_argument(
-        "-r",
-        "--include_references",
-        action="store_true",
-        dest="include_references",
-        help="Enable to include reference target sequences (if present in the alignments) for clustering",
-    )
-    parser.add_argument(
         "-o",
-        "--out",
+        "--out_dir",
         action="store",
         default="./new_targets",
-        dest="out",
+        dest="out_dir",
         help="Output directory name",
     )
     parser.add_argument(
@@ -656,7 +661,7 @@ def main():
         " of the longest sequence in the cluster",
     )
     parser.add_argument(
-        "-w",
+        "-W",
         "--wscore_proportion",
         action="store",
         default=0.55,
@@ -666,7 +671,7 @@ def main():
         " in the locus",
     )
     parser.add_argument(
-        "-v",
+        "-C",
         "--coverage_proportion",
         action="store",
         default=0.55,
@@ -676,7 +681,7 @@ def main():
         " sequence in the locus",
     )
     parser.add_argument(
-        "-l",
+        "-L",
         "--length_proportion",
         action="store",
         default=0.75,
@@ -686,7 +691,7 @@ def main():
         " longest cluster representative in the locus",
     )
     parser.add_argument(
-        "-s",
+        "-S",
         "--size_proportion",
         action="store",
         default=0.55,
@@ -696,13 +701,14 @@ def main():
         " cluster in the locus",
     )
     parser.add_argument(
-        "-b",
+        "-B",
         "--best_only",
         action="store_true",
         dest="best_only",
         help="Enable to include a single representative per locus in the target file",
     )
     parser.add_argument(
+        "-t",
         "--threads",
         action="store",
         default="auto",
@@ -710,12 +716,6 @@ def main():
         help="Number of threads to use",
     )
     args = parser.parse_args()
-
-    if not Path(args.out).exists():
-        try:
-            Path(args.out).mkdir(parents=True)
-        except OSError:
-            quit_with_error(f"Captus was unable to make the output directory {Path(args.out)}")
 
     if args.stage == "unaligned":
         aln_dir = Path(
@@ -734,20 +734,29 @@ def main():
         )
 
     if not aln_dir.is_dir():
-        quit_with_error(f"'{aln_dir}' not found, verify this is a valid Captus alignment directory")
+        quit_with_error(f"'{aln_dir}' not found, verify this Captus alignment directory exists!")
+
+    if not Path(args.out_dir).exists():
+        try:
+            Path(args.out_dir).mkdir(parents=True)
+        except OSError:
+            quit_with_error(f"Captus was unable to make the output directory {Path(args.out_dir)}")
 
     fasta_ext = "fna"
     if args.format == "AA":
         fasta_ext = "faa"
+    include_references = False
+    if args.filter.endswith("_w_refs"):
+        include_references = True
 
     fastas_paths = list(sorted(aln_dir.glob(f"*.{fasta_ext}")))
 
     select_refs_per_locus(
         fastas_paths,
         fasta_ext,
-        args.out,
+        args.out_dir,
         args.prefix,
-        args.include_references,
+        include_references,
         args.exclude_samples,
         args.min_seq_len,
         args.min_identity,
@@ -759,6 +768,7 @@ def main():
         args.best_only,
         args.threads,
     )
+
 
 if __name__ == "__main__":
     main()
