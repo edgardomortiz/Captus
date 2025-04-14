@@ -312,7 +312,7 @@ def main():
         required=True,
         help="Path to the directory that contains the output from the alignment step of Captus"
         " The path to a text file containing the list of paths to the alignments can also be"
-        " provided",
+        " provided (if your alignments contain aminoacid sequences use '-F AA')",
     )
     parser.add_argument(
         "-s",
@@ -403,6 +403,11 @@ def main():
     )
     args = parser.parse_args()
 
+    fasta_ext = "fna"
+    seq_type = "DNA"
+    if args.format == "AA":
+        fasta_ext = "faa"
+        seq_type = "AA"
     fastas_paths = []
     if not Path(args.captus_alignments).exists():
         quit_with_error(
@@ -418,11 +423,6 @@ def main():
         )
         if not aln_dir.exists():
             quit_with_error(f"'{aln_dir}' not found, verify this Captus alignment directory exists!")
-        fasta_ext = "fna"
-        seq_type = "DNA"
-        if args.format == "AA":
-            fasta_ext = "faa"
-            seq_type = "AA"
         fastas_paths = list(sorted(aln_dir.glob(f"*.{fasta_ext}")))
     elif Path(args.captus_alignments).is_file():
         with open(Path(args.captus_alignments), "rt") as paths_in:
