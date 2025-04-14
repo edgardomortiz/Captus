@@ -135,12 +135,15 @@ def main():
     )
     parser.add_argument(
         "-a",
-        "--captus_alignments_dir",
+        "--captus_alignments",
         action="store",
         default="./04_alignments",
-        dest="captus_alignments_dir",
+        dest="captus_alignments",
         required=True,
-        help="Path to the directory that contains the output from the alignment step of Captus",
+        help="Path to the directory that contains the output from the alignment step of Captus"
+        " The path to a text file containing the list of paths to the alignments can also be"
+        " provided, only alignments with extension .fna or .faa are accepted (if your alignments"
+        " end in .faa use '-F AA')",
     )
     parser.add_argument(
         "-s",
@@ -253,15 +256,33 @@ def main():
     )
     args = parser.parse_args()
 
-    aln_dir = Path(
-        args.captus_alignments_dir,
-        CAPTUS_DIRS[args.stage],
-        CAPTUS_DIRS[args.filter],
-        CAPTUS_DIRS[args.marker],
-        CAPTUS_DIRS[args.format],
-    )
-    if not aln_dir.is_dir():
-        quit_with_error(f"'{aln_dir}' not found, verify this Captus alignment directory exists!")
+    fasta_ext = "fna"
+    seq_type = "DNA"
+    if args.format == "AA":
+        fasta_ext = "faa"
+        seq_type = "AA"
+    fastas_paths = []
+    if not Path(args.captus_alignments).exists():
+        quit_with_error(
+            f"'{args.captus_alignments}' not found, verify this Captus alignment directory exists!"
+        )
+    elif Path(args.captus_alignments).is_dir():
+        aln_dir = Path(
+            args.captus_alignments,
+            CAPTUS_DIRS[args.stage],
+            CAPTUS_DIRS[args.filter],
+            CAPTUS_DIRS[args.marker],
+            CAPTUS_DIRS[args.format],
+        )
+        if not aln_dir.exists():
+            quit_with_error(f"'{aln_dir}' not found, verify this Captus alignment directory exists!")
+        fastas_paths = list(sorted(aln_dir.glob(f"*.{fasta_ext}")))
+    elif Path(args.captus_alignments).is_file():
+        with open(Path(args.captus_alignments), "rt") as paths_in:
+            for line in paths_in:
+                fasta_path = Path(line.strip())
+                if fasta_path.exists() and fasta_path.suffix == f".{fasta_ext}":
+                    fastas_paths.append(fasta_path)
 
     if not Path(args.out_dir).exists():
         try:
@@ -277,36 +298,32 @@ def main():
                 f"Captus was unable to make the phylogenies directory {Path(args.phylogenies_dir)}"
             )
 
-    fasta_ext = "fna"
-    seq_type = "DNA"
-    if args.format == "AA":
-        fasta_ext = "faa"
-        seq_type = "AA"
-
-    fastas_paths = list(sorted(aln_dir.glob(f"*.{fasta_ext}")))
-
-    if args.program.lower() == "iqtree":
-        output_commands_list = create_iqtree_cmds(
-            args.iqtree_path,
-            fastas_paths,
-            seq_type,
-            args.phylogenies_dir,
-            args.threads,
-            args.extra_options,
+    if fastas_paths:
+        if args.program.lower() == "iqtree":
+            output_commands_list = create_iqtree_cmds(
+                args.iqtree_path,
+                fastas_paths,
+                seq_type,
+                args.phylogenies_dir,
+                args.threads,
+                args.extra_options,
+            )
+        elif args.program.lower() == "fasttree":
+            output_commands_list = create_fasttree_cmds(
+                args.fasttree_path,
+                fastas_paths,
+                seq_type,
+                args.phylogenies_dir,
+                args.extra_options,
+            )
+        out_commands_path = Path(args.out_dir, args.out_commands)
+        with open(Path(out_commands_path), "wt") as cmd:
+            cmd.write("\n".join(output_commands_list) + "\n")
+        print(f"A total of {len(output_commands_list)} commands saved to '{out_commands_path}'")
+    else:
+        print(
+            f"No valid alignments or valid paths to alignments were found in '{args.captus_alignments}'"
         )
-    elif args.program.lower() == "fasttree":
-        output_commands_list = create_fasttree_cmds(
-            args.fasttree_path,
-            fastas_paths,
-            seq_type,
-            args.phylogenies_dir,
-            args.extra_options,
-        )
-
-    out_commands_path = Path(args.out_dir, args.out_commands)
-    with open(Path(out_commands_path), "wt") as cmd:
-        cmd.write("\n".join(output_commands_list) + "\n")
-    print(f"A total of {len(output_commands_list)} commands saved to '{out_commands_path}'")
 
 
 if __name__ == "__main__":

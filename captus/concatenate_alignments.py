@@ -305,12 +305,14 @@ def main():
     )
     parser.add_argument(
         "-a",
-        "--captus_alignments_dir",
+        "--captus_alignments",
         action="store",
         default="./04_alignments",
-        dest="captus_alignments_dir",
+        dest="captus_alignments",
         required=True,
-        help="Path to the directory that contains the output from the alignment step of Captus",
+        help="Path to the directory that contains the output from the alignment step of Captus"
+        " The path to a text file containing the list of paths to the alignments can also be"
+        " provided",
     )
     parser.add_argument(
         "-s",
@@ -401,16 +403,33 @@ def main():
     )
     args = parser.parse_args()
 
-    aln_dir = Path(
-        args.captus_alignments_dir,
-        CAPTUS_DIRS[args.stage],
-        CAPTUS_DIRS[args.filter],
-        CAPTUS_DIRS[args.marker],
-        CAPTUS_DIRS[args.format],
-    )
-
-    if not aln_dir.is_dir():
-        quit_with_error(f"'{aln_dir}' not found, verify this Captus alignment directory exists!")
+    fastas_paths = []
+    if not Path(args.captus_alignments).exists():
+        quit_with_error(
+            f"'{args.captus_alignments}' not found, verify this Captus alignment directory exists!"
+        )
+    elif Path(args.captus_alignments).is_dir():
+        aln_dir = Path(
+            args.captus_alignments,
+            CAPTUS_DIRS[args.stage],
+            CAPTUS_DIRS[args.filter],
+            CAPTUS_DIRS[args.marker],
+            CAPTUS_DIRS[args.format],
+        )
+        if not aln_dir.exists():
+            quit_with_error(f"'{aln_dir}' not found, verify this Captus alignment directory exists!")
+        fasta_ext = "fna"
+        seq_type = "DNA"
+        if args.format == "AA":
+            fasta_ext = "faa"
+            seq_type = "AA"
+        fastas_paths = list(sorted(aln_dir.glob(f"*.{fasta_ext}")))
+    elif Path(args.captus_alignments).is_file():
+        with open(Path(args.captus_alignments), "rt") as paths_in:
+            for line in paths_in:
+                fasta_path = Path(line.strip())
+                if fasta_path.exists():
+                    fastas_paths.append(fasta_path)
 
     if not Path(args.out_dir).exists():
         try:
@@ -418,32 +437,29 @@ def main():
         except OSError:
             quit_with_error(f"Captus was unable to make the output directory {Path(args.out_dir)}")
 
-    fasta_ext = "fna"
-    seq_type = "DNA"
-    if args.format == "AA":
-        fasta_ext = "faa"
-        seq_type = "AA"
+    if fastas_paths:
+        partitions, concatenated = concat_alignments(fastas_paths)
 
-    fastas_paths = list(sorted(aln_dir.glob(f"*.{fasta_ext}")))
+        out_supermatrix_path = Path(args.out_dir, f"{args.prefix}.{EXT[args.out_format]}")
 
-    partitions, concatenated = concat_alignments(fastas_paths)
+        if args.out_format.lower() == "fasta":
+            dict_to_fasta(concatenated, out_supermatrix_path, wrap=args.wrap)
+        elif args.out_format.lower() == "nexus":
+            dict_to_nexus(concatenated, out_supermatrix_path, seq_type, wrap=args.wrap)
+        elif args.out_format.lower() == "phylip":
+            dict_to_phylip(concatenated, out_supermatrix_path, wrap=args.wrap)
 
-    out_supermatrix_path = Path(args.out_dir, f"{args.prefix}.{EXT[args.out_format]}")
+        raxml_part_path, nexus_part_path = write_partitions(
+            partitions, seq_type, args.codon, out_supermatrix_path
+        )
 
-    if args.out_format.lower() == "fasta":
-        dict_to_fasta(concatenated, out_supermatrix_path, wrap=args.wrap)
-    elif args.out_format.lower() == "nexus":
-        dict_to_nexus(concatenated, out_supermatrix_path, seq_type, wrap=args.wrap)
-    elif args.out_format.lower() == "phylip":
-        dict_to_phylip(concatenated, out_supermatrix_path, wrap=args.wrap)
-
-    raxml_part_path, nexus_part_path = write_partitions(
-        partitions, seq_type, args.codon, out_supermatrix_path
-    )
-
-    print(f"Supermatrix file saved to '{out_supermatrix_path}'")
-    print(f"RAxML-style partition file saved to '{raxml_part_path}'")
-    print(f"NEXUS-style partition file saved to '{nexus_part_path}'")
+        print(f"Supermatrix file saved to '{out_supermatrix_path}'")
+        print(f"RAxML-style partition file saved to '{raxml_part_path}'")
+        print(f"NEXUS-style partition file saved to '{nexus_part_path}'")
+    else:
+        print(
+            f"No valid alignments or valid paths to alignments were found in '{args.captus_alignments}'"
+        )
 
 
 if __name__ == "__main__":
