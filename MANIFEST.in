@@ -1,6 +1,6 @@
 include *.py
 include LICENSE.txt
-recursive-include captus *.ipynb
+recursive-include captus *
 recursive-include data *.FAA
 recursive-include data *.FNA
 recursive-include data *.fasta
@@ -9,5 +9,4 @@ recursive-include dependencies *.pdf
 recursive-include dependencies *.pl
 recursive-include dependencies blat*
 recursive-include docs *.md
-recursive-include extras *.py
 prune captus.egg-info

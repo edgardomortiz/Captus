@@ -37,7 +37,7 @@ setup(
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     packages=find_packages(),
-    package_data={"data": ["*"], "dependencies": ["scipio-1.4/*", "blat/*"], "extras": ["*"]},
+    package_data={"data": ["*"], "dependencies": ["scipio-1.4/*", "blat/*"]},
     include_package_data=True,
     entry_points={
         "console_scripts": [
@@ -45,10 +45,10 @@ setup(
             "captus = captus.captus_assembly:main",
             "captus_design = captus.captus_design:main",
             "captusd = captus.captus_design:main",
-            "concatenate_alignments = extras.concatenate_alignments.main",
-            "most_common_target_per_locus = extras.most_common_target_per_locus.main",
-            "new_targets_from_alignments = extras.new_targets_from_alignments.main",
-            "phylo_commands = extras.phylo_commands.main",
+            "concatenate_alignments = captus.extras.concatenate_alignments.main",
+            "most_common_target_per_locus = captus.extras.most_common_target_per_locus.main",
+            "new_targets_from_alignments = captus.extras.new_targets_from_alignments.main",
+            "phylo_commands = captus.extras.phylo_commands.main",
         ]
     },
     license="GPL",
