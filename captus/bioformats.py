@@ -4203,7 +4203,7 @@ def bait_stats(bait_seq, hybrid_chem, sodium_conc, formamide_conc):
     return stats
 
 
-def import_busco_odb10(odb10_tar_path: Path):
+def import_busco_odb1x(odb1x_tar_path: Path):
     """
     Import BUSCO databases to be used as reference target file for marker extraction, the BUSCO
     databse file has to be a .tar.gz from the odb10, containing the file 'ancestral_variants' which
@@ -4220,7 +4220,7 @@ def import_busco_odb10(odb10_tar_path: Path):
         A fasta_dict with the sequence names formatted as Captus needs them for marker extraction
     """
     busco_targets = {}
-    with tarfile.open(odb10_tar_path) as tf:
+    with tarfile.open(odb1x_tar_path) as tf:
         for member in tf.getmembers():
             if Path(member.name).name == "ancestral_variants":
                 seq = ""

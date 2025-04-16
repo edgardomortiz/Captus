@@ -33,7 +33,7 @@ from .bioformats import (
     fasta_to_dict,
     fasta_type,
     fix_premature_stops,
-    import_busco_odb10,
+    import_busco_odb1x,
     mmseqs_cluster,
     parse_psl_record,
     rehead_root_msa,
@@ -1256,12 +1256,12 @@ def prepare_protein_refs(
                     " and/or premature stops that were converted to X"
                 )
             aa_msg = bold(aa_path)
-        elif Path(refset).is_file() and "odb10" in refset and refset.endswith(".tar.gz"):
+        elif Path(refset).is_file() and "odb1" in refset and refset.endswith(".tar.gz"):
             log.log(
                 f"'{Path(refset).name}' seems to be a BUSCO lineage"
                 " database, Captus will attempt to import it..."
             )
-            amino_refset = import_busco_odb10(Path(refset))
+            amino_refset = import_busco_odb1x(Path(refset))
             if amino_refset is None:
                 aa_msg = red("BUSCO lineage database could not be imported")
             else:
