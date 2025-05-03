@@ -2728,7 +2728,10 @@ def prefilter_blat_psl(
                 elif loci_depths[locus][contig]["max_wscoreld"] == best_hit_wscoreld:
                     if loci_depths[locus][contig]["depth"] > depth:
                         depth = loci_depths[locus][contig]["depth"]
-            loci_min_depths[locus] = 10 ** (round(math.log10(depth) / depth_tolerance, 2))
+            try:
+                loci_min_depths[locus] = 10 ** (round(math.log10(depth) / depth_tolerance, 2))
+            except ValueError:
+                loci_min_depths[locus] = 0
 
         # 9. Write rejected and accepted hits after filtering by depth
         with open(blat_out_file, "wt") as psl_acc:
