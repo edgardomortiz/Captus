@@ -534,7 +534,7 @@ VALID_OVERLAPS = [
 
 # Maximum percetange of overlap between two hits, nuclear genes should not overlap, but we allow
 # a small percentage of overlap
-HIT_MAX_PCT_OVERLAP = 1.0
+HIT_MAX_PCT_OVERLAP = 5.0
 
 # During prefiltering of BLAT hits, keep this top N best targets per locus
 BEST_N_TARGETS_GLOBAL = 100
