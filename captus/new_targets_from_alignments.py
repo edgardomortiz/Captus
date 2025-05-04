@@ -266,13 +266,13 @@ def select_refs_per_locus(
                                 fasta[seq_name]["description"].split("wscore=")[-1].split("]")[0]
                             )
                         else:
-                            wscore = 1
+                            wscore = 1.0
                         if "cover" in fasta[seq_name]["description"]:
                             coverage = float(
                                 fasta[seq_name]["description"].split("cover=")[-1].split("]")[0]
                             )
                         else:
-                            coverage = 1
+                            coverage = 1.0
                         if "query" in fasta[seq_name]["description"]:
                             target = fasta[seq_name]["description"].split("query=")[-1].split("]")[0]
                         else:
@@ -336,11 +336,11 @@ def select_refs_per_locus(
         if "wscore" in full_clust_input[seq_name]["description"]:
             wscore = float(full_clust_input[seq_name]["description"].split("wscore=")[-1].split("]")[0])
         else:
-            wscore = 1
+            wscore = 1.0
         if "cover" in full_clust_input[seq_name]["description"]:
             coverage = float(full_clust_input[seq_name]["description"].split("cover=")[-1].split("]")[0])
         else:
-            coverage = 1
+            coverage = 1.0
         if "query" in full_clust_input[seq_name]["description"]:
             target = full_clust_input[seq_name]["description"].split("query=")[-1].split("]")[0]
         else:
@@ -351,6 +351,8 @@ def select_refs_per_locus(
                 and coverage >= best_targets_info[locus]["coverage"] * coverage_proportion
             ):
                 clust_input[seq_name] = full_clust_input[seq_name]
+        else:
+            clust_input[seq_name] = full_clust_input[seq_name]
     clust_input_path = Path(out_dir, f"{prefix}_clust_input.fasta")
     dict_to_fasta(clust_input, clust_input_path)
     msg = (
@@ -433,10 +435,13 @@ def select_refs_per_locus(
     for cluster in clusters:
         cluster_sizes.append(len(cluster) / 2)
         locus = cluster[0].split()[0].split(REF_CLUSTER_SEP)[-1]
+        wscore = 1.0
+        if "wscore" in cluster[0]:
+            wscore = float(cluster[0].split("wscore=")[-1].split("]")[0])
         cluster_info = {
             "size": len(cluster) / 2,
             "length": len(cluster[1]),
-            "wscore": float(cluster[0].split("wscore=")[-1].split("]")[0]),
+            "wscore": wscore,
         }
         if locus not in loci:
             loci[locus] = cluster_info
@@ -489,7 +494,9 @@ def select_refs_per_locus(
                 else:
                     loci_reps[locus][seq_name] = seq_desc
         else:
-            wscore = float(cluster[0].split("wscore=")[-1].split("]")[0])
+            wscore = 1.0
+            if "wscore" in cluster[0]:
+                wscore = float(cluster[0].split("wscore=")[-1].split("]")[0])
             locus_rep = {seq_name: seq_desc}
             if size > loci[locus]["size"]:
                 loci_reps[locus] = locus_rep
