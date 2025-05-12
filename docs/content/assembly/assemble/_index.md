@@ -16,10 +16,15 @@ If you assemble your reads in `Captus` you can also filter the contigs by GC con
 
 `Captus` allows you the flexibility to also provide pre-assembled samples. However, we recommend that, whenever you have read data, to assemble it using `Captus`. For transcriptome assemblies for example, other assemblers will produce lots of redundant contigs (due to isoforms, alleles, etc.) which `MEGAHIT` tends to collapse into a single contig. This is ideal for phylogenomics (and perhaps also to build non-redundant reference transcriptomes).
 
+- [<i class="fas fa-clipboard-check"></i> Input Preparation]({{< relref "assembly/assemble/preparation" >}})  
+- [<i class="fas fa-cog"></i> Options]({{< relref "assembly/assemble/options" >}})  
+- [<i class="fas fa-dna"></i> Output Files]({{< relref "assembly/assemble/output" >}})  
+- [<i class="fas fa-chart-bar"></i> HTML Report]({{< relref "assembly/assemble/report" >}})
+
 {{% notice note %}}
 In case you assembled your reads elsewhere or you want to use only pre-assembled genomes (e.g., downloaded from GenBank), you can jump ahead to the [`extract` command]({{< ref "extract">}}) page.
 {{% /notice %}}
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (18.12.2024)
+Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (12.05.2025)

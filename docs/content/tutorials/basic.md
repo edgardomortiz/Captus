@@ -180,7 +180,7 @@ You can visualize this tree with a phylogenetic tree viewer such as [`FigTree`](
 The maximum-likelihood tree opened in FigTree and rerooted on `GenusC_speciesC_CAP` should look like below:
 ![figtree](/captus.docs/images/tutorial_basic_figtree.png?width=700)
 That's all for the basic tutorial, but remember that this is a **minimal** usage of the `captus_assembly` pipeline.  
-To get the most out of this pipeline, such as integrating different data types at different processing steps or discovering new markers by clustering contigs, check out the [<i class="fab fa-readme"></i> Advanced Tutorial]({{< ref "tutorials/assembly/advanced">}}) (currently under construction).
+To get the most out of this pipeline, such as integrating different data types at different processing steps or discovering new markers by clustering contigs, check out the [<i class="fab fa-readme"></i> Advanced Tutorial]({{< ref "tutorials/advanced">}}) (currently under construction).
 
 ---
 Created by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (01.10.2021)  

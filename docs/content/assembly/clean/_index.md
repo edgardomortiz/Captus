@@ -6,7 +6,12 @@ pre = "<b>1. </b>"
 
 Unless you are starting with your own assemblies, cleaning will be the first step in the analysis. `Captus` makes it easy to process many samples in a consistent manner, automatically, and providing a comprehensive [Quality Control HTML report]({{< ref "assembly/clean/report" >}}).
 
-`Captus` allows you the flexibility to provide reads cleaned elsewhere. however, we recommend our cleaning method for its accuracy in removing adaptors, which in turn improves the chances of getting a higher quality assembly. 
+`Captus` allows you the flexibility to provide reads cleaned elsewhere. however, we recommend our cleaning method for its accuracy in removing adaptors, which in turn improves the chances of getting a higher quality assembly.
+
+- [<i class="fas fa-clipboard-check"></i> Input Preparation]({{< relref "assembly/clean/preparation" >}})  
+- [<i class="fas fa-cog"></i> Options]({{< relref "assembly/clean/options" >}})  
+- [<i class="fas fa-dna"></i> Output Files]({{< relref "assembly/clean/output" >}})  
+- [<i class="fas fa-chart-bar"></i> HTML Report]({{< relref "assembly/clean/report" >}})
 
 {{% notice note %}}
 In case you still want to start with previously cleaned reads, you can jump ahead to the [`assemble` command]({{< ref "assemble">}}) page.
@@ -149,9 +154,9 @@ Even though `fastp` is slightly more accurate than `bbduk.sh` [as measured by al
 
 The fastest times correspond in both cases to `bbduk.sh`. Notably, the second most effective method in removing adaptor bases is `bbduk.sh` with `Captus`'s settings [see **Adaptors remaining (Bases)** after cleaning].  
 
-Our preference for `bbduk.sh` is justified at this point by the balance between its high accuracy (>95%) and its great speed (>10x faster than the second fastest), but mainly because of its efficiency in removing adaptor bases from the reads. 
+Our preference for `bbduk.sh` is justified at this point by the balance between its high accuracy (>95%) and its great speed (>10x faster than the second fastest), but mainly because of its efficiency in removing adaptor bases from the reads.
 {{% /expand %}}
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (29.05.2022)
+Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (12.05.2025)

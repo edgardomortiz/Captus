@@ -132,7 +132,7 @@ ___
 ### **`--taper_conservative`**
 Enable the more conservative mode of TAPER. Captus uses the aggressive mode by default, see 'correction_multi_aggressive.jl' at https://github.com/chaoszhang/TAPER".
 ___
-### **`--taper_ufiltered`**
+### **`--taper_unfiltered`**
 Enable TAPER correction even for alignments than have not been paralog-filtered, TAPER is only able to distinguish error when an unfiltered alignment contains copies of the locus that are not extremely divergent.
 ___
 ### **`--disable_taper`**
@@ -196,4 +196,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)<br>
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (09.04.2025)
+Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (12.05.2025)
