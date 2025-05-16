@@ -14,7 +14,6 @@ not, see <http://www.gnu.org/licenses/>.
 
 import copy
 import gzip
-import itertools
 import math
 import random
 import re
