@@ -3570,22 +3570,22 @@ def taper_correction(
         )
         L = t["L"]
         for j in range(m):
-            start = 0
+            start = None
             cnt = 0
             for i in range(n):
-                if start == 0 and output[j][i] == tmp_mask:
+                if start is None and output[j][i] == tmp_mask:
                     start = i
                     cnt = 1
-                elif start != 0 and output[j][i] == tmp_mask:
+                elif start is not None and output[j][i] == tmp_mask:
                     cnt += 1
-                elif start != 0 and output[j][i] != tmp_mask and output[j][i] != "-":
+                elif start is not None and output[j][i] not in [tmp_mask, "-"]:
                     if cnt < L:
                         for k in range(start, i):
                             seq_array[j][k] = "-" if output[j][k] == "-" else mask
                     start = 0
                     cnt = 0
 
-            if start != 0 and cnt < L:
+            if start is not None and cnt < L:
                 for k in range(start, n):
                     seq_array[j][k] = "-" if output[j][k] == "-" else mask
 
