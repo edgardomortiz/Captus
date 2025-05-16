@@ -37,7 +37,7 @@ class CaptusDesign(object):
             " Assembly of Phylogenomic Datasets from High-Throughput Sequencing data"
         )
         parser = argparse.ArgumentParser(
-            usage="captus_design command [options]",
+            usage="captusd command [options]",
             description=description,
             formatter_class=MyHelpFormatter,
             epilog="For help on a particular command: captus_assembly command -h",
@@ -85,7 +85,7 @@ class CaptusDesign(object):
             "Captus-design: Cluster; find clusters of markers across genomes or transcripts\n"
         )
         parser = argparse.ArgumentParser(
-            usage="captus_design cluster -m MARKERS_TO_CLUSTER [MARKERS_TO_CLUSTER ...] [options]",
+            usage="captusd cluster -m MARKERS_TO_CLUSTER [MARKERS_TO_CLUSTER ...] [options]",
             description=description,
             formatter_class=MyHelpFormatter,
             epilog="For more information, please see https://github.com/edgardomortiz/Captus",
@@ -381,7 +381,7 @@ class CaptusDesign(object):
     def select(self):
         description = bold("Captus-design: Select; informed selection of clusters for bait creation\n")
         parser = argparse.ArgumentParser(
-            usage="captus_design select -c CAPTUS_CLUSTERS_DIR [options]",
+            usage="captusd select -c CAPTUS_CLUSTERS_DIR [options]",
             description=description,
             formatter_class=MyHelpFormatter,
             epilog="For more information, please see https://github.com/edgardomortiz/Captus",
@@ -626,7 +626,7 @@ class CaptusDesign(object):
     def bait(self):
         description = bold("Captus-design: Bait; create baits from selected alignments\n")
         parser = argparse.ArgumentParser(
-            usage="captus_design bait -s CAPTUS_SELECTED_DIR [options]",
+            usage="captusd bait -s CAPTUS_SELECTED_DIR [options]",
             description=description,
             formatter_class=MyHelpFormatter,
             epilog="For more information, please see https://github.com/edgardomortiz/Captus",

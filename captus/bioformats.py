@@ -3348,8 +3348,8 @@ def taper_correction(
     conservative: bool,
 ):
     """TAPER algorithm published in https://doi.org/10.1111/2041-210X.13696
-       The Julia code translated to Python by an AI language model (Gemini) was then adapted to fit
-       in the trimming stage from the 'align' module of Captus and tested
+       The code translation from Julia to Python was assisted by Anthropic's AI assistant "Claude"
+       on May 2025 and then adapted to fit in the trimming stage from the 'align' module of Captus
 
     Args:
         fasta_in_path (Path): Path to input FASTA file
@@ -3371,207 +3371,184 @@ def taper_correction(
         cutoff_threshold: float,
         conservative: bool,
     ):
-        seq_upper = [seq.upper() for seq in sequences]
-        seq_array = [list(seq) for seq in sequences]
-        ncols = len(sequences[0]) if sequences else 0
-        nrows = len(sequences)
-        sequences_corrected = []
+        ambig_upper = ambig.upper() if "a" <= ambig <= "z" else ambig
+        seqs_upper = [seq.upper() for seq in sequences]
+        res_array = [list(seq) for seq in sequences]
+        n = len(sequences[0])
+        m = len(sequences)
 
-        if ncols == 0:
-            return
+        w0 = [[0.0 for _ in range(m)] for _ in range(n)]
+        for i in range(n):
+            res_cnt = {}
+            for j in range(m):
+                res = seqs_upper[j][i]
+                if res not in ["-", ambig_upper]:
+                    if res in res_cnt:
+                        res_cnt[res] += 1
+                    else:
+                        res_cnt[res] = 1
+            unq = len(res_cnt)
+            tot = sum(res_cnt.values())
+            for j in range(m):
+                if tot > 0:
+                    if res_array[j][i] not in ["-", ambig]:
+                        w0[i][j] = tot / (unq * res_cnt[seqs_upper[j][i]])
+                    else:
+                        w0[i][j] = None
+        w1 = [[w0[i][j] for i in range(n) if w0[i][j] is not None] for j in range(m)]
 
-        weights_raw = [[0.0] * nrows for _ in range(ncols)]
-
-        for c_idx in range(ncols):
-            char_counts = [0] * 128
-            for r_idx in range(nrows):
-                if c_idx < len(seq_upper[r_idx]):
-                    char_counts[ord(seq_upper[r_idx][c_idx])] += 1
-
-            if "a" <= ambig <= "z":
-                char_counts[ord(ambig.upper())] = 0
-            if "-" in [seq[c_idx] for seq in sequences if c_idx < len(seq)]:
-                char_counts[ord("-")] = 0
-
-            unq = sum(1 for t in char_counts if t > 0)
-            total = sum(char_counts)
-
-            for r_idx in range(nrows):
-                if c_idx < len(seq_upper[r_idx]):
-                    weights_raw[c_idx][r_idx] = (
-                        total / (unq * char_counts[ord(seq_upper[r_idx][c_idx])])
-                        if total > 0 and unq > 0 and char_counts[ord(seq_upper[r_idx][c_idx])] > 0
-                        else 0
-                    )
-
-        weights = []
-        for r_idx in range(nrows):
-            row_weights = []
-            if len(seq_array[r_idx]) > c_idx:
-                row_weights = [
-                    weights_raw[idx][r_idx]
-                    for idx, char in enumerate(seq_array[r_idx])
-                    if char != "-" and char != ambig
-                ]
-            weights.append(row_weights)
-
+        w = []
+        ws = []
         if conservative:
-            win = []
-            for arr in weights:
-                win_row = []
+            for arr in w1:
                 if len(arr) >= k:
-                    for c_idx in range(len(arr) - k + 1):
-                        win_row.append(statistics.median(arr[c_idx : c_idx + k]))
-                win.append(win_row)
+                    w.append([statistics.median(arr[i : i + k]) for i in range(len(arr) - k + 1)])
+                    ws.append([sum(arr[i : i + k]) for i in range(len(arr) - k + 1)])
+                else:
+                    w.append([])
+                    ws.append([])
         else:
             P = int(round(k * 2 / 3))
-            win = []
-            for arr in weights:
-                win_row = []
+            for arr in w1:
                 if len(arr) >= k:
-                    for c_idx in range(len(arr) - k + 1):
-                        win_row.append(sorted(arr[c_idx : c_idx + k])[P])
-                win.append(win_row)
+                    # The index P-1 is absolutely necessary!, in Julia it was just P
+                    w.append([sorted(arr[i : i + k])[P - 1] for i in range(len(arr) - k + 1)])
+                    ws.append([sum(arr[i : i + k]) for i in range(len(arr) - k + 1)])
+                else:
+                    w.append([])
+                    ws.append([])
 
-        win_sum = []
-        for arr in weights:
-            win_sum_row = []
-            if len(arr) >= k:
-                for c_idx in range(len(arr) - k + 1):
-                    win_sum_row.append(sum(arr[c_idx : c_idx + k]))
-            win_sum.append(win_sum_row)
+        wsorted = [sorted(arr) for arr in w]
+        wsum = []
+        for arr in wsorted:
+            accu = []
+            s = 0
+            for x in arr:
+                s += x
+                accu.append(s)
+            wsum.append(accu)
 
-        win_sort = [sorted(arr) for arr in win]
-        win_acc = [list(itertools.accumulate(arr)) if arr else [] for arr in win_sort]
+        def f(x, y, n, m):
+            return x**2 / n + (0 if n == m else (y - x) ** 2 / (m - n))
 
-        def f(x, y, n_val, m_val):
-            return x**2 / n_val + (0 if n_val == m_val else (y - x) ** 2 / (m_val - n_val))
-
-        v_scores = []
-        for arr in win_acc:
-            if arr:
-                v_scores.append([f(val, arr[-1], idx + 1, len(arr)) for idx, val in enumerate(arr)])
+        var = []
+        for i, arr in enumerate(wsum):
+            if len(arr) > 0:
+                var.append([f(arr[j], arr[-1], j + 1, len(arr)) for j in range(len(arr))])
             else:
-                v_scores.append([])
-
-        win_cutoffs = []
-        for r_idx in range(nrows):
-            if v_scores[r_idx]:
-                max_var_index = v_scores[r_idx].index(max(v_scores[r_idx]))
-                win_cutoffs.append(win_sort[r_idx][max_var_index])
+                var.append([])
+        wCutoff = []
+        for j in range(m):
+            if len(var[j]) > 0:
+                max_index = var[j].index(max(var[j]))
+                wCutoff.append(wsorted[j][max_index])
             else:
-                win_cutoffs.append(0)
+                wCutoff.append(0)
+        cutoffSorted = sorted([wCutoff[j] for j in range(m) if len(var[j]) > 0])
+        cutoffFloor = 0 if pvalue >= 1 else cutoffSorted[-int(len(cutoffSorted) * pvalue) - 1]
 
-        cutoffs_sort = sorted([cutoff for cutoff, v_arr in zip(win_cutoffs, v_scores) if v_arr])
-        cutoff_floor = 0
-        if cutoffs_sort and pvalue < 1:
-            cutoff_floor = cutoffs_sort[len(cutoffs_sort) - 1 - math.floor(len(cutoffs_sort) * pvalue)]
-
-        for r_idx in range(nrows):
-            wr = win[r_idx]
-            wsr = win_sum[r_idx]
-            L = len(wr)
-            original_seq = list(sequences[r_idx])
-
+        sequences_corrected = []
+        for j in range(m):
+            wj = w[j]
+            wsj = ws[j]
+            L = len(wj)
             if L <= k:
-                sequences_corrected.append("".join(original_seq))
+                sequences_corrected.append(sequences[j])
                 continue
 
-            s = [[0] * 2 for _ in range(L)]
-            tiebreaker = [[0] * 2 for _ in range(L)]
-            bt = [[0] * 2 for _ in range(L)]
+            s = [[0, 0] for _ in range(L)]
+            tiebreaker = [[0, 0] for _ in range(L)]
+            bt = [[0, 0] for _ in range(L)]
 
             cutoff = max(
-                win_cutoffs[r_idx],
-                cutoff_floor,
-                win_sort[r_idx][len(win_sort[r_idx]) - 1 - math.floor(len(win_sort[r_idx]) * qvalue)]
-                if win_sort[r_idx] and qvalue < 1
-                else 0,
+                wCutoff[j],
+                cutoffFloor,
+                0 if qvalue >= 1 else wsorted[j][-int(len(wsorted[j]) * qvalue) - 1],
                 cutoff_threshold,
             )
 
-            for c_idx in range(L):
-                v = 0 if wr[c_idx] > cutoff else 1
-                if c_idx == 0:
-                    s[c_idx][0] = v
-                    s[c_idx][1] = 1 - v
-                    tiebreaker[c_idx][0] = 0
-                    tiebreaker[c_idx][1] = wsr[c_idx]
+            for i in range(L):
+                v = 0 if wj[i] > cutoff else 1
+                if i == 0:
+                    s[i][0] = v
+                    s[i][1] = 1 - v
+                    tiebreaker[i][0] = 0
+                    tiebreaker[i][1] = wsj[i]
                 else:
-                    s[c_idx][0] = s[c_idx - 1][0] + v
-                    s[c_idx][1] = s[c_idx - 1][1] + 1 - v
-                    tiebreaker[c_idx][0] = tiebreaker[c_idx - 1][0]
-                    tiebreaker[c_idx][1] = tiebreaker[c_idx - 1][1] + wsr[c_idx]
-                    bt[c_idx][0] = 1
-                    bt[c_idx][1] = 2
+                    s[i][0] = s[i - 1][0] + v
+                    s[i][1] = s[i - 1][1] + 1 - v
+                    tiebreaker[i][0] = tiebreaker[i - 1][0]
+                    tiebreaker[i][1] = tiebreaker[i - 1][1] + wsj[i]
+                    bt[i][0] = 1
+                    bt[i][1] = 2
 
-                if c_idx > k - 1 and (s[c_idx][0], tiebreaker[c_idx][0]) < (
-                    s[c_idx - k][1] + v,
-                    tiebreaker[c_idx - k][1],
+                if i >= k and (s[i][0], tiebreaker[i][0]) < (s[i - k][1] + v, tiebreaker[i - k][1]):
+                    s[i][0] = s[i - k][1] + v
+                    tiebreaker[i][0] = tiebreaker[i - k][1]
+                    bt[i][0] = 2
+
+                if i >= k and (s[i][1], tiebreaker[i][1]) < (
+                    s[i - k][0] + 1 - v,
+                    tiebreaker[i - k][0] + wsj[i],
                 ):
-                    s[c_idx][0] = s[c_idx - k][1] + v
-                    tiebreaker[c_idx][0] = tiebreaker[c_idx - k][1]
-                    bt[c_idx][0] = 2
+                    s[i][1] = s[i - k][0] + 1 - v
+                    tiebreaker[i][1] = tiebreaker[i - k][0] + wsj[i]
+                    bt[i][1] = 1
 
-                if c_idx > k - 1 and (s[c_idx][1], tiebreaker[c_idx][1]) < (
-                    s[c_idx - k][0] + 1 - v,
-                    tiebreaker[c_idx - k][0],
-                ):
-                    s[c_idx][1] = s[c_idx - k][0] + 1 - v
-                    tiebreaker[c_idx][1] = tiebreaker[c_idx - k][0] + wsr[c_idx]
-                    bt[c_idx][1] = 1
+            # Extract characters that are not '-' and not X
+            str_chars = [
+                res_array[j][i] for i in range(len(res_array[j])) if res_array[j][i] not in ["-", ambig]
+            ]
 
-            seq_masked = [char for char in seq_array[r_idx] if char != "-" and char != ambig]
-            icur = L - 1
-            bcur = 1 if s[L - 1][0] >= s[L - 1][1] else 2
+            icur = L - 1  # Python is 0-indexed, so L-1 instead of L
+            if s[L - 1][0] < s[L - 1][1]:
+                for k_pos in range(L - 1, L - 1 + k):
+                    if k_pos < len(str_chars):
+                        str_chars[k_pos] = mask
+                bcur = 2
+            else:
+                bcur = 1
 
-            if L > 0:
-                if bcur == 2:
-                    for idx in range(L - k, L):
-                        if 0 <= idx < len(seq_masked):
-                            seq_masked[idx] = mask
+            while True:
+                if bcur == 1 and bt[icur][bcur - 1] == 1:
+                    icur -= 1
+                    bcur = 1
+                elif bcur == 1 and bt[icur][bcur - 1] == 2:
+                    icur -= k
+                    bcur = 2
+                    for k_pos in range(icur, min(icur + k, len(str_chars))):
+                        str_chars[k_pos] = mask
+                elif bcur == 2 and bt[icur][bcur - 1] == 1:
+                    icur -= k
+                    bcur = 1
+                elif bcur == 2 and bt[icur][bcur - 1] == 2:
+                    icur -= 1
+                    bcur = 2
+                    if icur < len(str_chars):
+                        str_chars[icur] = mask
+                elif bcur == 1:
+                    break
                 else:
-                    pass  # bcur is 1, no initial masking
+                    for i in range(icur):
+                        if i < len(str_chars):
+                            str_chars[i] = mask
+                    break
 
-                while True:
-                    if bcur == 1 and bt[icur][bcur - 1] == 1:
-                        icur -= 1
-                        bcur = 1
-                    elif bcur == 1 and bt[icur][bcur - 1] == 2:
-                        icur -= k
-                        bcur = 2
-                        for idx in range(icur, icur + k):
-                            if 0 <= idx < len(seq_masked):
-                                seq_masked[idx] = mask
-                    elif bcur == 2 and bt[icur][bcur - 1] == 1:
-                        icur -= k
-                        bcur = 1
-                    elif bcur == 2 and bt[icur][bcur - 1] == 2:
-                        icur -= 1
-                        bcur = 2
-                        if 0 <= icur < len(seq_masked):
-                            seq_masked[icur] = mask
-                    elif bcur == 1:
-                        break
-                    else:
-                        for idx in range(icur):
-                            if 0 <= idx < len(seq_masked):
-                                seq_masked[idx] = mask
-                        break
-
-            seq_corrected = ""
-            seq_masked_idx = 0
-            for char_orig in original_seq:
-                if char_orig == ambig or char_orig == "-":
-                    seq_corrected += char_orig
+            # Reconstruct output string
+            strout = ""
+            i = 0
+            for t in range(len(sequences[j])):
+                if sequences[j][t] in [ambig, "-"]:
+                    strout += sequences[j][t]
                 else:
-                    if seq_masked_idx < len(seq_masked):
-                        seq_corrected += seq_masked[seq_masked_idx]
-                        seq_masked_idx += 1
+                    if i < len(str_chars):
+                        strout += str_chars[i]
+                        i += 1
                     else:
-                        # Handle potential index out of bounds (shouldn't happen if logic is correct)
-                        seq_corrected += mask  # Or some other appropriate handling
-            sequences_corrected.append(seq_corrected)
+                        strout += sequences[j][t]  # Fallback in case of index errors
+
+            sequences_corrected.append(strout)
+
         return sequences_corrected
 
     fasta_in = fasta_to_dict(fasta_in_path)
@@ -3583,8 +3560,8 @@ def taper_correction(
         seq_descs.append(fasta_in[seq_name]["description"])
         sequences.append(fasta_in[seq_name]["sequence"])
     seq_array = [list(seq) for seq in sequences]
-    ncols = len(sequences[0]) if sequences else 0
-    nrows = len(sequences)
+    n = len(sequences[0]) if sequences else 0
+    m = len(sequences)
     mask = settings.TAPER_MASK
 
     for t in settings.TAPER_PARAMS:
@@ -3593,31 +3570,32 @@ def taper_correction(
             sequences, t["k"], ambig, tmp_mask, t["p"], t["q"], cutoff_threshold, conservative
         )
         L = t["L"]
-        for r_idx in range(nrows):
+        for j in range(m):
             start = 0
-            count = 0
-            for c_idx in range(ncols):
-                if start == 0 and output[r_idx][c_idx] == tmp_mask:
-                    start = c_idx
-                    count = 1
-                elif start != 0 and output[r_idx][c_idx] == tmp_mask:
-                    count += 1
-                elif start != 0 and output[r_idx][c_idx] != tmp_mask and output[r_idx][c_idx] != "-":
-                    if count < L:
-                        for k_idx in range(start, c_idx):
-                            seq_array[r_idx][k_idx] = "-" if output[r_idx][k_idx] == "-" else mask
+            cnt = 0
+            for i in range(n):
+                if start == 0 and output[j][i] == tmp_mask:
+                    start = i
+                    cnt = 1
+                elif start != 0 and output[j][i] == tmp_mask:
+                    cnt += 1
+                elif start != 0 and output[j][i] != tmp_mask and output[j][i] != "-":
+                    if cnt < L:
+                        for k in range(start, i):
+                            seq_array[j][k] = "-" if output[j][k] == "-" else mask
                     start = 0
-                    count = 0
-            if start != 0 and count < L:
-                for k_idx in range(start, ncols):
-                    seq_array[r_idx][k_idx] = "-" if output[r_idx][k_idx] == "-" else mask
+                    cnt = 0
 
-    sequences_corrected = ["".join(seq_array[j]) for j in range(nrows)]
+            if start != 0 and cnt < L:
+                for k in range(start, n):
+                    seq_array[j][k] = "-" if output[j][k] == "-" else mask
+
+    sequences_corrected = ["".join(seq_array[j]) for j in range(m)]
     fasta_out = {}
-    for r_idx in range(len(sequences_corrected)):
-        fasta_out[seq_names[r_idx]] = {
-            "sequence": sequences_corrected[r_idx],
-            "description": seq_descs[r_idx],
+    for j in range(len(sequences_corrected)):
+        fasta_out[seq_names[j]] = {
+            "sequence": sequences_corrected[j],
+            "description": seq_descs[j],
         }
     dict_to_fasta(fasta_out, fasta_out_path)
 

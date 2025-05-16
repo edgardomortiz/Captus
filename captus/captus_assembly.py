@@ -38,10 +38,10 @@ class CaptusAssembly(object):
             " Assembly of Phylogenomic Datasets from High-Throughput Sequencing data"
         )
         parser = argparse.ArgumentParser(
-            usage="captus_assembly command [options]",
+            usage="captus command [options]",
             description=description,
             formatter_class=MyHelpFormatter,
-            epilog="For help on a particular command: captus_assembly command -h",
+            epilog="For help on a particular command: captus command -h",
             add_help=False,
         )
 
@@ -92,7 +92,7 @@ class CaptusAssembly(object):
             "Captus-assembly: Clean; remove adaptors and quality-filter reads with BBTools\n"
         )
         parser = argparse.ArgumentParser(
-            usage="captus_assembly clean -r READS [READS ...] [options]",
+            usage="captus clean -r READS [READS ...] [options]",
             description=description,
             formatter_class=MyHelpFormatter,
             epilog="For more information, please see https://github.com/edgardomortiz/Captus",
@@ -302,7 +302,7 @@ class CaptusAssembly(object):
     def assemble(self):
         description = bold("Captus-assembly: Assemble; perform de novo assembly using MEGAHIT\n")
         parser = argparse.ArgumentParser(
-            usage="captus_assembly assemble -r READS [READS ...] [options]",
+            usage="captus assemble -r READS [READS ...] [options]",
             description=description,
             formatter_class=MyHelpFormatter,
             epilog="For more information, please see https://github.com/edgardomortiz/Captus",
@@ -583,7 +583,7 @@ class CaptusAssembly(object):
     def extract(self):
         description = bold("Captus-assembly: Extract; recover markers from FASTA assemblies\n")
         parser = argparse.ArgumentParser(
-            usage="captus_assembly extract -a CAPTUS_ASSEMBLIES_DIR [options]",
+            usage="captus extract -a CAPTUS_ASSEMBLIES_DIR [options]",
             description=description,
             formatter_class=MyHelpFormatter,
             epilog="For more information, please see https://github.com/edgardomortiz/Captus",
@@ -1157,7 +1157,7 @@ class CaptusAssembly(object):
     def align(self):
         description = bold("Captus-assembly: Align; collect, align, and curate aligned markers\n")
         parser = argparse.ArgumentParser(
-            usage="captus_assembly align -e CAPTUS_EXTRACTIONS_DIR [options]",
+            usage="captus align -e CAPTUS_EXTRACTIONS_DIR [options]",
             description=description,
             formatter_class=MyHelpFormatter,
             epilog="For more information, please see https://github.com/edgardomortiz/Captus",
