@@ -1010,7 +1010,7 @@ def adjust_concurrency(fastas_to_extract, num_samples, concurrent, threads_max, 
 
     asm_sizes = [fastas_to_extract[sample]["assembly_size"] for sample in fastas_to_extract]
     i = int(round(len(asm_sizes) * 9 / 10)) - 1
-    asm_size = sorted(asm_sizes)[i]
+    asm_size = math.ceil(sorted(asm_sizes)[i] / 1024**3) * 1024**3
     if ref_type == "protein":
         min_ram_b = asm_size * settings.EXTRACT_BLAT_PROT_FACTOR
     elif ref_type == "dna":
