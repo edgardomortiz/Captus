@@ -189,10 +189,10 @@ SALMON_INDEX_DIR = "00_salmon_index"
 SALMON_QUANT_DIR = "01_salmon_quant"
 
 # BLAT RAM multiplier for protein searches
-EXTRACT_BLAT_PROT_FACTOR = 4
+BLAT_PROT_RAM_FACTOR = 4
 
 # BLAT RAM multiplier for nuecleotide searches
-EXTRACT_BLAT_DNA_FACTOR = 2
+BLAT_DNA_RAM_FACTOR = 2
 
 # BLAT/Scipio are now parallelized, is good to split the load across threads
 EXTRACT_MIN_THREADS = 4

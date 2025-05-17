@@ -1009,12 +1009,12 @@ def adjust_concurrency(fastas_to_extract, num_samples, concurrent, threads_max, 
             quit_with_error("Invalid value for '--concurrent', set it to 'auto' or use a number")
 
     asm_sizes = [fastas_to_extract[sample]["assembly_size"] for sample in fastas_to_extract]
-    i = int(round(len(asm_sizes) * 9 / 10)) - 1
-    asm_size = math.ceil(sorted(asm_sizes)[i] / 1024**3) * 1024**3
+    i = int(round(len(asm_sizes) * 2 / 3)) - 1
+    asm_size = math.ceil(sorted(asm_sizes)[i] / 512**3) * 512**3 # Round up to the 0.5GB
     if ref_type == "protein":
-        min_ram_b = asm_size * settings.EXTRACT_BLAT_PROT_FACTOR
+        min_ram_b = asm_size * settings.BLAT_PROT_RAM_FACTOR
     elif ref_type == "dna":
-        min_ram_b = asm_size * settings.EXTRACT_BLAT_DNA_FACTOR
+        min_ram_b = asm_size * settings.BLAT_DNA_RAM_FACTOR
     min_threads = settings.EXTRACT_MIN_THREADS
 
     if min_ram_b >= ram_B or min_threads >= threads_max:
