@@ -188,11 +188,14 @@ CONTIGS_DEPTH = "contigs_depth.tsv"
 SALMON_INDEX_DIR = "00_salmon_index"
 SALMON_QUANT_DIR = "01_salmon_quant"
 
-# Minimum RAM reserved a BLAT/Scipio instances in bytes (2GB)
-EXTRACTION_MIN_RAM_B = 2 * 1024**3
+# BLAT RAM multiplier for protein searches
+EXTRACT_BLAT_PROT_FACTOR = 4
+
+# BLAT RAM multiplier for nuecleotide searches
+EXTRACT_BLAT_DNA_FACTOR = 2
 
 # BLAT/Scipio are now parallelized, is good to split the load across threads
-EXTRACTION_MIN_THREADS = 4
+EXTRACT_MIN_THREADS = 2
 
 # Hidden option: Switch to True to fill protein gaps with X
 FILL_GAP_WITH_X = False

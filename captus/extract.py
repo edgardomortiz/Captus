@@ -309,7 +309,7 @@ def extract(full_command, args):
         ):
             log.log(bold(f"{'PROTEIN OPTIONS':>{mar}}:"))
             prot_concurrent, prot_threads, prot_ram = adjust_concurrency(
-                args.concurrent, num_prot_extractions, threads_max, ram_B, "protein"
+                fastas_to_extract, num_prot_extractions, args.concurrent, threads_max, ram_B, "protein"
             )
             if protein_refs["NUC"]["AA_path"]:
                 nuc_query = fasta_to_dict(protein_refs["NUC"]["AA_path"])
@@ -376,7 +376,7 @@ def extract(full_command, args):
         if dna_ref["DNA"]["NT_path"]:
             num_dna_extractions = len(fastas_to_extract)
             dna_concurrent, dna_threads, dna_ram = adjust_concurrency(
-                args.concurrent, num_dna_extractions, threads_max, ram_B, "dna"
+                fastas_to_extract, num_dna_extractions, args.concurrent, threads_max, ram_B, "dna"
             )
             dna_query = fasta_to_dict(dna_ref["DNA"]["NT_path"])
             dna_query_parts_paths = split_refs(dna_query, out_dir, "DNA", dna_threads)
@@ -812,7 +812,7 @@ def extract(full_command, args):
             if clust_ref["CLR"]["NT_path"]:
                 num_clr_extractions = len(fastas_to_extract)
                 clust_concurrent, clust_threads, clust_ram = adjust_concurrency(
-                    args.concurrent, num_clr_extractions, threads_max, ram_B, "dna"
+                    fastas_to_extract, num_clr_extractions, args.concurrent, threads_max, ram_B, "dna"
                 )
                 clust_query = fasta_to_dict(clust_ref["CLR"]["NT_path"])
                 clust_query_parts_paths = split_refs(clust_query, out_dir, "CLR", clust_threads)
@@ -994,7 +994,7 @@ def extract(full_command, args):
     )
 
 
-def adjust_concurrency(concurrent, num_samples, threads_max, ram_B, ref_type):
+def adjust_concurrency(fastas_to_extract, num_samples, concurrent, threads_max, ram_B, ref_type):
     """
     Adjust the proposed number of 'concurrent' BLAT/Scipio processes so 'RAM_per_extraction' is
     never smaller than 'settings.EXTRACTION_MIN_RAM_B'. Once the right 'concurrent' has been found,
@@ -1008,25 +1008,25 @@ def adjust_concurrency(concurrent, num_samples, threads_max, ram_B, ref_type):
         except ValueError:
             quit_with_error("Invalid value for '--concurrent', set it to 'auto' or use a number")
 
+    asm_sizes = [fastas_to_extract[sample]["assembly_size"] for sample in fastas_to_extract]
+    i = int(round(len(asm_sizes) * 2 / 3))
+    asm_size = sorted(asm_sizes)[i]
     if ref_type == "protein":
-        min_ram_b = settings.EXTRACTION_MIN_RAM_B * 3.75
+        min_ram_b = asm_size * settings.EXTRACT_BLAT_PROT_FACTOR
     elif ref_type == "dna":
-        min_ram_b = settings.EXTRACTION_MIN_RAM_B
-    min_threads = settings.EXTRACTION_MIN_THREADS
+        min_ram_b = asm_size * settings.EXTRACT_BLAT_DNA_FACTOR
+    min_threads = settings.EXTRACT_MIN_THREADS
 
     if min_ram_b >= ram_B or min_threads >= threads_max:
         return 1, 1, ram_B
 
+    max_blat_instances = ram_B // min_ram_b
+
     if concurrent > 1:
-        while threads_max // concurrent < min_threads:
-            concurrent -= 1
-    ram_B_per_extraction = ram_B // concurrent
-
-    if ram_B_per_extraction < min_ram_b:
-        while ram_B // concurrent < min_ram_b:
+        while max_blat_instances // concurrent < min_threads:
             concurrent -= 1
 
-    threads_per_extraction = threads_max // concurrent
+    threads_per_extraction = max_blat_instances // concurrent
     ram_B_per_extraction = ram_B // concurrent
     return concurrent, threads_per_extraction, ram_B_per_extraction
 
