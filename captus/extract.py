@@ -1009,7 +1009,7 @@ def adjust_concurrency(fastas_to_extract, num_samples, concurrent, threads_max, 
             quit_with_error("Invalid value for '--concurrent', set it to 'auto' or use a number")
 
     asm_sizes = [fastas_to_extract[sample]["assembly_size"] for sample in fastas_to_extract]
-    i = int(round(len(asm_sizes) * 2 / 3))
+    i = int(round(len(asm_sizes) * 9 / 10)) - 1
     asm_size = sorted(asm_sizes)[i]
     if ref_type == "protein":
         min_ram_b = asm_size * settings.EXTRACT_BLAT_PROT_FACTOR
