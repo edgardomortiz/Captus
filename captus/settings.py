@@ -195,7 +195,7 @@ EXTRACT_BLAT_PROT_FACTOR = 4
 EXTRACT_BLAT_DNA_FACTOR = 2
 
 # BLAT/Scipio are now parallelized, is good to split the load across threads
-EXTRACT_MIN_THREADS = 2
+EXTRACT_MIN_THREADS = 4
 
 # Hidden option: Switch to True to fill protein gaps with X
 FILL_GAP_WITH_X = False

@@ -1020,13 +1020,18 @@ def adjust_concurrency(fastas_to_extract, num_samples, concurrent, threads_max, 
     if min_ram_b >= ram_B or min_threads >= threads_max:
         return 1, 1, ram_B
 
-    max_blat_instances = ram_B // min_ram_b
+    threads_max = min(ram_B // min_ram_b, threads_max)
 
     if concurrent > 1:
-        while max_blat_instances // concurrent < min_threads:
+        while threads_max // concurrent < min_threads:
+            concurrent -= 1
+    ram_B_per_extraction = ram_B // concurrent
+
+    if ram_B_per_extraction < min_ram_b:
+        while ram_B // concurrent < min_ram_b:
             concurrent -= 1
 
-    threads_per_extraction = max_blat_instances // concurrent
+    threads_per_extraction = threads_max // concurrent
     ram_B_per_extraction = ram_B // concurrent
     return concurrent, threads_per_extraction, ram_B_per_extraction
 
