@@ -2879,7 +2879,7 @@ def split_psl_by_contigs_add_wscore(
             else:
                 best_n_targets = settings.BEST_N_TARGETS_GLOBAL
                 if max(contig_sizes.values()) >= settings.MIN_CHROM_SIZE:
-                    best_n_targets /= 10
+                    best_n_targets //= 10
                 num_loci = len(target_all_wscores)
                 for n in range(best_n_targets, 1, -1):
                     loci_target_combos = (num_loci * n) * ((num_loci - 1) * n)
