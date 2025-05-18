@@ -566,7 +566,7 @@ DNA_TOLERANCE_LEN = 0.0500
 
 # Tolerance proportion for determining if two hits are compatible in their percentage of 'identity'
 # to the reference. Used during the assembly of partial hits during the extraction of non-coding
-# markers (3.25% seems to perform OK across several conditions)
+# markers (3.33% seems to perform OK across several conditions)
 DNA_TOLERANCE_PID = 0.0333
 
 # Minimum coverage for non-coding hits before attempting greedy assembly
