@@ -791,6 +791,8 @@ def salmon(
             f"{sample_quant_dir}",
             "--validateMappings",
             "--recoverOrphans",
+            "--minAssignedFrags",
+            f"{1}",
             "--threads",
             f"{threads}",
         ]
