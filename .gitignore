@@ -14,6 +14,7 @@ __pycache__/
 build/
 dist/
 captus.zip
+new_setup.py
 
 # Docs for now
 docs/.hugo_build.lock
