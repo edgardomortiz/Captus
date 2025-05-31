@@ -3370,8 +3370,10 @@ def taper_correction(
         cutoff_threshold: float,
         conservative: bool,
     ):
-        ambig_upper = ambig.upper() if "a" <= ambig <= "z" else ambig
-        seqs_upper = [seq.upper() for seq in sequences]
+        # ambig can only be "X" or "N" in Captus, they are already capitals
+        # sequences are also passed to this function already capitalized
+        # ambig_upper = ambig.upper() if "a" <= ambig <= "z" else ambig
+        # seqs_upper = [seq.upper() for seq in sequences]
         res_array = [list(seq) for seq in sequences]
         n = len(sequences[0])
         m = len(sequences)
@@ -3380,8 +3382,8 @@ def taper_correction(
         for i in range(n):
             res_cnt = {}
             for j in range(m):
-                res = seqs_upper[j][i]
-                if res not in ["-", ambig_upper]:
+                res = sequences[j][i]
+                if res not in ["-", ambig]:
                     if res in res_cnt:
                         res_cnt[res] += 1
                     else:
@@ -3391,7 +3393,7 @@ def taper_correction(
             for j in range(m):
                 if tot > 0:
                     if res_array[j][i] not in ["-", ambig]:
-                        w0[i][j] = tot / (unq * res_cnt[seqs_upper[j][i]])
+                        w0[i][j] = tot / (unq * res_cnt[sequences[j][i]])
                     else:
                         w0[i][j] = None
         w1 = [[w0[i][j] for i in range(n) if w0[i][j] is not None] for j in range(m)]
@@ -3557,7 +3559,8 @@ def taper_correction(
     for seq_name in fasta_in:
         seq_names.append(seq_name)
         seq_descs.append(fasta_in[seq_name]["description"])
-        sequences.append(fasta_in[seq_name]["sequence"])
+        # Capitalize sequence to avoid errors with lowercase ambiguity character in alignment
+        sequences.append(fasta_in[seq_name]["sequence"].upper())
     seq_array = [list(seq) for seq in sequences]
     n = len(sequences[0]) if sequences else 0
     m = len(sequences)
