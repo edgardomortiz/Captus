@@ -2024,6 +2024,8 @@ def taper_clipkit(
             "fasta",
             "--log",
         ]
+        if settings.FORMAT_DIRS["NT"] in f"{clipkit_fasta_in}":
+            clipkit_cmd += ["--codon"]
         if clipkit_version_float >= 2.3 and ends_only is True:
             clipkit_cmd += ["--ends_only"]
         clipkit_log_file = Path(fasta_out.parent, f"{fasta_out.stem}.clipkit.log")

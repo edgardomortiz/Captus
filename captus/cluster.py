@@ -353,6 +353,7 @@ def cluster(full_command, args):
         args.clust_threshold,
         args.align_singletons,
         threads_max,
+        ram_MB,
         args.overwrite,
     )
     log.log("")
