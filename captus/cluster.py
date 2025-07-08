@@ -391,7 +391,7 @@ def cluster(full_command, args):
         f"{'Algorithm':>{mar}}: {bold(args.align_method)}"
         f" {dim(settings.ALIGN_ALGORITHMS[args.align_method]['aka'])}"
     )
-    log.log(f"{'Max. avg. copies to align':>{mar}}: {bold(args.align_max_copies)}")
+    log.log(f"{'Max. copies to align':>{mar}}: {bold(args.align_max_copies)}")
     log.log(f"{'Timeout':>{mar}}: {bold(args.timeout)} {dim(f'[{elapsed_time(args.timeout)}]')}")
     log.log("")
     log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")

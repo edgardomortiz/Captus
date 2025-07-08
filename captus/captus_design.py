@@ -245,7 +245,7 @@ class CaptusDesign(object):
         align_group.add_argument(
             "--align_max_copies",
             action="store",
-            default=5,
+            default=10,
             type=float,
             dest="align_max_copies",
             help="Do not align a cluster if the average number of sequences per"

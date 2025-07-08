@@ -174,6 +174,9 @@ ___
 ### **`--collect_only`**
 Only collect the markers from the extraction folder and exit, it skips the addition of reference target sequences and subsequent steps.
 ___
+### **`--keep_w_refs`**
+Keep the directories containing the alignments that include target reference sequences. The deletion of these directories is performed after alignments are filtered for paralogs and before trimming. Enable if you plan to repeat the paralog filtering in the future with '--redo_from filtering'.
+___
 ### **`--redo_from`**
 You can repeat the analysis without undoing all the steps. These are the points from which you can restart the `align` command:
 - `alignment` = Delete all subdirectories with alignments and restart.
