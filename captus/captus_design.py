@@ -220,10 +220,36 @@ class CaptusDesign(object):
 
         align_group = parser.add_argument_group("Alignment of clusters")
         align_group.add_argument(
+            "--align_method",
+            action="store",
+            choices=[
+                "mafft_auto",
+                "mafft_genafpair",
+                "mafft_localpair",
+                "mafft_globalpair",
+                "mafft_retree1",
+                "mafft_retree2",
+            ],
+            default="mafft_auto",
+            type=str,
+            dest="align_method",
+            help="For MAFFT's algorithms see:"
+            " https://mafft.cbrc.jp/alignment/software/algorithms/algorithms.html",
+        )
+        align_group.add_argument(
             "--align_singletons",
             action="store_true",
             dest="align_singletons",
             help="Align clusters containing sequences from a single species",
+        )
+        align_group.add_argument(
+            "--align_max_copies",
+            action="store",
+            default=5,
+            type=float,
+            dest="align_max_copies",
+            help="Do not align a cluster if the average number of sequences per"
+            " sample exceeds this number, use -1 to ignore the limit",
         )
         align_group.add_argument(
             "--timeout",

@@ -362,8 +362,7 @@ def cluster(full_command, args):
     ######################################################################### LOCI ALIGNMENT SECTION
     log.log_section_header("Alignment of clustered markers")
     align_msg = (
-        "Now Captus will align the clusters using MAFFT, the algorithm used is 'genafpair' a.k.a"
-        " 'E-INS-i' but it can be changed in 'settings.py' inside Captus' installation directory."
+        "Now Captus will align the clusters using MAFFT"
     )
     log.log_explanation(align_msg)
 
@@ -375,7 +374,8 @@ def cluster(full_command, args):
         align_params.append(
             (
                 args.mafft_path,
-                settings.DESIGN_ALIGN_ALGORITHM,
+                args.align_method,
+                args.align_max_copies,
                 threads_per_alignment,
                 args.timeout,
                 fasta_path,
@@ -388,9 +388,10 @@ def cluster(full_command, args):
     log.log(f"{'Threads per alignment':>{mar}}: {bold(threads_per_alignment)}")
     log.log("")
     log.log(
-        f"{'Algorithm':>{mar}}: {bold(settings.DESIGN_ALIGN_ALGORITHM)}"
-        f" {dim(settings.ALIGN_ALGORITHMS[settings.DESIGN_ALIGN_ALGORITHM]['aka'])}"
+        f"{'Algorithm':>{mar}}: {bold(args.align_method)}"
+        f" {dim(settings.ALIGN_ALGORITHMS[args.align_method]['aka'])}"
     )
+    log.log(f"{'Max. avg. copies to align':>{mar}}: {bold(args.align_max_copies)}")
     log.log(f"{'Timeout':>{mar}}: {bold(args.timeout)} {dim(f'[{elapsed_time(args.timeout)}]')}")
     log.log("")
     log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
@@ -1003,6 +1004,7 @@ def adjust_align_concurrency(concurrent, threads_max):
 def mafft_assembly(
     mafft_path: Path,
     mafft_algorithm: str,
+    align_max_copies: float,
     threads_per_alignment: int,
     timeout: int,
     input_fasta_path: Path,
@@ -1035,8 +1037,11 @@ def mafft_assembly(
         long_fasta = {}
         short_fasta = {}
 
+        samples = []
         max_seq_length = 0
         for seq_name in input_fasta:
+            sample_name = seq_name.split(settings.SEQ_NAME_SEP)[0]
+            samples.append(sample_name)
             seq_length = len(input_fasta[seq_name]["sequence"])
             if seq_length > max_seq_length:
                 max_seq_length = seq_length
@@ -1046,9 +1051,17 @@ def mafft_assembly(
                 long_fasta[seq_name] = input_fasta[seq_name]
             else:
                 short_fasta[seq_name] = input_fasta[seq_name]
-        dict_to_fasta(long_fasta, long_fasta_path)
-        if len(short_fasta) > 0:
-            dict_to_fasta(short_fasta, short_fasta_path)
+        avg_copies = len(samples) / len(set(samples))
+        align = False
+        if avg_copies <= align_max_copies or align_max_copies == -1:
+            align = True
+        if align is True:
+            dict_to_fasta(long_fasta, long_fasta_path)
+            if len(short_fasta) > 0:
+                dict_to_fasta(short_fasta, short_fasta_path)
+        else:
+            message = dim(f"'{input_fasta_path.name}': SKIPPED (cluster has {avg_copies:.2f} copies)")
+            return message
 
         mafft_long_cmd = [
             mafft_path,

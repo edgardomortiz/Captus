@@ -1651,6 +1651,9 @@ def scipio_coding(
     elif yaml_final_file == "0 BLAT HITS":
         message = red(f"'{sample_name}': FAILED extraction of {genes[marker_type]} (0 BLAT hits)")
         return message
+    elif yaml_final_file == "0 BLAT HITS ACCEPTED":
+        message = red(f"'{sample_name}': FAILED extraction of {genes[marker_type]} (0 BLAT hits accepted)")
+        return message
     else:
         yaml_final_dir = yaml_final_file.parent
         final_models = scipio_yaml_to_dict(
