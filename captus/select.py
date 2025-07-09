@@ -59,6 +59,7 @@ def select(full_command, args):
     log.log(f"{'Command':>{mar}}: {bold(full_command)}")
     log.log(f"{'OS':>{mar}}: {bold(platform.platform())}")
     log.log(f"{'Host':>{mar}}: {bold(platform.node())}")
+    tsv_comment = f"#Captus v{__version__}\n#Command: {full_command}\n"
     log.log("")
 
     log.log(f"{'Python libraries':>{mar}}:")
@@ -123,7 +124,7 @@ def select(full_command, args):
         start = time.time()
         log.log("")
         log.log_explanation("Writing selected alignments statistics...")
-        aln_stats_tsv = write_aln_stats(out_dir, aln_stats_filtered)
+        aln_stats_tsv = write_aln_stats(out_dir, tsv_comment, aln_stats_filtered)
         if aln_stats_tsv:
             log.log(f"{'Alignment statistics':>{mar}}: {bold(aln_stats_tsv)}")
             log.log(f"{'':>{mar}}  {dim(f'File saved in {elapsed_time(time.time() - start)}')}")
@@ -521,7 +522,7 @@ def copy_loci(aln_stats: dict, out_dir: Path, overwrite: bool, show_more: bool):
     return
 
 
-def write_aln_stats(out_dir: Path, aln_stats_filtered: dict):
+def write_aln_stats(out_dir: Path, tsv_comment: str, aln_stats_filtered: dict):
     stats_tsv_file = Path(out_dir, "captus-select_alignments.tsv")
     if not aln_stats_filtered:
         if stats_tsv_file.exists() and not file_is_empty(stats_tsv_file):
@@ -530,6 +531,7 @@ def write_aln_stats(out_dir: Path, aln_stats_filtered: dict):
             return None
     else:
         with open(stats_tsv_file, "wt") as tsv_out:
+            tsv_out.write(tsv_comment)
             tsv_out.write(
                 "\t".join(
                     [

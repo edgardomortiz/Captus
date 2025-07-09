@@ -128,6 +128,7 @@ def cluster(full_command, args):
     log.log(f"{'Command':>{mar}}: {bold(full_command)}")
     log.log(f"{'OS':>{mar}}: {bold(platform.platform())}")
     log.log(f"{'Host':>{mar}}: {bold(platform.node())}")
+    tsv_comment = f"#Captus v{__version__}\n#Command: {full_command}\n"
     _, ram_MB, ram_GB, ram_GB_total = set_ram(args.ram)
     log.log(f"{'Max. RAM':>{mar}}: {bold(f'{ram_GB:.1f}GB')} {dim(f'(out of {ram_GB_total:.1f}GB)')}")
     threads_max, threads_total = set_threads(args.threads)
@@ -170,6 +171,10 @@ def cluster(full_command, args):
         )
     if mafft_status == "not found":
         quit_with_error("Captus could not find MAFFT, please provide a valid path with '--mafft_path'")
+    if mafft_version == "7.525":
+        quit_with_error(
+            "MAFFT v7.525 has a known bug, please upgrade or dowgrade your MAFFT"
+        )
 
     ################################################################################################
     ########################################################################## MARKER IMPORT SECTION
@@ -510,7 +515,7 @@ def cluster(full_command, args):
 
     start = time.time()
     log.log_explanation("Writing curated alignments statistics...")
-    aln_stats_tsv = write_aln_stats(out_dir, shared_aln_stats)
+    aln_stats_tsv = write_aln_stats(out_dir, tsv_comment, shared_aln_stats)
     if aln_stats_tsv:
         log.log(f"{'Alignment statistics':>{mar}}: {bold(aln_stats_tsv)}")
         log.log(f"{'':>{mar}}  {dim(f'File saved in {elapsed_time(time.time() - start)}')}")
@@ -1457,7 +1462,7 @@ def curate(
     return message
 
 
-def write_aln_stats(out_dir: Path, shared_aln_stats: list):
+def write_aln_stats(out_dir: Path, tsv_comment: str, shared_aln_stats: list):
     stats_tsv_file = Path(out_dir, "captus-cluster_alignments.tsv")
     if not shared_aln_stats:
         if stats_tsv_file.exists() and not file_is_empty(stats_tsv_file):
@@ -1466,6 +1471,7 @@ def write_aln_stats(out_dir: Path, shared_aln_stats: list):
             return None
     else:
         with open(stats_tsv_file, "wt") as tsv_out:
+            tsv_out.write(tsv_comment)
             tsv_out.write(
                 "\t".join(
                     [
