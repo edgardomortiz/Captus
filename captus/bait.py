@@ -394,7 +394,7 @@ def find_and_merge_exon_data(cluster_dir_path: Path):
     for tsv in tsvs:
         with open(tsv, "rt") as tsv_in:
             for line in tsv_in:
-                if not line.startswith("cds_id"):
+                if not line.startswith("cds_id") and not line.startswith("#"):
                     record = line.strip().split()
                     try:
                         ple = int(record[5]) / int(record[3])

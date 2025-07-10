@@ -161,7 +161,7 @@ def load_aln_stats_tsv(clusters_dir: Path):
         aln_stats = {}
         with open(aln_stats_tsv_path, "rt") as stats:
             for line in stats:
-                if not line.startswith("path"):
+                if not line.startswith("path") and not line.startswith("#"):
                     record = line.strip().split()
                     aln_stats[record[1]] = {
                         "path": Path(record[0]),
