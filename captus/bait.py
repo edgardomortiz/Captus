@@ -306,6 +306,7 @@ def bait(full_command, args):
         mincols,
         args.bait_clust_threshold,
         args.tiling_percentage_overlap,
+        threads_max,
         args.overwrite,
     )
 
@@ -589,6 +590,8 @@ def dereplicate_compress_baits(
                         "--strand",
                         "both",
                         "--notrunclabels",
+                        "--threads",
+                        f"{threads_max}",
                     ]
                     with open(derep_log_file, "w") as derep_log:
                         derep_log.write(f"Captus' Dereplication Command:\n  {' '.join(derep_cmd)}\n\n\n")
@@ -851,6 +854,8 @@ def concat_refex_mask_baits(
                 "--fasta_width",
                 f"{bait_length}",
                 "--notrunclabels",
+                "--threads",
+                f"{threads_max}",
             ]
             with open(baits_mask_log_path, "w") as mask_log:
                 mask_log.write(f"Captus' Low Complexity Masking Command:\n  {' '.join(mask_cmd)}\n\n\n")
@@ -1171,6 +1176,7 @@ def cluster_tile_baits(
     mincols: int,
     bait_clust_threshold: float,
     tiling_percentage_overlap: float,
+    threads_max: int,
     overwrite: bool,
 ):
     clust_baits_unsorted_file = (
@@ -1208,6 +1214,8 @@ def cluster_tile_baits(
             "--notrunclabels",
             "--centroids",
             f"{clust_baits_unsorted_path}",
+            "--threads",
+            f"{threads_max}",
         ]
         vsearch_thread = ElapsedTimeThread()
         vsearch_thread.start()

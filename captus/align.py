@@ -606,7 +606,7 @@ def align(full_command, args):
         if args.disable_taper is True:
             log.log(f"{'TAPER':>{mar}}: {dim('disabled')}")
         else:
-            log.log(f"{'TAPER mask':>{mar}}: {bold(settings.TAPER_MASK)} {dim('(edit in settings.py)')}")
+            log.log(f"{'TAPER mask':>{mar}}: {bold(settings.TAPER_MASK)} {dim('(change in settings.py)')}")
             log.log(f"{'TAPER cutoff':>{mar}}: {bold(args.taper_cutoff)}")
             log.log(f"{'TAPER conservative':>{mar}}: {bold(args.taper_conservative)}")
             log.log(f"{'TAPER unfiltered alns':>{mar}}: {bold(args.taper_unfiltered)}")

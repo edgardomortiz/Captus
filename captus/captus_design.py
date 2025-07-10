@@ -203,7 +203,7 @@ class CaptusDesign(object):
             "-d",
             "--dedup_threshold",
             action="store",
-            default=99.5,
+            default=99,
             type=float,
             dest="dedup_threshold",
             help="Percent identity threshold for within-sample marker deduplication",
@@ -856,7 +856,7 @@ class CaptusDesign(object):
             "--min_expected_tiling",
             type=float,
             dest="min_expected_tiling",
-            default=1.5,
+            default=1.0,
             help="Retain only loci whose baits covered the length of the reference target"
             " sequences at least this many times, met = (num_baits * bait_length) / locus_length ",
         )
