@@ -52,7 +52,7 @@ Captus-assembly commands:
                 clean = Trim adaptors and quality filter reads with BBTools,
                         run FastQC on the raw and cleaned reads
                 assemble = Perform de novo assembly with MEGAHIT and estimate
-                           contig depth of coverage with Salmon: Assembling
+                           contig depth of coverage with Salmon. Assembling
                            reads that were cleaned with the 'clean' command is
                            recommended, but reads cleaned elsewhere are also
                            allowed

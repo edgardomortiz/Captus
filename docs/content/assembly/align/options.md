@@ -118,9 +118,9 @@ We provide two filtering methods for paralog removal, you can select either or b
 This argument is optional, the default is **both**.
 ___
 ### **`--tolerance`**
-Only applicable to the `informed` filter. If the selected copy's identity to the most commonly chosen reference is below this number of Standard Deviations from the mean, it will also be removed (the lower the number the stricter the filter).
+Only applicable to the `informed` filter. If the selected copy's identity to the most commonly chosen reference is below this number of Standard Deviations from the mean, it will also be removed (the lower the number the stricter the filter). Use -1 to disable the filter.
 
-This argument is optional, the default is **2.0**.
+This argument is optional, the default is **4.0**.
 ___
 ## *Trimming (TAPER and ClipKIT)*
 ___

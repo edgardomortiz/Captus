@@ -52,7 +52,7 @@ class CaptusAssembly(object):
             "clean = Trim adaptors and quality filter reads with BBTools, run FastQC on the"
             " raw and cleaned reads\n"
             "assemble = Perform de novo assembly with MEGAHIT and estimate contig depth of"
-            " coverage with Salmon: Assembling reads that were cleaned with the 'clean' command"
+            " coverage with Salmon. Assembling reads that were cleaned with the 'clean' command"
             " is recommended, but reads cleaned elsewhere are also allowed\n"
             "extract = Recover targeted markers with BLAT and Scipio: Extracting markers"
             " from the assembly obtained with the 'assemble' command is recommended, but any"
@@ -1346,7 +1346,7 @@ class CaptusAssembly(object):
             help="Only applicable to the 'informed' filter. If the selected copy's identity to the"
             " most commonly chosen reference target  is below this number of Standard"
             " Deviations from the mean, it will also be removed (the lower the number the"
-            " stricter the filter)",
+            " stricter the filter). Use -1 to disable the filter",
         )
 
         trimming_group = parser.add_argument_group("Trimming")
