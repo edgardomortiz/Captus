@@ -441,7 +441,10 @@ def align(full_command, args):
             )
             log.log("")
             log.log(bold(f"{'INFORMED paralog filtering':>{mar}}:"))
-            log.log(f"{'Filter tolerance':>{mar}}: {bold(args.tolerance)} {bold('STDEVS')}")
+            if args.tolerance == -1:
+                log.log(f"{'Filter tolerance':>{mar}}: {bold(args.tolerance)} {dim('(disabled)')}")
+            else:
+                log.log(f"{'Filter tolerance':>{mar}}: {bold(args.tolerance)} {bold('STDEVS')}")
             log.log(f"{'FASTA files to process':>{mar}}: {bold(len(fastas_to_filter))}")
             log.log(
                 make_output_dirtree(
