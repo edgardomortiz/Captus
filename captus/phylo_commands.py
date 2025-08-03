@@ -78,6 +78,8 @@ def create_iqtree_cmds(
             "-pre",
             f"{Path(Path(phylogenies_dir).resolve(), locus_name)}",
             "-nt",
+            "AUTO",
+            "-ntmax",
             f"{threads}",
             "-seed",
             f"{SEED_NUM}",

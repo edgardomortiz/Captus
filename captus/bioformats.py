@@ -2628,32 +2628,37 @@ def scipio_yaml_to_dict(
 
 def parse_psl_record(psl_line):
     record = psl_line.strip().split()
-    psl = {
-        "matches": int(record[0]),
-        "mismatches": int(record[1]),
-        "rep_matches": int(record[2]),
-        "n_count": int(record[3]),
-        "q_num_insert": int(record[4]),
-        "q_base_insert": int(record[5]),
-        "t_num_insert": int(record[6]),
-        "t_base_insert": int(record[7]),
-        "strand": record[8],
-        "q_name": record[9],
-        "q_size": int(record[10]),
-        "q_start": int(record[11]),
-        "q_end": int(record[12]),
-        "t_name": record[13],
-        "t_size": int(record[14]),
-        "t_start": int(record[15]),
-        "t_end": int(record[16]),
-        "block_count": int(record[17]),
-        "block_sizes": [int(x) for x in record[18].strip(",").split(",")],
-        "q_starts": [int(x) for x in record[19].strip(",").split(",")],
-        "t_starts": [int(x) for x in record[20].strip(",").split(",")],
-    }
-    if len(record) == 22:
-        psl["wscore"] = float(record[21])
-    return psl
+    try:
+        psl = {
+            "matches": int(record[0]),
+            "mismatches": int(record[1]),
+            "rep_matches": int(record[2]),
+            "n_count": int(record[3]),
+            "q_num_insert": int(record[4]),
+            "q_base_insert": int(record[5]),
+            "t_num_insert": int(record[6]),
+            "t_base_insert": int(record[7]),
+            "strand": record[8],
+            "q_name": record[9],
+            "q_size": int(record[10]),
+            "q_start": int(record[11]),
+            "q_end": int(record[12]),
+            "t_name": record[13],
+            "t_size": int(record[14]),
+            "t_start": int(record[15]),
+            "t_end": int(record[16]),
+            "block_count": int(record[17]),
+            "block_sizes": [int(x) for x in record[18].strip(",").split(",")],
+            "q_starts": [int(x) for x in record[19].strip(",").split(",")],
+            "t_starts": [int(x) for x in record[20].strip(",").split(",")],
+        }
+        if len(record) == 22:
+            psl["wscore"] = float(record[21])
+        return psl
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        print(f"Malformed PSL record: {psl_line.strip()}")
+        return None
 
 
 def calculate_psl_identity(
@@ -3173,6 +3178,8 @@ def blat_misc_dna_psl_to_dict(
     with open(psl_path) as psl_in:
         for line in psl_in:
             p = parse_psl_record(line)
+            if p is None:
+                continue
             q_starts_mb, q_ends_mb, t_starts_mb, t_ends_mb = merge_blocks(
                 p["q_size"],
                 p["strand"],

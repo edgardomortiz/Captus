@@ -1009,7 +1009,7 @@ def adjust_concurrency(fastas_to_extract, num_samples, concurrent, threads_max, 
             quit_with_error("Invalid value for '--concurrent', set it to 'auto' or use a number")
 
     asm_sizes = [fastas_to_extract[sample]["assembly_size"] for sample in fastas_to_extract]
-    i = int(round(len(asm_sizes) * 2 / 3)) - 1
+    i = int(round(len(asm_sizes) * 4 / 5)) - 1
     asm_size = math.ceil(sorted(asm_sizes)[i] / 512**3) * 512**3 # Round up to the 0.5GB
     if ref_type == "protein":
         min_ram_b = asm_size * settings.BLAT_PROT_RAM_FACTOR
@@ -1972,6 +1972,8 @@ def filter_query_and_target(query_dict, target_dict, psl_initial_file, marker_ty
     with open(psl_initial_file, "rt") as psl_ini:
         for line in psl_ini:
             p = parse_psl_record(line)
+            if p is None:
+                continue
             best_proteins[p["q_name"]] = query_dict[p["q_name"]]
             hit_contigs[p["t_name"]] = target_dict[p["t_name"]]
     final_query = Path(psl_initial_dir, f"{marker_type}_best_proteins.faa")
@@ -2610,6 +2612,8 @@ def prefilter_blat_psl(
     with open(blat_out_file, "rt") as psl_in:
         for line in psl_in:
             p = parse_psl_record(line)
+            if p is None:
+                continue
             if "_cov_" in p["t_name"]:
                 contigs_have_depth = True
             else:
@@ -2690,6 +2694,8 @@ def prefilter_blat_psl(
         with open(blat_out_file, "rt") as psl_in:
             for line in psl_in:
                 p = parse_psl_record(line)
+                if p is None:
+                    continue
                 locus = p["q_name"]
                 if separators_found is True:
                     locus = p["q_name"].split(settings.REF_CLUSTER_SEP)[-1]
@@ -2822,6 +2828,8 @@ def split_psl_by_contigs_add_wscore(
     with open(psl_raw_path, "rt") as psl_in:
         for line in psl_in:
             p = parse_psl_record(line)
+            if p is None:
+                continue
             wscore = calc_wscore(p)
             target = p["q_name"]
             if target not in target_max_wscores:
@@ -2838,6 +2846,8 @@ def split_psl_by_contigs_add_wscore(
             with open(psl_wscore_path, "wt") as psl_wsc:
                 for line in psl_in:
                     p = parse_psl_record(line)
+                    if p is None:
+                        continue
                     wscore = calc_wscore(p)
                     locus = p["q_name"]
                     if separators_found is True:
@@ -2994,6 +3004,8 @@ def filter_psl_overlaps(psl_wscore_part_path: Path, separators_found: bool, size
     with open(psl_wscore_part_path, "rt") as psl_in:
         for line in psl_in:
             p = parse_psl_record(line)
+            if p is None:
+                continue
             locus = p["q_name"]
             if separators_found is True:
                 locus = p["q_name"].split(settings.REF_CLUSTER_SEP)[-1]

@@ -189,7 +189,7 @@ SALMON_INDEX_DIR = "00_salmon_index"
 SALMON_QUANT_DIR = "01_salmon_quant"
 
 # BLAT RAM multiplier for protein searches
-BLAT_PROT_RAM_FACTOR = 4
+BLAT_PROT_RAM_FACTOR = 5
 
 # BLAT RAM multiplier for nuecleotide searches
 BLAT_DNA_RAM_FACTOR = 2
