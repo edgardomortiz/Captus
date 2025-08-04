@@ -46,7 +46,7 @@ CAPTUS_DIRS = {
     "GE": "03_genes",
     "GF": "04_genes_flanked",
     "MA": "01_matches",
-    "MF": "02_matches_flannked",
+    "MF": "02_matches_flanked",
 }
 
 
