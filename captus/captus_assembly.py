@@ -663,7 +663,7 @@ class CaptusAssembly(object):
         output_group.add_argument(
             "--paralog_tolerance",
             action="store",
-            default=5.0,
+            default=1.5,
             type=float,
             dest="paralog_tolerance",
             help="Only paralogs with a wscore >= (locus best hit wscore / paralog_tolerance) will be"

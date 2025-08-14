@@ -701,9 +701,35 @@ def align(full_command, args):
             )
             log.log("")
 
+        aa_origs, aa_dests = [], []
+        nt_origs, nt_dests = [], []
+        if not args.disable_codon_align:
+            for fasta_orig in sorted(fastas_to_trim):
+                if fasta_orig.parts[-2] == settings.FORMAT_DIRS["AA"]:
+                    aa_origs.append(fasta_orig)
+                    aa_dests.append(fastas_to_trim[fasta_orig])
+                    nt_equiv = Path(
+                        str(fasta_orig)
+                        .replace(settings.FORMAT_DIRS["AA"], settings.FORMAT_DIRS["NT"])
+                        .replace(".faa", ".fna")
+                    )
+                    if nt_equiv in fastas_to_trim:
+                        nt_origs.append(nt_equiv)
+                        nt_dests.append(fastas_to_trim[nt_equiv])
+                    else:
+                        nt_origs.append("")
+                        nt_dests.append("")
+        other_origs, other_dests = [], []
+        for fasta_orig in sorted(fastas_to_trim):
+            if fasta_orig not in aa_origs and fasta_orig not in nt_origs:
+                other_origs.append(fasta_orig)
+                other_dests.append(fastas_to_trim[fasta_orig])
+
         taper_clipkit_params = []
         clipkit_version_float = float(".".join(clipkit_version.split(".")[:2]))
-        for fasta_orig in fastas_to_trim:
+        for aa_orig, aa_dest, nt_orig, nt_dest in zip(aa_origs, aa_dests, nt_origs, nt_dests):
+            fasta_origs = list(filter(None, [aa_orig, nt_orig]))
+            fasta_dests = list(filter(None, [aa_dest, nt_dest]))
             taper_clipkit_params.append(
                 (
                     args.taper_cutoff,
@@ -714,8 +740,28 @@ def align(full_command, args):
                     clipkit_version_float,
                     args.clipkit_method,
                     args.clipkit_gaps,
-                    fasta_orig,
-                    fastas_to_trim[fasta_orig],
+                    fasta_origs,
+                    fasta_dests,
+                    args.min_data_per_column,
+                    args.ends_only,
+                    args.min_coverage,
+                    args.min_samples,
+                    args.overwrite,
+                )
+            )
+        for fasta_orig, fasta_dest in zip(other_origs, other_dests):
+            taper_clipkit_params.append(
+                (
+                    args.taper_cutoff,
+                    args.taper_conservative,
+                    args.taper_unfiltered,
+                    args.disable_taper,
+                    clipkit_path,
+                    clipkit_version_float,
+                    args.clipkit_method,
+                    args.clipkit_gaps,
+                    [fasta_orig],
+                    [fasta_dest],
                     args.min_data_per_column,
                     args.ends_only,
                     args.min_coverage,
@@ -1967,6 +2013,10 @@ def rem_refs_from_fasta(fasta_in: Path, fasta_out: Path, ref_names: list, min_sa
     return message
 
 
+def trim_missing(sequence: str, ambig: str):
+    return sequence.replace("-", "").replace(ambig, "").replace(settings.TAPER_MASK, "")
+
+
 def taper_clipkit(
     taper_cutoff: float,
     taper_conservative: bool,
@@ -1976,8 +2026,8 @@ def taper_clipkit(
     clipkit_version_float,
     clipkit_method,
     clipkit_gaps,
-    fasta_in: Path,
-    fasta_out: Path,
+    fastas_in: list,
+    fastas_out: list,
     min_data_per_column,
     ends_only,
     min_coverage,
@@ -1985,6 +2035,16 @@ def taper_clipkit(
     overwrite,
 ):
     start = time.time()
+
+    # If two FASTAs are passed to 'fastas_in', they are in order: AA nd NT;
+    # trim the first FASTA, if it is AA it is used as model for NT equivalent
+    # which is the same as codon-trimming the NT coding sequence
+    fasta_in = fastas_in[0]
+    fasta_out = fastas_out[0]
+    if fasta_in.suffix == ".faa":
+        ambig = "X"
+    else:
+        ambig = "N"
 
     fasta_out_short = Path(*fasta_out.parts[-4:])
     if file_is_empty(fasta_in):
@@ -2002,9 +2062,8 @@ def taper_clipkit(
             disable_taper = True
         clipkit_fasta_in = fasta_in
         if disable_taper is False:
-            ambig = "X" if fasta_in.suffix == ".faa" else "N"
             clipkit_fasta_in = Path(fasta_out.parent, f"{fasta_out.name}.taper")
-            clipkit_fasta_in = taper_correction(
+            taper_correction(
                 fasta_in,
                 clipkit_fasta_in,
                 ambig,
@@ -2028,6 +2087,7 @@ def taper_clipkit(
             "fasta",
             "--log",
         ]
+        # Now NT is trimmed according to the trimming pattern of its AA counterpart
         if settings.FORMAT_DIRS["NT"] in f"{clipkit_fasta_in}":
             clipkit_cmd += ["--codon"]
         if clipkit_version_float >= 2.3 and ends_only is True:
@@ -2044,6 +2104,7 @@ def taper_clipkit(
                 for line in clipkit_stats:
                     clipkit_log.write(line)
         clipkit_stats_file.unlink()
+        # Comment next 2 lines to keep intermediate TAPER file
         if disable_taper is False:
             clipkit_fasta_in.unlink()
         # Initially added because IQ-TREE fails when a sample has empty sequence:
@@ -2058,7 +2119,7 @@ def taper_clipkit(
                 ungapped_lengths = []
                 aln_length = 0
                 for seq_name in fasta_trimmed:
-                    ungapped = len(fasta_trimmed[seq_name]["sequence"].replace("-", ""))
+                    ungapped = len(trim_missing(fasta_trimmed[seq_name]["sequence"], ambig))
                     aln_length = len(fasta_trimmed[seq_name]["sequence"])
                     if ungapped > 0:
                         ungapped_lengths.append(ungapped)
@@ -2068,7 +2129,7 @@ def taper_clipkit(
                     mean_ungapped = aln_length
                 seqs_to_remove = []
                 for seq_name in fasta_trimmed:
-                    ungapped = len(fasta_trimmed[seq_name]["sequence"].replace("-", ""))
+                    ungapped = len(trim_missing(fasta_trimmed[seq_name]["sequence"], ambig))
                     if ungapped / mean_ungapped < min_coverage:
                         seqs_to_remove.append(seq_name)
                 if seqs_to_remove:
@@ -2077,6 +2138,20 @@ def taper_clipkit(
                     dict_to_fasta(fasta_trimmed, fasta_out)
                 if num_samples(fasta_trimmed) >= min_samples:
                     message = f"'{fasta_out_short}': trimmed [{elapsed_time(time.time() - start)}]"
+                    if len(fastas_in) == 2:
+                        codon_message = codon_trim(
+                            fasta_in,
+                            fasta_out,
+                            clipkit_log_file,
+                            fastas_in[1],
+                            fastas_out[1],
+                            overwrite,
+                        )
+                        message += f"\n{codon_message}"
+                    for seq_name in fasta_trimmed:
+                        final_seq = fasta_trimmed[seq_name]["sequence"].replace(settings.TAPER_MASK, "-")
+                        fasta_trimmed[seq_name]["sequence"] = final_seq
+                    dict_to_fasta(fasta_trimmed, fasta_out)
                 else:
                     fasta_out.unlink()
                     message = red(
@@ -2085,6 +2160,76 @@ def taper_clipkit(
                     )
         else:
             message = red(f"'{fasta_out_short}': FAILED trimming, check ClipKIT's log")
+    else:
+        message = dim(f"'{fasta_out_short}': SKIPPED (output FASTA already exists)")
+
+    return message
+
+
+def codon_trim(
+    aa_orig: Path,
+    aa_dest: Path,
+    clipkit_log_file: Path,
+    nt_orig: Path,
+    nt_dest: Path,
+    overwrite,
+):
+    start = time.time()
+    fasta_out_short = Path(*nt_dest.parts[-4:])
+    if nt_dest.exists() and file_is_empty(nt_dest):
+        nt_dest.unlink()
+    aa_untrimmed = fasta_to_dict(aa_orig)
+    nt_untrimmed = fasta_to_dict(nt_orig)
+    len_aa_untrimmed = 0
+    len_nt_untrimmed = 0
+    for seq_name in aa_untrimmed:
+        len_aa_untrimmed = len(aa_untrimmed[seq_name]["sequence"])
+        len_nt_untrimmed = len(nt_untrimmed[seq_name]["sequence"])
+        break
+    if len_nt_untrimmed == 0:
+        message = red(f"'{fasta_out_short}': FAILED trimming, alignment has length 0")
+        return message
+    if len_aa_untrimmed * 3 != len_nt_untrimmed:
+        message = red(f"'{fasta_out_short}': FAILED trimming, NT alignment length does not match AA*3")
+        return message
+    if overwrite is True or not nt_dest.exists():
+        aa_trimmed = fasta_to_dict(aa_dest)
+        nt_trimmed = {}
+        nt_cols_to_trim = []
+        with open(clipkit_log_file, "rt") as clipkit_log:
+            for line in clipkit_log:
+                record = line.strip().split()
+                if len(record) == 4:
+                    if record[1] == "trim":
+                        col_idx = int(record[0]) - 1
+                        nt_cols_to_trim += [col_idx * 3, col_idx * 3 + 1, col_idx * 3 + 2]
+        for seq_name in nt_untrimmed:
+            trimmed_nt_seq = ""
+            for col_idx in range(len(nt_untrimmed[seq_name]["sequence"])):
+                if col_idx not in nt_cols_to_trim:
+                    trimmed_nt_seq += nt_untrimmed[seq_name]["sequence"][col_idx]
+            if seq_name in aa_trimmed:
+                nt_trimmed[seq_name] = {
+                    "sequence": trimmed_nt_seq,
+                    "description": nt_untrimmed[seq_name]["description"],
+                }
+        for seq_name in aa_trimmed:
+            seq_aa = aa_trimmed[seq_name]["sequence"]
+            seq_nt = nt_trimmed[seq_name]["sequence"]
+            nt_start = 0
+            seq_nt_out = ""
+            for aa in seq_aa:
+                if aa == settings.TAPER_MASK:
+                    seq_nt_out += "-" * 3
+                else:
+                    seq_nt_out += seq_nt[nt_start : nt_start + 3]
+                nt_start += 3
+            nt_trimmed[seq_name] = {
+                "sequence": seq_nt_out,
+                "description": nt_trimmed[seq_name]["description"],
+            }
+        dict_to_fasta(nt_trimmed, nt_dest)
+        message = f"'{fasta_out_short}': codon-trimmed [{elapsed_time(time.time() - start)}]"
     else:
         message = dim(f"'{fasta_out_short}': SKIPPED (output FASTA already exists)")
 

@@ -675,6 +675,7 @@ EXT_STATS_HEADER = [
     "ctg_names",
     "ctg_strands",
     "ctg_coords",
+    "ctg_avg_depth",
 ]
 
 # GFF feature colors, Okabe & Ito palette
@@ -719,7 +720,7 @@ TAPER_PARAMS = [
 ]
 
 # TAPER default mask character
-TAPER_MASK = "-"
+TAPER_MASK = "?"
 
 # Default MAFFT algorithm for Captus Design, use keys from ALIGN_ALGORITHMS (above)
 DESIGN_ALIGN_ALGORITHM = "mafft_genafpair"

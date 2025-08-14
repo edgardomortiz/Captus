@@ -191,6 +191,14 @@ def main():
         help="Alignment data format",
     )
     parser.add_argument(
+        "-d",
+        "--phylogenies_dir",
+        action="store",
+        default="./05_phylogenies",
+        dest="phylogenies_dir",
+        help="Destination directory for the estimated phylogenies",
+    )
+    parser.add_argument(
         "-o",
         "--out_dir",
         action="store",
@@ -205,14 +213,6 @@ def main():
         default="phylo_commands.txt",
         dest="out_commands",
         help="Prefix for output file, maybe use the original name of target file e.g. Allium353",
-    )
-    parser.add_argument(
-        "-d",
-        "--phylogenies_dir",
-        action="store",
-        default="./05_phylogenies",
-        dest="phylogenies_dir",
-        help="Destination directory for the estimated phylogenies",
     )
     parser.add_argument(
         "-p",

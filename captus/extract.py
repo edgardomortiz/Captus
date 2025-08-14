@@ -2059,6 +2059,23 @@ def write_fastas_and_report(
         }
         return stats
 
+    def calc_avg_contig_depth(hit_contigs: str):
+        contig_depths = []
+        contig_names = hit_contigs.split("\n")
+        for contig_name in contig_names:
+            if "_cov_" in contig_name:
+                try:
+                    contig_depth = float(contig_name.split("_cov_")[1].split("_")[0])
+                    contig_depths.append(contig_depth)
+                except Exception as err:
+                    print(f"Unexpected {err=}, {type(err)=}")
+                    continue
+        if contig_depths:
+            return f"{statistics.mean(contig_depths):.2f}"
+        else:
+            return "NA"
+
+
     num_loci, num_paralogs = 0, 0
     lengths_best_hits, coverages_best_hits = [], []
     flanked_seqs, gene_seqs, cds_aa_seqs, cds_nt_seqs, hit_contigs = {}, {}, {}, {}, {}
@@ -2193,6 +2210,7 @@ def write_fastas_and_report(
                         f"{hits[ref][h]['hit_contigs']}".replace("\n", ";"),
                         f"{hits[ref][h]['strand']}".replace("\n", ";"),
                         format_coords(hits[ref][h]["hit_coords"]),
+                        calc_avg_contig_depth(hits[ref][h]['hit_contigs']),
                     ]
                 )
             )

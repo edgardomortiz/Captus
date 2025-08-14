@@ -1184,7 +1184,7 @@ def alignment_stats(fasta_dict, aln_type, coding: bool):
 
         return sites
 
-    def clean_patterns(sites: list, seq_type):
+    def clean_patterns(sites: list, missing_chars: list):
         """
         Replace missing data with '-' for determination of pattern type. Lists of missing data
         symbols take from:
@@ -1195,24 +1195,17 @@ def alignment_stats(fasta_dict, aln_type, coding: bool):
         ----------
         sites : list
             Transposed alignment sites (columns)
-        seq_type : [type]
-            'AA' if aminoacid, 'NT' if nucleotide
 
         Returns
         -------
         list
             Transposed alignment sites with missing data replaced by '-'
         """
-        missing = []
-        if seq_type == "NT":
-            missing = ["?", ".", "~", "O", "N", "X", "#"]
-        elif seq_type == "AA":
-            missing = ["?", ".", "~", "*", "X", "#"]
         clean = []
         for site in sites:
             site_out = ""
             for r in site:
-                if r in missing:
+                if r in missing_chars:
                     site_out += "-"
                 else:
                     site_out += r
@@ -1221,7 +1214,7 @@ def alignment_stats(fasta_dict, aln_type, coding: bool):
         return clean
 
     def pattern_type(pattern, seq_type):
-        pattern = pattern.replace("-", "").upper()
+        pattern = pattern.replace("-", "")
         if not pattern:
             return "constant"
         r_sets = []
@@ -1246,7 +1239,7 @@ def alignment_stats(fasta_dict, aln_type, coding: bool):
         else:
             gc_bp = []
             for seq_name in fasta_dict:
-                for r in fasta_dict[seq_name]["sequence"].replace("-", "").upper():
+                for r in fasta_dict[seq_name]["sequence"].replace("-", ""):
                     if r in NT_IUPAC:
                         g_prop = NT_IUPAC[r].count("G") / len(NT_IUPAC[r])
                         c_prop = NT_IUPAC[r].count("C") / len(NT_IUPAC[r])
@@ -1282,6 +1275,14 @@ def alignment_stats(fasta_dict, aln_type, coding: bool):
         "gc_codon_p3": "NA",
     }
 
+    if aln_type == "NT":
+        missing_chars = ["?", ".", "~", "O", "N", "X", "#"]
+    elif aln_type == "AA":
+        missing_chars = ["?", ".", "~", "*", "X", "#"]
+
+    for seq_name in fasta_dict:
+        seq_upper = fasta_dict[seq_name]["sequence"].upper()
+        fasta_dict[seq_name]["sequence"] = seq_upper
     stats["sequences"] = len(fasta_dict)
     stats["samples"] = num_samples(fasta_dict)
     stats["avg_copies"] = round(stats["sequences"] / stats["samples"], 2)
@@ -1301,7 +1302,7 @@ def alignment_stats(fasta_dict, aln_type, coding: bool):
         combos += idc[1]
     stats["avg_pid"] = round(identities / combos, 2)
 
-    sites = clean_patterns(sites, aln_type)
+    sites = clean_patterns(sites, missing_chars)
     for site in sites:
         stats[pattern_type(site, aln_type)] += 1
     stats["informativeness"] = round(stats["informative"] / stats["sites"] * 100, 2)
@@ -1311,7 +1312,10 @@ def alignment_stats(fasta_dict, aln_type, coding: bool):
 
     sites_concat = "".join(sites)
     if len(sites_concat):
-        stats["missingness"] = round(sites_concat.count("-") / len(sites_concat) * 100, 2)
+        missing_data = sites_concat.count("-")
+        for c in missing_chars:
+            missing_data += sites_concat.count(c)
+        stats["missingness"] = round(missing_data / len(sites_concat) * 100, 2)
 
     gc_total, gc_codon_p1, gc_codon_p2, gc_codon_p3 = gc_content(fasta_dict, aln_type, coding)
     stats["gc"] = gc_total
@@ -1358,11 +1362,11 @@ def sample_stats(fasta_dict, aln_type, coding):
         gc_codon_p3 = "NA"
         if aln_type == "AA":
             for r in ungapped_seq.upper():
-                if r in list("BZJX"):
+                if r in list("BZJX?"):
                     ambigs += 1
         elif aln_type == "NT" and len_ungapped > 0:
             for r in ungapped_seq.upper():
-                if r in list("MRWSYKVHDBN"):
+                if r in list("MRWSYKVHDBN?"):
                     ambigs += 1
                 if r in NT_IUPAC:
                     g_prop = NT_IUPAC[r].count("G") / len(NT_IUPAC[r])
@@ -3377,32 +3381,29 @@ def taper_correction(
         cutoff_threshold: float,
         conservative: bool,
     ):
-        # ambig can only be "X" or "N" in Captus, they are already capitals
-        # sequences are also passed to this function already capitalized
-        # ambig_upper = ambig.upper() if "a" <= ambig <= "z" else ambig
-        # seqs_upper = [seq.upper() for seq in sequences]
-        res_array = [list(seq) for seq in sequences]
+        ambig_upper = ambig.upper()
+        seqs_upper = [seq.upper() for seq in sequences]
+        seqs_array = [list(seq) for seq in sequences]
         n = len(sequences[0])
         m = len(sequences)
 
-        w0 = [[0.0 for _ in range(m)] for _ in range(n)]
+        w0 = [[None for _ in range(m)] for _ in range(n)]
         for i in range(n):
-            res_cnt = {}
+            rcounts = {}
             for j in range(m):
-                res = sequences[j][i]
-                if res not in ["-", ambig]:
-                    if res in res_cnt:
-                        res_cnt[res] += 1
+                r = seqs_upper[j][i]
+                if r not in ["-", ambig_upper]:
+                    if r in rcounts:
+                        rcounts[r] += 1
                     else:
-                        res_cnt[res] = 1
-            unq = len(res_cnt)
-            tot = sum(res_cnt.values())
+                        rcounts[r] = 1
+            unq = len(rcounts)
+            tot = sum(rcounts.values())
             for j in range(m):
                 if tot > 0:
-                    if res_array[j][i] not in ["-", ambig]:
-                        w0[i][j] = tot / (unq * res_cnt[sequences[j][i]])
-                    else:
-                        w0[i][j] = None
+                    if seqs_array[j][i] not in ["-", ambig]:
+                        w0[i][j] = tot / (unq * rcounts[seqs_upper[j][i]])
+
         w1 = [[w0[i][j] for i in range(n) if w0[i][j] is not None] for j in range(m)]
 
         w = []
@@ -3416,11 +3417,11 @@ def taper_correction(
                     w.append([])
                     ws.append([])
         else:
-            P = int(round(k * 2 / 3))
+            # The index P-1 is absolutely necessary!, in Julia it was just P
+            P = int(round(k * 2 / 3)) - 1
             for arr in w1:
                 if len(arr) >= k:
-                    # The index P-1 is absolutely necessary!, in Julia it was just P
-                    w.append([sorted(arr[i : i + k])[P - 1] for i in range(len(arr) - k + 1)])
+                    w.append([sorted(arr[i : i + k])[P] for i in range(len(arr) - k + 1)])
                     ws.append([sum(arr[i : i + k]) for i in range(len(arr) - k + 1)])
                 else:
                     w.append([])
@@ -3505,7 +3506,7 @@ def taper_correction(
 
             # Extract characters that are not '-' and not X
             str_chars = [
-                res_array[j][i] for i in range(len(res_array[j])) if res_array[j][i] not in ["-", ambig]
+                seqs_array[j][i] for i in range(len(seqs_array[j])) if seqs_array[j][i] not in ["-", ambig]
             ]
 
             icur = L - 1  # Python is 0-indexed, so L-1 instead of L
@@ -3566,12 +3567,10 @@ def taper_correction(
     for seq_name in fasta_in:
         seq_names.append(seq_name)
         seq_descs.append(fasta_in[seq_name]["description"])
-        # Capitalize sequence to avoid errors with lowercase ambiguity character in alignment
         sequences.append(fasta_in[seq_name]["sequence"].upper())
     seq_array = [list(seq) for seq in sequences]
     n = len(sequences[0]) if sequences else 0
     m = len(sequences)
-    mask = settings.TAPER_MASK
 
     for t in settings.TAPER_PARAMS:
         tmp_mask = "@"
@@ -3591,13 +3590,13 @@ def taper_correction(
                 elif start is not None and output[j][i] not in [tmp_mask, "-"]:
                     if cnt < L:
                         for k in range(start, i):
-                            seq_array[j][k] = "-" if output[j][k] == "-" else mask
-                    start = 0
+                            seq_array[j][k] = "-" if output[j][k] == "-" else settings.TAPER_MASK
+                    start = None
                     cnt = 0
 
             if start is not None and cnt < L:
                 for k in range(start, n):
-                    seq_array[j][k] = "-" if output[j][k] == "-" else mask
+                    seq_array[j][k] = "-" if output[j][k] == "-" else settings.TAPER_MASK
 
     sequences_corrected = ["".join(seq_array[j]) for j in range(m)]
     fasta_out = {}
