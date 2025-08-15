@@ -66,6 +66,7 @@ Hover mouse cursor over the heatmap to see detailed information about each singl
 |**Number of frameshifts**|Number of corrected frameshifts in the extracted sequence<br>(always `0` when `ref_type` is `nucl`)|-|
 |**Position of frameshifts**|Positions of corrected frameshifts in the extracted sequence<br>(`NA` when no frameshift is detected or `ref_type` is `nucl`)|-|
 |**Contigs in best hit**|Number of contigs used to assemble the best hit|-|
+|**Mean depth**|Mean depth of contigs used to assemble the best hit|x|
 |**Best hit L50**|Least number of contigs in best hit that contain 50% of the best hit's recovered length|-|
 |**Best hit L90**|Least number of contigs in best hit that contain 90% of the best hit's recovered length|-|
 |**Best hit LG50**|Least number of contigs in best hit that contain 50% of the reference locus length|-|
@@ -88,6 +89,7 @@ Switch this dropdown to change the variable to be shown as a heatmap among the f
 |**Weighted Score**|Weighted `score` to address multiple reference sequences per locus<br>(for details, read [<i class="fab fa-readme"></i> Information included in the table]({{< relref "assembly/extract/output#26-captus-extract_statstsv" >}}))|-|
 |**Number of Frameshifts**|Number of corrected frameshifts in the extracted sequence<br>(always `0` if the reference sequence is in nucleotide)|-|
 |**Contigs in Best Hit**|Number of contigs used to assemble the best hit|-|
+|**Mean Depth**|Mean depth of contigs used to assemble the best hit|x|
 |**Best Hit L50**|Least number of contigs in best hit that contain 50% of the best hit's recovered length|-|
 |**Best Hit L90**|Least number of contigs in best hit that contain 90% of the best hit's recovered length|-|
 |**Best Hit LG50**|Least number of contigs in best hit that contain 50% of the reference locus length|-|
@@ -110,4 +112,4 @@ Switch this dropdown to change the sorting manner of each axis as follow:
 
 ---
 Created by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (11.08.2021)  
-Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (16.09.2022)
+Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (15.08.2025)

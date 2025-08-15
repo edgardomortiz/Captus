@@ -126,6 +126,7 @@ Tab-separated-values table with marker recovery statistics, these are concatenat
 |**ctg_names**|Name of the contigs used in the reconstruction of the hit. Example: `NODE_6256_length_619_cov_3.0000_k_169_flag_1;NODE_3991_length_1778_cov_19.0000_k_169_flag_1`, for a hit where two contigs were used.|
 |**ctg_strands**|Contig strands (`+` or `-`) provided in the same order as `ctg_names`. Example: `+;-` indicates that the contig `NODE_6256_length_619_cov_3.0000_k_169_flag_1` was matched in the positive strand while the contig `NODE_3991_length_1778_cov_19.0000_k_169_flag_1` was matched in the ngeative strand.|
 |**ctg_coords**|Match coordinates with respect to the contigs in the sample's assembly. Each segment is expressed as `[start]-[end]`, segments within the same contig are separated by `,`, and segments in different contigs are separated by `;` which are provided in the same order as `ctg_names` and `ctg_strands`. Example: `303-452;694-1626,301-597` indicates that a single segment was matched in contig `NODE_6256_length_619_cov_3.0000_k_169_flag_1` in the `+` strand with coordinates `303-452`, while two segments were matched in contig `NODE_3991_length_1778_cov_19.0000_k_169_flag_1` in the `-` strand with coordinates `694-1626` and `301-597` respectively.|
+|**ctg_avg_depth**|Mean depth of the contigs used to assemble the hit.|
 {{% /expand %}}
 ___
 ### 10. **`[MARKER_TYPE]_scipio_final.log`**
@@ -205,6 +206,7 @@ Tab-separated-values table with marker recovery statistics, these are concatenat
 |**ctg_names**|Name of the contigs used in the reconstruction of the hit. Example: `NODE_6256_length_619_cov_3.0000_k_169_flag_1;NODE_3991_length_1778_cov_19.0000_k_169_flag_1`, for a hit where two contigs were used.|
 |**ctg_strands**|Contig strands (`+` or `-`) provided in the same order as `ctg_names`. Example: `+;-` indicates that the contig `NODE_6256_length_619_cov_3.0000_k_169_flag_1` was matched in the positive strand while the contig `NODE_3991_length_1778_cov_19.0000_k_169_flag_1` was matched in the ngeative strand.|
 |**ctg_coords**|Match coordinates with respect to the contigs in the sample's assembly. Each segment is expressed as `[start]-[end]`, segments within the same contig are separated by `,`, and segments in different contigs are separated by `;` which are provided in the same order as `ctg_names` and `ctg_strands`. Example: `303-452;694-1626,301-597` indicates that a single segment was matched in contig `NODE_6256_length_619_cov_3.0000_k_169_flag_1` in the `+` strand with coordinates `303-452`, while two segments were matched in contig `NODE_3991_length_1778_cov_19.0000_k_169_flag_1` in the `-` strand with coordinates `694-1626` and `301-597` respectively.|
+|**ctg_avg_depth**|Mean depth of the contigs used to assemble the hit.|
 {{% /expand %}}
 ___
 ### 18. **`[MARKER_TYPE]_blat_search.log`**
@@ -255,6 +257,7 @@ Unified tab-separated-values table with marker recovery statistics from ALL the 
 |**ctg_names**|Name of the contigs used in the reconstruction of the hit. Example: `NODE_6256_length_619_cov_3.0000_k_169_flag_1;NODE_3991_length_1778_cov_19.0000_k_169_flag_1`, for a hit where two contigs were used.|
 |**ctg_strands**|Contig strands (`+` or `-`) provided in the same order as `ctg_names`. Example: `+;-` indicates that the contig `NODE_6256_length_619_cov_3.0000_k_169_flag_1` was matched in the positive strand while the contig `NODE_3991_length_1778_cov_19.0000_k_169_flag_1` was matched in the ngeative strand.|
 |**ctg_coords**|Match coordinates with respect to the contigs in the sample's assembly. Each segment is expressed as `[start]-[end]`, segments within the same contig are separated by `,`, and segments in different contigs are separated by `;` which are provided in the same order as `ctg_names` and `ctg_strands`. Example: `303-452;694-1626,301-597` indicates that a single segment was matched in contig `NODE_6256_length_619_cov_3.0000_k_169_flag_1` in the `+` strand with coordinates `303-452`, while two segments were matched in contig `NODE_3991_length_1778_cov_19.0000_k_169_flag_1` in the `-` strand with coordinates `694-1626` and `301-597` respectively.|
+|**ctg_avg_depth**|Mean depth of the contigs used to assemble the hit.|
 {{% /expand %}}
 ___
 ### 23. **`leftover_contigs.fasta.gz`**
@@ -334,6 +337,7 @@ Unified tab-separated-values table with marker recovery statistics from ALL the 
 |**ctg_names**|Name of the contigs used in the reconstruction of the hit. Example: `NODE_6256_length_619_cov_3.0000_k_169_flag_1;NODE_3991_length_1778_cov_19.0000_k_169_flag_1`, for a hit where two contigs were used.|
 |**ctg_strands**|Contig strands (`+` or `-`) provided in the same order as `ctg_names`. Example: `+;-` indicates that the contig `NODE_6256_length_619_cov_3.0000_k_169_flag_1` was matched in the positive strand while the contig `NODE_3991_length_1778_cov_19.0000_k_169_flag_1` was matched in the ngeative strand.|
 |**ctg_coords**|Match coordinates with respect to the contigs in the sample's assembly. Each segment is expressed as `[start]-[end]`, segments within the same contig are separated by `,`, and segments in different contigs are separated by `;` which are provided in the same order as `ctg_names` and `ctg_strands`. Example: `303-452;694-1626,301-597` indicates that a single segment was matched in contig `NODE_6256_length_619_cov_3.0000_k_169_flag_1` in the `+` strand with coordinates `303-452`, while two segments were matched in contig `NODE_3991_length_1778_cov_19.0000_k_169_flag_1` in the `-` strand with coordinates `694-1626` and `301-597` respectively.|
+|**ctg_avg_depth**|Mean depth of the contigs used to assemble the hit.|
 {{% /expand %}}
 ___
 ### 27. **`captus-extract_report.html`**
@@ -365,4 +369,4 @@ As you can see, **Sample name**, **Locus name**, and **Paralog ranking** are sep
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (23.12.2024)
+Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (15.08.2025)
