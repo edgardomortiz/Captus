@@ -2608,8 +2608,8 @@ def build_extraction_report(out_dir, ext_stats_tsv):
                         "Identity: <b>%{z:.2f}%</b><extra></extra>",
                     ])
             elif var == "hit":
-                zmax = data[var].max() if data[var].max() < 50 else 50
-                cmap = [colorscale2] if data[var].max() < 50 else [colorscale]
+                zmax = data[var].max() if data[var].max() < 10 else 10
+                cmap = [colorscale2] if data[var].max() < 10 else [colorscale]
                 if matrix_size > 500000:
                     hovertemplate = "<br>".join([
                         "Sample: <b>%{y}</b>",
@@ -2653,8 +2653,11 @@ def build_extraction_report(out_dir, ext_stats_tsv):
                         "Contigs in best hit: <b>%{z}</b><extra></extra>",
                     ])
             elif var == "ctg_avg_depth":
-                zmax = data[var].max()
-                cmap = [colorscale2]
+                q1 = data[var].quantile(0.25)
+                q3 = data[var].quantile(0.75)
+                iqr = q3 - q1
+                zmax = q3 + 1.5 * iqr if data[var].max() > q3 + 1.5 * iqr else data[var].max()
+                cmap = [colorscale2] if zmax == data[var].max() else [colorscale]
                 if matrix_size > 500000:
                     hovertemplate = "<br>".join([
                         "Sample: <b>%{y}</b>",
