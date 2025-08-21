@@ -2656,7 +2656,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
                 q1 = data[var].quantile(0.25)
                 q3 = data[var].quantile(0.75)
                 iqr = q3 - q1
-                zmax = q3 + 1.5 * iqr if data[var].max() > q3 + 1.5 * iqr else data[var].max()
+                zmax = q3 + 3 * iqr if data[var].max() > q3 + 3 * iqr else data[var].max()
                 cmap = [colorscale2] if zmax == data[var].max() else [colorscale]
                 if matrix_size > 500000:
                     hovertemplate = "<br>".join([
