@@ -533,6 +533,7 @@ VALID_OVERLAPS = [
     ["ndhC", "ndhK"],
     ["ndhF", "ycf1"],
     ["psbC", "psbD"],
+    ["ATP6", "ATP8"],
 ]
 
 # Maximum percetange of overlap between two hits, nuclear genes should not overlap, but we allow
