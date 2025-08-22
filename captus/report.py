@@ -2662,7 +2662,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
                     hovertemplate = "<br>".join([
                         "Sample: <b>%{y}</b>",
                         "Locus: <b>%{x}</b>",
-                        "Mean depth: <b>%{customdata[22]:.2f} x</b><extra></extra>",
+                        "Mean depth: <b>%{z:.2f} x</b><extra></extra>",
                     ])
             elif var == "hit_l50":
                 zmax = data[var].max() if data[var].max() < 10 else 10
