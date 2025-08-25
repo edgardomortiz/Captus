@@ -724,7 +724,7 @@ def extract(full_command, args):
                 settings.MMSEQS_MIN_AUTO_MIN_IDENTITY,
             )
         else:
-            if not bool(dna_ref["DNA"]["NT_path"]):
+            if args.dna_refs is not None:
                 dna_min_identity = cl_min_identity = float(args.cl_min_identity)
             else:
                 dna_min_identity = float(args.dna_min_identity)
