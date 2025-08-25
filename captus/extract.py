@@ -724,7 +724,11 @@ def extract(full_command, args):
                 settings.MMSEQS_MIN_AUTO_MIN_IDENTITY,
             )
         else:
-            dna_min_identity = cl_min_identity = float(args.cl_min_identity)
+            if not bool(dna_ref["DNA"]["NT_path"]):
+                dna_min_identity = cl_min_identity = float(args.cl_min_identity)
+            else:
+                dna_min_identity = float(args.dna_min_identity)
+                cl_min_identity = float(args.cl_min_identity)
         if args.cl_mode != 2:
             args.cl_seq_id_mode = 0
         clust_tmp_dir = make_tmp_dir_within(args.cl_tmp_dir, "captus_mmseqs_tmp")
