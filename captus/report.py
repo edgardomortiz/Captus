@@ -2349,7 +2349,6 @@ def build_extraction_report(out_dir, ext_stats_tsv):
     df_best = df[df["hit"] == 0].reset_index(drop=True).fillna("NA")
     df_best["hit"] = df.groupby(["sample_name", "marker_type", "locus"], as_index=False).count()["hit"]
     df_best["ref_len_unit"] = np.where(df_best["ref_type"] == "prot", "aa", "bp")
-    df_best["ctg_avg_depth"] = df_best["ctg_avg_depth"].replace("NA", np.nan).fillna(0.0).astype(float)
     df_best["frameshifts"] = df_best["frameshifts"].astype(str)
     df_best.loc[df_best["frameshifts"] == "NA", "n_frameshifts"] = 0
     df_best.loc[df_best["frameshifts"] != "NA", "n_frameshifts"] = df_best["frameshifts"].str.count(",") + 1
