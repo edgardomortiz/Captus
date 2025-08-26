@@ -2365,7 +2365,6 @@ def build_extraction_report(out_dir, ext_stats_tsv):
         "wscore",
         "n_frameshifts",
         "hit_contigs",
-        "ctg_avg_depth",
         "hit_l50",
         "hit_l90",
         "hit_lg50",
@@ -2379,12 +2378,14 @@ def build_extraction_report(out_dir, ext_stats_tsv):
         "Weighted Score",
         "Number of Frameshifts",
         "Contigs in Best Hit",
-        "Mean Depth (x)",
         "Best Hit L50",
         "Best Hit L90",
         "Best Hit LG50",
         "Best Hit LG90",
     ]
+    if not df["ctg_avg_depth"].isna().all():
+        var_list.append("ctg_avg_depth")
+        var_lab_list.append("Mean Depth (x)")
     colorscale = [
         [0.0, "rgb(94,79,162)"],
         [0.1, "rgb(50,136,189)"],
@@ -2496,32 +2497,59 @@ def build_extraction_report(out_dir, ext_stats_tsv):
             ])
         else:
             customdata = data
-            hovertemplate = "<br>".join([
-                "Sample: <b>%{customdata[0]}</b>",
-                "Marker type: <b>%{customdata[1]}</b>",
-                "Locus: <b>%{customdata[2]}</b>",
-                "Ref name: <b>%{customdata[3]}</b>",
-                "Ref coords: <b>%{customdata[4]}</b>",
-                "Ref type: <b>%{customdata[5]}</b>",
-                "Ref len matched: <b>%{customdata[6]:,.0f} %{customdata[23]}</b>",
-                "Total hits (copies): <b>%{customdata[7]}</b>",
-                "Recovered length: <b>%{customdata[8]:.2f}%</b>",
-                "Identity: <b>%{customdata[9]:.2f}%</b>",
-                "Score: <b>%{customdata[10]:.3f}</b>",
-                "Weighted score: <b>%{customdata[11]:.3f}</b>",
-                "Hit length: <b>%{customdata[12]:,.0f} bp</b>",
-                "CDS length: <b>%{customdata[13]:,.0f} bp</b>",
-                "Intron length: <b>%{customdata[14]:,.0f} bp</b>",
-                "Flanking length: <b>%{customdata[15]:,.0f} bp</b>",
-                "Number of frameshifts: <b>%{customdata[24]}</b>",
-                "Position of frameshifts: <b>%{customdata[16]}</b>",
-                "Contigs in best hit: <b>%{customdata[17]}</b>",
-                "Mean depth: <b>%{customdata[22]:.2f} x</b>",
-                "Best hit L50: <b>%{customdata[18]}</b>",
-                "Best hit L90: <b>%{customdata[19]}</b>",
-                "Best hit LG50: <b>%{customdata[20]}</b>",
-                "Best hit LG90: <b>%{customdata[21]}</b><extra></extra>",
-            ])
+            if not df["ctg_avg_depth"].isna().all():
+                hovertemplate = "<br>".join([
+                    "Sample: <b>%{customdata[0]}</b>",
+                    "Marker type: <b>%{customdata[1]}</b>",
+                    "Locus: <b>%{customdata[2]}</b>",
+                    "Ref name: <b>%{customdata[3]}</b>",
+                    "Ref coords: <b>%{customdata[4]}</b>",
+                    "Ref type: <b>%{customdata[5]}</b>",
+                    "Ref len matched: <b>%{customdata[6]:,.0f} %{customdata[23]}</b>",
+                    "Total hits (copies): <b>%{customdata[7]}</b>",
+                    "Recovered length: <b>%{customdata[8]:.2f}%</b>",
+                    "Identity: <b>%{customdata[9]:.2f}%</b>",
+                    "Score: <b>%{customdata[10]:.3f}</b>",
+                    "Weighted score: <b>%{customdata[11]:.3f}</b>",
+                    "Hit length: <b>%{customdata[12]:,.0f} bp</b>",
+                    "CDS length: <b>%{customdata[13]:,.0f} bp</b>",
+                    "Intron length: <b>%{customdata[14]:,.0f} bp</b>",
+                    "Flanking length: <b>%{customdata[15]:,.0f} bp</b>",
+                    "Number of frameshifts: <b>%{customdata[24]}</b>",
+                    "Position of frameshifts: <b>%{customdata[16]:}</b>",
+                    "Contigs in best hit: <b>%{customdata[17]}</b>",
+                    "Best hit L50: <b>%{customdata[18]}</b>",
+                    "Best hit L90: <b>%{customdata[19]}</b>",
+                    "Best hit LG50: <b>%{customdata[20]}</b>",
+                    "Best hit LG90: <b>%{customdata[21]}</b>",
+                    "Mean depth: <b>%{customdata[22]:,.2f} x</b><extra></extra>",
+                ])
+            else:
+                hovertemplate = "<br>".join([
+                    "Sample: <b>%{customdata[0]}</b>",
+                    "Marker type: <b>%{customdata[1]}</b>",
+                    "Locus: <b>%{customdata[2]}</b>",
+                    "Ref name: <b>%{customdata[3]}</b>",
+                    "Ref coords: <b>%{customdata[4]}</b>",
+                    "Ref type: <b>%{customdata[5]}</b>",
+                    "Ref len matched: <b>%{customdata[6]:,.0f} %{customdata[23]}</b>",
+                    "Total hits (copies): <b>%{customdata[7]}</b>",
+                    "Recovered length: <b>%{customdata[8]:.2f}%</b>",
+                    "Identity: <b>%{customdata[9]:.2f}%</b>",
+                    "Score: <b>%{customdata[10]:.3f}</b>",
+                    "Weighted score: <b>%{customdata[11]:.3f}</b>",
+                    "Hit length: <b>%{customdata[12]:,.0f} bp</b>",
+                    "CDS length: <b>%{customdata[13]:,.0f} bp</b>",
+                    "Intron length: <b>%{customdata[14]:,.0f} bp</b>",
+                    "Flanking length: <b>%{customdata[15]:,.0f} bp</b>",
+                    "Number of frameshifts: <b>%{customdata[24]}</b>",
+                    "Position of frameshifts: <b>%{customdata[16]:}</b>",
+                    "Contigs in best hit: <b>%{customdata[17]}</b>",
+                    "Best hit L50: <b>%{customdata[18]}</b>",
+                    "Best hit L90: <b>%{customdata[19]}</b>",
+                    "Best hit LG50: <b>%{customdata[20]}</b>",
+                    "Best hit LG90: <b>%{customdata[21]}</b><extra></extra>",
+                ])
         hovertemplate_bar1 = "<br>".join([
             "Locus: <b>%{x}</b>",
             "Samples recovered: <b>%{y}</b><extra></extra>",
@@ -2653,18 +2681,6 @@ def build_extraction_report(out_dir, ext_stats_tsv):
                         "Locus: <b>%{x}</b>",
                         "Contigs in best hit: <b>%{z}</b><extra></extra>",
                     ])
-            elif var == "ctg_avg_depth":
-                q1 = data[var].quantile(0.25)
-                q3 = data[var].quantile(0.75)
-                iqr = q3 - q1
-                zmax = q3 + 3 * iqr if data[var].max() > q3 + 3 * iqr else data[var].max()
-                cmap = [colorscale2] if zmax == data[var].max() else [colorscale]
-                if matrix_size > 500000:
-                    hovertemplate = "<br>".join([
-                        "Sample: <b>%{y}</b>",
-                        "Locus: <b>%{x}</b>",
-                        "Mean depth: <b>%{z:.2f} x</b><extra></extra>",
-                    ])
             elif var == "hit_l50":
                 zmax = data[var].max() if data[var].max() < 10 else 10
                 cmap = [colorscale2] if data[var].max() < 10 else [colorscale]
@@ -2701,13 +2717,26 @@ def build_extraction_report(out_dir, ext_stats_tsv):
                         "Locus: <b>%{x}</b>",
                         "Best hit LG90: <b>%{z}</b><extra></extra>",
                     ])
+            elif var == "ctg_avg_depth":
+                q1 = pd.to_numeric(data[var], errors="coerce").quantile(0.25)
+                q3 = pd.to_numeric(data[var], errors="coerce").quantile(0.75)
+                iqr = q3 - q1
+                max = pd.to_numeric(data[var], errors="coerce").max()
+                zmax = q3 + 3 * iqr if max > q3 + 3 * iqr else max
+                cmap = [colorscale2] if zmax == max else [colorscale]
+                if matrix_size > 500000:
+                    hovertemplate = "<br>".join([
+                        "Sample: <b>%{y}</b>",
+                        "Locus: <b>%{x}</b>",
+                        "Mean depth: <b>%{z:,.2f} x</b><extra></extra>",
+                    ])
             button = dict(
                 label=var_lab_list[j],
                 method="restyle",
                 args=[
                     {
                         "z": [data[var]],
-                        "zmin": data[var].min(),
+                        "zmin": pd.to_numeric(data[var], errors="coerce").min(),
                         "zmax": zmax,
                         "colorscale": cmap,
                         "colorbar.ticksuffix": None if j > 1 else "%",
