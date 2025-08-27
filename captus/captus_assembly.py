@@ -899,6 +899,14 @@ class CaptusAssembly(object):
             help="Path to a FASTA nucleotide file of miscellaneous DNA reference targets",
         )
         non_coding_group.add_argument(
+            "--blat_min_score",
+            action="store",
+            default=settings.DNA_BLAT_MIN_SCORE,
+            type=int,
+            dest="blat_min_score",
+            help="Minimum BLAT score for DNA matches, decrease if the targets are very divergent",
+        )
+        non_coding_group.add_argument(
             "--dna_min_identity",
             action="store",
             default=80,

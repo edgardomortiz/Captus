@@ -194,6 +194,11 @@ Path to a FASTA nucleotide file of miscellaneous DNA references. You can include
 
 This argument is optional and has no default.
 ___
+### **`--blat_min_score`**
+Minimum BLAT score for DNA matches, decrease if the targets are very divergent. Very low values (close to 0) can produce spurious results.
+
+This argument is optional, the default is **20**.
+___
 ### **`--dna_min_identity`**
 Minimum percentage of identity to the reference sequence for a hit to be retained. Accepted values are any number between 0 and 100.
 
@@ -309,4 +314,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)<br>
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (09.04.2025)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (27.08.2025)

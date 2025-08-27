@@ -389,6 +389,7 @@ def extract(full_command, args):
         log.log(f"{'reference':>{mar}}: {dna_ref['DNA']['NT_msg']}")
         if dna_ref["DNA"]["NT_path"]:
             log.log(f"{'reference info':>{mar}}: {dna_query_info['info_msg']}")
+            log.log(f"{'blat_min_score':>{mar}}: {bold(args.blat_min_score)}")
             log.log(f"{'min_identity':>{mar}}: {bold(args.dna_min_identity)}")
             log.log(f"{'min_coverage':>{mar}}: {bold(args.dna_min_coverage)}")
             dna_dt, dna_dt_msg = depth_tolerance_check(args.dna_depth_tolerance, args.ignore_depth)
@@ -531,6 +532,7 @@ def extract(full_command, args):
                     blat_params.append(
                         (
                             args.blat_path,
+                            args.blat_min_score,
                             args.dna_min_identity,
                             args.dna_min_coverage,
                             fastas_to_extract[sample]["assembly_path"],
@@ -829,6 +831,7 @@ def extract(full_command, args):
             log.log(f"{'reference':>{mar}}: {clust_ref['CLR']['NT_msg']}")
             if clust_ref["CLR"]["NT_path"]:
                 log.log(f"{'reference info':>{mar}}: {clust_query_info['info_msg']}")
+                log.log(f"{'blat_min_score':>{mar}}: {bold(args.blat_min_score)}")
                 log.log(f"{'dna_min_identity':>{mar}}: {bold(dna_min_identity)}")
                 log.log(f"{'dna_min_coverage':>{mar}}: {bold(args.dna_min_coverage)}")
                 clr_dt, clr_dt_msg = depth_tolerance_check(args.dna_depth_tolerance, args.ignore_depth)
@@ -847,6 +850,7 @@ def extract(full_command, args):
                     blat_clusters_params.append(
                         (
                             args.blat_path,
+                            args.blat_min_score,
                             dna_min_identity,
                             args.dna_min_coverage,
                             fastas_to_extract[sample]["assembly_path"],
@@ -2308,6 +2312,7 @@ def write_fastas_and_report(
 
 def blat_misc_dna(
     blat_path,
+    blat_min_score,
     min_identity,
     min_coverage,
     target_path,
@@ -2366,7 +2371,7 @@ def blat_misc_dna(
             debug,
             None,
             None,
-            settings.DNA_BLAT_MIN_SCORE,
+            blat_min_score,
             None,
         )
         if blat_psl is None:
