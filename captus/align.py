@@ -1861,11 +1861,13 @@ def filter_paralogs_informed(
         for sample in samples_with_paralogs:
             accepted.append(max(samples_with_paralogs[sample], key=samples_with_paralogs[sample].get))
 
-        if tolerance != -1:
-            pids = [float(row[8]) for row in tsv if row[6] in accepted]
-            min_pid = statistics.mean(pids) - (tolerance * statistics.stdev(pids))
-            for row in tsv:
-                if row[6] in accepted:
+        pids = [float(row[8]) for row in tsv if row[6] in accepted]
+        min_pid = statistics.mean(pids) - (tolerance * statistics.stdev(pids))
+        for row in tsv:
+            if row[6] in accepted:
+                if tolerance == -1:
+                    row[10] = f'{True}'
+                else:
                     if float(row[8]) >= min_pid:
                         row[10] = f"{True}"
                     else:
