@@ -2571,7 +2571,7 @@ def scipio_yaml_to_dict(
                     ]
                 )
             )
-            contigs = len(unfilter_models[prot][model]["hit_contigs"].split("\n"))
+            contigs = len(set(unfilter_models[prot][model]["hit_contigs"].split("\n")))
             unfilter_models[prot][model]["wscore"] = (
                 (
                     unfilter_models[prot][model]["score"]
@@ -3304,7 +3304,7 @@ def blat_misc_dna_psl_to_dict(
             else:
                 ref_cluster = dna_ref
             for hit in dna_hits[dna_ref]:
-                contigs = len(hit["hit_contigs"].split("\n"))
+                contigs = len(set(hit["hit_contigs"].split("\n")))
                 hit["wscore"] = (
                     hit["score"]
                     * (hit["match_len"] / max_len_nt_recov[ref_cluster])
