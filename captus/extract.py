@@ -2037,21 +2037,22 @@ def write_fastas_and_report(
                 break
         return nx, lx
 
-    def fragmentation(ref_coords, ref_size):
-        block_sizes = []
-        for segment in ref_coords.split("\n"):
-            block_size = 0
-            for coord in segment.split(","):
+    def fragmentation(hit_contigs: str, ref_coords: str, ref_size: int):
+        hit_contigs = hit_contigs.split("\n")
+        ref_coords = ref_coords.split("\n")
+        block_sizes = {contig_name: 0 for contig_name in hit_contigs}
+        for i in range(len(ref_coords)):
+            contig_name = hit_contigs[i]
+            for coord in ref_coords[i].split(","):
                 start, end = int(coord.split("-")[0]), int(coord.split("-")[1])
                 if start == end:
-                    block_size += 1
+                    block_sizes[contig_name] += 1
                 else:
-                    block_size += end - start
-            block_sizes.append(block_size)
-        block_sizes = sorted(block_sizes, reverse=True)
-        rec_size = sum(block_sizes)
-        n50, l50 = calc_nx_lx(rec_size, 0.50, block_sizes)
-        n90, l90 = calc_nx_lx(rec_size, 0.90, block_sizes)
+                    block_sizes[contig_name] += end - start
+        block_sizes = sorted(block_sizes.values(), reverse=True)
+        recovered_size = sum(block_sizes)
+        n50, l50 = calc_nx_lx(recovered_size, 0.50, block_sizes)
+        n90, l90 = calc_nx_lx(recovered_size, 0.90, block_sizes)
         ng50, lg50 = calc_nx_lx(ref_size, 0.50, block_sizes)
         ng90, lg90 = calc_nx_lx(ref_size, 0.90, block_sizes)
         stats = {
@@ -2069,7 +2070,7 @@ def write_fastas_and_report(
 
     def calc_avg_contig_depth(hit_contigs: str):
         contig_depths = []
-        contig_names = hit_contigs.split("\n")
+        contig_names = set(hit_contigs.split("\n"))
         for contig_name in contig_names:
             if "_cov_" in contig_name:
                 try:
@@ -2189,7 +2190,9 @@ def write_fastas_and_report(
                     "intron_len": "NA",
                     "frameshifts": "NA",
                 }
-            frag_stats = fragmentation(hits[ref][h]["ref_coords"], hits[ref][h]["ref_size"])
+            frag_stats = fragmentation(
+                hits[ref][h]['hit_contigs'], hits[ref][h]["ref_coords"], hits[ref][h]["ref_size"]
+                )
             stats.append(
                 "\t".join(
                     [
