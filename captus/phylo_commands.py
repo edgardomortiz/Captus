@@ -141,7 +141,6 @@ def main():
         action="store",
         default="./04_alignments",
         dest="captus_alignments",
-        required=True,
         help="Path to the directory that contains the output from the alignment step of Captus"
         " The path to a text file containing the list of paths to the alignments can also be"
         " provided, only alignments with extension .fna or .faa are accepted (if your alignments"
@@ -189,6 +188,16 @@ def main():
         dest="format",
         choices=["AA", "NT", "GE", "GF", "MA", "MF"],
         help="Alignment data format",
+    )
+    parser.add_argument(
+        "-l",
+        "--alignments_list",
+        action="store",
+        dest="alignments_list",
+        help="Instead of searching within the Captus alignments directory you can provide a file"
+        " list of paths to the alignments in FASTA format, one path per line (all the options above"
+        " will be ignored except for '--format', i.e. if you want to process protein aligments use"
+        " '--format AA')",
     )
     parser.add_argument(
         "-d",
@@ -264,27 +273,40 @@ def main():
         fasta_ext = "faa"
         seq_type = "AA"
     fastas_paths = []
-    if not Path(args.captus_alignments).exists():
-        quit_with_error(
-            f"'{args.captus_alignments}' not found, verify this Captus alignment directory exists!"
-        )
-    elif Path(args.captus_alignments).is_dir():
-        aln_dir = Path(
-            args.captus_alignments,
-            CAPTUS_DIRS[args.stage],
-            CAPTUS_DIRS[args.filter],
-            CAPTUS_DIRS[args.marker],
-            CAPTUS_DIRS[args.format],
-        )
-        if not aln_dir.exists():
-            quit_with_error(f"'{aln_dir}' not found, verify this Captus alignment directory exists!")
-        fastas_paths = list(sorted(aln_dir.glob(f"*.{fasta_ext}")))
-    elif Path(args.captus_alignments).is_file():
-        with open(Path(args.captus_alignments), "rt") as paths_in:
-            for line in paths_in:
-                fasta_path = Path(line.strip())
-                if fasta_path.exists() and fasta_path.suffix == f".{fasta_ext}":
-                    fastas_paths.append(fasta_path)
+    if args.alignments_list is None:
+        if not Path(args.captus_alignments).exists():
+            quit_with_error(
+                f"'{args.captus_alignments}' not found, verify this Captus alignment directory exists!"
+            )
+        elif Path(args.captus_alignments).is_dir():
+            aln_dir = Path(
+                args.captus_alignments,
+                CAPTUS_DIRS[args.stage],
+                CAPTUS_DIRS[args.filter],
+                CAPTUS_DIRS[args.marker],
+                CAPTUS_DIRS[args.format],
+            )
+            if not aln_dir.exists():
+                quit_with_error(f"'{aln_dir}' not found, verify this Captus alignment directory exists!")
+            fastas_paths = list(sorted(aln_dir.glob(f"*.{fasta_ext}")))
+        elif Path(args.captus_alignments).is_file():
+            with open(Path(args.captus_alignments), "rt") as paths_in:
+                for line in paths_in:
+                    fasta_path = Path(line.strip())
+                    if fasta_path.exists() and fasta_path.suffix == f".{fasta_ext}":
+                        fastas_paths.append(fasta_path)
+    else:
+        aln_paths_file = Path(args.alignments_list)
+        if aln_paths_file.is_file():
+            with open(aln_paths_file, "rt") as alns:
+                for line in alns:
+                    fasta_path = Path(line.strip())
+                    if not fasta_path.is_file():
+                        print(f"WARNING: file '{fasta_path}' not found, verify its location")
+                    else:
+                        fastas_paths.append(fasta_path)
+        else:
+            quit_with_error(f"'{aln_paths_file}' not found, verify its location")
 
     if not Path(args.out_dir).exists():
         try:
