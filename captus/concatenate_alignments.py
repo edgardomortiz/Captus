@@ -418,7 +418,7 @@ def main():
         fasta_ext = "faa"
         seq_type = "AA"
     fastas_paths = []
-    if args.aligments_list is None:
+    if args.alignments_list is None:
         if not Path(args.captus_alignments).exists():
             quit_with_error(
                 f"'{args.captus_alignments}' not found, verify this Captus alignment directory exists!"
