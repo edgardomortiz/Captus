@@ -1028,6 +1028,13 @@ class CaptusAssembly(object):
             f" {settings.CLR_MIN_SAMPLE_PROP:.0%}% of the total number of samples or at least 4",
         )
         mmseqs2_group.add_argument(
+            "--cl_rep_single",
+            action="store_true",
+            dest="cl_rep_single",
+            help="Retain a single representative sequence per cluster, useful for example when you"
+            " intend to map the reads to the set of targets found by clustering",
+        )
+        mmseqs2_group.add_argument(
             "--cl_rep_min_len",
             action="store",
             default=500,

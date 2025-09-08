@@ -277,6 +277,11 @@ Minimum number of samples per cluster.
 
 This argument is optional, the default is **auto** (= 66% of the total number of samples or at least 4).
 ___
+### **`--cl_rep_single`**
+Enable to retain a single representative sequence per cluster, useful for example when you intend to map the reads to the set of targets found by clustering. When the flag is disabled Captus will cluster again the initial set of representatives at `--cl_min_identity` + 1% to try to retain multiple representative sequences per locus.
+
+This argument is optional.
+___
 ### **`--cl_rep_min_len`**
 After clustering is finished, only accept cluster representatives of at least this length to be part of the new miscellaneous DNA reference. This avoids the creation of very short locus alignments. Use the value `0` to disable this filter.
 
@@ -314,4 +319,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)<br>
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (27.08.2025)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (07.09.2025)

@@ -755,6 +755,7 @@ def extract(full_command, args):
         log.log(f"{'max_seq_len':>{mar}}: {bold(args.cl_max_seq_len)}")
         log.log(f"{'tmp_dir':>{mar}}: {bold(clust_tmp_dir)}")
         log.log("")
+        log.log(f"{'Single repr. per cluster':>{mar}}: {bold(args.cl_rep_single)}")
         log.log(f"{'Min. locus length':>{mar}}: {bold(args.cl_rep_min_len)}")
         log.log(f"{'Min. samples per cluster':>{mar}}: {bold(cl_min_samples)}")
         log.log(f"{'Max. copies per cluster':>{mar}}: {bold(args.cl_max_copies)}")
@@ -790,6 +791,7 @@ def extract(full_command, args):
                 num_samples,
                 cl_min_samples,
                 args.cl_max_copies,
+                args.cl_rep_single,
                 args.cl_rep_min_len,
                 args.mmseqs_path,
                 args.mmseqs_method,
@@ -3396,6 +3398,7 @@ def cluster_and_select_refs(
     num_samples,
     clust_min_samples,
     clust_max_copies,
+    clust_rep_single: bool,
     clust_rep_min_len,
     mmseqs_path,
     mmseqs_method,
@@ -3482,6 +3485,7 @@ def cluster_and_select_refs(
             ref_sep = settings.REF_CLUSTER_SEP
             seq_sep = settings.SEQ_NAME_SEP
             seq_name = f"{smp}_C{(i // 2) + 1}{ref_sep}{clr}{seq_sep}{ctg}"
+            cluster[i] = f">{seq_name}" # rename headers in case clust_rep_single is True
             fasta_to_recluster[seq_name] = {
                 "sequence": cluster[i + 1],
                 "description": "",
@@ -3502,31 +3506,34 @@ def cluster_and_select_refs(
     )
     log.log(dim(f"     Retained sequences written to {clust2_input_fasta}"))
     log.log("")
-    min_id2 = min(min_identity + ((100 - min_identity) / 2), min_identity + 1)
-    log.log(bold(f"Reducing passing clusters by re-clustering at {min_id2}% identity:"))
-    clust2_prefix = f"cl{min_id2:.2f}_cov{min_coverage:.2f}"
-    clust2_message = mmseqs_cluster(
-        mmseqs_path,
-        mmseqs_method,
-        clustering_dir,
-        clust2_input_fasta,
-        clust2_prefix,
-        clust_tmp_dir,
-        cluster_sensitivity,
-        min_id2,
-        seq_id_mode,
-        min_coverage,
-        cov_mode,
-        cluster_mode,
-        max_threads,
-        ram_mb,
-    )
-    log.log(clust2_message)
-    log.log("")
-    log.log(bold("Selecting final cluster representatives:"))
     start = time.time()
-    clust2_all_seqs_file = Path(clustering_dir, f"{clust2_prefix}_all_seqs.fasta")
-    clust2_clusters = split_mmseqs_clusters_file(clust2_all_seqs_file)
+    if clust_rep_single is True:
+        clust2_clusters = passed
+    else:
+        min_id2 = min(min_identity + ((100 - min_identity) / 2), min_identity + 1)
+        log.log(bold(f"Re-clustering passing clusters at {min_id2}% identity:"))
+        clust2_prefix = f"cl{min_id2:.2f}_cov{min_coverage:.2f}"
+        clust2_message = mmseqs_cluster(
+            mmseqs_path,
+            mmseqs_method,
+            clustering_dir,
+            clust2_input_fasta,
+            clust2_prefix,
+            clust_tmp_dir,
+            cluster_sensitivity,
+            min_id2,
+            seq_id_mode,
+            min_coverage,
+            cov_mode,
+            cluster_mode,
+            max_threads,
+            ram_mb,
+        )
+        log.log(clust2_message)
+        clust2_all_seqs_file = Path(clustering_dir, f"{clust2_prefix}_all_seqs.fasta")
+        clust2_clusters = split_mmseqs_clusters_file(clust2_all_seqs_file)
+        log.log("")
+    log.log(bold("Selecting final cluster representatives:"))
     cluster_refs = {}
     min_samples_in_cluster = max(1, math.ceil(num_samples * settings.CLR_REP_MIN_SAMPLE_PROP))
     tqdm_cols = min(shutil.get_terminal_size().columns, 120)
@@ -3566,9 +3573,10 @@ def cluster_and_select_refs(
     log.log("")
     cluster_refs_fasta = Path(clustering_dir, f"{clust1_prefix}_captus_cluster_refs.fasta")
     check_strand_and_save_refs(cluster_refs, cluster_refs_fasta, mafft_path, max_threads, debug)
-    Path(clustering_dir, f"{clust2_prefix}_all_seqs.fasta").unlink()
-    Path(clustering_dir, f"{clust2_prefix}_rep_seq.fasta").unlink()
-    Path(clustering_dir, f"{clust2_prefix}_cluster.tsv").unlink()
+    if clust_rep_single is False:
+        Path(clustering_dir, f"{clust2_prefix}_all_seqs.fasta").unlink()
+        Path(clustering_dir, f"{clust2_prefix}_rep_seq.fasta").unlink()
+        Path(clustering_dir, f"{clust2_prefix}_cluster.tsv").unlink()
     shutil.rmtree(clust_tmp_dir, ignore_errors=True)
     msg_p1 = bold(f"Reference saved to {cluster_refs_fasta}")
     msg_p2 = bold(f" [{elapsed_time(time.time() - start)}]")
@@ -3628,26 +3636,27 @@ def check_strand_and_save_refs(
             mafft_params.append([mafft_path, fasta_in, fasta_out])
     show_less = True
     concurrent = max_threads // 2
-    if debug:
-        tqdm_serial_run(
-            mafft_auto_strand,
-            mafft_params,
-            "Verifying cluster strands with MAFFT",
-            "Strand verification completed",
-            "cluster",
-            show_less,
-        )
-    else:
-        tqdm_parallel_async_run(
-            mafft_auto_strand,
-            mafft_params,
-            "Verifying cluster strands with MAFFT",
-            "Strand verification completed",
-            "cluster",
-            concurrent,
-            show_less,
-        )
-    log.log("")
+    if mafft_params:
+        if debug:
+            tqdm_serial_run(
+                mafft_auto_strand,
+                mafft_params,
+                "Verifying cluster strands with MAFFT",
+                "Strand verification completed",
+                "cluster",
+                show_less,
+            )
+        else:
+            tqdm_parallel_async_run(
+                mafft_auto_strand,
+                mafft_params,
+                "Verifying cluster strands with MAFFT",
+                "Strand verification completed",
+                "cluster",
+                concurrent,
+                show_less,
+            )
+        log.log("")
 
     # Load aligned and correctly stranded FASTAs to add to the reference, disalign first
     stranded_fastas = sorted(list(tmp_aligned_dir.resolve().glob("*.fasta")))
