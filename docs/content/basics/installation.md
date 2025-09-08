@@ -45,7 +45,7 @@ If the program was correctly installed, you will see the following help message:
 ```console
 usage: captus command [options]
 
-Captus 1.3.3: Assembly of Phylogenomic Datasets from High-Throughput Sequencing data
+Captus 1.5.8: Assembly of Phylogenomic Datasets from High-Throughput Sequencing data
 
 Captus-assembly commands:
   command     Program commands (in typical order of execution)
@@ -124,4 +124,4 @@ git clone https://github.com/edgardomortiz/Captus.git
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)<br>
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#gentaro-shigita">}}) (09.04.2025)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#gentaro-shigita">}}) (08.09.2025)
