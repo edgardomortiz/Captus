@@ -112,6 +112,15 @@ class CaptusDesign(object):
             "A pattern = UNIX matching expression (e.g.: -m ./genomic_data/A.*)",
         )
         input_group.add_argument(
+            "--translate_cds",
+            action="store_true",
+            dest="translate_cds",
+            help="Translate sequences for clustering, baits are still made of nucleotides. WARNING:"
+            " the results will onyl make sense if you are providing CDS as clustering input, e.g."
+            " when providing a genome and its annotation Captus extract only the coding features,"
+            " alternatively you can download CDS directly and provide them as FASTA file",
+        )
+        input_group.add_argument(
             "-b",
             "--bait_length",
             action="store",

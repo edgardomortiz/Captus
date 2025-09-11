@@ -16,9 +16,10 @@ details. You should have received a copy of the GNU General Public License along
 not, see <http://www.gnu.org/licenses/>.
 """
 
-
 from captus.concatenate_alignments import main
+from captus.version import __version__
 
+print(f"Captus v{__version__}")
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

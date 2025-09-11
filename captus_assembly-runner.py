@@ -15,9 +15,7 @@ details. You should have received a copy of the GNU General Public License along
 not, see <http://www.gnu.org/licenses/>.
 """
 
-
 from captus.captus_assembly import main
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

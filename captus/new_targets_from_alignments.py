@@ -179,6 +179,7 @@ def split_mmseqs_clusters_file(all_seqs_file_path):
 
 
 def select_refs_per_locus(
+    full_command: str,
     fastas_paths: list,
     fasta_ext: str,
     out_dir: Path,
@@ -194,10 +195,23 @@ def select_refs_per_locus(
     size_proportion: float,
     best_only: bool,
     threads,
+    show_n: int,
+    overwrite: bool,
 ):
     prefix = f"{prefix}_i{min_identity:.2f}_c{min_coverage:.2f}_W{wscore_proportion:.2f}"
     prefix += f"_C{coverage_proportion:.2f}_L{length_proportion:.2f}_S{size_proportion:.2f}"
     clust_log_file = Path(out_dir, f"{prefix}.log")
+    new_targets_path = Path(out_dir, f"{prefix}.fasta")
+
+    if new_targets_path.is_file():
+        if overwrite is True:
+            new_targets_path.unlink()
+            if clust_log_file.is_file():
+                clust_log_file.unlink()
+        else:
+            quit_with_error(
+                f"File {new_targets_path} already exists, use '--overwrite' to replace previous results"
+            )
 
     if exclude_samples is None:
         exclude_samples = []
@@ -217,7 +231,8 @@ def select_refs_per_locus(
             new_seq_len = len(new_seq)
             if sample_name not in exclude_samples and new_seq_len >= min_seq_len:
                 if include_references is True:
-                    new_seq_name = f"{seq_name.replace(SEQ_NAME_SEP, '_')}{REF_CLUSTER_SEP}{locus}"
+                    # new_seq_name = f"{seq_name.replace(SEQ_NAME_SEP, '_')}{REF_CLUSTER_SEP}{locus}"
+                    new_seq_name = f"{seq_name}{REF_CLUSTER_SEP}{locus}"
                     new_seq = fasta[seq_name]["sequence"].replace("-", "").replace("n", "")
                     full_clust_input[new_seq_name] = {
                         "sequence": new_seq,
@@ -255,7 +270,8 @@ def select_refs_per_locus(
                     if seq_name.endswith("__ref"):
                         continue
                     else:
-                        new_seq_name = f"{seq_name.replace('__', '_')}-{locus}"
+                        # new_seq_name = f"{seq_name.replace('__', '_')}-{locus}"
+                        new_seq_name = f"{seq_name}-{locus}"
                         new_seq = fasta[seq_name]["sequence"].replace("-", "").replace("n", "")
                         full_clust_input[new_seq_name] = {
                             "sequence": new_seq,
@@ -318,12 +334,11 @@ def select_refs_per_locus(
     else:
         exclude_samples = ",".join(exclude_samples)
     msg = (
+        f"\nCOMMAND: {full_command}\n\n"
         f"PREFIX: {prefix}\n"
         f"LOG: {clust_log_file}\n"
-        f"SAMPLES TO EXCLUDE: {exclude_samples}\n"
-        "\n"
+        f"SAMPLES TO EXCLUDE: {exclude_samples}\n\n\n"
         f"Starting with a total of {len(full_clust_input)} sequences in {len(best_targets_info)} loci\n"
-        "\n"
     )
     print(msg)
     with open(clust_log_file, "w") as log:
@@ -361,8 +376,7 @@ def select_refs_per_locus(
         f" and 'COVERAGE_PROPORTION' of {coverage_proportion:.2f}"
         f" and 'MIN_SEQ_LEN' of {min_seq_len}\n"
         "\n"
-        "CLUSTERING...\n"
-        "\n"
+        "CLUSTERING..."
     )
     print(msg)
     with open(clust_log_file, "a") as log:
@@ -428,7 +442,21 @@ def select_refs_per_locus(
     cluster_tsv = Path(out_dir, f"{prefix}_cluster.tsv")
     rep_seq = Path(out_dir, f"{prefix}_rep_seq.fasta")
 
-    # 5. Get max depth and length for each locus' clusters
+    # 5. Get Number of samples per locus, later we will compare the cluster size / number of samples
+    #    in locus, the closer to 1 the more inclusive the clustering conditions
+
+    loci_num_samples = {}
+    for seq_name in clust_input:
+        locus = seq_name.split(REF_CLUSTER_SEP)[-1]
+        sample = seq_name.replace(f"-{locus}", "").split(SEQ_NAME_SEP)[0]
+        if locus in loci_num_samples:
+            loci_num_samples[locus].append(sample)
+        else:
+            loci_num_samples[locus] = [sample]
+    for locus in loci_num_samples:
+        loci_num_samples[locus] = len(set(loci_num_samples[locus]))
+
+    # 6. Get max depth and length for each locus' clusters
     clusters = split_mmseqs_clusters_file(all_seqs)
     cluster_sizes = []
     loci = {}
@@ -470,7 +498,7 @@ def select_refs_per_locus(
     with open(clust_log_file, "a") as log:
         log.write(msg)
 
-    # 6. Select and format cluster representatives
+    # 7. Select and format cluster representatives
     loci_reps = {}
     for cluster in clusters:
         locus = cluster[0].split()[0].split(REF_CLUSTER_SEP)[-1]
@@ -478,11 +506,17 @@ def select_refs_per_locus(
         length = len(cluster[1])
         seq_name = cluster[0].split()[0].replace(">", "")
         sequence = cluster[1]
+        samples = []
+        for i in range(0, len(cluster), 2):
+            sample = cluster[i][1:].split()[0].replace(f"-{locus}", "").split(SEQ_NAME_SEP)[0]
+            samples.append(sample)
+        samples = list(set(samples))
         description = " ".join(cluster[0].split()[1:])
-        description = f"[cluster_size={size:.0f}] {description}"
-        seq_desc = {
+        description = f"[cluster_size={size:.0f}] [num_samples={len(samples):.0f}] {description}"
+        seq_and_info = {
             "sequence": sequence,
             "description": description,
+            "samples": samples,
         }
         if best_only is False:
             if (
@@ -490,14 +524,14 @@ def select_refs_per_locus(
                 and length >= loci[locus]["length"] * length_proportion
             ):
                 if locus not in loci_reps:
-                    loci_reps[locus] = {seq_name: seq_desc}
+                    loci_reps[locus] = {seq_name: seq_and_info}
                 else:
-                    loci_reps[locus][seq_name] = seq_desc
+                    loci_reps[locus][seq_name] = seq_and_info
         else:
             wscore = 1.0
             if "wscore" in cluster[0]:
                 wscore = float(cluster[0].split("wscore=")[-1].split("]")[0])
-            locus_rep = {seq_name: seq_desc}
+            locus_rep = {seq_name: seq_and_info}
             if size > loci[locus]["size"]:
                 loci_reps[locus] = locus_rep
             elif size == loci[locus]["size"]:
@@ -508,24 +542,48 @@ def select_refs_per_locus(
                         loci_reps[locus] = locus_rep
                     elif length == loci[locus]["length"]:
                         loci_reps[locus] = locus_rep
+    # Total samples retained / set(samples)
+    estimated_copies = []
+    # Samples included in the selected clusters / samples in the clustering input
+    prop_samples_clustered = []
     reps_per_locus = []
-    min4 = 0
+    min_n = 0
     with open(clust_log_file, "a") as log:
-        msg = "Loci with more than 3 representatives:"
+        msg = f"Loci with at least {show_n} representatives:"
         print(msg)
         log.write(f"{msg}\n")
         for locus in sorted(loci_reps):
+            total_samples = []
+            for seq_name in loci_reps[locus]:
+                total_samples += loci_reps[locus][seq_name]["samples"]
+                prop_samples_clustered.append(
+                    len(loci_reps[locus][seq_name]["samples"]) / loci_num_samples[locus]
+                )
+            num_copies = len(total_samples) / len(set(total_samples))
+            estimated_copies.append(num_copies)
             reps_per_locus.append(len(loci_reps[locus]))
-            if len(loci_reps[locus]) > 3:
-                min4 += 1
-                print(f"{locus}:")
-                log.write(f"{locus}:\n")
+            if num_copies > 1:
+                print(f"\n{locus}:")
+                log.write(f"\n{locus}:\n")
+                print(f"WARNING: Locus {locus} is potentially paralogous, estimated copies = {num_copies:.4f}")
+                log.write(
+                    f"WARNING: Locus {locus} is potentially paralogous, estimated copies = {num_copies:.4f}\n"
+                )
                 for seq_name in loci_reps[locus]:
                     print(f"{seq_name} {loci_reps[locus][seq_name]['description']}")
                     log.write(f"{seq_name} {loci_reps[locus][seq_name]['description']}\n")
-        msg = f"A total of {min4} loci had more than 3 representative sequences"
+            elif len(loci_reps[locus]) >= show_n:
+                min_n += 1
+                print(f"\n{locus}:")
+                log.write(f"\n{locus}:\n")
+                for seq_name in loci_reps[locus]:
+                    print(f"{seq_name} {loci_reps[locus][seq_name]['description']}")
+                    log.write(f"{seq_name} {loci_reps[locus][seq_name]['description']}\n")
+
+        msg = f"\nA total of {min_n} loci had at least {show_n} representative sequences\n"
         print(msg)
-        log.write(f"{msg}\n")
+        log.write(f"{msg}")
+
     msg = (
         "\n"
         f"TOTAL LOCI REMAINING: {len(reps_per_locus)}\n"
@@ -536,21 +594,32 @@ def select_refs_per_locus(
         f"MAX REPRESENTATIVES PER LOCUS: {max(reps_per_locus):.0f}\n"
         f"LOCI WITH A SINGLE REPRESENTATIVE: {reps_per_locus.count(1)}\n"
         "\n"
+        f"MEAN ESTIMATED COPIES: {statistics.mean(estimated_copies):.2f}\n"
+        f"MEDIAN ESTIMATED COPIES: {statistics.median(estimated_copies):.2f}\n"
+        f"STD DEV ESTIMATED COPIES: {statistics.stdev(estimated_copies):.2f}\n"
+        f"MEAN PROP. SAMPLES PER CLUSTER: {statistics.mean(prop_samples_clustered):.2f}\n"
+        f"MEDIAN PROP. SAMPLES PER CLUSTER: {statistics.median(prop_samples_clustered):.2f}\n"
+        f"STD DEV PROP. SAMPLES PER CLUSTER: {statistics.stdev(prop_samples_clustered):.2f}\n"
+        "\n"
     )
     print(msg)
     with open(clust_log_file, "a") as log:
         log.write(msg)
 
-    # 7. Save new target file
-    new_targets_path = Path(out_dir, f"{prefix}.fasta")
+    # 8. Save new target file
     for locus in sorted(loci_reps):
-        dict_to_fasta(loci_reps[locus], new_targets_path, append=True, sort=True)
+        # replace "__" with "_c" for copy
+        locus_names_fixed = {}
+        for seq_name in sorted(loci_reps[locus]):
+            new_seq_name = seq_name.replace(SEQ_NAME_SEP, "_c")
+            locus_names_fixed[new_seq_name] = loci_reps[locus][seq_name]
+        dict_to_fasta(locus_names_fixed, new_targets_path, append=True, sort=True)
     msg = f"NEW TARGET FILE SAVED TO: '{new_targets_path}'\n"
     print(msg)
     with open(clust_log_file, "a") as log:
         log.write(msg)
 
-    # 8. Intermediate file cleanup
+    # 9. Intermediate file cleanup
     clust_input_path.unlink()
     all_seqs.unlink()
     cluster_tsv.unlink()
@@ -722,6 +791,20 @@ def main():
         dest="threads",
         help="Number of threads to use",
     )
+    parser.add_argument(
+        "--show_n",
+        action="store",
+        default=3,
+        type=int,
+        dest="show_n",
+        help="Print to screen loci with at least this number of representatives retained",
+    )
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        dest="overwrite",
+        help="Enable to overwrite previous results",
+    )
     args = parser.parse_args()
 
     if args.stage == "unaligned":
@@ -756,9 +839,12 @@ def main():
     if args.filter.endswith("_w_refs"):
         include_references = True
 
+    full_command = " ".join(sys.argv)
+
     fastas_paths = list(sorted(aln_dir.glob(f"*.{fasta_ext}")))
 
     select_refs_per_locus(
+        full_command,
         fastas_paths,
         fasta_ext,
         args.out_dir,
@@ -774,6 +860,8 @@ def main():
         args.size_proportion,
         args.best_only,
         args.threads,
+        args.show_n,
+        args.overwrite,
     )
 
 

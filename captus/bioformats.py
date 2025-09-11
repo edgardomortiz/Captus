@@ -2148,11 +2148,12 @@ def scipio_yaml_to_dict(
                                     pos + mod["ref_ends"][i - 1] for pos in aln["mismatches"]
                                 ]
 
-            if predict and mod["mat_types"][i] == "intron?":
-                rf1 = translate(current_chunk, gencode, frame=1, start_as_M=False)
-                if len(current_chunk) % 3 == 0 and "*" not in rf1:
-                    lead, trail = 0, 0
-                    seq_chunks = ["", mod["mat_nt"][i].upper()]
+            if predict:
+                if mod["mat_types"][i] == "intron?" or mod["mat_types"][i] == "gap":
+                    rf1 = translate(current_chunk, gencode, frame=1, start_as_M=False)
+                    if len(current_chunk) % 3 == 0 and "*" not in rf1:
+                        lead, trail = 0, 0
+                        seq_chunks = ["", mod["mat_nt"][i].upper()]
 
                 # # When predicting we think we should only add the intervening segment if it can
                 # # be completely translated (i.e. divisible by 3 and without stop codons), the
