@@ -3946,6 +3946,7 @@ def mmseqs_cluster(
     cluster_mode,
     threads,
     ram_mb,
+    proteins=False,
 ):
     """
     Run MMseqs2 easy-linclust but perform some parameter checking/conversion before, the FASTA input
@@ -3984,10 +3985,6 @@ def mmseqs_cluster(
         f"{min_identity}",
         "--seq-id-mode",
         f"{seq_id_mode}",
-        "--gap-open",
-        f"{max(1, settings.MMSEQS_GAP_OPEN)}",
-        "--gap-extend",
-        f"{max(1, settings.MMSEQS_GAP_EXTEND)}",
         "--cluster-mode",
         f"{cluster_mode}",
         "--kmer-per-seq-scale",
@@ -3995,6 +3992,13 @@ def mmseqs_cluster(
         "--threads",
         f"{threads}",
     ]
+    if proteins is False:
+        mmseqs_cmd += [
+            "--gap-open",
+            f"{max(1, settings.MMSEQS_GAP_OPEN)}",
+            "--gap-extend",
+            f"{max(1, settings.MMSEQS_GAP_EXTEND)}",
+        ]
     if mmseqs_method == "easy-cluster":
         mmseqs_cmd += ["-s", f"{sensitivity}"]
         if cluster_mode != 0:

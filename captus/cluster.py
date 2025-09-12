@@ -29,6 +29,8 @@ from .bioformats import (
     dict_to_fasta,
     fasta_to_dict,
     mmseqs_cluster,
+    mmseqs_cluster_prots,
+    translate_fasta_dict,
     vsearch_cluster,
 )
 from .misc import (
@@ -172,9 +174,7 @@ def cluster(full_command, args):
     if mafft_status == "not found":
         quit_with_error("Captus could not find MAFFT, please provide a valid path with '--mafft_path'")
     if mafft_version == "7.525":
-        quit_with_error(
-            "MAFFT v7.525 has a known bug, please upgrade or dowgrade your MAFFT"
-        )
+        quit_with_error("MAFFT v7.525 has a known bug, please upgrade or dowgrade your MAFFT")
 
     ################################################################################################
     ########################################################################## MARKER IMPORT SECTION
@@ -244,6 +244,8 @@ def cluster(full_command, args):
 
     log.log(f"{'Max. threads':>{mar}}: {bold(threads_max)}")
     log.log("")
+    log.log(f"{'Translate CDS':>{mar}}: {bold(args.translate_cds)}")
+    log.log(f"{'Genetic code':>{mar}}: {bold(args.transtable)}")
     log.log(f"{'Clustering program':>{mar}}: {bold(args.clust_program)}")
     if args.clust_program == "mmseqs":
         log.log(f"{'MMseqs2 sensitivity':>{mar}}: {bold(args.mmseqs_sensitivity)}")
@@ -309,6 +311,8 @@ def cluster(full_command, args):
                 samples_to_dedup[sample_name]["sample_dir"],
                 samples_to_dedup[sample_name]["fasta_path"],
                 out_dir,
+                args.translate_cds,
+                args.transtable,
                 args.clust_program,
                 args.mmseqs_path,
                 args.mmseqs_sensitivity,
@@ -349,6 +353,7 @@ def cluster(full_command, args):
     cluster_markers(
         fasta_concat_path,
         cluster_dir_path,
+        args.translate_cds,
         args.clust_program,
         args.mmseqs_path,
         args.mmseqs_sensitivity,
@@ -366,9 +371,7 @@ def cluster(full_command, args):
     ################################################################################################
     ######################################################################### LOCI ALIGNMENT SECTION
     log.log_section_header("Alignment of clustered markers")
-    align_msg = (
-        "Now Captus will align the clusters using MAFFT"
-    )
+    align_msg = "Now Captus will align the clusters using MAFFT"
     log.log_explanation(align_msg)
 
     fastas_to_align = find_fastas_in_dir(cluster_dir_path, ".fasta")
@@ -380,6 +383,7 @@ def cluster(full_command, args):
             (
                 args.mafft_path,
                 args.align_method,
+                args.translate_cds,
                 args.align_max_copies,
                 threads_per_alignment,
                 args.timeout,
@@ -715,6 +719,8 @@ def dedup_fasta(
     sample_dir: str,
     fasta_path: Path,
     out_dir: Path,
+    translate_cds: bool,
+    transtable: int,
     clust_program: str,
     mmseqs_path: str,
     mmseqs_sensitivity: float,
@@ -729,36 +735,24 @@ def dedup_fasta(
 ):
     start = time.time()
     fasta_out_path = Path(out_dir, sample_dir, f"{sample_name}{settings.DES_SUFFIXES['DEDUPED']}")
+
     if dedup_threshold > 1:
         dedup_threshold = dedup_threshold / 100
 
     if overwrite is True or not fasta_out_path.exists():
         result_prefix = f"{fasta_out_path}".replace(".fasta", "")
         tmp_dir = Path(out_dir, sample_dir, "mmseqs_tmp")
-        if clust_program == "vsearch":
-            dedup_cmd = [
-                vsearch_path,
-                "--cluster_fast",
-                f"{fasta_path}",
-                "--strand",
-                f"{strand}",
-                "--iddef",
-                "0",
-                "--id",
-                f"{dedup_threshold}",
-                "--query_cov",
-                f"{min(0.99, dedup_threshold)}",
-                "--notrunclabels",
-                "--centroids",
-                f"{fasta_out_path}",
-                "--threads",
-                f"{threads_max}",
-            ]
-        elif clust_program == "mmseqs":
+
+        if translate_cds:
+            fasta_aa = translate_fasta_dict(fasta_to_dict(fasta_path), transtable)
+            fasta_aa_path = Path(f"{fasta_path}.captus.faa")
+            dict_to_fasta(fasta_aa, fasta_aa_path)
+            if clust_program == "vsearch":
+                log.log("WARNING: vsearch can't cluster aminoacids, MMSeqs will be used instead")
             dedup_cmd = [
                 mmseqs_path,
                 "easy-cluster",
-                f"{fasta_path}",
+                f"{fasta_aa_path}",
                 f"{result_prefix}",
                 f"{tmp_dir}",
                 "--split-memory-limit",
@@ -777,10 +771,6 @@ def dedup_fasta(
                 "1",
                 "--cluster-mode",
                 f"{mmseqs_cluster_mode}",
-                "--gap-open",
-                f"{max(1, settings.MMSEQS_GAP_OPEN)}",
-                "--gap-extend",
-                f"{max(1, settings.MMSEQS_GAP_EXTEND)}",
                 "--kmer-per-seq-scale",
                 f"{settings.MMSEQS_KMER_PER_SEQ_SCALE}",
                 "--threads",
@@ -788,12 +778,73 @@ def dedup_fasta(
             ]
             if mmseqs_cluster_mode != 0:
                 dedup_cmd += ["--cluster-reassign"]
+
+        else:
+            if clust_program == "vsearch":
+                dedup_cmd = [
+                    vsearch_path,
+                    "--cluster_fast",
+                    f"{fasta_path}",
+                    "--strand",
+                    f"{strand}",
+                    "--iddef",
+                    "0",
+                    "--id",
+                    f"{dedup_threshold}",
+                    "--query_cov",
+                    f"{min(0.99, dedup_threshold)}",
+                    "--notrunclabels",
+                    "--centroids",
+                    f"{fasta_out_path}",
+                    "--threads",
+                    f"{threads_max}",
+                ]
+            elif clust_program == "mmseqs":
+                dedup_cmd = [
+                    mmseqs_path,
+                    "easy-cluster",
+                    f"{fasta_path}",
+                    f"{result_prefix}",
+                    f"{tmp_dir}",
+                    "--split-memory-limit",
+                    f"{ram_mb * settings.MMSEQS_RAM_FRACTION:.0f}M",
+                    "--spaced-kmer-mode",
+                    f"{0}",
+                    "-s",
+                    f"{mmseqs_sensitivity}",
+                    "--min-seq-id",
+                    f"{dedup_threshold}",
+                    "--seq-id-mode",
+                    "1",
+                    "-c",
+                    f"{min(0.99, dedup_threshold)}",
+                    "--cov-mode",
+                    "1",
+                    "--cluster-mode",
+                    f"{mmseqs_cluster_mode}",
+                    "--gap-open",
+                    f"{max(1, settings.MMSEQS_GAP_OPEN)}",
+                    "--gap-extend",
+                    f"{max(1, settings.MMSEQS_GAP_EXTEND)}",
+                    "--kmer-per-seq-scale",
+                    f"{settings.MMSEQS_KMER_PER_SEQ_SCALE}",
+                    "--threads",
+                    f"{threads_max}",
+                ]
+                if mmseqs_cluster_mode != 0:
+                    dedup_cmd += ["--cluster-reassign"]
         dedup_log_file = Path(f"{fasta_out_path}".replace(".fasta", ".log"))
         with open(dedup_log_file, "w") as dedup_log:
             dedup_log.write(f"Captus' Deduplication Command:\n  {' '.join(dedup_cmd)}\n\n\n")
         with open(dedup_log_file, "a") as dedup_log:
             subprocess.run(dedup_cmd, stdout=dedup_log, stdin=dedup_log, stderr=dedup_log)
         rep_seq_path = Path(f"{result_prefix}_rep_seq.fasta")
+        if rep_seq_path.exists():
+            rep_seq_path.replace(fasta_out_path)
+        if file_is_empty(fasta_out_path):
+            message = red(f"'{sample_name}': FAILED deduplication")
+        else:
+            message = f"'{sample_name}': FASTA deduplicated [{elapsed_time(time.time() - start)}]"
         if not keep_all:
             to_delete = [
                 Path(f"{result_prefix}_all_seqs.fasta"),
@@ -804,12 +855,6 @@ def dedup_fasta(
                     file.unlink()
             if tmp_dir.exists():
                 shutil.rmtree(tmp_dir, ignore_errors=True)
-        if rep_seq_path.exists():
-            rep_seq_path.replace(fasta_out_path)
-        if file_is_empty(fasta_out_path):
-            message = red(f"'{sample_name}': FAILED deduplication")
-        else:
-            message = f"'{sample_name}': FASTA deduplicated [{elapsed_time(time.time() - start)}]"
     else:
         message = dim(f"'{sample_name}': SKIPPED deduplication (output file already exist)")
 
@@ -856,6 +901,7 @@ def rehead_and_concatenate_fastas(
 def cluster_markers(
     fasta_concat_path: Path,
     cluster_dir_path: Path,
+    translate_cds: bool,
     clust_program: str,
     mmseqs_path: str,
     mmseqs_sensitivity: float,
@@ -874,7 +920,9 @@ def cluster_markers(
     cluster_prefix = "concatenated"
     cluster_tsv_path = Path(fasta_concat_path.parent, f"{cluster_prefix}_cluster.tsv")
     if overwrite is True or not cluster_tsv_path.exists() or file_is_empty(cluster_tsv_path):
-        if clust_program == "mmseqs":
+        if translate_cds:
+            if clust_program == "vsearch":
+                log.log("WARNING: vsearch can't cluster aminoacids, MMSeqs will be used instead")
             mmseqs_tmp_dir = Path(fasta_concat_path.parent, "mmseqs_tmp")
             message = mmseqs_cluster(
                 mmseqs_path,
@@ -891,20 +939,40 @@ def cluster_markers(
                 mmseqs_cluster_mode,
                 threads,
                 ram_mb,
+                proteins=True,
             )
-        elif clust_program == "vsearch":
-            message = vsearch_cluster(
-                vsearch_path,
-                "--cluster_fast",
-                Path(fasta_concat_path.parent),
-                fasta_concat_path,
-                cluster_prefix,
-                clust_threshold,
-                0,
-                clust_threshold,
-                strand,
-                threads,
-            )
+        else:
+            if clust_program == "mmseqs":
+                mmseqs_tmp_dir = Path(fasta_concat_path.parent, "mmseqs_tmp")
+                message = mmseqs_cluster(
+                    mmseqs_path,
+                    "easy-cluster",
+                    Path(fasta_concat_path.parent),
+                    fasta_concat_path,
+                    cluster_prefix,
+                    mmseqs_tmp_dir,
+                    mmseqs_sensitivity,
+                    clust_threshold,
+                    1,
+                    clust_threshold,
+                    1,
+                    mmseqs_cluster_mode,
+                    threads,
+                    ram_mb,
+                )
+            elif clust_program == "vsearch":
+                message = vsearch_cluster(
+                    vsearch_path,
+                    "--cluster_fast",
+                    Path(fasta_concat_path.parent),
+                    fasta_concat_path,
+                    cluster_prefix,
+                    clust_threshold,
+                    0,
+                    clust_threshold,
+                    strand,
+                    threads,
+                )
         log.log(message)
     else:
         log.log(dim(f"SKIPPED clustering, '{cluster_tsv_path.name}' already exists and is not empty"))
@@ -1009,6 +1077,7 @@ def adjust_align_concurrency(concurrent, threads_max):
 def mafft_assembly(
     mafft_path: Path,
     mafft_algorithm: str,
+    translate_cds: bool,
     align_max_copies: float,
     threads_per_alignment: int,
     timeout: int,
@@ -1068,33 +1137,58 @@ def mafft_assembly(
             message = dim(f"'{input_fasta_path.name}': SKIPPED (cluster has {avg_copies:.2f} copies)")
             return message
 
-        mafft_long_cmd = [
-            mafft_path,
-            settings.ALIGN_ALGORITHMS[mafft_algorithm]["arg"],
-            "--nuc",
-            "--maxiterate",
-            "1000",
-            "--adjustdirection",
-            "--reorder",
-            "--thread",
-            f"{threads_per_alignment}",
-            f"{long_fasta_path}",
-        ]
-
-        mafft_add_cmd = [
-            mafft_path,
-            "--auto",
-            "--nuc",
-            "--maxiterate",
-            "1000",
-            "--adjustdirection",
-            "--reorder",
-            "--addfragments",
-            f"{short_fasta_path}",
-            "--thread",
-            f"{threads_per_alignment}",
-            f"{long_aligned_fasta_path}",
-        ]
+        if translate_cds:
+            mafft_long_cmd = [
+                mafft_path,
+                settings.ALIGN_ALGORITHMS[mafft_algorithm]["arg"],
+                "--amino",
+                "--maxiterate",
+                "1000",
+                "--reorder",
+                "--thread",
+                f"{threads_per_alignment}",
+                f"{long_fasta_path}",
+            ]
+            mafft_add_cmd = [
+                mafft_path,
+                "--auto",
+                "--amino",
+                "--maxiterate",
+                "1000",
+                "--reorder",
+                "--addfragments",
+                f"{short_fasta_path}",
+                "--thread",
+                f"{threads_per_alignment}",
+                f"{long_aligned_fasta_path}",
+            ]
+        else:
+            mafft_long_cmd = [
+                mafft_path,
+                settings.ALIGN_ALGORITHMS[mafft_algorithm]["arg"],
+                "--nuc",
+                "--maxiterate",
+                "1000",
+                "--adjustdirection",
+                "--reorder",
+                "--thread",
+                f"{threads_per_alignment}",
+                f"{long_fasta_path}",
+            ]
+            mafft_add_cmd = [
+                mafft_path,
+                "--auto",
+                "--nuc",
+                "--maxiterate",
+                "1000",
+                "--adjustdirection",
+                "--reorder",
+                "--addfragments",
+                f"{short_fasta_path}",
+                "--thread",
+                f"{threads_per_alignment}",
+                f"{long_aligned_fasta_path}",
+            ]
 
         mid_fasta_path = long_aligned_fasta_path if len(short_fasta) > 0 else intermediate_fasta_path
 

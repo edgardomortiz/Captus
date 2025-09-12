@@ -121,6 +121,17 @@ class CaptusDesign(object):
             " alternatively you can download CDS directly and provide them as FASTA file",
         )
         input_group.add_argument(
+            "--transtable",
+            action="store",
+            default=settings.DEFAULT_GENETIC_CODES["NUC"]["id"],
+            type=int,
+            dest="transtable",
+            help="Genetic code table to translate your CDS. Complete list of tables at:"
+            " https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi (default:"
+            f" {settings.DEFAULT_GENETIC_CODES['NUC']['id']}:"
+            f" {settings.DEFAULT_GENETIC_CODES['NUC']['name']})",
+        )
+        input_group.add_argument(
             "-b",
             "--bait_length",
             action="store",
