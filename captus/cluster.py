@@ -29,7 +29,6 @@ from .bioformats import (
     dict_to_fasta,
     fasta_to_dict,
     mmseqs_cluster,
-    mmseqs_cluster_prots,
     translate_fasta_dict,
     vsearch_cluster,
 )
