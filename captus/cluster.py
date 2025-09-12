@@ -776,7 +776,7 @@ def dedup_fasta(
 
         if translate_cds:
             if clust_program == "vsearch":
-                log.log("WARNING: vsearch can't cluster aminoacids, MMSeqs will be used instead")
+                log.log("WARNING: VSEARCH can't cluster aminoacids, MMSeqs will be used instead")
             dedup_cmd = [
                 mmseqs_path,
                 "easy-cluster",
@@ -956,7 +956,7 @@ def cluster_markers(
     if overwrite is True or not cluster_tsv_path.exists() or file_is_empty(cluster_tsv_path):
         if translate_cds:
             if clust_program == "vsearch":
-                log.log("WARNING: vsearch can't cluster aminoacids, MMSeqs will be used instead")
+                log.log("WARNING: VSEARCH can't cluster aminoacids, MMSeqs will be used instead")
             mmseqs_tmp_dir = Path(fasta_concat_path.parent, "mmseqs_tmp")
             message = mmseqs_cluster(
                 mmseqs_path,
