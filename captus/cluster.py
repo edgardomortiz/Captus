@@ -520,6 +520,7 @@ def cluster(full_command, args):
     #                             "Curating cluster alignments", "Curation of alignments completed",
     #                             "alignment", threads_max, show_less)
 
+    # These following two lines might need to be uncommented in the future:
     # if not args.keep_all:
     #     shutil.rmtree(concat_nt_dir_path, ignore_errors=True)
 
