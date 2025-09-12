@@ -3992,12 +3992,19 @@ def mmseqs_cluster(
         "--threads",
         f"{threads}",
     ]
-    if proteins is False:
+    if proteins is True:
         mmseqs_cmd += [
             "--gap-open",
-            f"{max(1, settings.MMSEQS_GAP_OPEN)}",
+            f"{max(1, settings.MMSEQS_GAP_OPEN_AA)}",
             "--gap-extend",
-            f"{max(1, settings.MMSEQS_GAP_EXTEND)}",
+            f"{max(1, settings.MMSEQS_GAP_EXTEND_AA)}",
+        ]
+    else:
+        mmseqs_cmd += [
+            "--gap-open",
+            f"{max(1, settings.MMSEQS_GAP_OPEN_NT)}",
+            "--gap-extend",
+            f"{max(1, settings.MMSEQS_GAP_EXTEND_NT)}",
         ]
     if mmseqs_method == "easy-cluster":
         mmseqs_cmd += ["-s", f"{sensitivity}"]

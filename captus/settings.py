@@ -616,12 +616,15 @@ MMSEQS_MIN_AUTO_MIN_IDENTITY = 75
 MMSEQS_COV_MODE = 1
 
 # Penalty for opening a gap when aligning sequences during clustering. The lower the value the
-# slower clustering becomes. Not recommended to go lower than 3, minimum possible value is 1
-MMSEQS_GAP_OPEN = 3
+# slower clustering becomes. Not recommended to go lower than 3 for nucleotides or 9 for aminoacids,
+# minimum possible value is 1
+MMSEQS_GAP_OPEN_NT = 3
+MMSEQS_GAP_OPEN_AA = 9
 
 # Penalty for extending a gap when aligning sequences during clustering. The lower the value the
 # slower clustering becomes. Minimum possible value is 1"
-MMSEQS_GAP_EXTEND = 1
+MMSEQS_GAP_EXTEND_NT = 1
+MMSEQS_GAP_EXTEND_AA = 1
 
 # From MMseqs2 help:
 # Scale k-mer per sequence based on sequence length as kmer-per-seq val + scale x seqlen

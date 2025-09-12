@@ -28,6 +28,7 @@ from .bioformats import (
     cds_from_gff,
     dict_to_fasta,
     fasta_to_dict,
+    fix_premature_stops,
     mmseqs_cluster,
     translate_fasta_dict,
     vsearch_cluster,
@@ -272,6 +273,8 @@ def cluster(full_command, args):
                 out_dir,
                 max_seq_len,
                 args.bait_length,
+                args.translate_cds,
+                args.transtable,
                 args.overwrite,
             )
         )
@@ -310,8 +313,6 @@ def cluster(full_command, args):
                 samples_to_dedup[sample_name]["sample_dir"],
                 samples_to_dedup[sample_name]["fasta_path"],
                 out_dir,
-                args.translate_cds,
-                args.transtable,
                 args.clust_program,
                 args.mmseqs_path,
                 args.mmseqs_sensitivity,
@@ -321,6 +322,7 @@ def cluster(full_command, args):
                 args.strand,
                 threads_max,
                 ram_MB,
+                args.translate_cds,
                 args.overwrite,
                 args.keep_all,
             )
@@ -352,7 +354,6 @@ def cluster(full_command, args):
     cluster_markers(
         fasta_concat_path,
         cluster_dir_path,
-        args.translate_cds,
         args.clust_program,
         args.mmseqs_path,
         args.mmseqs_sensitivity,
@@ -363,6 +364,7 @@ def cluster(full_command, args):
         args.align_singletons,
         threads_max,
         ram_MB,
+        args.translate_cds,
         args.overwrite,
     )
     log.log("")
@@ -382,12 +384,12 @@ def cluster(full_command, args):
             (
                 args.mafft_path,
                 args.align_method,
-                args.translate_cds,
                 args.align_max_copies,
                 threads_per_alignment,
                 args.timeout,
                 fasta_path,
                 align_dir_path,
+                args.translate_cds,
                 args.overwrite,
             )
         )
@@ -452,6 +454,14 @@ def cluster(full_command, args):
     manager = Manager()
     shared_aln_stats = manager.list()
     curate_params = []
+    fasta_concat_nt = {}
+    if args.traanslate_cds:
+        concat_nt_dir_path = Path(concat_dir_path, "nt")
+        fasta_concat_nt_path = rehead_and_concatenate_fastas(
+            samples_to_filter, concat_nt_dir_path, args.overwrite, args.showless
+        )
+        fasta_concat_nt = fasta_to_dict(fasta_concat_nt_path)
+
     for fasta_path in fastas_to_curate:
         curate_params.append(
             (
@@ -464,6 +474,8 @@ def cluster(full_command, args):
                 fasta_path,
                 curate_dir_path,
                 shared_aln_stats,
+                args.translate_cds,
+                fasta_concat_nt,
                 args.overwrite,
             )
         )
@@ -492,7 +504,6 @@ def cluster(full_command, args):
         "alignment",
         show_less,
     )
-
     # manager.list() slows down the curate() function when used in parallel, until better solution
     # we will run it serially
     # if args.debug:
@@ -503,6 +514,8 @@ def cluster(full_command, args):
     #     tqdm_parallel_async_run(curate, curate_params,
     #                             "Curating cluster alignments", "Curation of alignments completed",
     #                             "alignment", threads_max, show_less)
+
+    # DELETE 'concat_nt_dir_path'
 
     log.log("")
 
@@ -691,6 +704,8 @@ def filter_fasta(
     out_dir: Path,
     max_seq_len: int,
     min_seq_len: int,
+    translate_cds: bool,
+    transtable: int,
     overwrite: bool,
 ):
     start = time.time()
@@ -702,7 +717,15 @@ def filter_fasta(
         for seq_name in fasta_in:
             if min_seq_len <= len(fasta_in[seq_name]["sequence"]) <= max_seq_len:
                 fasta_out[seq_name] = fasta_in[seq_name]
-        dict_to_fasta(fasta_out, fasta_out_path)
+        if translate_cds:
+            fasta_out_aa = translate_fasta_dict(fasta_out, transtable, 1)
+            fasta_out_aa_fixed_pstops = fix_premature_stops(fasta_out_aa)
+            if fasta_out_aa_fixed_pstops is None:
+                dict_to_fasta(fasta_out_aa, fasta_out_path)
+            else:
+                dict_to_fasta(fasta_out_aa_fixed_pstops, fasta_out_path)
+        else:
+            dict_to_fasta(fasta_out, fasta_out_path)
         if fasta_out_path.exists():
             message = f"'{sample_name}': FASTA filtered by length [{elapsed_time(time.time() - start)}]"
         else:
@@ -718,8 +741,6 @@ def dedup_fasta(
     sample_dir: str,
     fasta_path: Path,
     out_dir: Path,
-    translate_cds: bool,
-    transtable: int,
     clust_program: str,
     mmseqs_path: str,
     mmseqs_sensitivity: float,
@@ -729,6 +750,7 @@ def dedup_fasta(
     strand: str,
     threads_max: int,
     ram_mb: int,
+    translate_cds: bool,
     overwrite: bool,
     keep_all: bool,
 ):
@@ -743,15 +765,12 @@ def dedup_fasta(
         tmp_dir = Path(out_dir, sample_dir, "mmseqs_tmp")
 
         if translate_cds:
-            fasta_aa = translate_fasta_dict(fasta_to_dict(fasta_path), transtable)
-            fasta_aa_path = Path(f"{fasta_path}.captus.faa")
-            dict_to_fasta(fasta_aa, fasta_aa_path)
             if clust_program == "vsearch":
                 log.log("WARNING: vsearch can't cluster aminoacids, MMSeqs will be used instead")
             dedup_cmd = [
                 mmseqs_path,
                 "easy-cluster",
-                f"{fasta_aa_path}",
+                f"{fasta_path}",
                 f"{result_prefix}",
                 f"{tmp_dir}",
                 "--split-memory-limit",
@@ -770,6 +789,10 @@ def dedup_fasta(
                 "1",
                 "--cluster-mode",
                 f"{mmseqs_cluster_mode}",
+                "--gap-open",
+                f"{max(1, settings.MMSEQS_GAP_OPEN_AA)}",
+                "--gap-extend",
+                f"{max(1, settings.MMSEQS_GAP_EXTEND_AA)}",
                 "--kmer-per-seq-scale",
                 f"{settings.MMSEQS_KMER_PER_SEQ_SCALE}",
                 "--threads",
@@ -777,7 +800,6 @@ def dedup_fasta(
             ]
             if mmseqs_cluster_mode != 0:
                 dedup_cmd += ["--cluster-reassign"]
-
         else:
             if clust_program == "vsearch":
                 dedup_cmd = [
@@ -822,9 +844,9 @@ def dedup_fasta(
                     "--cluster-mode",
                     f"{mmseqs_cluster_mode}",
                     "--gap-open",
-                    f"{max(1, settings.MMSEQS_GAP_OPEN)}",
+                    f"{max(1, settings.MMSEQS_GAP_OPEN_NT)}",
                     "--gap-extend",
-                    f"{max(1, settings.MMSEQS_GAP_EXTEND)}",
+                    f"{max(1, settings.MMSEQS_GAP_EXTEND_NT)}",
                     "--kmer-per-seq-scale",
                     f"{settings.MMSEQS_KMER_PER_SEQ_SCALE}",
                     "--threads",
@@ -900,7 +922,6 @@ def rehead_and_concatenate_fastas(
 def cluster_markers(
     fasta_concat_path: Path,
     cluster_dir_path: Path,
-    translate_cds: bool,
     clust_program: str,
     mmseqs_path: str,
     mmseqs_sensitivity: float,
@@ -911,6 +932,7 @@ def cluster_markers(
     align_singletons: bool,
     threads: int,
     ram_mb: int,
+    translate_cds: bool,
     overwrite: bool,
 ):
     log.log(bold(f"Clustering '{fasta_concat_path.name}' at {clust_threshold}% identity:"))
@@ -1076,12 +1098,12 @@ def adjust_align_concurrency(concurrent, threads_max):
 def mafft_assembly(
     mafft_path: Path,
     mafft_algorithm: str,
-    translate_cds: bool,
     align_max_copies: float,
     threads_per_alignment: int,
     timeout: int,
     input_fasta_path: Path,
     align_dir_path: Path,
+    translate_cds: bool,
     overwrite: bool,
 ):
     def cleanup_fastas(all_fastas: list):
@@ -1136,58 +1158,32 @@ def mafft_assembly(
             message = dim(f"'{input_fasta_path.name}': SKIPPED (cluster has {avg_copies:.2f} copies)")
             return message
 
+        mafft_long_cmd = [
+            mafft_path,
+            settings.ALIGN_ALGORITHMS[mafft_algorithm]["arg"],
+            "--maxiterate",
+            "1000",
+            "--reorder",
+            "--thread",
+            f"{threads_per_alignment}",
+        ]
+        mafft_add_cmd = [
+            mafft_path,
+            "--auto",
+            "--maxiterate",
+            "1000",
+            "--reorder",
+            "--addfragments",
+            f"{short_fasta_path}",
+            "--thread",
+            f"{threads_per_alignment}",
+        ]
         if translate_cds:
-            mafft_long_cmd = [
-                mafft_path,
-                settings.ALIGN_ALGORITHMS[mafft_algorithm]["arg"],
-                "--amino",
-                "--maxiterate",
-                "1000",
-                "--reorder",
-                "--thread",
-                f"{threads_per_alignment}",
-                f"{long_fasta_path}",
-            ]
-            mafft_add_cmd = [
-                mafft_path,
-                "--auto",
-                "--amino",
-                "--maxiterate",
-                "1000",
-                "--reorder",
-                "--addfragments",
-                f"{short_fasta_path}",
-                "--thread",
-                f"{threads_per_alignment}",
-                f"{long_aligned_fasta_path}",
-            ]
+            mafft_long_cmd += ["--amino", f"{long_fasta_path}"]
+            mafft_add_cmd += ["--amino", f"{long_aligned_fasta_path}"]
         else:
-            mafft_long_cmd = [
-                mafft_path,
-                settings.ALIGN_ALGORITHMS[mafft_algorithm]["arg"],
-                "--nuc",
-                "--maxiterate",
-                "1000",
-                "--adjustdirection",
-                "--reorder",
-                "--thread",
-                f"{threads_per_alignment}",
-                f"{long_fasta_path}",
-            ]
-            mafft_add_cmd = [
-                mafft_path,
-                "--auto",
-                "--nuc",
-                "--maxiterate",
-                "1000",
-                "--adjustdirection",
-                "--reorder",
-                "--addfragments",
-                f"{short_fasta_path}",
-                "--thread",
-                f"{threads_per_alignment}",
-                f"{long_aligned_fasta_path}",
-            ]
+            mafft_long_cmd += ["--nuc", "--adjustdirection", f"{long_fasta_path}"]
+            mafft_add_cmd += ["--nuc", "--adjustdirection", f"{long_aligned_fasta_path}"]
 
         mid_fasta_path = long_aligned_fasta_path if len(short_fasta) > 0 else intermediate_fasta_path
 
@@ -1323,6 +1319,8 @@ def curate(
     input_fasta_path: Path,
     curate_dir_path: Path,
     shared_aln_stats: list,
+    translate_cds: bool,
+    fasta_nt: dict,
     overwrite: bool,
 ):
     def can_be_merged(hap: str, seq: str):
@@ -1386,6 +1384,28 @@ def curate(
 
     if overwrite is True or not curated_fasta_path.exists():
         aln = fasta_to_dict(input_fasta_path)
+
+        if translate_cds:
+            aln_nt = {}
+            for seq_name in aln:
+                try:
+                    seq_aa = aln[seq_name]["sequence"]
+                    seq_nt = fasta_nt[seq_name]["sequence"]
+                    seq_nt_aligned = ""
+                    for i in range(len(seq_aa)):
+                        if seq_aa[i] == "-":
+                            seq_nt_aligned += "---"
+                        else:
+                            seq_nt_aligned += seq_nt[i * 3 : i * 3 + 3]
+                    aln_nt[seq_name] = {
+                        "sequence": seq_nt_aligned,
+                        "description": aln[seq_name]["description"],
+                    }
+                    aln = aln_nt
+                except:
+                    print("An error ocurred when trying to curate this alignment:")
+                    print(aln)
+
         aln_height = len(aln)
         aln_width = None
         num_addons = 0
