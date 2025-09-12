@@ -465,7 +465,7 @@ def cluster(full_command, args):
             samples_to_filter, concat_nt_dir_path, "curation", args.overwrite, show_less
         )
         fasta_concat_nt = fasta_to_dict(fasta_concat_nt_path)
-        log.log()
+        log.log("")
 
     for fasta_path in fastas_to_curate:
         curate_params.append(
@@ -520,7 +520,8 @@ def cluster(full_command, args):
     #                             "Curating cluster alignments", "Curation of alignments completed",
     #                             "alignment", threads_max, show_less)
 
-    # DELETE 'concat_nt_dir_path'
+    # if not args.keep_all:
+    #     shutil.rmtree(concat_nt_dir_path, ignore_errors=True)
 
     log.log("")
 
@@ -1400,12 +1401,14 @@ def curate(
             for seq_name in aln_aa:
                 seq_aa = aln_aa[seq_name]["sequence"]
                 seq_nt = fasta_concat_nt[seq_name]["sequence"]
+                nt_start = 0
                 seq_nt_aligned = ""
                 for i in range(len(seq_aa)):
                     if seq_aa[i] == "-":
                         seq_nt_aligned += "---"
                     else:
-                        seq_nt_aligned += seq_nt[i * 3 : i * 3 + 3]
+                        seq_nt_aligned += seq_nt[nt_start :nt_start + 3]
+                        nt_start += 3
                 aln[seq_name] = {
                     "sequence": seq_nt_aligned,
                     "description": aln_aa[seq_name]["description"],
