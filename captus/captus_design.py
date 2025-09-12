@@ -229,6 +229,14 @@ class CaptusDesign(object):
             help="Percent identity threshold for within-sample marker deduplication",
         )
         clustering_group.add_argument(
+            "--dedup_coverage",
+            action="store",
+            default=66.66,
+            type=float,
+            dest="dedup_coverage",
+            help="Percent coverage threshold for within-sample marker deduplication",
+        )
+        clustering_group.add_argument(
             "-c",
             "--clust_threshold",
             action="store",
@@ -236,6 +244,14 @@ class CaptusDesign(object):
             type=float,
             dest="clust_threshold",
             help="Percent identity threshold for across-samples marker clustering",
+        )
+        clustering_group.add_argument(
+            "--clust_coverage",
+            action="store",
+            default=66.66,
+            type=float,
+            dest="clust_coverage",
+            help="Percent coverage threshold for across-samples marker clustering",
         )
 
         align_group = parser.add_argument_group("Alignment of clusters")

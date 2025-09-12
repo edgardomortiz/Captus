@@ -254,7 +254,9 @@ def cluster(full_command, args):
     log.log(f"{'Min. sequence length':>{mar}}: {bold(args.bait_length)} (= bait length)")
     log.log(f"{'Strand':>{mar}}: {bold(args.strand)}")
     log.log(f"{'Deduplication id.':>{mar}}: {bold(args.dedup_threshold)}%")
+    log.log(f"{'Deduplication cov.':>{mar}}: {bold(args.dedup_coverage)}%")
     log.log(f"{'Clustering id.':>{mar}}: {bold(args.clust_threshold)}%")
+    log.log(f"{'Clustering cov.':>{mar}}: {bold(args.clust_coverage)}%")
     log.log(f"{'Align singletons':>{mar}}: {bold(args.align_singletons)}")
     log.log("")
     log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
@@ -319,6 +321,7 @@ def cluster(full_command, args):
                 args.mmseqs_cluster_mode,
                 args.vsearch_path,
                 args.dedup_threshold,
+                args.dedup_coverage,
                 args.strand,
                 threads_max,
                 ram_MB,
@@ -343,7 +346,7 @@ def cluster(full_command, args):
     log.log("")
     samples_to_concat = find_fastas_in_sample_dirs(out_dir, settings.DES_SUFFIXES["DEDUPED"])
     fasta_concat_path = rehead_and_concatenate_fastas(
-        samples_to_concat, concat_dir_path, args.overwrite, show_less
+        samples_to_concat, concat_dir_path, "clustering", args.overwrite, show_less
     )
     log.log("")
 
@@ -361,6 +364,7 @@ def cluster(full_command, args):
         args.vsearch_path,
         args.strand,
         args.clust_threshold,
+        args.clust_coverage,
         args.align_singletons,
         threads_max,
         ram_MB,
@@ -455,12 +459,13 @@ def cluster(full_command, args):
     shared_aln_stats = manager.list()
     curate_params = []
     fasta_concat_nt = {}
-    if args.traanslate_cds:
-        concat_nt_dir_path = Path(concat_dir_path, "nt")
+    if args.translate_cds:
+        concat_nt_dir_path, _ = make_output_dir(Path(concat_dir_path, "nt"))
         fasta_concat_nt_path = rehead_and_concatenate_fastas(
-            samples_to_filter, concat_nt_dir_path, args.overwrite, args.showless
+            samples_to_filter, concat_nt_dir_path, "curation", args.overwrite, show_less
         )
         fasta_concat_nt = fasta_to_dict(fasta_concat_nt_path)
+        log.log()
 
     for fasta_path in fastas_to_curate:
         curate_params.append(
@@ -747,6 +752,7 @@ def dedup_fasta(
     mmseqs_cluster_mode: int,
     vsearch_path: str,
     dedup_threshold: float,
+    dedup_coverage: float,
     strand: str,
     threads_max: int,
     ram_mb: int,
@@ -759,6 +765,8 @@ def dedup_fasta(
 
     if dedup_threshold > 1:
         dedup_threshold = dedup_threshold / 100
+    if dedup_coverage > 1:
+        dedup_coverage = dedup_coverage / 100
 
     if overwrite is True or not fasta_out_path.exists():
         result_prefix = f"{fasta_out_path}".replace(".fasta", "")
@@ -784,7 +792,7 @@ def dedup_fasta(
                 "--seq-id-mode",
                 "1",
                 "-c",
-                f"{min(0.99, dedup_threshold)}",
+                f"{min(0.99, dedup_coverage)}",
                 "--cov-mode",
                 "1",
                 "--cluster-mode",
@@ -813,7 +821,7 @@ def dedup_fasta(
                     "--id",
                     f"{dedup_threshold}",
                     "--query_cov",
-                    f"{min(0.99, dedup_threshold)}",
+                    f"{min(0.99, dedup_coverage)}",
                     "--notrunclabels",
                     "--centroids",
                     f"{fasta_out_path}",
@@ -838,7 +846,7 @@ def dedup_fasta(
                     "--seq-id-mode",
                     "1",
                     "-c",
-                    f"{min(0.99, dedup_threshold)}",
+                    f"{min(0.99, dedup_coverage)}",
                     "--cov-mode",
                     "1",
                     "--cluster-mode",
@@ -883,7 +891,7 @@ def dedup_fasta(
 
 
 def rehead_and_concatenate_fastas(
-    samples_to_concat: dict, concat_dir: Path, overwrite: bool, show_less: bool
+    samples_to_concat: dict, concat_dir: Path, stage: str, overwrite: bool, show_less: bool
 ):
     """
     Since all the FASTAs coming from all the samples will be joined in a single file for clustering,
@@ -892,7 +900,7 @@ def rehead_and_concatenate_fastas(
     the use of '__' to name the samples. The descriptions will be lost (MMseqs ignores them afaik).
     """
     start = time.time()
-    log.log(bold(f"Concatenating FASTAs from {len(samples_to_concat)} samples for clustering:"))
+    log.log(bold(f"Concatenating FASTAs from {len(samples_to_concat)} samples for {stage}:"))
     fasta_concat_path = Path(concat_dir, "concatenated.fasta")
     if overwrite is True or not fasta_concat_path.exists():
         tqdm_cols = min(shutil.get_terminal_size().columns, 120)
@@ -929,6 +937,7 @@ def cluster_markers(
     vsearch_path: str,
     strand: str,
     clust_threshold: float,
+    clust_coverage: float,
     align_singletons: bool,
     threads: int,
     ram_mb: int,
@@ -938,6 +947,8 @@ def cluster_markers(
     log.log(bold(f"Clustering '{fasta_concat_path.name}' at {clust_threshold}% identity:"))
     if clust_threshold > 1:
         clust_threshold = clust_threshold / 100
+    if clust_coverage > 1:
+        clust_coverage = clust_coverage / 100
     cluster_prefix = "concatenated"
     cluster_tsv_path = Path(fasta_concat_path.parent, f"{cluster_prefix}_cluster.tsv")
     if overwrite is True or not cluster_tsv_path.exists() or file_is_empty(cluster_tsv_path):
@@ -955,7 +966,7 @@ def cluster_markers(
                 mmseqs_sensitivity,
                 clust_threshold,
                 1,
-                clust_threshold,
+                clust_coverage,
                 1,
                 mmseqs_cluster_mode,
                 threads,
@@ -975,7 +986,7 @@ def cluster_markers(
                     mmseqs_sensitivity,
                     clust_threshold,
                     1,
-                    clust_threshold,
+                    clust_coverage,
                     1,
                     mmseqs_cluster_mode,
                     threads,
@@ -990,7 +1001,7 @@ def cluster_markers(
                     cluster_prefix,
                     clust_threshold,
                     0,
-                    clust_threshold,
+                    clust_coverage,
                     strand,
                     threads,
                 )
@@ -1320,7 +1331,7 @@ def curate(
     curate_dir_path: Path,
     shared_aln_stats: list,
     translate_cds: bool,
-    fasta_nt: dict,
+    fasta_concat_nt: dict,
     overwrite: bool,
 ):
     def can_be_merged(hap: str, seq: str):
@@ -1383,28 +1394,24 @@ def curate(
     curated_fasta_path = Path(curate_dir_path, input_fasta_path.name)
 
     if overwrite is True or not curated_fasta_path.exists():
-        aln = fasta_to_dict(input_fasta_path)
-
         if translate_cds:
-            aln_nt = {}
-            for seq_name in aln:
-                try:
-                    seq_aa = aln[seq_name]["sequence"]
-                    seq_nt = fasta_nt[seq_name]["sequence"]
-                    seq_nt_aligned = ""
-                    for i in range(len(seq_aa)):
-                        if seq_aa[i] == "-":
-                            seq_nt_aligned += "---"
-                        else:
-                            seq_nt_aligned += seq_nt[i * 3 : i * 3 + 3]
-                    aln_nt[seq_name] = {
-                        "sequence": seq_nt_aligned,
-                        "description": aln[seq_name]["description"],
-                    }
-                    aln = aln_nt
-                except:
-                    print("An error ocurred when trying to curate this alignment:")
-                    print(aln)
+            aln = {}
+            aln_aa = fasta_to_dict(input_fasta_path)
+            for seq_name in aln_aa:
+                seq_aa = aln_aa[seq_name]["sequence"]
+                seq_nt = fasta_concat_nt[seq_name]["sequence"]
+                seq_nt_aligned = ""
+                for i in range(len(seq_aa)):
+                    if seq_aa[i] == "-":
+                        seq_nt_aligned += "---"
+                    else:
+                        seq_nt_aligned += seq_nt[i * 3 : i * 3 + 3]
+                aln[seq_name] = {
+                    "sequence": seq_nt_aligned,
+                    "description": aln_aa[seq_name]["description"],
+                }
+        else:
+            aln = fasta_to_dict(input_fasta_path)
 
         aln_height = len(aln)
         aln_width = None
