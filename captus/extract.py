@@ -2751,7 +2751,9 @@ def prefilter_blat_psl(
                 contig = loci[locus][i]["contig"]
                 wscore = loci[locus][i]["wscore"]
                 depth = loci[locus][i]["depth"]
-                wscoreld = wscore * math.log10(depth)
+                wscoreld = 0
+                if depth > 0:
+                    wscoreld = wscore * math.log10(depth)
                 contig_info = {"wscore": wscore, "depth": depth, "max_wscoreld": wscoreld}
                 if locus not in loci_depths:
                     loci_depths[locus] = {contig: contig_info}

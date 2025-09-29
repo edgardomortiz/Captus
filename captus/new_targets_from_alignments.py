@@ -559,15 +559,18 @@ def select_refs_per_locus(
                 prop_samples_clustered.append(
                     len(loci_reps[locus][seq_name]["samples"]) / loci_num_samples[locus]
                 )
-            num_copies = len(total_samples) / len(set(total_samples))
+            samples_clustered = len(set(total_samples))
+            num_copies = len(total_samples) / samples_clustered
             estimated_copies.append(num_copies)
             reps_per_locus.append(len(loci_reps[locus]))
             if num_copies > 1:
                 print(f"\n{locus}:")
                 log.write(f"\n{locus}:\n")
-                print(f"WARNING: Locus {locus} is potentially paralogous, estimated copies = {num_copies:.4f}")
+                print(
+                    f"WARNING: Locus {locus} has {samples_clustered} samples and is potentially paralogous, estimated copies = {num_copies:.4f}, targets = {len(loci_reps[locus])}"
+                )
                 log.write(
-                    f"WARNING: Locus {locus} is potentially paralogous, estimated copies = {num_copies:.4f}\n"
+                    f"WARNING: Locus {locus} has {samples_clustered} samples and is potentially paralogous, estimated copies = {num_copies:.4f}, targets = {len(loci_reps[locus])}\n"
                 )
                 for seq_name in loci_reps[locus]:
                     print(f"{seq_name} {loci_reps[locus][seq_name]['description']}")
