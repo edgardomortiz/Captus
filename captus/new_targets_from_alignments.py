@@ -572,6 +572,8 @@ def select_refs_per_locus(
                 log.write(
                     f"WARNING: Locus {locus} has {samples_clustered} samples and is potentially paralogous, estimated copies = {num_copies:.4f}, targets = {len(loci_reps[locus])}\n"
                 )
+                if len(loci_reps[locus]) >= show_n:
+                    min_n += 1
                 for seq_name in loci_reps[locus]:
                     print(f"{seq_name} {loci_reps[locus][seq_name]['description']}")
                     log.write(f"{seq_name} {loci_reps[locus][seq_name]['description']}\n")

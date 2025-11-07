@@ -400,9 +400,10 @@ def extract(full_command, args):
         log.log(bold(f"{'OUTPUT OPTIONS':>{mar}}:"))
         log.log(f"{'Ignore depth of coverage':>{mar}}: {bold(args.ignore_depth)}")
         log.log(f"{'Disable contig stitching':>{mar}}: {bold(args.disable_stitching)}")
+        log.log(f"{'Max. locus overlap':>{mar}}: {bold(args.max_locus_overlap)}%")
+        log.log(f"{'Paralog tolerance':>{mar}}: {bold(args.paralog_tolerance)}")
         max_paralogs_msg = dim("(Keep all paralogs)") if args.max_paralogs == -1 else ""
         log.log(f"{'Max. paralogs':>{mar}}: {bold(args.max_paralogs)} {max_paralogs_msg}")
-        log.log(f"{'Paralog tolerance':>{mar}}: {bold(args.paralog_tolerance)}")
         loci_files_msg = ""
         if args.max_loci_files == 0:
             loci_files_msg = dim("(Do not write separate loci files per sample)")
@@ -446,13 +447,14 @@ def extract(full_command, args):
                             nuc_query_info,
                             "NUC",
                             args.nuc_transtable,
-                            args.ignore_depth,
                             nuc_dt,
+                            args.ignore_depth,
                             args.disable_stitching,
+                            args.max_locus_overlap,
+                            args.paralog_tolerance,
+                            args.max_paralogs,
                             args.max_loci_files,
                             args.max_loci_scipio_x2,
-                            args.max_paralogs,
-                            args.paralog_tolerance,
                             args.predict,
                             prot_threads,
                             prot_ram,
@@ -479,13 +481,14 @@ def extract(full_command, args):
                             ptd_query_info,
                             "PTD",
                             args.ptd_transtable,
-                            args.ignore_depth,
                             ptd_dt,
+                            args.ignore_depth,
                             args.disable_stitching,
+                            args.max_locus_overlap,
+                            args.paralog_tolerance,
+                            args.max_paralogs,
                             args.max_loci_files,
                             args.max_loci_scipio_x2,
-                            args.max_paralogs,
-                            args.paralog_tolerance,
                             args.predict,
                             prot_threads,
                             prot_ram,
@@ -512,13 +515,14 @@ def extract(full_command, args):
                             mit_query_info,
                             "MIT",
                             args.mit_transtable,
-                            args.ignore_depth,
                             mit_dt,
+                            args.ignore_depth,
                             args.disable_stitching,
+                            args.max_locus_overlap,
+                            args.paralog_tolerance,
+                            args.max_paralogs,
                             args.max_loci_files,
                             args.max_loci_scipio_x2,
-                            args.max_paralogs,
-                            args.paralog_tolerance,
                             args.predict,
                             prot_threads,
                             prot_ram,
@@ -543,12 +547,13 @@ def extract(full_command, args):
                             dna_query_parts_paths,
                             dna_query_info,
                             "DNA",
-                            args.ignore_depth,
                             dna_dt,
+                            args.ignore_depth,
                             args.disable_stitching,
-                            args.max_loci_files,
-                            args.max_paralogs,
+                            args.max_locus_overlap,
                             args.paralog_tolerance,
+                            args.max_paralogs,
+                            args.max_loci_files,
                             tsv_comment,
                             dna_threads,
                             dna_ram,
@@ -839,6 +844,19 @@ def extract(full_command, args):
                 clr_dt, clr_dt_msg = depth_tolerance_check(args.dna_depth_tolerance, args.ignore_depth)
                 log.log(f"{'depth_tolerance':>{mar}}: {clr_dt_msg}")
             log.log("")
+            log.log("")
+
+            log.log(bold(f"{'OUTPUT OPTIONS':>{mar}}:"))
+            log.log(f"{'Ignore depth of coverage':>{mar}}: {bold(args.ignore_depth)}")
+            log.log(f"{'Disable contig stitching':>{mar}}: {bold(args.disable_stitching)}")
+            log.log(f"{'Max. locus overlap':>{mar}}: {bold(args.max_locus_overlap)}%")
+            log.log(f"{'Paralog tolerance':>{mar}}: {bold(args.paralog_tolerance)}")
+            max_paralogs_msg = dim("(Keep all paralogs)") if args.max_paralogs == -1 else ""
+            log.log(f"{'Max. paralogs':>{mar}}: {bold(args.max_paralogs)} {max_paralogs_msg}")
+            loci_files_msg = ""
+            if args.max_loci_files == 0:
+                loci_files_msg = dim("(Do not write separate loci files per sample)")
+            log.log(f"{'Max. separate loci files':>{mar}}: {bold(args.max_loci_files)} {loci_files_msg}")
             log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
             log.log(f"{'Keep all files':>{mar}}: {bold(args.keep_all)}")
             log.log(f"{'Samples to process':>{mar}}: {bold(num_clr_extractions)}")
@@ -863,12 +881,13 @@ def extract(full_command, args):
                             clust_query_parts_paths,
                             clust_query_info,
                             "CLR",
-                            args.ignore_depth,
                             clr_dt,
+                            args.ignore_depth,
                             args.disable_stitching,
-                            args.max_loci_files,
-                            args.max_paralogs,
+                            args.max_locus_overlap,
                             args.paralog_tolerance,
+                            args.max_paralogs,
+                            args.max_loci_files,
                             tsv_comment,
                             clust_threads,
                             clust_ram,
@@ -1020,7 +1039,7 @@ def adjust_concurrency(fastas_to_extract, num_samples, concurrent, threads_max, 
 
     asm_sizes = [fastas_to_extract[sample]["assembly_size"] for sample in fastas_to_extract]
     i = int(round(len(asm_sizes) * 4 / 5)) - 1
-    asm_size = math.ceil(sorted(asm_sizes)[i] / 512**3) * 512**3 # Round up to the 0.5GB
+    asm_size = math.ceil(sorted(asm_sizes)[i] / 512**3) * 512**3  # Round up to the 0.5GB
     if ref_type == "protein":
         min_ram_b = asm_size * settings.BLAT_PROT_RAM_FACTOR
     elif ref_type == "dna":
@@ -1513,13 +1532,14 @@ def scipio_coding(
     query_info,
     marker_type,
     transtable,
-    ignore_depth,
     depth_tolerance,
+    ignore_depth,
     disable_stitching,
+    max_locus_overlap,
+    paralog_tolerance,
+    max_paralogs,
     max_loci_files,
     max_loci_scipio_x2,
-    max_paralogs,
-    paralog_tolerance,
     predict,
     threads,
     ram_bytes,
@@ -1568,9 +1588,10 @@ def scipio_coding(
             target_path,
             query_parts_paths,
             query_info,
-            ignore_depth,
             depth_tolerance,
+            ignore_depth,
             disable_stitching,
+            max_locus_overlap,
             overwrite,
             threads,
             ram_bytes,
@@ -1620,9 +1641,10 @@ def scipio_coding(
             final_target,
             final_query_parts_paths,
             query_info,
-            ignore_depth,
             depth_tolerance,
+            ignore_depth,
             disable_stitching,
+            max_locus_overlap,
             overwrite,
             threads,
             ram_bytes,
@@ -1642,9 +1664,10 @@ def scipio_coding(
             target_path,
             query_parts_paths,
             query_info,
-            ignore_depth,
             depth_tolerance,
+            ignore_depth,
             disable_stitching,
+            max_locus_overlap,
             overwrite,
             threads,
             ram_bytes,
@@ -1662,7 +1685,9 @@ def scipio_coding(
         message = red(f"'{sample_name}': FAILED extraction of {genes[marker_type]} (0 BLAT hits)")
         return message
     elif yaml_final_file == "0 BLAT HITS ACCEPTED":
-        message = red(f"'{sample_name}': FAILED extraction of {genes[marker_type]} (0 BLAT hits accepted)")
+        message = red(
+            f"'{sample_name}': FAILED extraction of {genes[marker_type]} (0 BLAT hits accepted)"
+        )
         return message
     else:
         yaml_final_dir = yaml_final_file.parent
@@ -1673,8 +1698,8 @@ def scipio_coding(
             min_coverage,
             marker_type,
             transtable,
-            max_paralogs,
             paralog_tolerance,
+            max_paralogs,
             predict,
         )
 
@@ -1715,9 +1740,10 @@ def parallel_scipio(
     target_path,
     query_parts_paths,
     query_info,
-    ignore_depth,
     depth_tolerance,
+    ignore_depth,
     disable_stitching,
+    max_locus_overlap,
     overwrite,
     threads,
     ram_bytes,
@@ -1793,6 +1819,7 @@ def parallel_scipio(
             bool(query_info["separators_found"]),
             depth_tolerance,
             ignore_depth,
+            max_locus_overlap,
             threads,
             debug,
             keep_all,
@@ -1842,6 +1869,7 @@ def parallel_scipio(
                     scipio_params["min_identity"],
                     scipio_params["min_coverage"],
                     disable_stitching,
+                    max_locus_overlap,
                     scipio_params["blat_path"],
                     blat_min_score,
                     scipio_params["transtable"],
@@ -1914,6 +1942,7 @@ def run_scipio_command(
     min_identity,
     min_coverage,
     disable_stitching,
+    max_locus_overlap,
     blat_path,
     blat_min_score,
     transtable,
@@ -2086,7 +2115,6 @@ def write_fastas_and_report(
         else:
             return "NA"
 
-
     num_loci, num_paralogs = 0, 0
     lengths_best_hits, coverages_best_hits = [], []
     flanked_seqs, gene_seqs, cds_aa_seqs, cds_nt_seqs, hit_contigs = {}, {}, {}, {}, {}
@@ -2193,8 +2221,8 @@ def write_fastas_and_report(
                     "frameshifts": "NA",
                 }
             frag_stats = fragmentation(
-                hits[ref][h]['hit_contigs'], hits[ref][h]["ref_coords"], hits[ref][h]["ref_size"]
-                )
+                hits[ref][h]["hit_contigs"], hits[ref][h]["ref_coords"], hits[ref][h]["ref_size"]
+            )
             stats.append(
                 "\t".join(
                     [
@@ -2223,7 +2251,7 @@ def write_fastas_and_report(
                         f"{hits[ref][h]['hit_contigs']}".replace("\n", ";"),
                         f"{hits[ref][h]['strand']}".replace("\n", ";"),
                         format_coords(hits[ref][h]["hit_coords"]),
-                        calc_avg_contig_depth(hits[ref][h]['hit_contigs']),
+                        calc_avg_contig_depth(hits[ref][h]["hit_contigs"]),
                     ]
                 )
             )
@@ -2328,12 +2356,13 @@ def blat_misc_dna(
     query_parts_paths: dict,
     query_info,
     marker_type,
-    ignore_depth,
     depth_tolerance,
+    ignore_depth,
     disable_stitching,
-    max_loci_files,
-    max_paralogs,
+    max_locus_overlap,
     paralog_tolerance,
+    max_paralogs,
+    max_loci_files,
     tsv_comment,
     threads,
     ram_bytes,
@@ -2393,6 +2422,7 @@ def blat_misc_dna(
             bool(query_info["separators_found"]),
             depth_tolerance,
             ignore_depth,
+            max_locus_overlap,
             threads,
             debug,
             keep_all,
@@ -2410,8 +2440,8 @@ def blat_misc_dna(
             min_coverage,
             marker_type,
             disable_stitching,
-            max_paralogs,
             paralog_tolerance,
+            max_paralogs,
         )
         if not dna_hits:
             message = red(
@@ -2633,6 +2663,7 @@ def prefilter_blat_psl(
     separators_found: bool,  # Reference targets have potentially multiple seqs per locus
     depth_tolerance: float,
     ignore_depth: bool,
+    max_locus_overlap: float,
     threads: int,
     debug: bool,
     keep_all: bool,
@@ -2662,7 +2693,7 @@ def prefilter_blat_psl(
     # 3. Filter the parts in parallel
     filter_psl_overlaps_params = []
     for path in psls_to_filter_paths:
-        filter_psl_overlaps_params.append((path, separators_found, size_mul))
+        filter_psl_overlaps_params.append((path, separators_found, size_mul, max_locus_overlap))
     accepted_psls_to_cat = []
     rejected_psls_to_cat = []
     if debug:
@@ -3025,7 +3056,9 @@ def split_psl_by_contigs(
         return None
 
 
-def filter_psl_overlaps(psl_wscore_part_path: Path, separators_found: bool, size_mul: int):
+def filter_psl_overlaps(
+    psl_wscore_part_path: Path, separators_found: bool, size_mul: int, max_locus_overlap: float
+):
     def flip_coords(t_starts_minus, t_ends_minus, t_size):
         t_starts_plus = [t_size - x for x in t_ends_minus[::-1]]
         t_ends_plus = [t_size - x for x in t_starts_minus[::-1]]
@@ -3089,7 +3122,7 @@ def filter_psl_overlaps(psl_wscore_part_path: Path, separators_found: bool, size
                                         contigs[contig][i], contigs[contig][j]
                                     )
                                     if (
-                                        pct_overlap > settings.HIT_MAX_PCT_OVERLAP
+                                        pct_overlap > max_locus_overlap
                                         and "allowed" not in overlap_types
                                     ):
                                         contigs[contig][j]["accepted"] = False
@@ -3487,7 +3520,7 @@ def cluster_and_select_refs(
             ref_sep = settings.REF_CLUSTER_SEP
             seq_sep = settings.SEQ_NAME_SEP
             seq_name = f"{smp}_C{(i // 2) + 1}{ref_sep}{clr}{seq_sep}{ctg}"
-            cluster[i] = f">{seq_name}" # rename headers in case clust_rep_single is True
+            cluster[i] = f">{seq_name}"  # rename headers in case clust_rep_single is True
             fasta_to_recluster[seq_name] = {
                 "sequence": cluster[i + 1],
                 "description": "",

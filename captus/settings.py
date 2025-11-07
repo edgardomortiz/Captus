@@ -534,6 +534,8 @@ VALID_OVERLAPS = [
     ["ndhF", "ycf1"],
     ["psbC", "psbD"],
     ["ATP6", "ATP8"],
+    ["rpl16", "rps3"],  # related to https://github.com/edgardomortiz/Captus/issues/33
+    ["cox3", "sdh4"],  # related to https://github.com/edgardomortiz/Captus/issues/33
 ]
 
 # Maximum percetange of overlap between two hits, nuclear genes should not overlap, but we allow

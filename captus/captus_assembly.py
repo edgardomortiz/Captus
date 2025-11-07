@@ -650,15 +650,13 @@ class CaptusAssembly(object):
             " structure and overlaps are compatible",
         )
         output_group.add_argument(
-            "--max_paralogs",
+            "--max_locus_overlap",
             action="store",
-            default=-1,
-            type=int,
-            dest="max_paralogs",
-            help="Maximum number of secondary hits (copies) of any particular reference target"
-            " marker allowed in the output. We recommend disabling the removal of paralogs"
-            " (secondary hits/copies) during the 'extract' step because the 'align' step uses a"
-            " more sophisticated filter for paralogs. -1 disables the removal of paralogs",
+            default=settings.HIT_MAX_PCT_OVERLAP,
+            type=float,
+            dest="max_locus_overlap",
+            help="Maximum overlap percentage allowed between loci annotations, nuclear genes"
+            " usually do not overlap but certain organellar genes do",
         )
         output_group.add_argument(
             "--paralog_tolerance",
@@ -668,6 +666,17 @@ class CaptusAssembly(object):
             dest="paralog_tolerance",
             help="Only paralogs with a wscore >= (locus best hit wscore / paralog_tolerance) will be"
             " retained",
+        )
+        output_group.add_argument(
+            "--max_paralogs",
+            action="store",
+            default=-1,
+            type=int,
+            dest="max_paralogs",
+            help="Maximum number of secondary hits (copies) of any particular reference target"
+            " marker allowed in the output. We recommend disabling the removal of paralogs"
+            " (secondary hits/copies) during the 'extract' step because the 'align' step uses a"
+            " more sophisticated filter for paralogs. -1 disables the removal of paralogs",
         )
         output_group.add_argument(
             "--max_loci_files",

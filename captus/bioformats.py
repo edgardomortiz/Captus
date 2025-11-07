@@ -23,7 +23,7 @@ import subprocess
 import sys
 import tarfile
 import time
-import urllib
+import urllib.parse
 from pathlib import Path
 
 from . import settings
@@ -1505,8 +1505,8 @@ def scipio_yaml_to_dict(
     min_coverage,
     marker_type,
     transtable,
-    max_paralogs,
     paralog_tolerance,
+    max_paralogs,
     predict,
 ):
     """
@@ -2767,8 +2767,8 @@ def blat_misc_dna_psl_to_dict(
     min_coverage,
     marker_type,
     disable_stitching,
-    max_paralogs,
     paralog_tolerance,
+    max_paralogs,
 ):
     """
     Parse .psl from BLAT, assemble greedily the partial hits, and return the best set of hits if
@@ -3680,11 +3680,11 @@ def write_gff3(hits, marker_type, disable_stitching, tsv_comment, out_gff_path):
             print(coords)
 
     if marker_type in ["NUC", "PTD", "MIT"]:
-        source = urllib.parse.quote("Captus (Scipio)")
-        feature_type = urllib.parse.quote(f"protein_match:{marker_type}")
+        source = urllib.parse.quote("Scipio_Captus")
+        feature_type = urllib.parse.quote(f"CDS_{marker_type}")
     else:
-        source = urllib.parse.quote("Captus (BLAT)")
-        feature_type = urllib.parse.quote(f"nucleotide_match:{marker_type}")
+        source = urllib.parse.quote("BLAT_Captus")
+        feature_type = urllib.parse.quote(f"nucleotide_match_{marker_type}")
 
     phase = "."
     tsv_comment_lines = tsv_comment.split("\n")
