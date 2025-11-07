@@ -1715,7 +1715,7 @@ def scipio_coding(
             tsv_comment,
             Path(yaml_final_dir, f"{marker_type}_contigs.gff"),
         )
-        recovery_stats = write_fastas_and_report(
+        recovery_stats = write_fastas_and_stats_tsv(
             final_models,
             sample_name,
             fasta_to_dict(target_path),
@@ -2033,7 +2033,7 @@ def filter_query_and_target(query_dict, target_dict, psl_initial_file, marker_ty
     return final_target, final_query
 
 
-def write_fastas_and_report(
+def write_fastas_and_stats_tsv(
     hits, sample_name, target_dict, out_dir, marker_type, max_loci_files, tsv_comment, overwrite
 ):
     """
@@ -2452,7 +2452,7 @@ def blat_misc_dna(
             if not keep_all:
                 Path(blat_dna_out_file).unlink()
             write_gff3(dna_hits, marker_type, disable_stitching, tsv_comment, dna_gff_file)
-            recovery_stats = write_fastas_and_report(
+            recovery_stats = write_fastas_and_stats_tsv(
                 dna_hits,
                 sample_name,
                 dna_target,
@@ -3111,24 +3111,25 @@ def filter_psl_overlaps(
                 if len(contigs[contig]) == 1:
                     psl_acc.write(f"{contigs[contig][0]['psl_record']}\n")
                 else:
-                    for i in range(len(contigs[contig])):
-                        for j in range(i + 1, len(contigs[contig])):
-                            if (
-                                contigs[contig][i]["target"] == contigs[contig][j]["target"]
-                                or contigs[contig][i]["locus"] != contigs[contig][j]["locus"]
-                            ):
-                                if contigs[contig][j]["accepted"] is not False:
-                                    pct_overlap, overlap_types = calculate_hit_overlap(
-                                        contigs[contig][i], contigs[contig][j]
-                                    )
-                                    if (
-                                        pct_overlap > max_locus_overlap
-                                        and "allowed" not in overlap_types
-                                    ):
-                                        contigs[contig][j]["accepted"] = False
-                                        contigs[contig][j]["reason"] = (
-                                            f"pct_overlap={pct_overlap:.2f};overlap_types={overlap_types}"
+                    if max_locus_overlap < 100:
+                        for i in range(len(contigs[contig])):
+                            for j in range(i + 1, len(contigs[contig])):
+                                if (
+                                    contigs[contig][i]["target"] == contigs[contig][j]["target"]
+                                    or contigs[contig][i]["locus"] != contigs[contig][j]["locus"]
+                                ):
+                                    if contigs[contig][j]["accepted"] is not False:
+                                        pct_overlap, overlap_types = calculate_hit_overlap(
+                                            contigs[contig][i], contigs[contig][j]
                                         )
+                                        if (
+                                            pct_overlap > max_locus_overlap
+                                            and "allowed" not in overlap_types
+                                        ):
+                                            contigs[contig][j]["accepted"] = False
+                                            contigs[contig][j]["reason"] = (
+                                                f"pct_overlap={pct_overlap:.2f};overlap_types={overlap_types}"
+                                            )
                     for i in range(len(contigs[contig])):
                         if (
                             contigs[contig][i]["accepted"] is None

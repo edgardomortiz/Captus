@@ -3507,7 +3507,9 @@ def taper_correction(
 
             # Extract characters that are not '-' and not X
             str_chars = [
-                seqs_array[j][i] for i in range(len(seqs_array[j])) if seqs_array[j][i] not in ["-", ambig]
+                seqs_array[j][i]
+                for i in range(len(seqs_array[j]))
+                if seqs_array[j][i] not in ["-", ambig]
             ]
 
             icur = L - 1  # Python is 0-indexed, so L-1 instead of L
@@ -3633,7 +3635,7 @@ def write_gff3(hits, marker_type, disable_stitching, tsv_comment, out_gff_path):
                         fragment_coords_strings.append(f"{start + 1}-{end}")
                         fragment_coords_tuples.append((f"{start + 1}", f"{end}"))
                 if as_strings:
-                    changed_coords.append(",".join(fragment_coords_strings))
+                    changed_coords.append(" ".join(fragment_coords_strings))
                 else:
                     changed_coords.append(fragment_coords_tuples)
             return changed_coords
@@ -3672,7 +3674,7 @@ def write_gff3(hits, marker_type, disable_stitching, tsv_comment, out_gff_path):
                 fragment_coords_strings.append(f"{min_start}-{max_end}")
                 fragment_coords_tuples.append((f"{min_start}", f"{max_end}"))
                 if as_strings:
-                    changed_coords.append(",".join(fragment_coords_strings))
+                    changed_coords.append(" ".join(fragment_coords_strings))
                 else:
                     changed_coords.append(fragment_coords_tuples)
             return changed_coords
@@ -3680,30 +3682,29 @@ def write_gff3(hits, marker_type, disable_stitching, tsv_comment, out_gff_path):
             print(coords)
 
     if marker_type in ["NUC", "PTD", "MIT"]:
-        source = urllib.parse.quote("Scipio_Captus")
-        feature_type = urllib.parse.quote(f"CDS_{marker_type}")
+        source = "Scipio:Captus"
+        feature_type = f"protein_match:{marker_type}"
     else:
-        source = urllib.parse.quote("BLAT_Captus")
-        feature_type = urllib.parse.quote(f"nucleotide_match_{marker_type}")
+        source = "BLAT:Captus"
+        feature_type = f"nucleotide_match:{marker_type}"
 
     phase = "."
     tsv_comment_lines = tsv_comment.split("\n")
     gff = ["##gff-version 3", f"#{tsv_comment_lines[0]}", f"#{tsv_comment_lines[1]}"]
     for ref in sorted(hits):
-        gff.append(f"\n# {urllib.parse.quote(ref)}")
+        gff.append(f"\n# {ref}")
         for h in range(len(hits[ref])):
             if len(hits[ref]) == 1:
-                h_name = urllib.parse.quote(ref)
+                h_name = ref
             else:
-                h_name = urllib.parse.quote(f"{ref}{settings.SEQ_NAME_SEP}{h:02}")
+                h_name = f"{ref}{settings.SEQ_NAME_SEP}{h:02}"
                 gff.append(f"# {h_name}")
             strands = hits[ref][h]["strand"].split("\n")
             score = f"{hits[ref][h]['score']:.3f}"
-            wscore = f"""WScore={urllib.parse.quote(f"{hits[ref][h]['wscore']:.3f}")}"""
-            cover_pct = f"""Coverage={urllib.parse.quote(f"{hits[ref][h]['coverage']:.2f}")}"""
-            ident_pct = f"""Identity={urllib.parse.quote(f"{hits[ref][h]['identity']:.2f}")}"""
+            wscore = f"""WScore={f"{hits[ref][h]['wscore']:.3f}"}"""
+            cover_pct = f"""Coverage={f"{hits[ref][h]['coverage']:.2f}"}"""
+            ident_pct = f"""Identity={f"{hits[ref][h]['identity']:.2f}"}"""
             color = f"Color={urllib.parse.quote(settings.GFF_COLORS[marker_type])}"
-            ref_coords = split_coords(hits[ref][h]["ref_coords"], as_strings=True)
             hit_ids = hits[ref][h]["hit_ids"].split("\n")
             hit_contigs = hits[ref][h]["hit_contigs"].split("\n")
             if disable_stitching is True and marker_type in ["NUC", "PTD", "MIT"]:
@@ -3712,27 +3713,28 @@ def write_gff3(hits, marker_type, disable_stitching, tsv_comment, out_gff_path):
                 seq_id = urllib.parse.quote(hit_contigs[0])
                 strand = strands[0]
                 hit_id = f"ID={hit_ids[0]}"
-                name = f"Name={h_name}"
+                name = f"Name={h_name.replace(" ", "%20")}"
                 start = str(hit_min_max[0][0][0])
                 end = str(hit_min_max[0][0][1])
-                query = f"""Query={urllib.parse.quote(f"{hits[ref][h]['ref_name']}:{ref_min_max[0]}")}"""
+                query = f"""Target={urllib.parse.quote(f"{hits[ref][h]['ref_name']}")} {ref_min_max[0]}"""
                 attributes = ";".join([hit_id, name, wscore, cover_pct, ident_pct, query])
                 gff.append(
                     "\t".join([seq_id, source, "mRNA", start, end, score, strand, phase, attributes])
                 )
+            ref_coords = split_coords(hits[ref][h]["ref_coords"], as_strings=True)
             hit_coords = split_coords(hits[ref][h]["hit_coords"])
             for c in range(len(hit_coords)):
                 seq_id = urllib.parse.quote(hit_contigs[c])
                 strand = strands[c]
                 hit_id = f"ID={hit_ids[c]}"
-                name = f"Name={h_name}"
+                name = f"Name={h_name.replace(" ", "%20")}"
                 for p in range(len(hit_coords[c])):
                     start = str(hit_coords[c][p][0])
                     end = str(hit_coords[c][p][1])
                     query = (
-                        f"""Query={urllib.parse.quote(f"{hits[ref][h]['ref_name']}:{ref_coords[c]}")}"""
+                        f"""Target={urllib.parse.quote(f"{hits[ref][h]['ref_name']}")} {ref_coords[c]}"""
                     )
-                    attributes = ";".join([hit_id, name, wscore, cover_pct, ident_pct, query, color])
+                    attributes = ";".join([hit_id, name, wscore, cover_pct, ident_pct, color, query])
                     gff.append(
                         "\t".join(
                             [
