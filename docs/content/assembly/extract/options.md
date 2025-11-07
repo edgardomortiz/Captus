@@ -47,15 +47,20 @@ ___
 ### **`--disable_stitching`**
 Use this flag only if you are sure your target loci will be found in a single contig (for example if you have a chromosome-level assembly). By default, Captus tries to join partial matches to a target that are scattered across multiple contigs if their structure and overlaps are compatible. Internally, this activates the `--single_target_hits` option for Scipio when searching for proteins.
 ___
-### **`--max_paralogs`**
-Maximum number of secondary hits (copies) of any particular reference marker allowed in the output. We recommend disabling the removal of paralogs (secondary hits/copies) during the `extract` step because the `align` step uses a more sophisticated filter for paralogs. This can be useful for exploratory runs, for example: if after an initial run allowing all paralogs we found out that the average number of secondary hits across samples is 5, we could use this number to get rid of outliers.
+### **`--max_locus_overlap`**
+Maximum percentage of overlap allowed between loci annotations of the same marker type. Nuclear genes usually do not overlap but certain organellar genes do. You can add your own pairs of vaalid overlapping genes in `VALID_OVERLAPS` inside the `settings.py` file.
 
-This argument is optional, the default is **-1** (include all paralogs in the output).
+This argument is optional, the default is **5.0**
 ___
 ### **`--paralog_tolerance`**
 Only paralogs with a wscore >= (locus best hit wscore / paralog_tolerance will be retained)
 
 This argument is optional, the default is **5**
+___
+### **`--max_paralogs`**
+Maximum number of secondary hits (copies) of any particular reference marker allowed in the output. We recommend disabling the removal of paralogs (secondary hits/copies) during the `extract` step because the `align` step uses a more sophisticated filter for paralogs. This can be useful for exploratory runs, for example: if after an initial run allowing all paralogs we found out that the average number of secondary hits across samples is 5, we could use this number to get rid of outliers.
+
+This argument is optional, the default is **-1** (include all paralogs in the output).
 ___
 #### **`--max_loci_files`**
 When the number of loci in the reference exceeds this value, `Captus` will not write a separate FASTA file per sample per marker, otherwise the hard drive fills up with tons of small files. The file that includes all the extracted markers grouped per sample is still written (this is the only file needed by the final step `align` to produce the marker alignments across all samples).
