@@ -63,8 +63,11 @@ def create_iqtree_cmds(
     fastas_paths: list,
     seq_type: str,
     phylogenies_dir: str,
-    threads: int,
+    ufboot: int,
+    alrt: int,
+    force_bifurcating: bool,
     extra_options: str,
+    threads: int,
 ):
     commands_list = []
     for fasta in fastas_paths:
@@ -85,9 +88,13 @@ def create_iqtree_cmds(
             f"{SEED_NUM}",
             "-m",
             "TEST",
-            "-bb",
-            f"{BB_NUM}",
         ]
+        if ufboot > 0:
+            cmd += ["-B", f"{ufboot}"]
+        if alrt >= 0:
+            cmd += ["-alrt", f"{alrt}"]
+        if force_bifurcating is False:
+            cmd += ["-czb"]
         if extra_options:
             cmd += extra_options.split()
         commands_list.append(" ".join(cmd))
@@ -233,6 +240,34 @@ def main():
         help="Phylogenetic software to use",
     )
     parser.add_argument(
+        "-B",
+        "--ufboot",
+        action="store",
+        default=0,
+        type=int,
+        dest="ufboot",
+        help="Number of Ultrafast Bootstrap replicates for IQ-TREE, use values greater than 0 to"
+        " enable",
+    )
+    parser.add_argument(
+        "-A",
+        "--alrt",
+        action="store",
+        default=-1,
+        type=int,
+        dest="alrt",
+        help="Number of SH approximate likelihood replicates for IQ-TREE, 0 will perform the aLRT"
+        " (Anisimova & Gascuel 2006) and values of at least 1 will perform the SH-alRT (Guindon et"
+        " al. 2010)",
+    )
+    parser.add_argument(
+        "--force_bifurcating",
+        action="store_true",
+        dest="force_bifurcating",
+        help="Do not use the option -czb (Collapse Near Zero Branches) in IQ-TREE, to obtain fully"
+        " bifurcating trees",
+    )
+    parser.add_argument(
         "-e",
         "--extra_options",
         action="store",
@@ -329,8 +364,11 @@ def main():
                 fastas_paths,
                 seq_type,
                 args.phylogenies_dir,
-                args.threads,
+                args.ufboot,
+                args.alrt,
+                args.force_bifurcating,
                 args.extra_options,
+                args.threads,
             )
         elif args.program.lower() == "fasttree":
             output_commands_list = create_fasttree_cmds(
