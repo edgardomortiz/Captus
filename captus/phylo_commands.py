@@ -279,7 +279,7 @@ def main():
     parser.add_argument(
         "--iqtree_path",
         action="store",
-        default="iqtree2",
+        default="iqtree",
         dest="iqtree_path",
         help="Path to IQ-TREE",
     )
