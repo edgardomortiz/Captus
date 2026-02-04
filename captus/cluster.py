@@ -257,7 +257,7 @@ def cluster(full_command, args):
     log.log(f"{'Deduplication cov.':>{mar}}: {bold(args.dedup_coverage)}%")
     log.log(f"{'Clustering id.':>{mar}}: {bold(args.clust_threshold)}%")
     log.log(f"{'Clustering cov.':>{mar}}: {bold(args.clust_coverage)}%")
-    log.log(f"{'Align singletons':>{mar}}: {bold(args.align_singletons)}")
+    log.log(f"{'Align min. species':>{mar}}: {bold(args.align_min_species)}")
     log.log("")
     log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
     log.log(f"{'Keep all files':>{mar}}: {bold(args.keep_all)}")
@@ -365,7 +365,7 @@ def cluster(full_command, args):
         args.strand,
         args.clust_threshold,
         args.clust_coverage,
-        args.align_singletons,
+        args.align_min_species,
         threads_max,
         ram_MB,
         args.translate_cds,
@@ -940,7 +940,7 @@ def cluster_markers(
     strand: str,
     clust_threshold: float,
     clust_coverage: float,
-    align_singletons: bool,
+    align_min_species: int,
     threads: int,
     ram_mb: int,
     translate_cds: bool,
@@ -1031,7 +1031,7 @@ def cluster_markers(
                 else:
                     clusters_all[centroid] += [member]
         single_sample_clusters = 0
-        single_species_clusters = 0
+        toofew_species_clusters = 0
         for centroid in clusters_all:
             samples = []
             species = []
@@ -1043,12 +1043,10 @@ def cluster_markers(
                 if species_name not in species:
                     species.append(species_name)
             if len(samples) > 1:
-                if len(species) > 1:
+                if len(species) >= align_min_species:
                     clusters_pass[centroid] = clusters_all[centroid]
                 else:
-                    single_species_clusters += 1
-                    if align_singletons:
-                        clusters_pass[centroid] = clusters_all[centroid]
+                    toofew_species_clusters += 1
             else:
                 single_sample_clusters += 1
     if overwrite is True or dir_is_empty(cluster_dir_path):
@@ -1065,17 +1063,11 @@ def cluster_markers(
                 dict_to_fasta(fasta_out, fasta_out_path)
                 cluster_count += 1
                 pbar.update()
-        if align_singletons:
-            message = (
-                f"Clusters written, {single_species_clusters} clusters contained a single"
-                f" species out of a total of {len(clusters_pass)} valid clusters"
-                f" [{elapsed_time(time.time() - start)}]"
-            )
-        else:
-            message = (
-                f"Clusters written, {len(clusters_pass)} total valid clusters"
-                f" [{elapsed_time(time.time() - start)}]"
-            )
+        message = (
+            f"A total of {len(clusters_pass)} valid clusters were written, {toofew_species_clusters}"
+            f" clusters contained fewer than {align_min_species} species and were skipped"
+            f" [{elapsed_time(time.time() - start)}]"
+        )
         log.log(bold(f" \u2514\u2500\u2192 {message}"))
     else:
         log.log(dim(f"SKIPPED writing of FASTA clusters, '{cluster_dir_path}' is not empty"))

@@ -273,10 +273,12 @@ class CaptusDesign(object):
             " https://mafft.cbrc.jp/alignment/software/algorithms/algorithms.html",
         )
         align_group.add_argument(
-            "--align_singletons",
-            action="store_true",
-            dest="align_singletons",
-            help="Align clusters containing sequences from a single species",
+            "--align_min_species",
+            action="store",
+            default=2,
+            type=int,
+            dest="align_min_species",
+            help="Align only clusters that contain at least this number of species",
         )
         align_group.add_argument(
             "--align_max_copies",
