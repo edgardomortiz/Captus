@@ -568,7 +568,8 @@ def align(full_command, args):
 
         if args.keep_w_refs is False:
             start = time.time()
-            w_refs_dirs = list(Path(out_dir, settings.ALN_DIRS["ALND"]).rglob("*_w_refs"))
+            w_refs_dirs = list(Path(out_dir, settings.ALN_DIRS["ALND"]).rglob("*naive_w_refs"))
+            w_refs_dirs += list(Path(out_dir, settings.ALN_DIRS["ALND"]).rglob("*informed_w_refs"))
             log.log(bold("Deleting 'w_refs' directories:"))
             tqdm_cols = min(shutil.get_terminal_size().columns, 120)
             with tqdm(total=len(w_refs_dirs), ncols=tqdm_cols, unit="directory") as pbar:
@@ -634,17 +635,18 @@ def align(full_command, args):
         log.log(f"{'FASTA files to trim':>{mar}}: {bold(len(fastas_to_trim))}")
         log.log("")
         log.log("Creating output directories:")
-        if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFR"]).exists():
-            log.log(
-                make_output_dirtree(
-                    markers,
-                    formats,
-                    out_dir,
-                    Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["UNFR"]),
-                    mar,
+        if args.keep_w_refs is True:
+            if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFR"]).exists():
+                log.log(
+                    make_output_dirtree(
+                        markers,
+                        formats,
+                        out_dir,
+                        Path(settings.ALN_DIRS["TRIM"], settings.ALN_DIRS["UNFR"]),
+                        mar,
+                    )
                 )
-            )
-            log.log("")
+                log.log("")
         if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIR"]).exists():
             log.log(
                 make_output_dirtree(
@@ -701,29 +703,34 @@ def align(full_command, args):
             )
             log.log("")
 
+        if args.keep_w_refs is True:
+            filtered_fastas_to_trim = fastas_to_trim
+        else:
+            filtered_fastas_to_trim = {k:v for k,v in fastas_to_trim.items() if "_w_refs" not in k}
+
         aa_origs, aa_dests = [], []
         nt_origs, nt_dests = [], []
         if not args.disable_codon_align:
-            for fasta_orig in sorted(fastas_to_trim):
+            for fasta_orig in sorted(filtered_fastas_to_trim):
                 if fasta_orig.parts[-2] == settings.FORMAT_DIRS["AA"]:
                     aa_origs.append(fasta_orig)
-                    aa_dests.append(fastas_to_trim[fasta_orig])
+                    aa_dests.append(filtered_fastas_to_trim[fasta_orig])
                     nt_equiv = Path(
                         str(fasta_orig)
                         .replace(settings.FORMAT_DIRS["AA"], settings.FORMAT_DIRS["NT"])
                         .replace(".faa", ".fna")
                     )
-                    if nt_equiv in fastas_to_trim:
+                    if nt_equiv in filtered_fastas_to_trim:
                         nt_origs.append(nt_equiv)
-                        nt_dests.append(fastas_to_trim[nt_equiv])
+                        nt_dests.append(filtered_fastas_to_trim[nt_equiv])
                     else:
                         nt_origs.append("")
                         nt_dests.append("")
         other_origs, other_dests = [], []
-        for fasta_orig in sorted(fastas_to_trim):
+        for fasta_orig in sorted(filtered_fastas_to_trim):
             if fasta_orig not in aa_origs and fasta_orig not in nt_origs:
                 other_origs.append(fasta_orig)
-                other_dests.append(fastas_to_trim[fasta_orig])
+                other_dests.append(filtered_fastas_to_trim[fasta_orig])
 
         taper_clipkit_params = []
         clipkit_version_float = float(".".join(clipkit_version.split(".")[:2]))
