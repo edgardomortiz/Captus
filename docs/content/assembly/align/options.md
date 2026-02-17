@@ -91,6 +91,14 @@ Select the alignment algorithm for [MAFFT](https://mafft.cbrc.jp/alignment/softw
 
 This argument is optional, the default is **mafft_auto**.
 ___
+### **`--mafft_unalignlevel`**
+Use a value greater than 0.0 but lower than 1.0 (recommended 0.8) if the input data is expected to be globally conserved but locally contaminated by unrelated segments. When value is different than 0.0, the method `--mafft_globalpair` will be used. Consider also enabling `--mafft_leavegappyregion`.
+
+This argument is optional, the default is **0.0**.
+___
+### **`--mafft_leavegappyregion`**
+Do not align gappy regions, will only be used if a MAFFT algorithm is selected.
+___
 ### **`--timeout`**
 Modify the waiting time in seconds for an individual alignment to complete. When using more exhaustive MAFFT algorithm (e.g., `genafpair`) or especially MUSCLE (considerably slower than MAFFT in general), alignment can take very long (up to hours depending on sample number an length of the sequences).
 
@@ -199,4 +207,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)<br>
-Last modified by [Gentaro Shigita]({{< ref "../../more/credits/#gentaro-shigita">}}) (12.05.2025)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#gentaro-shigita">}}) (17.02.2026)

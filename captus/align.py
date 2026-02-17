@@ -247,10 +247,15 @@ def align(full_command, args):
         log.log(f"{'Concurrent alignments':>{mar}}: {bold(concurrent)}")
         log.log(f"{'Threads per alignment':>{mar}}: {bold(threads_per_alignment)}")
         log.log("")
+        if 0 > args.mafft_unalignlevel <= 1:
+            args.align_method = "mafft_globalpair"
         log.log(
             f"{'Algorithm':>{mar}}: {bold(args.align_method)}"
             f" {dim(settings.ALIGN_ALGORITHMS[args.align_method]['aka'])}"
         )
+        if args.align_method.startswith("mafft"):
+            log.log(f"{'unalignlevel':>{mar}}: {bold(args.mafft_unalignlevel)}")
+            log.log(f"{'leavegappyregion':>{mar}}: {bold(args.mafft_leavegappyregion)}")
         log.log(f"{'Timeout':>{mar}}: {bold(args.timeout)} {dim(f'[{elapsed_time(args.timeout)}]')}")
         log.log(f"{'Codon-align CDS':>{mar}}: {bold(not (args.disable_codon_align))}")
         log.log(f"{'Outgroup':>{mar}}: {bold(args.outgroup)}")
@@ -308,6 +313,8 @@ def align(full_command, args):
                     mafft_path,
                     muscle_path,
                     args.align_method,
+                    args.mafft_unalignlevel,
+                    args.mafft_leavegappyregion,
                     threads_per_alignment,
                     args.timeout,
                     args.outgroup,
@@ -323,6 +330,8 @@ def align(full_command, args):
                     mafft_path,
                     muscle_path,
                     args.align_method,
+                    args.mafft_unalignlevel,
+                    args.mafft_leavegappyregion,
                     threads_per_alignment,
                     args.timeout,
                     args.outgroup,
@@ -706,7 +715,7 @@ def align(full_command, args):
         if args.keep_w_refs is True:
             filtered_fastas_to_trim = fastas_to_trim
         else:
-            filtered_fastas_to_trim = {k:v for k,v in fastas_to_trim.items() if "_w_refs" not in k}
+            filtered_fastas_to_trim = {k:v for k,v in fastas_to_trim.items() if "_w_refs" not in f"{k}"}
 
         aa_origs, aa_dests = [], []
         nt_origs, nt_dests = [], []
@@ -1447,6 +1456,8 @@ def msa(
     mafft_path,
     muscle_path,
     align_method,
+    unalignlevel: float,
+    leavegappyregion: bool,
     threads,
     timeout,
     outgroup,
@@ -1472,30 +1483,28 @@ def msa(
             fasta_out.unlink()
     if overwrite is True or not fasta_out.exists():
         if align_method.startswith("mafft"):
+            mafft_cmd = [
+                mafft_path,
+                settings.ALIGN_ALGORITHMS[align_method]["arg"],
+                "--maxiterate",
+                "1000",
+                "--reorder",
+                "--thread",
+                f"{threads}",
+            ]
             if f"{fasta_in}".lower().endswith(".faa"):
-                mafft_cmd = [
-                    mafft_path,
-                    settings.ALIGN_ALGORITHMS[align_method]["arg"],
-                    "--amino",
-                    "--maxiterate",
-                    "1000",
-                    "--reorder",
-                    "--thread",
-                    f"{threads}",
-                    f"{fasta_in}",
-                ]
+                mafft_cmd += ["--amino"]
             else:
-                mafft_cmd = [
-                    mafft_path,
-                    settings.ALIGN_ALGORITHMS[align_method]["arg"],
-                    "--nuc",
-                    "--maxiterate",
-                    "1000",
-                    "--reorder",
-                    "--thread",
-                    f"{threads}",
-                    f"{fasta_in}",
+                mafft_cmd += ["--nuc"]
+            if 0 > unalignlevel <= 1:
+                mafft_cmd += [
+                    "--allowshift",
+                    "--unalignlevel",
+                    f"{unalignlevel}",
                 ]
+            if leavegappyregion:
+                mafft_cmd += ["--leavegappyregion"]
+            mafft_cmd += [f"{fasta_in}"]
             mafft_log_file = Path(fasta_out.parent, f"{fasta_out.stem}.mafft.log")
             with open(mafft_log_file, "w") as mafft_log:
                 mafft_log.write(f"Captus' MAFFT Command:\n  {' '.join(mafft_cmd)} > {fasta_out}\n\n\n")

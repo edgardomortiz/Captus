@@ -1319,6 +1319,23 @@ class CaptusAssembly(object):
             " https://drive5.com/muscle5/manual/commands.html",
         )
         align_group.add_argument(
+            "--mafft_unalignlevel",
+            action="store",
+            default=0,
+            type=float,
+            dest="mafft_unalignlevel",
+            help="Use a value greater than 0 but lower than 1 (recommended 0.8)if the input data is"
+            " expected to be globally conserved but locally contaminated by unrelated segments."
+            " When value is different than 0, the method '--mafft_globalpair' will be used."
+            " Consider also enabling '--mafft_leavegappyregion'",
+        )
+        align_group.add_argument(
+            "--mafft_leavegappyregion",
+            action="store_true",
+            dest="mafft_leavegappyregion",
+            help="Do not align gappy regions, will only be used if a MAFFT algorithm is selected",
+        )
+        align_group.add_argument(
             "--timeout",
             action="store",
             default=21600,
