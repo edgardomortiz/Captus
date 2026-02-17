@@ -247,7 +247,7 @@ def align(full_command, args):
         log.log(f"{'Concurrent alignments':>{mar}}: {bold(concurrent)}")
         log.log(f"{'Threads per alignment':>{mar}}: {bold(threads_per_alignment)}")
         log.log("")
-        if 0 > args.mafft_unalignlevel <= 1:
+        if 0 < args.mafft_unalignlevel <= 1:
             args.align_method = "mafft_globalpair"
         log.log(
             f"{'Algorithm':>{mar}}: {bold(args.align_method)}"
@@ -1496,7 +1496,7 @@ def msa(
                 mafft_cmd += ["--amino"]
             else:
                 mafft_cmd += ["--nuc"]
-            if 0 > unalignlevel <= 1:
+            if 0 < unalignlevel <= 1:
                 mafft_cmd += [
                     "--allowshift",
                     "--unalignlevel",

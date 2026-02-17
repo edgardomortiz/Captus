@@ -1321,7 +1321,7 @@ class CaptusAssembly(object):
         align_group.add_argument(
             "--mafft_unalignlevel",
             action="store",
-            default=0,
+            default=0.0,
             type=float,
             dest="mafft_unalignlevel",
             help="Use a value greater than 0 but lower than 1 (recommended 0.8)if the input data is"
