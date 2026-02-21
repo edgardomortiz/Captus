@@ -1856,8 +1856,8 @@ def filter_paralogs_informed(
                     ignore_internal_gaps=True,
                 )
                 paralog_score = (
-                    math.power(pid / 100, settings.WSCORE_EXP)
-                    * math.power(length_seq / lenght_ref, 1 / settings.WSCORE_EXP)
+                    math.pow(pid / 100, settings.WSCORE_EXP)
+                    * math.pow(length_seq / lenght_ref, 1 / settings.WSCORE_EXP)
                 )
                 if sample_name in samples_with_paralogs:
                     samples_with_paralogs[sample_name][seq] = paralog_score

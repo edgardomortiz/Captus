@@ -2600,10 +2600,10 @@ def scipio_yaml_to_dict(
             identity = unfilter_models[prot][model]["identity"] / 100
             wcoverage = unfilter_models[prot][model]["match_len"] / max_len_aa_recov[ref_cluster]
             unfilter_models[prot][model]["wscore"] = (
-                math.power(identity, settings.WSCORE_EXP)
-                * math.power(wcoverage, 1 / settings.WSCORE_EXP)
-                * math.power(settings.SCIPIO_FRAMESHIFT_PENALTY, frameshifts)
-                * math.power(settings.EXTRA_CONTIG_PENALTY, contigs - 1)
+                math.pow(identity, settings.WSCORE_EXP)
+                * math.pow(wcoverage, 1 / settings.WSCORE_EXP)
+                * math.pow(settings.SCIPIO_FRAMESHIFT_PENALTY, frameshifts)
+                * math.pow(settings.EXTRA_CONTIG_PENALTY, contigs - 1)
             )
             if (
                 unfilter_models[prot][model]["score"] >= min_score
@@ -3092,9 +3092,9 @@ def blat_misc_dna_psl_to_dict(
                 mismatches = (sum_mismatches * match_len) / (sum_matches + sum_mismatches)
                 asm_hit["score"] = (matches - mismatches) / asm_hit["ref_size"]
                 full_len = len(asm_hit["seq_gene"].replace("n", ""))
-                asm_hit["wscore"] = math.power(
+                asm_hit["wscore"] = math.pow(
                     asm_hit["identity"] / 100, settings.WSCORE_EXP
-                ) * math.power(full_len / asm_hit["ref_size"], 1 / settings.WSCORE_EXP)
+                ) * math.pow(full_len / asm_hit["ref_size"], 1 / settings.WSCORE_EXP)
                 asm_hit["gapped"] = bool("n" in asm_hit["seq_gene"])
                 asm_hit["match_len"] = match_len
 
@@ -3253,7 +3253,7 @@ def blat_misc_dna_psl_to_dict(
                 p["t_starts"],
                 q_type="dna",
             )
-            wscore = math.power(pct_identity / 100, settings.WSCORE_EXP) * math.power(
+            wscore = math.pow(pct_identity / 100, settings.WSCORE_EXP) * math.pow(
                 coverage, 1 / settings.WSCORE_EXP
             )
 
@@ -3353,9 +3353,9 @@ def blat_misc_dna_psl_to_dict(
                 identity = hit["identity"] / 100
                 wcoverage = hit["match_len"] / max_len_nt_recov[ref_cluster]
                 hit["wscore"] = (
-                    math.power(identity, settings.WSCORE_EXP)
-                    * math.power(wcoverage, 1 / settings.WSCORE_EXP)
-                    * math.power(settings.EXTRA_CONTIG_PENALTY, contigs - 1)
+                    math.pow(identity, settings.WSCORE_EXP)
+                    * math.pow(wcoverage, 1 / settings.WSCORE_EXP)
+                    * math.pow(settings.EXTRA_CONTIG_PENALTY, contigs - 1)
                 )
             # Sort hits from largest to smallest 'wscore'
             dna_hits[dna_ref] = sorted(dna_hits[dna_ref], key=lambda i: i["wscore"], reverse=True)
