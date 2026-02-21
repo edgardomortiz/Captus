@@ -1498,6 +1498,26 @@ def fasta_headers_to_spades(fasta_dict):
         return fasta_dict, assembler
 
 
+def calc_avg_contig_depth(hit_contigs: str):
+    """
+    Input must be a string where the names of contigs are separated by "\n"
+    """
+    contig_depths = []
+    contig_names = set(hit_contigs.split("\n"))
+    for contig_name in contig_names:
+        if "_cov_" in contig_name:
+            try:
+                contig_depth = float(contig_name.split("_cov_")[1].split("_")[0])
+                contig_depths.append(contig_depth)
+            except Exception as err:
+                print(f"Unexpected {err=}, {type(err)=}")
+                continue
+    if contig_depths:
+        return f"{statistics.mean(contig_depths):.2f}"
+    else:
+        return "NA"
+
+
 def scipio_yaml_to_dict(
     yaml_path,
     min_score,
@@ -1505,7 +1525,9 @@ def scipio_yaml_to_dict(
     min_coverage,
     marker_type,
     transtable,
-    paralog_tolerance,
+    paralog_identity_tolerance: float,
+    paralog_coverage_tolerance: float,
+    paralog_depth_tolerance: float,
     max_paralogs,
     predict,
 ):
@@ -1518,9 +1540,9 @@ def scipio_yaml_to_dict(
     yaml_path : Path
         Path to Scipio's YAML path
     min_identity : int
-        Filter model with at leas this percentage of identity to the reference protein
+        Filter model with at least this percentage of identity to the reference protein
     min_coverage : int
-        Filter model with at leas this percentage of coverage to the reference protein
+        Filter model with at least this percentage of coverage to the reference protein
     marker_type : str
         Protein origin: NUC, PTD, MIT
     transtable : int
@@ -2369,6 +2391,7 @@ def scipio_yaml_to_dict(
             "mismatches": [],  # number of aminoacid mismatches per 'target'
             "coverage": 0.0,  # (matches + mismatches) / ref_size * 100
             "identity": 0.0,  # matches / (matches + mismatches) * 100
+            "ctg_avg_depth": "NA",  # contig average depth, only if "_cov_" in contig names
             "score": 0.0,  # (matches - mismatches) / ref_size
             "wscore": 0.0,  # score * (length AA / max length AA across refs)
             "gapped": False,  # recovered protein has gaps with respect to the reference
@@ -2510,6 +2533,7 @@ def scipio_yaml_to_dict(
         matches = prot_len_matched - mismatches
         mod["coverage"] = prot_len_matched / mod["ref_size"] * 100
         mod["identity"] = matches / prot_len_matched * 100
+        mod["ctg_avg_depth"] = calc_avg_contig_depth(mod["hit_contigs"])
         mod["score"] = (matches - mismatches) / mod["ref_size"]
         mod["gapped"] = bool("gap" in "".join(mod["mat_notes"]))
         mod["match_len"] = min(prot_len_matched, mod["ref_size"])
@@ -2573,13 +2597,13 @@ def scipio_yaml_to_dict(
                 )
             )
             contigs = len(set(unfilter_models[prot][model]["hit_contigs"].split("\n")))
+            identity = unfilter_models[prot][model]["identity"] / 100
+            wcoverage = unfilter_models[prot][model]["match_len"] / max_len_aa_recov[ref_cluster]
             unfilter_models[prot][model]["wscore"] = (
-                (
-                    unfilter_models[prot][model]["score"]
-                    * (unfilter_models[prot][model]["match_len"] / max_len_aa_recov[ref_cluster])
-                )
-                * (settings.SCIPIO_FRAMESHIFT_PENALTY**frameshifts)
-                * (settings.EXTRA_CONTIG_PENALTY ** (contigs - 1))
+                math.power(identity, settings.WSCORE_EXP)
+                * math.power(wcoverage, 1 / settings.WSCORE_EXP)
+                * math.power(settings.SCIPIO_FRAMESHIFT_PENALTY, frameshifts)
+                * math.power(settings.EXTRA_CONTIG_PENALTY, contigs - 1)
             )
             if (
                 unfilter_models[prot][model]["score"] >= min_score
@@ -2589,10 +2613,22 @@ def scipio_yaml_to_dict(
                 accepted_models.append(unfilter_models[prot][model])
         if accepted_models:
             accepted_models = sorted(accepted_models, key=lambda i: i["wscore"], reverse=True)
-            max_wscore = accepted_models[0]["wscore"]
+            best_hit_identity = accepted_models[0]["identity"]
+            best_hit_coverage = accepted_models[0]["coverage"]
+            best_hit_depth = accepted_models[0]["ctg_avg_depth"]
             accepted_models = [
-                model for model in accepted_models if model["wscore"] >= max_wscore / paralog_tolerance
+                model
+                for model in accepted_models
+                if model["identity"] >= best_hit_identity * paralog_identity_tolerance
+                and model["coverage"] >= best_hit_coverage * paralog_coverage_tolerance
             ]
+            if best_hit_depth != "NA":
+                accepted_models = [
+                    model
+                    for model in accepted_models
+                    if model["ctg_avg_depth"] != "NA"
+                    and model["ctg_avg_depth"] >= best_hit_depth * paralog_depth_tolerance
+                ]
             if max_paralogs > -1:
                 accepted_models = accepted_models[: max_paralogs + 1]
             filter_models[prot] = accepted_models
@@ -2767,7 +2803,9 @@ def blat_misc_dna_psl_to_dict(
     min_coverage,
     marker_type,
     disable_stitching,
-    paralog_tolerance,
+    paralog_identity_tolerance: float,
+    paralog_coverage_tolerance: float,
+    paralog_depth_tolerance: float,
     max_paralogs,
 ):
     """
@@ -2968,6 +3006,7 @@ def blat_misc_dna_psl_to_dict(
                 "mismatches": path[0]["mismatches"],  # accumulated mismatches across targets
                 "coverage": path[0]["coverage"],  # ((matches + mismatches) / ref_size) * 100
                 "identity": path[0]["identity"],  # (matches / (matches + mismatches)) * 100
+                "ctg_avg_depth": "NA",  # contig average depth, only if "_cov_" in contig names
                 "score": path[0]["score"],  # Scipio-like score as (matches - mismatches) / ref_size
                 "wscore": path[0]["wscore"],  # Scipio-like * (len matched / locus max len matched)
                 "gapped": path[0]["gapped"],  # set to True when is assembly of partial hits
@@ -3046,13 +3085,16 @@ def blat_misc_dna_psl_to_dict(
                 asm_hit["coverage"] = match_len / asm_hit["ref_size"] * 100.0
                 # Calculate the mean 'identity' of all the partial hits used in the assembled path
                 asm_hit["identity"] = statistics.mean(hit_ids)
+                asm_hit["ctg_avg_depth"] = calc_avg_contig_depth(asm_hit["hit_contigs"])
                 # Recalculate the 'score' and 'wscore' using sum of matches/mismatches from all
                 # partial hits used in the assemble path
                 matches = (sum_matches * match_len) / (sum_matches + sum_mismatches)
                 mismatches = (sum_mismatches * match_len) / (sum_matches + sum_mismatches)
                 asm_hit["score"] = (matches - mismatches) / asm_hit["ref_size"]
                 full_len = len(asm_hit["seq_gene"].replace("n", ""))
-                asm_hit["wscore"] = asm_hit["score"] * (full_len / asm_hit["ref_size"])
+                asm_hit["wscore"] = math.power(
+                    asm_hit["identity"] / 100, settings.WSCORE_EXP
+                ) * math.power(full_len / asm_hit["ref_size"], 1 / settings.WSCORE_EXP)
                 asm_hit["gapped"] = bool("n" in asm_hit["seq_gene"])
                 asm_hit["match_len"] = match_len
 
@@ -3194,7 +3236,6 @@ def blat_misc_dna_psl_to_dict(
             )
             coverage = (p["matches"] + p["rep_matches"] + p["mismatches"]) / p["q_size"]
             score = (p["matches"] + p["rep_matches"] - p["mismatches"]) / p["q_size"]
-            wscore = score * coverage
             pct_coverage = coverage * 100
             pct_identity = calculate_psl_identity(
                 p["matches"],
@@ -3211,6 +3252,9 @@ def blat_misc_dna_psl_to_dict(
                 p["block_sizes"],
                 p["t_starts"],
                 q_type="dna",
+            )
+            wscore = math.power(pct_identity / 100, settings.WSCORE_EXP) * math.power(
+                coverage, 1 / settings.WSCORE_EXP
             )
 
             if disable_stitching:  # prevent locus assembly across multiple contigs
@@ -3306,18 +3350,32 @@ def blat_misc_dna_psl_to_dict(
                 ref_cluster = dna_ref
             for hit in dna_hits[dna_ref]:
                 contigs = len(set(hit["hit_contigs"].split("\n")))
+                identity = hit["identity"] / 100
+                wcoverage = hit["match_len"] / max_len_nt_recov[ref_cluster]
                 hit["wscore"] = (
-                    hit["score"]
-                    * (hit["match_len"] / max_len_nt_recov[ref_cluster])
-                    * (settings.EXTRA_CONTIG_PENALTY ** (contigs - 1))
+                    math.power(identity, settings.WSCORE_EXP)
+                    * math.power(wcoverage, 1 / settings.WSCORE_EXP)
+                    * math.power(settings.EXTRA_CONTIG_PENALTY, contigs - 1)
                 )
             # Sort hits from largest to smallest 'wscore'
             dna_hits[dna_ref] = sorted(dna_hits[dna_ref], key=lambda i: i["wscore"], reverse=True)
             # Filter by 'paralog_tolerance'
-            max_wscore = dna_hits[dna_ref][0]["wscore"]
+            best_hit_identity = dna_hits[dna_ref][0]["identity"]
+            best_hit_coverage = dna_hits[dna_ref][0]["coverage"]
+            best_hit_depth = dna_hits[dna_ref][0]["ctg_avg_depth"]
             dna_hits[dna_ref] = [
-                hit for hit in dna_hits[dna_ref] if hit["wscore"] >= max_wscore / paralog_tolerance
+                hit
+                for hit in dna_hits[dna_ref]
+                if hit["identity"] >= best_hit_identity * paralog_identity_tolerance
+                and hit["coverage"] >= best_hit_coverage * paralog_coverage_tolerance
             ]
+            if best_hit_depth != "NA":
+                dna_hits[dna_ref] = [
+                    hit
+                    for hit in dna_hits[dna_ref]
+                    if hit["ctg_avg_depth"] != "NA"
+                    and hit["ctg_avg_depth"] >= best_hit_depth * paralog_depth_tolerance
+                ]
 
         # If multiple references of the same kind exist in the reference, then choose the one with
         # the best hit that has the highest 'wscore', break ties by averaging the 'wscore' of all
@@ -3713,10 +3771,12 @@ def write_gff3(hits, marker_type, disable_stitching, tsv_comment, out_gff_path):
                 seq_id = urllib.parse.quote(hit_contigs[0])
                 strand = strands[0]
                 hit_id = f"ID={hit_ids[0]}"
-                name = f"Name={h_name.replace(" ", "%20")}"
+                name = f"Name={h_name.replace(' ', '%20')}"
                 start = str(hit_min_max[0][0][0])
                 end = str(hit_min_max[0][0][1])
-                query = f"""Target={urllib.parse.quote(f"{hits[ref][h]['ref_name']}")} {ref_min_max[0]}"""
+                query = (
+                    f"""Target={urllib.parse.quote(f"{hits[ref][h]['ref_name']}")} {ref_min_max[0]}"""
+                )
                 attributes = ";".join([hit_id, name, wscore, cover_pct, ident_pct, query])
                 gff.append(
                     "\t".join([seq_id, source, "mRNA", start, end, score, strand, phase, attributes])
@@ -3727,7 +3787,7 @@ def write_gff3(hits, marker_type, disable_stitching, tsv_comment, out_gff_path):
                 seq_id = urllib.parse.quote(hit_contigs[c])
                 strand = strands[c]
                 hit_id = f"ID={hit_ids[c]}"
-                name = f"Name={h_name.replace(" ", "%20")}"
+                name = f"Name={h_name.replace(' ', '%20')}"
                 for p in range(len(hit_coords[c])):
                     start = str(hit_coords[c][p][0])
                     end = str(hit_coords[c][p][1])

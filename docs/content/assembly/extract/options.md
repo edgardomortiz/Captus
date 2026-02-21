@@ -52,10 +52,20 @@ Maximum percentage of overlap allowed between loci annotations of the same marke
 
 This argument is optional, the default is **5.0**
 ___
-### **`--paralog_tolerance`**
-Only paralogs with a wscore >= (locus best hit wscore / paralog_tolerance will be retained)
+### **`--pit, --paralog_identity_tolerance`**
+Keep paralogs if they have at least this proportion of the identity of the best hit in the locus, use 0 to disable this filter
 
-This argument is optional, the default is **5**
+This argument is optional, the default is **0.66**
+___
+### **`--pct, --paralog_coverage_tolerance`**
+Keep paralogs if they have at least this proportion of the coverage of the best hit in the locus, use 0 to disable this filter
+
+This argument is optional, the default is **0.33**
+___
+### **`--pdt, --paralog_depth_tolerance`**
+Keep paralogs if they have at least this proportion of the depth of the best hit in the locus, use 0 to disable this filter
+
+This argument is optional, the default is **0.33**
 ___
 ### **`--max_paralogs`**
 Maximum number of secondary hits (copies) of any particular reference marker allowed in the output. We recommend disabling the removal of paralogs (secondary hits/copies) during the `extract` step because the `align` step uses a more sophisticated filter for paralogs. This can be useful for exploratory runs, for example: if after an initial run allowing all paralogs we found out that the average number of secondary hits across samples is 5, we could use this number to get rid of outliers.
@@ -324,4 +334,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)<br>
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.11.2025)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (02.21.2026)

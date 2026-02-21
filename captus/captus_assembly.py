@@ -659,13 +659,31 @@ class CaptusAssembly(object):
             " usually do not overlap but certain organellar genes do",
         )
         output_group.add_argument(
-            "--paralog_tolerance",
+            "--pit", "--paralog_identity_tolerance",
             action="store",
-            default=1.5,
+            default=0.66,
             type=float,
-            dest="paralog_tolerance",
-            help="Only paralogs with a wscore >= (locus best hit wscore / paralog_tolerance) will be"
-            " retained",
+            dest="paralog_identity_tolerance",
+            help="Keep paralogs if they have at least this proportion of the identity of the best"
+            " hit in the locus, use 0 to disable this filter",
+        )
+        output_group.add_argument(
+            "--pct", "--paralog_coverage_tolerance",
+            action="store",
+            default=0.33,
+            type=float,
+            dest="paralog_coverage_tolerance",
+            help="Keep paralogs if they have at least this proportion of the coverage of the best"
+            " hit in the locus, use 0 to disable this filter",
+        )
+        output_group.add_argument(
+            "--pdt", "--paralog_depth_tolerance",
+            action="store",
+            default=0.33,
+            type=float,
+            dest="paralog_depth_tolerance",
+            help="Keep paralogs if they have at least this proportion of the depth of the best"
+            " hit in the locus, use 0 to disable this filter",
         )
         output_group.add_argument(
             "--max_paralogs",
@@ -1381,13 +1399,15 @@ class CaptusAssembly(object):
         paralog_group.add_argument(
             "--tolerance",
             action="store",
-            default=4.0,
+            default=-1,
             type=float,
             dest="tolerance",
             help="Only applicable to the 'informed' filter. If the selected copy's identity to the"
-            " most commonly chosen reference target  is below this number of Standard"
-            " Deviations from the mean, it will also be removed (the lower the number the"
-            " stricter the filter). Use -1 to disable the filter",
+            " most commonly chosen reference target is below this number of Standard Deviations"
+            " from the mean, it will also be removed (the lower the number the stricter the"
+            " filter). The previous default value of 4.0 works well for broad taxonomic scopes,"
+            " but tends to remove the outgroup in family and genus-level studies. -1 disables this"
+            " filter",
         )
 
         trimming_group = parser.add_argument_group("Trimming")

@@ -13,6 +13,7 @@ not, see <http://www.gnu.org/licenses/>.
 """
 
 import json
+import math
 import platform
 import shutil
 import statistics
@@ -1854,7 +1855,10 @@ def filter_paralogs_informed(
                     fasta_model_format,
                     ignore_internal_gaps=True,
                 )
-                paralog_score = (pid / 100) * (length_seq / lenght_ref)
+                paralog_score = (
+                    math.power(pid / 100, settings.WSCORE_EXP)
+                    * math.power(length_seq / lenght_ref, 1 / settings.WSCORE_EXP)
+                )
                 if sample_name in samples_with_paralogs:
                     samples_with_paralogs[sample_name][seq] = paralog_score
                 else:
@@ -1870,7 +1874,7 @@ def filter_paralogs_informed(
                         seq,  # [6]  sequence name
                         f"{length_seq}",  # [7]  ungapped sequence length
                         f"{pid:.5f}",  # [8]  identity to reference
-                        f"{paralog_score:.5f}",  # [9]  pid * (len(seq) / len(ref))
+                        f"{paralog_score:.5f}",  # [9]  pid^N * (len(seq) / len(ref))^1/N
                         f"{False}",  # [10] accepted as ortholog
                     ]
                 )
@@ -1919,8 +1923,8 @@ def filter_paralogs_informed(
         else:
             messages.append(
                 red(
-                    f"'{fasta_model.parts[-3]}-{fasta_model.stem}': not saved (filtered FASTAs had fewer"
-                    f" than {min_samples} samples) [{elapsed_time(time.time() - start)}]"
+                    f"'{fasta_model.parts[-3]}-{fasta_model.stem}': not saved (filtered FASTAs had"
+                    f" fewer than {min_samples} samples) [{elapsed_time(time.time() - start)}]"
                 )
             )
     else:

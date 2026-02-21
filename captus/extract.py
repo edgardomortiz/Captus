@@ -79,7 +79,7 @@ def extract(full_command, args):
     captus_start = time.time()
     out_dir, out_dir_msg = make_output_dir(args.out)
     log.logger = log.Log(Path(args.out, "captus-extract.log"), stdout_verbosity_level=1)
-    mar = 25  # Margin for aligning parameters and values
+    mar = 27  # Margin for aligning parameters and values
 
     ################################################################################################
     ############################################################################### STARTING SECTION
@@ -401,7 +401,9 @@ def extract(full_command, args):
         log.log(f"{'Ignore depth of coverage':>{mar}}: {bold(args.ignore_depth)}")
         log.log(f"{'Disable contig stitching':>{mar}}: {bold(args.disable_stitching)}")
         log.log(f"{'Max. locus overlap':>{mar}}: {bold(args.max_locus_overlap)}%")
-        log.log(f"{'Paralog tolerance':>{mar}}: {bold(args.paralog_tolerance)}")
+        log.log(f"{'Paralog identity tolerance':>{mar}}: {bold(args.paralog_identity_tolerance)}")
+        log.log(f"{'Paralog coverage tolerance':>{mar}}: {bold(args.paralog_coverage_tolerance)}")
+        log.log(f"{'Paralog depth tolerance':>{mar}}: {bold(args.paralog_depth_tolerance)}")
         max_paralogs_msg = dim("(Keep all paralogs)") if args.max_paralogs == -1 else ""
         log.log(f"{'Max. paralogs':>{mar}}: {bold(args.max_paralogs)} {max_paralogs_msg}")
         loci_files_msg = ""
@@ -451,7 +453,9 @@ def extract(full_command, args):
                             args.ignore_depth,
                             args.disable_stitching,
                             args.max_locus_overlap,
-                            args.paralog_tolerance,
+                            args.paralog_identity_tolerance,
+                            args.paralog_coverage_tolerance,
+                            args.paralog_depth_tolerance,
                             args.max_paralogs,
                             args.max_loci_files,
                             args.max_loci_scipio_x2,
@@ -485,7 +489,9 @@ def extract(full_command, args):
                             args.ignore_depth,
                             args.disable_stitching,
                             args.max_locus_overlap,
-                            args.paralog_tolerance,
+                            args.paralog_identity_tolerance,
+                            args.paralog_coverage_tolerance,
+                            args.paralog_depth_tolerance,
                             args.max_paralogs,
                             args.max_loci_files,
                             args.max_loci_scipio_x2,
@@ -519,7 +525,9 @@ def extract(full_command, args):
                             args.ignore_depth,
                             args.disable_stitching,
                             args.max_locus_overlap,
-                            args.paralog_tolerance,
+                            args.paralog_identity_tolerance,
+                            args.paralog_coverage_tolerance,
+                            args.paralog_depth_tolerance,
                             args.max_paralogs,
                             args.max_loci_files,
                             args.max_loci_scipio_x2,
@@ -551,7 +559,9 @@ def extract(full_command, args):
                             args.ignore_depth,
                             args.disable_stitching,
                             args.max_locus_overlap,
-                            args.paralog_tolerance,
+                            args.paralog_identity_tolerance,
+                            args.paralog_coverage_tolerance,
+                            args.paralog_depth_tolerance,
                             args.max_paralogs,
                             args.max_loci_files,
                             tsv_comment,
@@ -850,7 +860,9 @@ def extract(full_command, args):
             log.log(f"{'Ignore depth of coverage':>{mar}}: {bold(args.ignore_depth)}")
             log.log(f"{'Disable contig stitching':>{mar}}: {bold(args.disable_stitching)}")
             log.log(f"{'Max. locus overlap':>{mar}}: {bold(args.max_locus_overlap)}%")
-            log.log(f"{'Paralog tolerance':>{mar}}: {bold(args.paralog_tolerance)}")
+            log.log(f"{'Paralog identity tolerance':>{mar}}: {bold(args.paralog_identity_tolerance)}")
+            log.log(f"{'Paralog coverage tolerance':>{mar}}: {bold(args.paralog_coverage_tolerance)}")
+            log.log(f"{'Paralog depth tolerance':>{mar}}: {bold(args.paralog_depth_tolerance)}")
             max_paralogs_msg = dim("(Keep all paralogs)") if args.max_paralogs == -1 else ""
             log.log(f"{'Max. paralogs':>{mar}}: {bold(args.max_paralogs)} {max_paralogs_msg}")
             loci_files_msg = ""
@@ -885,7 +897,9 @@ def extract(full_command, args):
                             args.ignore_depth,
                             args.disable_stitching,
                             args.max_locus_overlap,
-                            args.paralog_tolerance,
+                            args.paralog_identity_tolerance,
+                            args.paralog_coverage_tolerance,
+                            args.paralog_depth_tolerance,
                             args.max_paralogs,
                             args.max_loci_files,
                             tsv_comment,
@@ -1536,7 +1550,9 @@ def scipio_coding(
     ignore_depth,
     disable_stitching,
     max_locus_overlap,
-    paralog_tolerance,
+    paralog_identity_tolerance: float,
+    paralog_coverage_tolerance: float,
+    paralog_depth_tolerance: float,
     max_paralogs,
     max_loci_files,
     max_loci_scipio_x2,
@@ -1698,7 +1714,9 @@ def scipio_coding(
             min_coverage,
             marker_type,
             transtable,
-            paralog_tolerance,
+            paralog_identity_tolerance,
+            paralog_coverage_tolerance,
+            paralog_depth_tolerance,
             max_paralogs,
             predict,
         )
@@ -2099,22 +2117,6 @@ def write_fastas_and_stats_tsv(
         }
         return stats
 
-    def calc_avg_contig_depth(hit_contigs: str):
-        contig_depths = []
-        contig_names = set(hit_contigs.split("\n"))
-        for contig_name in contig_names:
-            if "_cov_" in contig_name:
-                try:
-                    contig_depth = float(contig_name.split("_cov_")[1].split("_")[0])
-                    contig_depths.append(contig_depth)
-                except Exception as err:
-                    print(f"Unexpected {err=}, {type(err)=}")
-                    continue
-        if contig_depths:
-            return f"{statistics.mean(contig_depths):.2f}"
-        else:
-            return "NA"
-
     num_loci, num_paralogs = 0, 0
     lengths_best_hits, coverages_best_hits = [], []
     flanked_seqs, gene_seqs, cds_aa_seqs, cds_nt_seqs, hit_contigs = {}, {}, {}, {}, {}
@@ -2131,11 +2133,23 @@ def write_fastas_and_stats_tsv(
             else:
                 num_paralogs += 1
 
-            description = (
-                f"[hit={h:02}] [wscore={hits[ref][h]['wscore']:.3f}] "
-                f"[cover={hits[ref][h]['coverage']:.2f}] [ident={hits[ref][h]['identity']:.2f}] "
-                f"[score={hits[ref][h]['score']:.3f}] "
-            )
+            if hits[ref][h]["ctg_avg_depth"] == "NA":
+                description = (
+                    f"[hit={h:02}]"
+                    f" [wscore={hits[ref][h]['wscore']:.3f}]"
+                    f" [ident={hits[ref][h]['identity']:.2f}]"
+                    f" [cover={hits[ref][h]['coverage']:.2f}]"
+                    f" [score={hits[ref][h]['score']:.3f}]"
+                )
+            else:
+                description = (
+                    f"[hit={h:02}]"
+                    f" [wscore={hits[ref][h]['wscore']:.3f}]"
+                    f" [ident={hits[ref][h]['identity']:.2f}]"
+                    f" [cover={hits[ref][h]['coverage']:.2f}]"
+                    f" [depth={hits[ref][h]['ctg_avg_depth']:.2f}]"
+                    f" [score={hits[ref][h]['score']:.3f}] "
+                )
 
             seq_flanked = hits[ref][h]["seq_flanked"]
             len_flanked = f"[length={len(seq_flanked)}] "
@@ -2251,7 +2265,7 @@ def write_fastas_and_stats_tsv(
                         f"{hits[ref][h]['hit_contigs']}".replace("\n", ";"),
                         f"{hits[ref][h]['strand']}".replace("\n", ";"),
                         format_coords(hits[ref][h]["hit_coords"]),
-                        calc_avg_contig_depth(hits[ref][h]["hit_contigs"]),
+                        f"{hits[ref][h]['ctg_avg_depth']}",
                     ]
                 )
             )
@@ -2360,7 +2374,9 @@ def blat_misc_dna(
     ignore_depth,
     disable_stitching,
     max_locus_overlap,
-    paralog_tolerance,
+    paralog_identity_tolerance: float,
+    paralog_coverage_tolerance: float,
+    paralog_depth_tolerance: float,
     max_paralogs,
     max_loci_files,
     tsv_comment,
@@ -2440,7 +2456,9 @@ def blat_misc_dna(
             min_coverage,
             marker_type,
             disable_stitching,
-            paralog_tolerance,
+            paralog_identity_tolerance,
+            paralog_coverage_tolerance,
+            paralog_depth_tolerance,
             max_paralogs,
         )
         if not dna_hits:

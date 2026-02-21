@@ -217,12 +217,15 @@ SCIPIO_MAX_GAP_DELTA_IDENTITY = 0.3
 # to each reading frame
 SCIPIO_STOP_PENALTY = 0.5
 
+# (identity/100)**WSCORE_EXP, coverage**(1/WSCORE_EXP) for 'wscore'
+WSCORE_EXP = 5
+
 # Multiply 'wscore' by this much, for each frameshift in the protein
 # e.g. for 3 frameshifts = wscore * 0.975 * 0.975 * 0.975
 SCIPIO_FRAMESHIFT_PENALTY = 0.975
 
 # Multiply 'wscore' by this much, for each additional contig used in the assembly
-# e.g. for 3 contigs = wscore * 0.995 * 0.995
+# e.g. for 3 contigs = wscore * 0.999 * 0.999
 EXTRA_CONTIG_PENALTY = 0.999
 
 # Maximum number of mismatches between recovered protein as given by Scipio and the new translation
@@ -515,7 +518,7 @@ MAX_ORGANELLE_SIZE = {
 # Minimum wscore for a PSL records
 MIN_ABS_WSCORE = 0.001
 
-# Minimum wscore as proportio of the best wscore for the target sequence in PSL records
+# Minimum wscore as proportion of the best wscore for the target sequence in PSL records
 MIN_PROP_WSCORE = 0.02
 
 # BLAT size multipliers per marker type
