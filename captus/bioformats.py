@@ -1513,7 +1513,7 @@ def calc_avg_contig_depth(hit_contigs: str):
                 print(f"Unexpected {err=}, {type(err)=}")
                 continue
     if contig_depths:
-        return f"{statistics.mean(contig_depths):.2f}"
+        return statistics.mean(contig_depths)
     else:
         return "NA"
 
@@ -2391,7 +2391,7 @@ def scipio_yaml_to_dict(
             "mismatches": [],  # number of aminoacid mismatches per 'target'
             "coverage": 0.0,  # (matches + mismatches) / ref_size * 100
             "identity": 0.0,  # matches / (matches + mismatches) * 100
-            "ctg_avg_depth": 0.0,  # contig average depth, only if "_cov_" in contig names
+            "ctg_avg_depth": "NA",  # contig average depth, only if "_cov_" in contig names
             "score": 0.0,  # (matches - mismatches) / ref_size
             "wscore": 0.0,  # score * (length AA / max length AA across refs)
             "gapped": False,  # recovered protein has gaps with respect to the reference
@@ -2622,12 +2622,11 @@ def scipio_yaml_to_dict(
                 if model["identity"] >= best_hit_identity * paralog_identity_tolerance
                 and model["coverage"] >= best_hit_coverage * paralog_coverage_tolerance
             ]
-            if best_hit_depth != "NA":
+            if best_hit_depth != "NA" and model["ctg_avg_depth"] != "NA":
                 accepted_models = [
                     model
                     for model in accepted_models
-                    if model["ctg_avg_depth"] != "NA"
-                    and model["ctg_avg_depth"] >= best_hit_depth * paralog_depth_tolerance
+                    if model["ctg_avg_depth"] >= best_hit_depth * paralog_depth_tolerance
                 ]
             if max_paralogs > -1:
                 accepted_models = accepted_models[: max_paralogs + 1]
@@ -3006,7 +3005,7 @@ def blat_misc_dna_psl_to_dict(
                 "mismatches": path[0]["mismatches"],  # accumulated mismatches across targets
                 "coverage": path[0]["coverage"],  # ((matches + mismatches) / ref_size) * 100
                 "identity": path[0]["identity"],  # (matches / (matches + mismatches)) * 100
-                "ctg_avg_depth": 0.0,  # contig average depth, only if "_cov_" in contig names
+                "ctg_avg_depth": "NA",  # contig average depth, only if "_cov_" in contig names
                 "score": path[0]["score"],  # Scipio-like score as (matches - mismatches) / ref_size
                 "wscore": path[0]["wscore"],  # Scipio-like * (len matched / locus max len matched)
                 "gapped": path[0]["gapped"],  # set to True when is assembly of partial hits
@@ -3369,12 +3368,11 @@ def blat_misc_dna_psl_to_dict(
                 if hit["identity"] >= best_hit_identity * paralog_identity_tolerance
                 and hit["coverage"] >= best_hit_coverage * paralog_coverage_tolerance
             ]
-            if best_hit_depth != "NA":
+            if best_hit_depth != "NA" and hit["ctg_avg_depth"] != "NA":
                 dna_hits[dna_ref] = [
                     hit
                     for hit in dna_hits[dna_ref]
-                    if hit["ctg_avg_depth"] != "NA"
-                    and hit["ctg_avg_depth"] >= best_hit_depth * paralog_depth_tolerance
+                    if hit["ctg_avg_depth"] >= best_hit_depth * paralog_depth_tolerance
                 ]
 
         # If multiple references of the same kind exist in the reference, then choose the one with
