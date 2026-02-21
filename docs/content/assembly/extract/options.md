@@ -126,9 +126,9 @@ Minimum percentage of coverage of the reference protein for a hit to be retained
 This argument is optional, the default is **20**.
 ___
 ### **`--nuc_depth_tolerance`**
-Minimum contig depth = 10^(log(depth of contig with best hit in locus) / nuc_depth_tolerance), values must be >= 1.0 (1 is the most strict).
+Minimum contig depth = 10^(log(depth of contig with best hit in locus) * nuc_depth_tolerance), values must be between 0 and 1 (1 is the most strict).
 
-This argument is optional, the default is **2.0**.
+This argument is optional, the default is **0.5**.
 ___
 ## *Plastidial proteins (Scipio)*
 ___
@@ -162,9 +162,9 @@ Minimum percentage of coverage of the reference protein for a hit to be retained
 This argument is optional, the default is **20**.
 ___
 ### **`--ptd_depth_tolerance`**
-Minimum contig depth = 10^(log(depth of contig with best hit in locus) / ptd_depth_tolerance), values must be >= 1.0 (1 is the most strict).
+Minimum contig depth = 10^(log(depth of contig with best hit in locus) * ptd_depth_tolerance), values must be between 0 and 1 (1 is the most strict).
 
-This argument is optional, the default is **2.0**.
+This argument is optional, the default is **0.5**.
 ___
 ## *Mitochondrial proteins (Scipio)*
 ___
@@ -198,9 +198,9 @@ Minimum percentage of coverage of the reference protein for a hit to be retained
 This argument is optional, the default is **20**.
 ___
 ### **`--mit_depth_tolerance`**
-Minimum contig depth = 10^(log(depth of contig with best hit in locus) / mit_depth_tolerance), values must be >= 1.0 (1 is the most strict).
+Minimum contig depth = 10^(log(depth of contig with best hit in locus) * mit_depth_tolerance), values must be between 0 and 1 (1 is the most strict).
 
-This argument is optional, the default is **2.0**.
+This argument is optional, the default is **0.5**.
 ___
 ## *Miscellaneous DNA markers (BLAT)*
 ___
@@ -225,9 +225,9 @@ Minimum percetange of coverage of the reference sequence for a hit to be retaine
 This argument is optional, the default is **20**.
 ___
 ### **`--dna_depth_tolerance`**
-Minimum contig depth = 10^(log(depth of contig with best hit in locus) / dna_depth_tolerance), values must be >= 1.0 (1 is the most strict).
+Minimum contig depth = 10^(log(depth of contig with best hit in locus) * dna_depth_tolerance), values must be between 0 and 1 (1 is the most strict).
 
-This argument is optional, the default is **2.0**.
+This argument is optional, the default is **0.5**.
 ___
 ## *Assemblies clustering (MMSeqs2)*
 Most contigs in your assemblies will not contain hits to your references, that means that many potentially useful markers usually remain unused and unexplored. With this feature you can cluster your unused contigs across samples to find new markers that can complement your phylogenomic dataset.

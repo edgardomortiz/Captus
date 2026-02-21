@@ -2622,12 +2622,16 @@ def scipio_yaml_to_dict(
                 if model["identity"] >= best_hit_identity * paralog_identity_tolerance
                 and model["coverage"] >= best_hit_coverage * paralog_coverage_tolerance
             ]
-            if best_hit_depth != "NA" and model["ctg_avg_depth"] != "NA":
-                accepted_models = [
-                    model
-                    for model in accepted_models
-                    if model["ctg_avg_depth"] >= best_hit_depth * paralog_depth_tolerance
-                ]
+            if best_hit_depth != "NA":
+                depth_filtered_models = []
+                for model in accepted_models:
+                    try:
+                        if model["ctg_avg_depth"] >= best_hit_depth * paralog_depth_tolerance:
+                            depth_filtered_models.append(model)
+                    except TypeError:
+                        depth_filtered_models.append(model)
+                accepted_models = depth_filtered_models
+
             if max_paralogs > -1:
                 accepted_models = accepted_models[: max_paralogs + 1]
             filter_models[prot] = accepted_models
@@ -3091,9 +3095,9 @@ def blat_misc_dna_psl_to_dict(
                 mismatches = (sum_mismatches * match_len) / (sum_matches + sum_mismatches)
                 asm_hit["score"] = (matches - mismatches) / asm_hit["ref_size"]
                 full_len = len(asm_hit["seq_gene"].replace("n", ""))
-                asm_hit["wscore"] = math.pow(
-                    asm_hit["identity"] / 100, settings.WSCORE_EXP
-                ) * math.pow(full_len / asm_hit["ref_size"], 1 / settings.WSCORE_EXP)
+                asm_hit["wscore"] = math.pow(asm_hit["identity"] / 100, settings.WSCORE_EXP) * math.pow(
+                    full_len / asm_hit["ref_size"], 1 / settings.WSCORE_EXP
+                )
                 asm_hit["gapped"] = bool("n" in asm_hit["seq_gene"])
                 asm_hit["match_len"] = match_len
 
@@ -3368,12 +3372,15 @@ def blat_misc_dna_psl_to_dict(
                 if hit["identity"] >= best_hit_identity * paralog_identity_tolerance
                 and hit["coverage"] >= best_hit_coverage * paralog_coverage_tolerance
             ]
-            if best_hit_depth != "NA" and hit["ctg_avg_depth"] != "NA":
-                dna_hits[dna_ref] = [
-                    hit
-                    for hit in dna_hits[dna_ref]
-                    if hit["ctg_avg_depth"] >= best_hit_depth * paralog_depth_tolerance
-                ]
+            if best_hit_depth != "NA":
+                depth_filtered_dna_hits = []
+                for hit in dna_hits[dna_ref]:
+                    try:
+                        if hit["ctg_avg_depyh"] >= best_hit_depth * paralog_depth_tolerance:
+                            depth_filtered_dna_hits.append(hit)
+                    except TypeError:
+                        depth_filtered_dna_hits.append(hit)
+                dna_hits[dna_ref] = depth_filtered_dna_hits
 
         # If multiple references of the same kind exist in the reference, then choose the one with
         # the best hit that has the highest 'wscore', break ties by averaging the 'wscore' of all
@@ -3756,10 +3763,11 @@ def write_gff3(hits, marker_type, disable_stitching, tsv_comment, out_gff_path):
                 h_name = f"{ref}{settings.SEQ_NAME_SEP}{h:02}"
                 gff.append(f"# {h_name}")
             strands = hits[ref][h]["strand"].split("\n")
-            score = f"{hits[ref][h]['score']:.3f}"
-            wscore = f"""WScore={f"{hits[ref][h]['wscore']:.3f}"}"""
-            cover_pct = f"""Coverage={f"{hits[ref][h]['coverage']:.2f}"}"""
             ident_pct = f"""Identity={f"{hits[ref][h]['identity']:.2f}"}"""
+            cover_pct = f"""Coverage={f"{hits[ref][h]['coverage']:.2f}"}"""
+            depth = f"""Depth={f"{hits[ref][h]['ctg_avg_depth']:.2f}"}"""
+            wscore = f"{hits[ref][h]['wscore']:.3f}"
+            score = f"""Score={f"{hits[ref][h]['score']:.3f}"}"""
             color = f"Color={urllib.parse.quote(settings.GFF_COLORS[marker_type])}"
             hit_ids = hits[ref][h]["hit_ids"].split("\n")
             hit_contigs = hits[ref][h]["hit_contigs"].split("\n")
@@ -3775,9 +3783,9 @@ def write_gff3(hits, marker_type, disable_stitching, tsv_comment, out_gff_path):
                 query = (
                     f"""Target={urllib.parse.quote(f"{hits[ref][h]['ref_name']}")} {ref_min_max[0]}"""
                 )
-                attributes = ";".join([hit_id, name, wscore, cover_pct, ident_pct, query])
+                attributes = ";".join([hit_id, name, ident_pct, cover_pct, score, depth, query])
                 gff.append(
-                    "\t".join([seq_id, source, "mRNA", start, end, score, strand, phase, attributes])
+                    "\t".join([seq_id, source, "mRNA", start, end, wscore, strand, phase, attributes])
                 )
             ref_coords = split_coords(hits[ref][h]["ref_coords"], as_strings=True)
             hit_coords = split_coords(hits[ref][h]["hit_coords"])
@@ -3792,7 +3800,7 @@ def write_gff3(hits, marker_type, disable_stitching, tsv_comment, out_gff_path):
                     query = (
                         f"""Target={urllib.parse.quote(f"{hits[ref][h]['ref_name']}")} {ref_coords[c]}"""
                     )
-                    attributes = ";".join([hit_id, name, wscore, cover_pct, ident_pct, color, query])
+                    attributes = ";".join([hit_id, name, ident_pct, cover_pct, score, depth, color, query])
                     gff.append(
                         "\t".join(
                             [
@@ -3801,7 +3809,7 @@ def write_gff3(hits, marker_type, disable_stitching, tsv_comment, out_gff_path):
                                 feature_type,
                                 start,
                                 end,
-                                score,
+                                wscore,
                                 strand,
                                 phase,
                                 attributes,

@@ -1520,12 +1520,12 @@ def reference_info(query_dict):
 
 
 def depth_tolerance_check(depth_tolerance, ignore_depth):
-    depth_tolerance = max(1, depth_tolerance)
+    depth_tolerance = min(1, depth_tolerance)
     if ignore_depth is True:
         msg = dim("Filter disabled, '--ignore_depth' is being used")
     else:
         msg = bold(f"{depth_tolerance} ")
-        msg += dim("(min = 10^(log(depth of the contig with best hit in locus) / ")
+        msg += dim("(min = 10^(log(depth of the contig with best hit in locus) * ")
         msg += bold(f"{depth_tolerance}")
         msg += dim("))")
     return depth_tolerance, msg
@@ -2826,7 +2826,7 @@ def prefilter_blat_psl(
                     if loci_depths[locus][contig]["depth"] > depth:
                         depth = loci_depths[locus][contig]["depth"]
             try:
-                loci_min_depths[locus] = 10 ** (round(math.log10(depth) / depth_tolerance, 2))
+                loci_min_depths[locus] = 10 ** (round(math.log10(depth) * depth_tolerance, 2))
             except ValueError:
                 loci_min_depths[locus] = 0
 

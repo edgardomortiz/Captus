@@ -793,11 +793,11 @@ class CaptusAssembly(object):
         scipio_nuc_group.add_argument(
             "--nuc_depth_tolerance",
             action="store",
-            default=2.0,
+            default=0.5,
             type=float,
             dest="nuc_depth_tolerance",
-            help="Minimum depth = 10^(log(depth of contig with best hit in locus) / "
-            "nuc_depth_tolerance), values must be >= 1.0 (1 is the most strict)",
+            help="Minimum depth = 10^(log(depth of contig with best hit in locus) * "
+            "nuc_depth_tolerance), values must be between 0 and 1 (1 is the most strict)",
         )
 
         scipio_ptd_group = parser.add_argument_group("Plastidial proteins extraction (Scipio)")
@@ -851,11 +851,11 @@ class CaptusAssembly(object):
         scipio_ptd_group.add_argument(
             "--ptd_depth_tolerance",
             action="store",
-            default=2.0,
+            default=0.5,
             type=float,
             dest="ptd_depth_tolerance",
-            help="Minimum depth = 10^(log(depth of contig with best hit in locus) / "
-            "ptd_depth_tolerance), values must be >= 1.0 (1 is the most strict)",
+            help="Minimum depth = 10^(log(depth of contig with best hit in locus) * "
+            "ptd_depth_tolerance), values must be between 0 and 1 (1 is the most strict)",
         )
 
         scipio_mit_group = parser.add_argument_group("Mitochondrial proteins extraction (Scipio)")
@@ -909,11 +909,11 @@ class CaptusAssembly(object):
         scipio_mit_group.add_argument(
             "--mit_depth_tolerance",
             action="store",
-            default=2.0,
+            default=0.5,
             type=float,
             dest="mit_depth_tolerance",
-            help="Minimum depth = 10^(log(depth of contig with best hit in locus) / "
-            "mit_depth_tolerance), values must be >= 1.0 (1 is the most strict)",
+            help="Minimum depth = 10^(log(depth of contig with best hit in locus) * "
+            "mit_depth_tolerance), values must be between 0 and 1 (1 is the most strict)",
         )
 
         non_coding_group = parser.add_argument_group("Miscellaneous DNA extraction (BLAT)")
@@ -952,11 +952,11 @@ class CaptusAssembly(object):
         non_coding_group.add_argument(
             "--dna_depth_tolerance",
             action="store",
-            default=2.0,
+            default=0.5,
             type=float,
             dest="dna_depth_tolerance",
-            help="Minimum depth = 10^(log(depth of contig with best hit in locus) / "
-            "dna_depth_tolerance), values must be >= 1.0 (1 is the most strict)",
+            help="Minimum depth = 10^(log(depth of contig with best hit in locus) * "
+            "dna_depth_tolerance), values must be between 0 and 1 (1 is the most strict)",
         )
 
         mmseqs2_group = parser.add_argument_group("Assemblies clustering (MMseqs2)")
