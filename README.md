@@ -56,8 +56,7 @@ If the program was correctly installed, you will see the following help message:
 ```text
 usage: captus command [options]
 
-Captus 1.6.2
-: Assembly of Phylogenomic Datasets from High-Throughput Sequencing data
+Captus 1.6.2: Assembly of Phylogenomic Datasets from High-Throughput Sequencing data
 
 Captus-assembly commands:
   command     Program commands (in typical order of execution)
