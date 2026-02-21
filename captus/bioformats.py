@@ -3009,7 +3009,7 @@ def blat_misc_dna_psl_to_dict(
                 "mismatches": path[0]["mismatches"],  # accumulated mismatches across targets
                 "coverage": path[0]["coverage"],  # ((matches + mismatches) / ref_size) * 100
                 "identity": path[0]["identity"],  # (matches / (matches + mismatches)) * 100
-                "ctg_avg_depth": "NA",  # contig average depth, only if "_cov_" in contig names
+                "ctg_avg_depth": calc_avg_contig_depth(path[0]["hit_contig"]),  # from "_cov_"
                 "score": path[0]["score"],  # Scipio-like score as (matches - mismatches) / ref_size
                 "wscore": path[0]["wscore"],  # Scipio-like * (len matched / locus max len matched)
                 "gapped": path[0]["gapped"],  # set to True when is assembly of partial hits
@@ -3094,9 +3094,12 @@ def blat_misc_dna_psl_to_dict(
                 matches = (sum_matches * match_len) / (sum_matches + sum_mismatches)
                 mismatches = (sum_mismatches * match_len) / (sum_matches + sum_mismatches)
                 asm_hit["score"] = (matches - mismatches) / asm_hit["ref_size"]
-                full_len = len(asm_hit["seq_gene"].replace("n", ""))
+                # full_len = len(asm_hit["seq_gene"].replace("n", ""))
+                # asm_hit["wscore"] = math.pow(asm_hit["identity"] / 100, settings.WSCORE_EXP) * math.pow(
+                #     full_len / asm_hit["ref_size"], 1 / settings.WSCORE_EXP
+                # )
                 asm_hit["wscore"] = math.pow(asm_hit["identity"] / 100, settings.WSCORE_EXP) * math.pow(
-                    full_len / asm_hit["ref_size"], 1 / settings.WSCORE_EXP
+                    asm_hit["coverage"], 1 / settings.WSCORE_EXP
                 )
                 asm_hit["gapped"] = bool("n" in asm_hit["seq_gene"])
                 asm_hit["match_len"] = match_len
@@ -3762,11 +3765,14 @@ def write_gff3(hits, marker_type, disable_stitching, tsv_comment, out_gff_path):
             else:
                 h_name = f"{ref}{settings.SEQ_NAME_SEP}{h:02}"
                 gff.append(f"# {h_name}")
+            wscore = f"{hits[ref][h]['wscore']:.3f}"
             strands = hits[ref][h]["strand"].split("\n")
             ident_pct = f"""Identity={f"{hits[ref][h]['identity']:.2f}"}"""
             cover_pct = f"""Coverage={f"{hits[ref][h]['coverage']:.2f}"}"""
-            depth = f"""Depth={f"{hits[ref][h]['ctg_avg_depth']:.2f}"}"""
-            wscore = f"{hits[ref][h]['wscore']:.3f}"
+            if hits[ref][h]["ctg_avg_depth"] == "NA":
+                depth = ""
+            else:
+                depth = f"""Depth={f"{hits[ref][h]['ctg_avg_depth']:.2f}"}"""
             score = f"""Score={f"{hits[ref][h]['score']:.3f}"}"""
             color = f"Color={urllib.parse.quote(settings.GFF_COLORS[marker_type])}"
             hit_ids = hits[ref][h]["hit_ids"].split("\n")
@@ -3783,7 +3789,10 @@ def write_gff3(hits, marker_type, disable_stitching, tsv_comment, out_gff_path):
                 query = (
                     f"""Target={urllib.parse.quote(f"{hits[ref][h]['ref_name']}")} {ref_min_max[0]}"""
                 )
-                attributes = ";".join([hit_id, name, ident_pct, cover_pct, score, depth, query])
+                if depth:
+                    attributes = ";".join([hit_id, name, ident_pct, cover_pct, score, depth, query])
+                else:
+                    attributes = ";".join([hit_id, name, ident_pct, cover_pct, score, query])
                 gff.append(
                     "\t".join([seq_id, source, "mRNA", start, end, wscore, strand, phase, attributes])
                 )
@@ -3800,7 +3809,12 @@ def write_gff3(hits, marker_type, disable_stitching, tsv_comment, out_gff_path):
                     query = (
                         f"""Target={urllib.parse.quote(f"{hits[ref][h]['ref_name']}")} {ref_coords[c]}"""
                     )
-                    attributes = ";".join([hit_id, name, ident_pct, cover_pct, score, depth, color, query])
+                    if depth:
+                        attributes = ";".join(
+                            [hit_id, name, ident_pct, cover_pct, score, depth, color, query]
+                        )
+                    else:
+                        attributes = ";".join([hit_id, name, ident_pct, cover_pct, score, color, query])
                     gff.append(
                         "\t".join(
                             [

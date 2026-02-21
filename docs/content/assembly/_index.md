@@ -24,7 +24,7 @@ To show the main help of the `captus_assembly` module just type `captus --help`:
 (captus)$ captus --help
 usage: captus command [options]
 
-Captus 1.6.1: Assembly of Phylogenomic Datasets from High-Throughput Sequencing data
+Captus 1.6.2: Assembly of Phylogenomic Datasets from High-Throughput Sequencing data
 
 Captus-assembly commands:
   command     Program commands (in typical order of execution)
