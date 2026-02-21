@@ -3376,7 +3376,7 @@ def blat_misc_dna_psl_to_dict(
                 depth_filtered_dna_hits = []
                 for hit in dna_hits[dna_ref]:
                     try:
-                        if hit["ctg_avg_depyh"] >= best_hit_depth * paralog_depth_tolerance:
+                        if hit["ctg_avg_depth"] >= best_hit_depth * paralog_depth_tolerance:
                             depth_filtered_dna_hits.append(hit)
                     except TypeError:
                         depth_filtered_dna_hits.append(hit)
