@@ -2391,7 +2391,7 @@ def scipio_yaml_to_dict(
             "mismatches": [],  # number of aminoacid mismatches per 'target'
             "coverage": 0.0,  # (matches + mismatches) / ref_size * 100
             "identity": 0.0,  # matches / (matches + mismatches) * 100
-            "ctg_avg_depth": "NA",  # contig average depth, only if "_cov_" in contig names
+            "ctg_avg_depth": 0.0,  # contig average depth, only if "_cov_" in contig names
             "score": 0.0,  # (matches - mismatches) / ref_size
             "wscore": 0.0,  # score * (length AA / max length AA across refs)
             "gapped": False,  # recovered protein has gaps with respect to the reference
@@ -3006,7 +3006,7 @@ def blat_misc_dna_psl_to_dict(
                 "mismatches": path[0]["mismatches"],  # accumulated mismatches across targets
                 "coverage": path[0]["coverage"],  # ((matches + mismatches) / ref_size) * 100
                 "identity": path[0]["identity"],  # (matches / (matches + mismatches)) * 100
-                "ctg_avg_depth": "NA",  # contig average depth, only if "_cov_" in contig names
+                "ctg_avg_depth": 0.0,  # contig average depth, only if "_cov_" in contig names
                 "score": path[0]["score"],  # Scipio-like score as (matches - mismatches) / ref_size
                 "wscore": path[0]["wscore"],  # Scipio-like * (len matched / locus max len matched)
                 "gapped": path[0]["gapped"],  # set to True when is assembly of partial hits
