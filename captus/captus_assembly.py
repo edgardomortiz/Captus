@@ -416,7 +416,9 @@ class CaptusAssembly(object):
             " hybridization capture or genome skimming data (or a combination of both). You can"
             " assemble RNA-Seq reads with the 'RNA' preset or high-coverage Whole Genome"
             " Sequencing reads with the 'WGS' preset, however, both presets require a minimum"
-            " of 8GB of RAM to work well (default: CAPSKIM)\n"
+            " of 8GB of RAM to work well. In order to avoid RAM limitations when assembly high-depth"
+            " data, consider using '--preset WGS --concurrent 1' to assemble a single sample at time"
+            " using all the CPUs and RAM provided by '--threads' and '--ram' (default: CAPSKIM)\n"
             f"CAPSKIM = --k-list {settings.MEGAHIT_PRESETS['CAPSKIM']['k_list']}"
             f" --min-count {settings.MEGAHIT_PRESETS['CAPSKIM']['min_count']}"
             f" --prune-level {settings.MEGAHIT_PRESETS['CAPSKIM']['prune_level']}\n"
@@ -683,7 +685,8 @@ class CaptusAssembly(object):
             type=float,
             dest="paralog_depth_tolerance",
             help="Keep paralogs if they have at least this proportion of the depth of the best"
-            " hit in the locus, use 0 to disable this filter",
+            " hit in the locus, use 0 to disable this filter. Reduce accordingly if you have"
+            " polyploids in your dataset",
         )
         output_group.add_argument(
             "--max_paralogs",

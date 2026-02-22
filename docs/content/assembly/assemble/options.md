@@ -85,7 +85,7 @@ Thresholds for merging complex bubbles, the first number multiplied by the kmer 
 This argument is optional, the default is **20,0.95**.
 ___
 ### **`--preset`**
-The default preset 'CAPSKIM' has optimized settings that work well with either hybridization capture or genome skimming data (or a combination of both). We have also optimized other MEGAHIT parameter combinations specific to high-coverage (>= 30x depth) `WGS` data or `RNA`-Seq data. These modes will only work well with at least 8 GB of RAM. If, in addition to a `preset`, you provide your own `k_list`, `min_count`, or `prune_level`, your settings take priority over the preset's.
+The default preset 'CAPSKIM' has optimized settings that work well with either hybridization capture or genome skimming data (or a combination of both). We have also optimized other MEGAHIT parameter combinations specific to high-coverage (>= 30x depth) `WGS` data or `RNA`-Seq data. These modes will only work well with at least 8 GB of RAM. If, in addition to a `preset`, you provide your own `k_list`, `min_count`, or `prune_level`, your settings take priority over the preset's. In order to avoid RAM limitations when assembly high-depth data, consider using `--preset WGS --concurrent 1` to assemble a single sample at time using all the CPUs and RAM provided by `--threads` and `--ram`.
 - `CAPSKIM` = `--k-list 31,39,47,63,79,95,111,127,143,159,175 --min-count 2 --prune-level 2`
 - `RNA` = `--k-list 27,47,67,87,107,127,147,167 --min-count 2 --prune-level 2`
 - `WGS` = `--k-list 31,39,49,69,89,109,129,149,169 --min-count 3 --prune-level 2 --no-mercy`
@@ -100,7 +100,7 @@ ___
 ### **`--tmp_dir`**
 MEGAHIT needs a temporary directory in an internal hard drive, otherwise it refuses to run.
 
-This argument is optional, the default is **$HOME**. 
+This argument is optional, the default is **$HOME**.
 ___
 ### **`--max_contig_gc`**
 Maximum GC percentage allowed per contig. Useful to filter contamination. For example, bacteria usually exceed 60% GC content while eukaryotes rarely exceed that limit. 100.0 disables the GC filter.
@@ -129,5 +129,5 @@ ___
 See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
-Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (18.12.2024)
+Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (02.21.2026)

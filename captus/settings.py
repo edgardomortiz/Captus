@@ -218,7 +218,7 @@ SCIPIO_MAX_GAP_DELTA_IDENTITY = 0.3
 SCIPIO_STOP_PENALTY = 0.5
 
 # (identity/100)**WSCORE_EXP, coverage**(1/WSCORE_EXP) for 'wscore'
-WSCORE_EXP = 5
+WSCORE_EXP = 2
 
 # Multiply 'wscore' by this much, for each frameshift in the protein
 # e.g. for 3 frameshifts = wscore * 0.975 * 0.975 * 0.975
