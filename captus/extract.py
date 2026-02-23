@@ -38,6 +38,7 @@ from .bioformats import (
     parse_psl_record,
     rehead_root_msa,
     scipio_yaml_to_dict,
+    shred_fasta_dict,
     split_mmseqs_clusters_file,
     translate_fasta_dict,
     write_gff3,
@@ -3410,16 +3411,12 @@ def rehead_and_concatenate_fastas(
     tqdm_cols = min(shutil.get_terminal_size().columns, 120)
     with tqdm(total=len(fastas_to_concatenate), ncols=tqdm_cols, unit="file") as pbar:
         for cat_fasta in fastas_to_concatenate:
-            full_fasta = fasta_to_dict(cat_fasta)
+            reheaded_fasta = fasta_to_dict(cat_fasta)
             if clust_max_seq_len > 0:
-                filtered_fasta = {
-                    seq_name: full_fasta[seq_name]
-                    for seq_name in full_fasta
-                    if len(full_fasta[seq_name]["sequence"]) <= clust_max_seq_len
-                }
-                dict_to_fasta(filtered_fasta, clustering_input_file, append=True)
+                shredded_fasta = shred_fasta_dict(reheaded_fasta, clust_max_seq_len)
+                dict_to_fasta(shredded_fasta, clustering_input_file, append=True)
             else:
-                dict_to_fasta(full_fasta, clustering_input_file, append=True)
+                dict_to_fasta(reheaded_fasta, clustering_input_file, append=True)
             cat_fasta.unlink()
             pbar.update()
     log.log(

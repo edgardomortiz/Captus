@@ -1100,6 +1100,37 @@ def dict_to_fasta(
     return out_fasta_path
 
 
+def shred_fasta_dict(in_fasta_dict: dict, max_seq_len: int, is_cds=False):
+    size_mul = 1
+    if is_cds is True:
+        size_mul = 3
+    out_fasta_dict = {}
+    for seq_name in in_fasta_dict:
+        seq = in_fasta_dict[seq_name]["sequence"]
+        desc = in_fasta_dict[seq_name]["description"]
+        seq_len = math.ceil(len(seq) / size_mul)
+        if seq_len <= max_seq_len:
+            out_fasta_dict[seq_name] = in_fasta_dict[seq_name]
+        else:
+            num_chunks = math.ceil(seq_len / max_seq_len)
+            chunk_len = seq_len // num_chunks
+            remainder = seq_len % num_chunks
+            start = 0
+            for _ in range(num_chunks):
+                slice_len = chunk_len
+                if remainder > 0:
+                    slice_len += 1
+                    remainder -= 1
+                end = start + (slice_len * size_mul)
+                seq_name_sliced = f"{seq_name}_{start + 1}_{end}"
+                out_fasta_dict[seq_name_sliced] = {
+                    "sequence": seq[start:end],
+                    "description": desc,
+                }
+                start = end
+    return out_fasta_dict
+
+
 def fasta_type(fasta_path):
     """
     Verify FASTA format and that sequence is only nucleotides, returns 'NT' when the file contains

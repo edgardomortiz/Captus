@@ -30,6 +30,7 @@ from .bioformats import (
     fasta_to_dict,
     fix_premature_stops,
     mmseqs_cluster,
+    shred_fasta_dict,
     translate_fasta_dict,
     vsearch_cluster,
 )
@@ -236,7 +237,7 @@ def cluster(full_command, args):
     #################################################### MARKER DEDUPLICATION AND CLUSTERING SECTION
     log.log_section_header("Deduplication and clustering of markers")
     clust_msg = (
-        "Now Captus will exclude sequences longer than '--max_seq_len', then the sequences will be"
+        "Now Captus will shred sequences longer than '--max_seq_len', then the sequences will be"
         " deduplicated sample-wise at the identity threshold given by '--dedup_threshold'. Finally,"
         " markers will be clustered across samples using '--clust_threshold' as identity threshold."
     )
@@ -721,10 +722,13 @@ def filter_fasta(
     if overwrite is True or not fasta_out_path.exists():
         fasta_in = fasta_to_dict(fasta_path)
         fasta_out = {}
+
         for seq_name in fasta_in:
-            if min_seq_len <= len(fasta_in[seq_name]["sequence"]) <= max_seq_len:
+            if len(fasta_in[seq_name]["sequence"]) >= min_seq_len:
                 fasta_out[seq_name] = fasta_in[seq_name]
+
         if translate_cds:
+            fasta_out = shred_fasta_dict(fasta_out, max_seq_len, is_cds=True)
             fasta_out_aa = translate_fasta_dict(fasta_out, transtable, 1)
             fasta_out_aa_fixed_pstops = fix_premature_stops(fasta_out_aa)
             if fasta_out_aa_fixed_pstops is None:
@@ -732,6 +736,7 @@ def filter_fasta(
             else:
                 dict_to_fasta(fasta_out_aa_fixed_pstops, fasta_out_path)
         else:
+            fasta_out = shred_fasta_dict(fasta_out, max_seq_len)
             dict_to_fasta(fasta_out, fasta_out_path)
         if fasta_out_path.exists():
             message = f"'{sample_name}': FASTA filtered by length [{elapsed_time(time.time() - start)}]"
@@ -1400,7 +1405,7 @@ def curate(
                     if seq_aa[i] == "-":
                         seq_nt_aligned += "---"
                     else:
-                        seq_nt_aligned += seq_nt[nt_start :nt_start + 3]
+                        seq_nt_aligned += seq_nt[nt_start : nt_start + 3]
                         nt_start += 3
                 aln[seq_name] = {
                     "sequence": seq_nt_aligned,
