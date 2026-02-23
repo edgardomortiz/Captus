@@ -44,6 +44,8 @@ or
 mamba create --platform osx-64 -n captus -c bioconda -c conda-forge captus megahit=1.2.9=hfbae3c0_0 mmseqs2=16.747c6
 ```
 
+**WARNING**: MAFFT v7.525 has a bug that has been corrected in v7.526, consider adding to the commands above `mafft=7.526`
+
 Then check that `Captus` was correctly installed:
 
 ```shell
@@ -56,7 +58,7 @@ If the program was correctly installed, you will see the following help message:
 ```text
 usage: captus command [options]
 
-Captus 1.6.3: Assembly of Phylogenomic Datasets from High-Throughput Sequencing data
+Captus 1.6.4: Assembly of Phylogenomic Datasets from High-Throughput Sequencing data
 
 Captus-assembly commands:
   command     Program commands (in typical order of execution)
