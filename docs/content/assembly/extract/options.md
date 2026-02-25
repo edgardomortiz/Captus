@@ -317,6 +317,11 @@ Path where to create the temporary directory for `MMseqs2`. Clustering can becom
 
 This argument is optional, the default is **$HOME**.
 ___
+### **`--exclude_samples`**
+Samples to be excluded from clustering, separated by commas, no spaces. After clustering is finished these samples will still be searched for the targets. This is useful if, for example, most samples are from capture sequencing and only a few are fully assembled genomes or from other sequencing type. Then, to avoid biasing the clustering in favor of those few samples they can be excluded with this parameter.
+
+This argument is optional, the default is **None**.
+___
 ## *Other*
 ___
 ### **`--scipio_path`**, **`--blat_path`**
@@ -334,4 +339,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)<br>
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (02.21.2026)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (02.25.2026)

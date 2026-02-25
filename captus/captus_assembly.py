@@ -1102,6 +1102,15 @@ class CaptusAssembly(object):
             " Clustering can become slow when done on external drives, set this location to a"
             " fast, preferably local, drive",
         )
+        mmseqs2_group.add_argument(
+            "--exclude_samples",
+            action="store",
+            default=None,
+            type=str,
+            dest="exclude_samples",
+            help="Samples to be excluded from clustering, separated by commas, no spaces. After"
+            " clustering is finished these samples will still be searched for the targets",
+        )
 
         other_group = parser.add_argument_group("Other")
         other_group.add_argument(

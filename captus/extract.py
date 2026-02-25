@@ -730,10 +730,10 @@ def extract(full_command, args):
                 "'--captus_assemblies_dir' and/or '--fastas' argument"
             )
 
-        clustering_dir, clustering_dir_msg = make_output_dir(Path(out_dir, "02_clustering_data"))
-        clustering_input_file = Path(clustering_dir, "clustering_input.fasta")
+        if args.cl_mode != 2:
+            args.cl_seq_id_mode = 0
 
-        # When 'cl_min_identity' is set to 'auto' it becomes 90% of 'dna_min_identity' never
+        # When 'cl_min_identity' is set to 'auto' it becomes 99% of 'dna_min_identity' never
         # becoming less than 75%
         if args.cl_min_identity == "auto":
             dna_min_identity = max(args.dna_min_identity, settings.MMSEQS_MIN_AUTO_MIN_IDENTITY)
@@ -742,20 +742,24 @@ def extract(full_command, args):
                 settings.MMSEQS_MIN_AUTO_MIN_IDENTITY,
             )
         else:
+            cl_min_identity = float(args.cl_min_identity)
             if args.dna_refs is not None:
-                dna_min_identity = cl_min_identity = float(args.cl_min_identity)
+                dna_min_identity = cl_min_identity
             else:
                 dna_min_identity = float(args.dna_min_identity)
-                cl_min_identity = float(args.cl_min_identity)
-        if args.cl_mode != 2:
-            args.cl_seq_id_mode = 0
-        clust_tmp_dir = make_tmp_dir_within(args.cl_tmp_dir, "captus_mmseqs_tmp")
-        fastas_to_cluster, num_leftovers = find_fasta_leftovers(fastas_to_extract)
+
+        fastas_to_cluster, num_leftovers = find_fasta_leftovers(fastas_to_extract, args.exclude_samples)
         num_samples = len(fastas_to_cluster)
         if args.cl_min_samples == "auto":
             cl_min_samples = int(max(4, num_samples * settings.CLR_MIN_SAMPLE_PROP))
         else:
             cl_min_samples = min(int(args.cl_min_samples), num_samples)
+
+        clust_tmp_dir = make_tmp_dir_within(args.cl_tmp_dir, "captus_mmseqs_tmp")
+        clustering_dir, clustering_dir_msg = make_output_dir(Path(out_dir, "02_clustering_data"))
+        clustering_input_file = Path(clustering_dir, "clustering_input.fasta")
+        clust1_prefix = f"cl{cl_min_identity:.2f}_cov{args.cl_min_coverage:.2f}"
+        captus_cluster_refs = Path(clustering_dir, f"{clust1_prefix}_captus_cluster_refs.fasta")
 
         log.log(bold_yellow("  \u25ba STEP 1 OF 3: Clustering contigs across samples with MMseqs2"))
         log.log("")
@@ -778,6 +782,7 @@ def extract(full_command, args):
         log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
         log.log(f"{'Keep all files':>{mar}}: {bold(args.keep_all)}")
         log.log("")
+        log.log(f"{'Samples to exclude':>{mar}}: {bold(args.exclude_samples)}")
         log.log(f"{'Using leftover contigs':>{mar}}: {bold(num_leftovers)}")
         log.log(f"{'Using entire assembly':>{mar}}: {bold(len(fastas_to_cluster) - num_leftovers)}")
         log.log(bold(f"{'Total samples to cluster':>{mar}}: {len(fastas_to_cluster)}"))
@@ -795,6 +800,8 @@ def extract(full_command, args):
                 )
                 log.log("")
             else:
+                if clustering_input_file.is_file():
+                    clustering_input_file.unlink()
                 rehead_and_concatenate_fastas(
                     fastas_to_cluster,
                     clustering_dir,
@@ -803,6 +810,18 @@ def extract(full_command, args):
                     min(settings.MAX_HDD_WRITE_INSTANCES, threads_max),
                     args.show_less,
                 )
+
+        if not captus_cluster_refs.is_file() or file_is_empty(captus_cluster_refs) or args.overwrite:
+            # If the target file is empty, recreate it but delete previous failed traces
+            if file_is_empty(captus_cluster_refs):
+                captus_cluster_refs.unlink()
+                passed = Path(clustering_dir, f"{clust1_prefix}_passed.fasta")
+                passed_gz = Path(clustering_dir, f"{clust1_prefix}_passed.fasta.gz")
+                if passed.exists():
+                    passed.unlink()
+                if passed_gz.exists():
+                    passed_gz.unlink()
+
             captus_cluster_refs = cluster_and_select_refs(
                 num_samples,
                 cl_min_samples,
@@ -827,6 +846,14 @@ def extract(full_command, args):
             )
             log.log("")
             log.log("")
+        else:
+            log.log(
+                f"{bold('WARNING:')} A valid target file was found: '{bold(captus_cluster_refs)}'"
+                " and it will be used for extraction, to recreate it enable '--overwrite'"
+            )
+            log.log("")
+
+        if captus_cluster_refs.is_file() and not file_is_empty(captus_cluster_refs):
             log.log(
                 bold_yellow("  \u25ba STEP 2 OF 3: Extracting cluster-derived DNA markers with BLAT")
             )
@@ -992,12 +1019,12 @@ def extract(full_command, args):
                     )
                 log.log("")
 
-        # Nothing to cluster, just skip already processed
+        # Target file is bad
         else:
             log.log(
                 red(
-                    f"Skipping clustering step... Captus found output files in: '{clustering_dir}',"
-                    " to replace them enable --overwrite"
+                    f"Skipping extraction, invalid target file: '{captus_cluster_refs}',"
+                    " to recreate it enable --overwrite"
                 )
             )
             log.log("")
@@ -3356,25 +3383,30 @@ def cleanup_post_extraction(
         return message
 
 
-def find_fasta_leftovers(fastas_to_extract):
+def find_fasta_leftovers(fastas_to_extract: dict, exclude_samples: str):
     """
     The directory '06_assembly_annotated' will be searched within each sample directory, if the
     file 'leftover_contigs.fasta.gz' is found it will be used for clustering, if not it will revert
     to the main assembly file of the sample (unfiltered contigs from MEGAHIT)
     """
     fastas_to_cluster = {}
+    if exclude_samples:
+        exclude_samples = exclude_samples.split(",")
+    else:
+        exclude_samples = []
     num_leftovers = 0
     for sample in fastas_to_extract:
-        leftovers_file = Path(
-            fastas_to_extract[sample]["sample_dir"],
-            "06_assembly_annotated",
-            "leftover_contigs.fasta.gz",
-        )
-        if leftovers_file.is_file():
-            fastas_to_cluster[sample] = leftovers_file.resolve()
-            num_leftovers += 1
-        else:
-            fastas_to_cluster[sample] = fastas_to_extract[sample]["assembly_path"]
+        if sample not in exclude_samples:
+            leftovers_file = Path(
+                fastas_to_extract[sample]["sample_dir"],
+                "06_assembly_annotated",
+                "leftover_contigs.fasta.gz",
+            )
+            if leftovers_file.is_file():
+                fastas_to_cluster[sample] = leftovers_file.resolve()
+                num_leftovers += 1
+            else:
+                fastas_to_cluster[sample] = fastas_to_extract[sample]["assembly_path"]
     return fastas_to_cluster, num_leftovers
 
 
