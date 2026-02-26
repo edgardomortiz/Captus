@@ -743,7 +743,7 @@ def extract(full_command, args):
             )
         else:
             cl_min_identity = float(args.cl_min_identity)
-            if args.dna_refs is not None:
+            if args.dna_refs is None:
                 dna_min_identity = cl_min_identity
             else:
                 dna_min_identity = float(args.dna_min_identity)
@@ -757,7 +757,7 @@ def extract(full_command, args):
 
         clust_tmp_dir = make_tmp_dir_within(args.cl_tmp_dir, "captus_mmseqs_tmp")
         clustering_dir, clustering_dir_msg = make_output_dir(Path(out_dir, "02_clustering_data"))
-        clustering_input_file = Path(clustering_dir, "clustering_input.fasta")
+        clustering_input_file = Path(clustering_dir, "clustering_input.fasta.gz")
         clust1_prefix = f"cl{cl_min_identity:.2f}_cov{args.cl_min_coverage:.2f}"
         captus_cluster_refs = Path(clustering_dir, f"{clust1_prefix}_captus_cluster_refs.fasta")
 
@@ -798,7 +798,6 @@ def extract(full_command, args):
                     f" '{bold(clustering_input_file)}' and it will be used, to recreate it enable"
                     " '--overwrite'"
                 )
-                log.log("")
             else:
                 if clustering_input_file.is_file():
                     clustering_input_file.unlink()
@@ -811,9 +810,9 @@ def extract(full_command, args):
                     args.show_less,
                 )
 
-        if not captus_cluster_refs.is_file() or file_is_empty(captus_cluster_refs) or args.overwrite:
+        if not captus_cluster_refs.exists() or args.overwrite:
             # If the target file is empty, recreate it but delete previous failed traces
-            if file_is_empty(captus_cluster_refs):
+            if captus_cluster_refs.exists() and file_is_empty(captus_cluster_refs):
                 captus_cluster_refs.unlink()
                 passed = Path(clustering_dir, f"{clust1_prefix}_passed.fasta")
                 passed_gz = Path(clustering_dir, f"{clust1_prefix}_passed.fasta.gz")
@@ -3425,6 +3424,7 @@ def rehead_and_concatenate_fastas(
     the use of '__' to name the samples. The descriptions will be lost (MMseqs ignores them afaik).
     """
     start = time.time()
+    clustering_input_file_decompressed = Path(f"{clustering_input_file}".rstrip(".gz"))
     rehead_params = []
     for sample in fastas_to_cluster:
         rehead_params.append((sample, fastas_to_cluster[sample], clustering_dir))
@@ -3446,17 +3446,19 @@ def rehead_and_concatenate_fastas(
             reheaded_fasta = fasta_to_dict(cat_fasta)
             if clust_max_seq_len > 0:
                 shredded_fasta = shred_fasta_dict(reheaded_fasta, clust_max_seq_len)
-                dict_to_fasta(shredded_fasta, clustering_input_file, append=True)
+                dict_to_fasta(shredded_fasta, clustering_input_file_decompressed, append=True)
             else:
-                dict_to_fasta(reheaded_fasta, clustering_input_file, append=True)
+                dict_to_fasta(reheaded_fasta, clustering_input_file_decompressed, append=True)
             cat_fasta.unlink()
             pbar.update()
     log.log(
         bold(
-            f" \u2514\u2500\u2192 File '{clustering_input_file.name}'"
+            f" \u2514\u2500\u2192 File '{clustering_input_file_decompressed.name}'"
             f" prepared in {elapsed_time(time.time() - start)}(s)"
         )
     )
+    log.log("")
+    compress_list_files([clustering_input_file_decompressed], threads_max)
 
 
 def rehead_fasta_with_sample_name(sample_name, sample_fasta_path, clustering_dir):
@@ -3665,7 +3667,7 @@ def cluster_and_select_refs(
     msg_p2 = bold(f" [{elapsed_time(time.time() - start)}]")
     log.log(f"{msg_p1}{msg_p2}")
     log.log("")
-    compress_list_files([clustering_input_file, clust2_input_fasta], max_threads)
+    compress_list_files([clust2_input_fasta], max_threads)
     return cluster_refs_fasta
 
 
