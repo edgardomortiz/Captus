@@ -980,7 +980,7 @@ class CaptusAssembly(object):
                 "easy-linclust",
                 "easy-cluster",
             ],
-            default="easy-linclust",
+            default="easy-cluster",
             type=str,
             dest="mmseqs_method",
             help="B|MMseqs2 clustering algorithm, options are:\n"
