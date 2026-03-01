@@ -264,6 +264,8 @@ def align(full_command, args):
         log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
         log.log(f"{'Keep all files':>{mar}}: {bold(args.keep_all)}")
         fastas_to_align = fastas_origs_dests(
+            markers,
+            formats,
             out_dir,
             settings.ALN_DIRS["UNAL"],
             Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFR"]),
@@ -416,6 +418,8 @@ def align(full_command, args):
 
         if filter_method in ["naive", "both"]:
             fastas_to_filter = fastas_origs_dests(
+                markers,
+                formats,
                 out_dir,
                 Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFR"]),
                 Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIR"]),
@@ -445,6 +449,8 @@ def align(full_command, args):
 
         if filter_method in ["informed", "both"]:
             fastas_to_filter = fastas_origs_dests(
+                markers,
+                formats,
                 out_dir,
                 Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFR"]),
                 Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["INFR"]),
@@ -512,6 +518,8 @@ def align(full_command, args):
             fastas_to_rem_refs = {}
             if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFR"]).exists():
                 fastas_partial = fastas_origs_dests(
+                    markers,
+                    formats,
                     out_dir,
                     Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFR"]),
                     Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"]),
@@ -530,6 +538,8 @@ def align(full_command, args):
 
             if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIR"]).exists():
                 fastas_partial = fastas_origs_dests(
+                    markers,
+                    formats,
                     out_dir,
                     Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIR"]),
                     Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIV"]),
@@ -548,6 +558,8 @@ def align(full_command, args):
 
             if Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["INFR"]).exists():
                 fastas_partial = fastas_origs_dests(
+                    markers,
+                    formats,
                     out_dir,
                     Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["INFR"]),
                     Path(settings.ALN_DIRS["ALND"], settings.ALN_DIRS["INFO"]),
@@ -620,7 +632,9 @@ def align(full_command, args):
         if args.disable_taper is True:
             log.log(f"{'TAPER':>{mar}}: {dim('disabled')}")
         else:
-            log.log(f"{'TAPER mask':>{mar}}: {bold(settings.TAPER_MASK)} {dim('(change in settings.py)')}")
+            log.log(
+                f"{'TAPER mask':>{mar}}: {bold(settings.TAPER_MASK)} {dim('(change in settings.py)')}"
+            )
             log.log(f"{'TAPER cutoff':>{mar}}: {bold(args.taper_cutoff)}")
             log.log(f"{'TAPER conservative':>{mar}}: {bold(args.taper_conservative)}")
             log.log(f"{'TAPER unfiltered alns':>{mar}}: {bold(args.taper_unfiltered)}")
@@ -640,7 +654,11 @@ def align(full_command, args):
         log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
         log.log(f"{'Keep all files':>{mar}}: {bold(args.keep_all)}")
         fastas_to_trim = fastas_origs_dests(
-            out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["TRIM"]
+            markers,
+            formats,
+            out_dir,
+            settings.ALN_DIRS["ALND"],
+            settings.ALN_DIRS["TRIM"]
         )
         log.log(f"{'FASTA files to trim':>{mar}}: {bold(len(fastas_to_trim))}")
         log.log("")
@@ -716,7 +734,9 @@ def align(full_command, args):
         if args.keep_w_refs is True:
             filtered_fastas_to_trim = fastas_to_trim
         else:
-            filtered_fastas_to_trim = {k:v for k,v in fastas_to_trim.items() if "_w_refs" not in f"{k}"}
+            filtered_fastas_to_trim = {
+                k: v for k, v in fastas_to_trim.items() if "_w_refs" not in f"{k}"
+            }
 
         aa_origs, aa_dests = [], []
         nt_origs, nt_dests = [], []
@@ -1431,24 +1451,31 @@ def adjust_align_concurrency(concurrent, threads_max):
     return concurrent, threads_per_alignment
 
 
-def fastas_origs_dests(dir_path: Path, orig_base_dir: str, dest_base_dir: str):
+def fastas_origs_dests(
+    markers: str, formats: str, dir_path: Path, orig_base_dir: str, dest_base_dir: str
+):
     """
     Search for FASTA files within `dir_path/orig_base_dir` with extensions `.faa` or `.fna` and
     return a dictionary with these paths (origins) as keys and the paths with `dest_base_dir`
     instead of `orig_base_dir` as values (destinations).
     """
+    marker_dirs = [settings.DIR_MARKERS[m] for m in markers.split(",")]
+    format_dirs = [settings.FORMAT_MARKERS[f] for f in formats.split(",")]
     fastas_to_process = {}
     for path in sorted(list(Path(dir_path, orig_base_dir).rglob("*.f[an]a"))):
         if not f"{path.name}".startswith("."):
-            origin = path.resolve()
             # Troubleshoot later, needed if we want to take simlinks as input
             # destination = Path(dir_path,
             #                    dest_base_dir,
             #                    origin.parent.parts[-2],
             #                    origin.parent.parts[-1],
             #                    origin.name)
+            origin = path.resolve()
+            marker_dir = origin.parent.parts[-2]
+            format_dir = origin.parent.parts[-1]
             destination = Path(str(origin).replace(str(orig_base_dir), str(dest_base_dir)))
-            fastas_to_process[origin] = destination
+            if marker_dir in marker_dirs and format_dir in format_dirs:
+                fastas_to_process[origin] = destination
 
     return fastas_to_process
 
@@ -1855,9 +1882,8 @@ def filter_paralogs_informed(
                     fasta_model_format,
                     ignore_internal_gaps=True,
                 )
-                paralog_score = (
-                    math.pow(pid / 100, settings.WSCORE_EXP)
-                    * math.pow(length_seq / lenght_ref, 1 / settings.WSCORE_EXP)
+                paralog_score = math.pow(pid / 100, settings.WSCORE_EXP) * math.pow(
+                    length_seq / lenght_ref, 1 / settings.WSCORE_EXP
                 )
                 if sample_name in samples_with_paralogs:
                     samples_with_paralogs[sample_name][seq] = paralog_score
@@ -1886,7 +1912,7 @@ def filter_paralogs_informed(
         for row in tsv:
             if row[6] in accepted:
                 if tolerance == -1:
-                    row[10] = f'{True}'
+                    row[10] = f"{True}"
                 else:
                     if float(row[8]) >= min_pid:
                         row[10] = f"{True}"
