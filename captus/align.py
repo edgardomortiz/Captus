@@ -1459,8 +1459,8 @@ def fastas_origs_dests(
     return a dictionary with these paths (origins) as keys and the paths with `dest_base_dir`
     instead of `orig_base_dir` as values (destinations).
     """
-    marker_dirs = [settings.DIR_MARKERS[m] for m in markers.split(",")]
-    format_dirs = [settings.FORMAT_MARKERS[f] for f in formats.split(",")]
+    marker_dirs = [settings.MARKER_DIRS[m] for m in markers.split(",")]
+    format_dirs = [settings.FORMAT_DIRS[f] for f in formats.split(",")]
     fastas_to_process = {}
     for path in sorted(list(Path(dir_path, orig_base_dir).rglob("*.f[an]a"))):
         if not f"{path.name}".startswith("."):
