@@ -2902,8 +2902,8 @@ def blat_misc_dna_psl_to_dict(
         if q_end - q_start >= q_size * (1 - settings.DNA_TOLERANCE_LEN):
             region = "full"
         elif (
-            q_start <= q_size * settings.DNA_TOLERANCE_LEN
-            and (q_size - q_end) <= q_size * settings.DNA_TOLERANCE_LEN
+            q_start < q_size * settings.DNA_TOLERANCE_LEN
+            and (q_size - q_end) < q_size * settings.DNA_TOLERANCE_LEN
         ):
             region = "full"
         elif (
