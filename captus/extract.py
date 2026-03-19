@@ -1079,12 +1079,20 @@ def adjust_concurrency(fastas_to_extract, num_samples, concurrent, threads_max, 
             quit_with_error("Invalid value for '--concurrent', set it to 'auto' or use a number")
 
     asm_sizes = [fastas_to_extract[sample]["assembly_size"] for sample in fastas_to_extract]
-    i = int(round(len(asm_sizes) * 4 / 5)) - 1
-    asm_size = math.ceil(sorted(asm_sizes)[i] / 512**3) * 512**3  # Round up to the 0.5GB
+
+    largest_asm = max(asm_sizes)
+    if largest_asm >= settings.LARGE_GENOME_THRESHOLD:
+        concurrent = 1
+        asm_size = math.ceil(largest_asm / 512**3) * 512**3  # Round up to the 0.5GB
+    else:
+        i = int(round(len(asm_sizes) * 9 / 10)) - 1
+        asm_size = math.ceil(sorted(asm_sizes)[i] / 512**3) * 512**3  # Round up to the 0.5GB
+
     if ref_type == "protein":
         min_ram_b = asm_size * settings.BLAT_PROT_RAM_FACTOR
     elif ref_type == "dna":
         min_ram_b = asm_size * settings.BLAT_DNA_RAM_FACTOR
+
     min_threads = settings.EXTRACT_MIN_THREADS
 
     if min_ram_b >= ram_B or min_threads >= threads_max:
@@ -1095,6 +1103,7 @@ def adjust_concurrency(fastas_to_extract, num_samples, concurrent, threads_max, 
     if concurrent > 1:
         while threads_max // concurrent < min_threads:
             concurrent -= 1
+
     ram_B_per_extraction = ram_B // concurrent
 
     if ram_B_per_extraction < min_ram_b:
@@ -1103,7 +1112,8 @@ def adjust_concurrency(fastas_to_extract, num_samples, concurrent, threads_max, 
 
     threads_per_extraction = threads_max // concurrent
     ram_B_per_extraction = ram_B // concurrent
-    return concurrent, threads_per_extraction, ram_B_per_extraction
+
+    return int(concurrent), int(threads_per_extraction), int(ram_B_per_extraction)
 
 
 def status_captus_assemblies_dir(captus_assemblies_dir, extra_fastas, margin):

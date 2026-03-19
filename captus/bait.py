@@ -446,7 +446,7 @@ def create_baits(
                 fasta_in = fasta_to_dict(fasta_path)
                 cds_ids = []
                 bait_count = 1
-                baits = {}
+                bait_seqs = {}
                 locus = ""
                 for ext in settings.FASTA_VALID_EXTENSIONS:
                     if f"{fasta_path}".lower().endswith(ext.lower()):
@@ -469,12 +469,17 @@ def create_baits(
                         cds_ids.append(seq_id)
                     seq = fasta_in[seq_name]["sequence"].replace("-", "").upper()
                     for p in range(0, len(seq) - (bait_length - 1)):
-                        bait_name = f"{locus}{settings.SEQ_NAME_SEP}b{bait_count:06}"
-                        baits[bait_name] = {
-                            "sequence": seq[p : p + bait_length],
+                        bait_seqs[seq[p : p + bait_length]] = {
+                            "name": f"{locus}{settings.SEQ_NAME_SEP}b{bait_count:06}",
                             "description": des,
                         }
                         bait_count += 1
+                baits = {}
+                for bait_seq in bait_seqs:
+                    baits[bait_seqs[bait_seq]["name"]] = {
+                        "sequence": bait_seq,
+                        "description": bait_seqs[bait_seq]["description"],
+                    }
                 if cds_ids:
                     all_cds_ids += cds_ids
                     dict_to_fasta(baits, baits_full_exons_path, append=True)
@@ -1329,10 +1334,11 @@ def prepare_targets(
                 fasta_out = {}
                 max_length = 0
                 for seq_name in fasta_in:
+                    seq_name_new = seq_name.replace(settings.SEQ_NAME_SEP, "_")
                     seq = fasta_in[seq_name]["sequence"].replace("-", "")
                     if len(seq) > max_length:
                         max_length = len(seq)
-                    fasta_out[f"{seq_name}{settings.REF_CLUSTER_SEP}{locus}"] = {
+                    fasta_out[f"{seq_name_new}{settings.REF_CLUSTER_SEP}{locus}"] = {
                         "sequence": seq,
                         "description": fasta_in[seq_name]["description"],
                     }
