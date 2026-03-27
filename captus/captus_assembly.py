@@ -1354,7 +1354,7 @@ class CaptusAssembly(object):
             default=0.0,
             type=float,
             dest="mafft_unalignlevel",
-            help="Use a value greater than 0 but lower than 1 (recommended 0.8)if the input data is"
+            help="Use a value greater than 0 but lower than 1 (recommended 0.8) if the input data is"
             " expected to be globally conserved but locally contaminated by unrelated segments."
             " When value is different than 0, the method '--mafft_globalpair' will be used."
             " Consider also enabling '--mafft_leavegappyregion'",

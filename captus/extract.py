@@ -1095,7 +1095,7 @@ def adjust_concurrency(fastas_to_extract, num_samples, concurrent, threads_max, 
 
     min_threads = settings.EXTRACT_MIN_THREADS
 
-    if min_ram_b >= ram_B or min_threads >= threads_max:
+    if min_ram_b > ram_B or min_threads > threads_max:
         return 1, 1, ram_B
 
     threads_max = min(ram_B // min_ram_b, threads_max)
@@ -1297,6 +1297,31 @@ def prepare_protein_refs(
             nt_path = settings.PROT_REF_TARGETS[marker][f"{refset}".lower()]["NT"]
             aa_msg = f"{bold(refset)} {dim(aa_path)}"
             nt_msg = f"{bold(refset)} {dim(nt_path)}"
+        elif Path(refset).is_file() and "odb1" in refset and refset.endswith(".tar.gz"):
+            log.log(
+                f"'{Path(refset).name}' seems to be a BUSCO lineage"
+                " database, Captus will attempt to import it..."
+            )
+            amino_refset = import_busco_odb1x(Path(refset))
+            if amino_refset is None:
+                aa_msg = red("BUSCO lineage database could not be imported")
+            else:
+                refset_dir = Path(out_dir, settings.REF_TARGETS_DIR)
+                refset_stem = Path(refset).name.replace("".join(Path(refset).suffixes), "")
+                make_output_dir(refset_dir)
+                amino_refset_fixed = fix_premature_stops(amino_refset)
+                if amino_refset_fixed is None:
+                    aa_path = Path(refset_dir, f"{refset_stem}.faa")
+                    dict_to_fasta(amino_refset, aa_path)
+                else:
+                    aa_path = Path(refset_dir, f"{refset_stem}_fixed.faa")
+                    dict_to_fasta(amino_refset_fixed, aa_path)
+                    log.log(
+                        f"WARNING: {refset_stem} contained gaps that were removed"
+                        " and/or premature stops that were converted to X"
+                    )
+                log.log(f"'{refset_stem}' was successfully imported")
+                aa_msg = bold(aa_path)
         elif Path(refset).is_file() and fasta_type(refset) == "NT":
             start = time.time()
             suffix = settings.TRANSLATED_REF_SUFFIX
@@ -1341,31 +1366,6 @@ def prepare_protein_refs(
                     " and/or premature stops that were converted to X"
                 )
             aa_msg = bold(aa_path)
-        elif Path(refset).is_file() and "odb1" in refset and refset.endswith(".tar.gz"):
-            log.log(
-                f"'{Path(refset).name}' seems to be a BUSCO lineage"
-                " database, Captus will attempt to import it..."
-            )
-            amino_refset = import_busco_odb1x(Path(refset))
-            if amino_refset is None:
-                aa_msg = red("BUSCO lineage database could not be imported")
-            else:
-                refset_dir = Path(out_dir, settings.REF_TARGETS_DIR)
-                refset_stem = Path(refset).name.replace("".join(Path(refset).suffixes), "")
-                make_output_dir(refset_dir)
-                amino_refset_fixed = fix_premature_stops(amino_refset)
-                if amino_refset_fixed is None:
-                    aa_path = Path(refset_dir, f"{refset_stem}.faa")
-                    dict_to_fasta(amino_refset, aa_path)
-                else:
-                    aa_path = Path(refset_dir, f"{refset_stem}_fixed.faa")
-                    dict_to_fasta(amino_refset_fixed, aa_path)
-                    log.log(
-                        f"WARNING: {refset_stem} contained gaps that were removed"
-                        " and/or premature stops that were converted to X"
-                    )
-                log.log(f"'{refset_stem}' was successfully imported")
-                aa_msg = bold(aa_path)
         elif Path(refset).is_file() and fasta_type(refset) == "invalid":
             aa_msg = red("not a valid FASTA")
         else:
@@ -2172,7 +2172,7 @@ def write_fastas_and_stats_tsv(
 
             if hits[ref][h]["ctg_avg_depth"] == "NA":
                 description = (
-                    f"[hit={h:02}]"
+                    f" [hit={h:02}]"
                     f" [wscore={hits[ref][h]['wscore']:.3f}]"
                     f" [ident={hits[ref][h]['identity']:.2f}]"
                     f" [cover={hits[ref][h]['coverage']:.2f}]"
@@ -2180,22 +2180,22 @@ def write_fastas_and_stats_tsv(
                 )
             else:
                 description = (
-                    f"[hit={h:02}]"
+                    f" [hit={h:02}]"
                     f" [wscore={hits[ref][h]['wscore']:.3f}]"
                     f" [ident={hits[ref][h]['identity']:.2f}]"
                     f" [cover={hits[ref][h]['coverage']:.2f}]"
                     f" [depth={hits[ref][h]['ctg_avg_depth']:.2f}]"
-                    f" [score={hits[ref][h]['score']:.3f}] "
+                    f" [score={hits[ref][h]['score']:.3f}]"
                 )
 
             seq_flanked = hits[ref][h]["seq_flanked"]
-            len_flanked = f"[length={len(seq_flanked)}] "
+            len_flanked = f" [length={len(seq_flanked)}]"
             seq_gene = hits[ref][h]["seq_gene"]
-            len_gene = f"[length={len(seq_gene)}] "
+            len_gene = f" [length={len(seq_gene)}]"
             seq_nt = hits[ref][h]["seq_nt"]
-            len_nt = f"[length={len(seq_nt)}] "
+            len_nt = f" [length={len(seq_nt)}]"
             seq_aa = hits[ref][h]["seq_aa"]
-            len_aa = f"[length={len(seq_aa)}] "
+            len_aa = f" [length={len(seq_aa)}]"
 
             ref_coords = format_coords(hits[ref][h]["ref_coords"])
             # This query description sometimes becomes too long for alignment software
@@ -2203,25 +2203,25 @@ def write_fastas_and_stats_tsv(
             #     f'[query={hits[ref][h]["ref_name"]}:{ref_coords}] '
             #     f'[contigs={hits[ref][h]["hit_contigs"]}]'.replace("\n", ";")
             # )
-            query = f"[query={hits[ref][h]['ref_name']}] "
+            query = f"[query={hits[ref][h]['ref_name']}]"
 
             shifts_flanked, shifts_gene, shifts_nt, shifts_aa = "", "", "", ""
             if marker_type in ["NUC", "PTD", "MIT"]:
                 shifts_flanked = [str(p + 1) for p in range(len(seq_flanked)) if seq_flanked[p] == "N"]
                 if shifts_flanked:
-                    shifts_flanked = f"[frameshifts={','.join(shifts_flanked)}] "
+                    shifts_flanked = f" [frameshifts={','.join(shifts_flanked)}]"
                 else:
                     shifts_flanked = ""
                 shifts_gene = [str(p + 1) for p in range(len(seq_gene)) if seq_gene[p] == "N"]
                 if shifts_gene:
-                    shifts_gene = f"[frameshifts={','.join(shifts_gene)}] "
+                    shifts_gene = f" [frameshifts={','.join(shifts_gene)}]"
                 else:
                     shifts_gene = ""
                 shifts_nt = [str(p + 1) for p in range(len(seq_nt)) if seq_nt[p] == "N"]
                 shifts_aa = [str(math.ceil(int(p) / 3)) for p in shifts_nt]
                 if shifts_nt:
-                    shifts_aa = f"[frameshifts={','.join(shifts_aa)}]"
-                    shifts_nt = f"[frameshifts={','.join(shifts_nt)}]"
+                    shifts_aa = f" [frameshifts={','.join(shifts_aa)}]"
+                    shifts_nt = f" [frameshifts={','.join(shifts_nt)}]"
                 else:
                     shifts_aa, shifts_nt = "", ""
 

@@ -273,8 +273,8 @@ def main():
         action="store",
         default=None,
         dest="extra_options",
-        help="Extra options to be passed to IQ-TREE or FastTree, enclose in quotations marks, e.g."
-        ' "-wbtl -wsl"',
+        help="Extra options to be passed to IQ-TREE or FastTree, enclose in quotations marks, if the"
+        ' options start with "-" use: -e="-wbtl -wsl"',
     )
     parser.add_argument(
         "--iqtree_path",

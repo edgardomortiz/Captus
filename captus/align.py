@@ -654,11 +654,7 @@ def align(full_command, args):
         log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
         log.log(f"{'Keep all files':>{mar}}: {bold(args.keep_all)}")
         fastas_to_trim = fastas_origs_dests(
-            markers,
-            formats,
-            out_dir,
-            settings.ALN_DIRS["ALND"],
-            settings.ALN_DIRS["TRIM"]
+            markers, formats, out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["TRIM"]
         )
         log.log(f"{'FASTA files to trim':>{mar}}: {bold(len(fastas_to_trim))}")
         log.log("")
@@ -2065,6 +2061,13 @@ def trim_missing(sequence: str, ambig: str):
     return sequence.replace("-", "").replace(ambig, "").replace(settings.TAPER_MASK, "")
 
 
+def magnitude(x):
+    if x == 0:
+        return 0
+    # Use math.floor to handle both positive and negative magnitudes correctly
+    return int(math.floor(math.log10(abs(x))))
+
+
 def taper_clipkit(
     taper_cutoff: float,
     taper_conservative: bool,
@@ -2104,7 +2107,9 @@ def taper_clipkit(
             if num_seqs == min_data_per_column:
                 clipkit_gaps = 1
             else:
-                clipkit_gaps = 1 - (min(num_seqs, min_data_per_column) / num_seqs)
+                clipkit_gaps = round(
+                    1 - (min(num_seqs, min_data_per_column) / num_seqs), magnitude(num_seqs) + 1
+                )
         is_unfiltered = bool("unfiltered" in f"{fasta_in.parent}")
         if is_unfiltered is True and taper_unfiltered is False:
             disable_taper = True
