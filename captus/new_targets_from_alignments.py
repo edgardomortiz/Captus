@@ -773,6 +773,7 @@ def write_targets(
             "clu_fil_samples": f"{clu_fil_samples:.3f}",
             "clu_raw_samples": f"{clu_raw_samples:.3f}",
             "fil_raw_samples": f"{fil_raw_samples:.3f}",
+            "split": "FALSE",
         }
 
     if multi_copy_centroids:
@@ -812,6 +813,7 @@ def write_targets(
                 "clu_fil_samples": f"{clu_fil_samples:.3f}",
                 "clu_raw_samples": f"{clu_raw_samples:.3f}",
                 "fil_raw_samples": f"{fil_raw_samples:.3f}",
+                "split": "FALSE",
             }
 
     loci_retained = list(set(loci_retained))
@@ -828,10 +830,10 @@ def write_targets(
                 "raw_locus": locus,
                 "raw_seqs": raw_input_data[locus]["num_seqs"],
                 "raw_samples": raw_input_data[locus]["num_samples"],
-                "raw_avg_copies": f"{raw_input_data[locus]["avg_copies"]:.3f}",
+                "raw_avg_copies": f"{raw_input_data[locus]['avg_copies']:.3f}",
                 "filtered_seqs": clust_input_data[locus]["num_seqs"],
                 "filtered_samples": clust_input_data[locus]["num_samples"],
-                "filtered_avg_copies": f"{clust_input_data[locus]["avg_copies"]:.3f}",
+                "filtered_avg_copies": f"{clust_input_data[locus]['avg_copies']:.3f}",
                 "locus": "NA",
                 "targets": "NA",
                 "sequences": "NA",
@@ -841,6 +843,7 @@ def write_targets(
                 "clu_fil_samples": f"{0:.3f}",
                 "clu_raw_samples": f"{0:.3f}",
                 "fil_raw_samples": f"{fil_raw_samples:.3f}",
+                "split": "FALSE",
             }
 
     for locus in raw_input_data:
@@ -852,7 +855,7 @@ def write_targets(
                 "raw_locus": locus,
                 "raw_seqs": raw_input_data[locus]["num_seqs"],
                 "raw_samples": raw_input_data[locus]["num_samples"],
-                "raw_avg_copies": f"{raw_input_data[locus]["avg_copies"]:.3f}",
+                "raw_avg_copies": f"{raw_input_data[locus]['avg_copies']:.3f}",
                 "filtered_seqs": "NA",
                 "filtered_samples": "NA",
                 "filtered_avg_copies": "NA",
@@ -865,6 +868,7 @@ def write_targets(
                 "clu_fil_samples": f"{0:.3f}",
                 "clu_raw_samples": f"{0:.3f}",
                 "fil_raw_samples": f"{0:.3f}",
+                "split": "FALSE",
             }
 
     tsv_header = [
@@ -884,9 +888,8 @@ def write_targets(
         "filter_to_initial_samples",
         "final_to_initial_samples",
         "final_to_filter_samples",
+        "split",
     ]
-    if multi_copy_centroids:
-        tsv_header += ["split"]
 
     target_fasta = {}
     num_split_loci = 0
@@ -913,6 +916,7 @@ def write_targets(
                 f"{target_data[locus]['fil_raw_samples']}",
                 f"{target_data[locus]['clu_raw_samples']}",
                 f"{target_data[locus]['clu_fil_samples']}",
+                f"{target_data[locus]['split']}",
             ]
 
             if locus in single_copy_centroids:
@@ -926,8 +930,6 @@ def write_targets(
                 for centroid in single_copy_centroids[locus]:
                     target_lengths.append(len(centroid["sequence"]))
                     break
-                if multi_copy_centroids:
-                    record += ["FALSE"]
             if multi_copy_centroids and locus in multi_copy_centroids:
                 seq_numbers.append(len(multi_copy_centroids[locus]))
                 for centroid in multi_copy_centroids[locus]:
@@ -939,9 +941,7 @@ def write_targets(
                 for centroid in multi_copy_centroids[locus]:
                     target_lengths.append(len(centroid["sequence"]))
                     break
-                if target_data[locus]["raw_locus"] == target_data[locus]["locus"]:
-                    record += ["FALSE"]
-                else:
+                if target_data[locus]["raw_locus"] != target_data[locus]["locus"]:
                     num_split_loci += 1
                     record += ["TRUE"]
             tsv_out.write("\t".join(record) + "\n")
@@ -952,7 +952,7 @@ def write_targets(
     msg += f"{now()} | Per-locus target information saved to '{tsv_file}'\n"
     wlog(log, msg)
 
-    msg  = bold("         % SAMPLES RETAINED:\n\n")
+    msg = bold("         % SAMPLES RETAINED:\n\n")
     msg += bold("             FILTERED / RAW:\n")
     msg += f"           FIL_RAW Median %: {statistics.median(fil_raw_pcts):.3f}\n"
     msg += f"             FIL_RAW Mean %: {statistics.mean(fil_raw_pcts):.3f}\n"
@@ -975,10 +975,10 @@ def write_targets(
     msg += f"              FIN_FIL Max %: {max(clu_fil_pcts):.3f}\n"
     wlog(log, msg)
 
-    msg  = bold("\n          FINAL TARGET FILE:\n\n")
+    msg = bold("\n          FINAL TARGET FILE:\n\n")
     msg += f"                 Total Loci: {len(seq_numbers)}\n"
     msg += f"       Total Singleton Loci: {seq_numbers.count(1)}\n"
-    msg += f"           Total Split loci: {num_split_loci}\n"
+    msg += f"           Total Split Loci: {num_split_loci}\n"
     msg += "\n"
     msg += f"            Total Sequences: {sum(seq_numbers)}\n"
     msg += f"      Median Seqs per Locus: {statistics.median(seq_numbers):.3f}\n"
