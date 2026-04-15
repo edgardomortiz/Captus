@@ -13,6 +13,7 @@ not, see <http://www.gnu.org/licenses/>.
 """
 
 import argparse
+import gzip
 import importlib
 import multiprocessing
 import os
@@ -269,10 +270,17 @@ def file_is_empty(file_path):
     Check if file has no contents
     """
     file_path = Path(file_path)
-    if file_path.stat().st_size == 0:
-        return True
+    if f"{file_path}".endswith(".gz"):
+        try:
+            with gzip.open(file_path, "rb") as f:
+                return len(f.read(1)) == 0
+        except (OSError, gzip.BadGzipFile):
+            return True
     else:
-        return False
+        if file_path.stat().st_size == 0:
+            return True
+        else:
+            return False
 
 
 def dir_is_empty(dir_path, ignore_subdirectories=True):
@@ -297,7 +305,7 @@ def has_valid_ext(file_path, valid_extensions_list):
     return False
 
 
-def find_and_match_fastqs(reads, recursive=False):
+def find_match_check_fastqs(reads, recursive=False):
     """
     Receives a list of files or a drectory name. Only FASTQ files in the list or inside the folder
     are retained. Returns a dictionary with the items formatted as:
@@ -332,7 +340,11 @@ def find_and_match_fastqs(reads, recursive=False):
         file_name = fastq_file.name
         file_dir = fastq_file.parent
         if "_R1." in file_name or "_R1_" in file_name:
-            if settings.SEQ_NAME_SEP in file_name:
+            if file_is_empty(fastq_file):
+                skipped.append(
+                    f"'{file_name}': SKIPPED, file is empty or corrupt, its pair will be ignored too"
+                )
+            elif settings.SEQ_NAME_SEP in file_name:
                 skipped.append(
                     f"'{file_name}': SKIPPED, pattern '{settings.SEQ_NAME_SEP}' not allowed in filenames"
                 )
@@ -341,10 +353,18 @@ def find_and_match_fastqs(reads, recursive=False):
                     file_name_r2 = file_name.replace("_R1.", "_R2.")
                 elif "_R1_" in file_name:
                     file_name_r2 = file_name.replace("_R1_", "_R2_")
-                if Path(file_dir, file_name_r2) in reads:
-                    fastqs[file_name] = {"fastq_dir": file_dir, "fastq_r2": file_name_r2}
-                else:
+                fastq_file_r2 = Path(file_dir, file_name_r2)
+                if fastq_file_r2 not in reads:
                     fastqs[file_name] = {"fastq_dir": file_dir, "fastq_r2": None}
+                else:
+                    if file_is_empty(fastq_file_r2):
+                        skipped.append(
+                            f"'{file_name_r2}': SKIPPED, file is empty or corrupt,"
+                            f" '{file_name}' will be taken as single-end"
+                        )
+                        fastqs[file_name] = {"fastq_dir": file_dir, "fastq_r2": None}
+                    else:
+                        fastqs[file_name] = {"fastq_dir": file_dir, "fastq_r2": file_name_r2}
         elif "_R2." not in file_name and "_R2_" not in file_name:
             skipped.append(f"'{file_name}': SKIPPED, pattern '_R1' or '_R2' not found in filename")
     return fastqs, skipped

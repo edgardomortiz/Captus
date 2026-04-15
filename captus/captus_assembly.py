@@ -328,15 +328,28 @@ class CaptusAssembly(object):
             "A pattern = UNIX matching expression (e.g.: -r ./raw_reads/*.fastq.gz)",
         )
         input_group.add_argument(
+            "--srt",
             "--sample_reads_target",
             action="store",
             default=0,
             type=int,
             dest="sample_reads_target",
             help="Use this number of read pairs (or reads if single-end) for assembly. Reads are"
-            " randomly subsampled with 'reformat.sh' from BBTools (option:"
-            " srt/samplereadstarget). Useful for limiting the amount of data of samples with"
-            " very high sequencing depth. To use all the reads, set this value to 0",
+            " randomly subsampled with 'reformat.sh' from BBTools (option: srt/samplereadstarget)."
+            " Useful for limiting the amount of data of samples with very high sequencing depth. Do"
+            " not use together with 'sample_bases_target'. To use all the reads, set this value to 0",
+        )
+        input_group.add_argument(
+            "--sbt",
+            "--sample_bases_target",
+            action="store",
+            default=0,
+            type=int,
+            dest="sample_bases_target",
+            help="Use this number bases for assembly. Reads are randomly subsampled with"
+            " 'reformat.sh' from BBTools (option: sbt/samplebasestarget). Useful for limiting the"
+            " amount of data of samples with very high sequencing depth. Do not use together with"
+            " 'sample_reads_target'. To use all the bases, set this value to 0",
         )
 
         output_group = parser.add_argument_group("Output")
@@ -481,8 +494,8 @@ class CaptusAssembly(object):
             "--redo_filtering",
             action="store_true",
             dest="redo_filtering",
-            help="Enable if you want to try different values for `--max_contig_gc` or"
-            " `--min_contig_depth`. Only the filtering step will be repeated",
+            help="Enable if you want to try different values for '--max_contig_gc' or"
+            " '--min_contig_depth'. Only the filtering step will be repeated",
         )
 
         other_group = parser.add_argument_group("Other")

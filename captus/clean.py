@@ -28,7 +28,7 @@ from .misc import (
     elapsed_time,
     falco_path_version,
     fastqc_path_version,
-    find_and_match_fastqs,
+    find_match_check_fastqs,
     format_dep_msg,
     has_valid_ext,
     make_output_dir,
@@ -179,7 +179,7 @@ def clean(full_command, args):
     log.log(f"{'Trim poly-A tails':>{mar}}: {bold(args.rna)}")
     log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
     log.log(f"{'Keep all files':>{mar}}: {bold(args.keep_all)}")
-    fastqs_raw, skipped_msgs = find_and_match_fastqs(args.reads, recursive=True)
+    fastqs_raw, skipped_msgs = find_match_check_fastqs(args.reads, recursive=True)
     adaptors_trimmed_dir, adaptors_trimmed_msg = make_output_dir(Path(out_dir, "00_adaptors_trimmed"))
     log.log(f"{'Samples to trim':>{mar}}: {bold(len(fastqs_raw))}")
     log.log("")
@@ -244,7 +244,7 @@ def clean(full_command, args):
     log.log(f"{'ftr':>{mar}}: {bold(args.ftr)}")
     log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
     log.log(f"{'Keep all files':>{mar}}: {bold(args.keep_all)}")
-    all_fastqs_no_adaptors, skipped_msgs = find_and_match_fastqs(adaptors_trimmed_dir)
+    all_fastqs_no_adaptors, skipped_msgs = find_match_check_fastqs(adaptors_trimmed_dir)
     fastqs_no_adaptors = {k: v for (k, v) in all_fastqs_no_adaptors.items() if k in fastqs_raw}
     log.log(f"{'Samples to clean':>{mar}}: {bold(len(fastqs_no_adaptors))}")
     log.log("")
@@ -342,7 +342,7 @@ def clean(full_command, args):
                         "BEFORE",
                     )
                 )
-        all_clean_fastqs, skipped_msgs = find_and_match_fastqs(out_dir)
+        all_clean_fastqs, skipped_msgs = find_match_check_fastqs(out_dir)
         clean_fastqs = {k: v for (k, v) in all_clean_fastqs.items() if k in fastqs_raw}
         for fastq_r1 in sorted(clean_fastqs):
             qc_stats_params.append(
@@ -762,8 +762,8 @@ def qc_stats(qc_program_name, qc_program_path, in_fastq, qc_stats_out_dir, overw
 
     if overwrite is True or not qc_stats_log_file.exists():
         read_stats = get_read_stats(in_fastq, settings.NUM_READS_TO_CALCULATE_STATS)
-        mean_read_length = read_stats["mean_read_length"]
-        if mean_read_length <= 1000:
+        median_read_length = read_stats["median_read_length"]
+        if median_read_length <= 1000:
             cmd_last_part = ["--nogroup"] + cmd_last_part
         qc_stats_cmd += cmd_last_part
         shutil.rmtree(Path(qc_stats_out_dir, file_out_dir), ignore_errors=True)

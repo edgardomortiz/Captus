@@ -27,7 +27,7 @@ from .misc import (
     bold,
     dim,
     elapsed_time,
-    find_and_match_fastqs,
+    find_match_check_fastqs,
     format_dep_msg,
     make_output_dir,
     make_tmp_dir_within,
@@ -79,16 +79,26 @@ def assemble(full_command, args):
         )
     skipped_subsample = []
     skipped_assemble = []
-    if args.sample_reads_target > 0:
-        fastqs_to_subsample, skipped_subsample = find_and_match_fastqs(args.reads)
+    if args.sample_reads_target > 0 or args.sample_bases_target > 0:
+        fastqs_to_subsample, skipped_subsample = find_match_check_fastqs(args.reads)
         skip_subsampling = False
         _, reformat_version, reformat_status = bbtools_path_version(args.reformat_path)
-        intro_msg += (
-            f" MEGAHIT de novo assemblies will start after subsampling {args.sample_reads_target}"
-            " read pairs (or single-end reads)."
+        if args.sample_reads_target > 0 and args.sample_bases_target > 0:
+            quit_with_error(
+                "Set either 'sample_reads_target' or 'sample_bases_target', never both..."
+            )
+        elif args.sample_reads_target > 0:
+            intro_msg += (
+                f" MEGAHIT de novo assemblies will start after subsampling {args.sample_reads_target}"
+                " read pairs (or single-end reads)."
+        )
+        elif args.sample_bases_target > 0:
+            intro_msg += (
+                f" MEGAHIT de novo assemblies will start after subsampling {args.sample_bases_target}"
+                " bases."
         )
     else:
-        fastqs_to_assemble, skipped_assemble = find_and_match_fastqs(args.reads, recursive=False)
+        fastqs_to_assemble, skipped_assemble = find_match_check_fastqs(args.reads, recursive=False)
         skip_subsampling = True
         reformat_version, reformat_status = "", "not used"
         intro_msg += (
@@ -176,6 +186,7 @@ def assemble(full_command, args):
             )
 
         log.log(f"{'Reads to subsample':>{mar}}: {bold(args.sample_reads_target)}")
+        log.log(f"{'Bases to subsample':>{mar}}: {bold(args.sample_bases_target)}")
         log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
         log.log(f"{'Keep all files':>{mar}}: {bold(args.keep_all)}")
         log.log(f"{'Samples to process':>{mar}}: {bold(len(fastqs_to_subsample))}")
@@ -211,6 +222,7 @@ def assemble(full_command, args):
                     in_fastq,
                     out_dir,
                     args.sample_reads_target,
+                    args.sample_bases_target,
                     args.overwrite,
                 )
             )
@@ -275,7 +287,7 @@ def assemble(full_command, args):
     log.log(f"{'max_contig_gc':>{mar}}: {bold(args.max_contig_gc)}%")
     log.log(f"{'disable_mapping':>{mar}}: {bold(args.disable_mapping)}")
     if args.min_contig_depth == "auto":
-        msg_min_contig_depth = "1.0x (auto)" if args.disable_mapping is True else "1.5 (auto)"
+        msg_min_contig_depth = "1.0x (auto)" if args.disable_mapping is True else "1.5x (auto)"
     else:
         try:
             msg_min_contig_depth = f"{float(args.min_contig_depth)}x"
@@ -317,7 +329,7 @@ def assemble(full_command, args):
         )
         fastqs_to_assemble[fastq_r1]["min_read_length"] = read_stats["min_read_length"]
         fastqs_to_assemble[fastq_r1]["max_read_length"] = read_stats["max_read_length"]
-        fastqs_to_assemble[fastq_r1]["mean_read_length"] = read_stats["mean_read_length"]
+        fastqs_to_assemble[fastq_r1]["median_read_length"] = read_stats["median_read_length"]
         megahit_params.append(
             (
                 args.megahit_path,
@@ -326,7 +338,7 @@ def assemble(full_command, args):
                 fastq_r1,
                 fastqs_to_assemble[fastq_r1]["fastq_r2"],
                 sample_name,
-                read_stats["mean_read_length"],
+                read_stats["median_read_length"],
                 args.k_list,
                 args.min_count,
                 args.prune_level,
@@ -475,7 +487,15 @@ def assemble(full_command, args):
 
 
 def subsample_reads(
-    reformat_path, ram_MB, threads, in_dir, in_fastq, out_dir, sample_reads_target, overwrite
+    reformat_path,
+    ram_MB,
+    threads,
+    in_dir,
+    in_fastq,
+    out_dir,
+    sample_reads_target,
+    sample_bases_target,
+    overwrite,
 ):
     """
     Subsample reads using reformat.sh from BBTools
@@ -499,9 +519,13 @@ def subsample_reads(
         f"threads={threads}",
         f"in={Path(in_dir, in_fastq)}",
         f"out={Path(sample_subsampled_out_dir, in_fastq)}",
-        f"samplereadstarget={sample_reads_target}",
+        f"minlength={settings.BBDUK_MIN_LENGTH}",
         f"ziplevel={settings.REFORMAT_ZIPLEVEL}",
     ]
+    if sample_reads_target > 0:
+        reformat_cmd += [f"samplereadstarget={sample_reads_target}"]
+    if sample_bases_target > 0:
+        reformat_cmd += [f"samplebasestarget={sample_bases_target}"]
     reformat_log_file = Path(sample_subsampled_out_dir, f"{sample_name}_subsampling.log")
     if overwrite is True or not reformat_log_file.exists():
         reformat_cmd += ["overwrite=t"]
@@ -589,7 +613,7 @@ def megahit(
     fastq_r1,
     fastq_r2,
     sample_name,
-    mean_read_length,
+    median_read_length,
     k_list,
     min_count,
     prune_level,
@@ -617,17 +641,17 @@ def megahit(
     if overwrite is True or incomplete_log.exists() or not sample_megahit_out_dir.exists():
         if sample_megahit_out_dir.exists():
             shutil.rmtree(sample_megahit_out_dir, ignore_errors=True)
-        if mean_read_length is False:
+        if median_read_length is False:
             message = red(
                 f"'{sample_name}': SKIPPED (FASTQ files have .gz"
                 " extension but are not compressed, please verify)"
             )
             return message
         adjusted_k_list = adjust_megahit_k_list(
-            k_list, mean_read_length, settings.DELTA_MEAN_READ_LENGTH_TO_MAX_KMER_SIZE
+            k_list, median_read_length, settings.DELTA_MEDIAN_READ_LENGTH_TO_MAX_KMER_SIZE
         )
         adjusted_min_contig_len = adjust_megahit_min_contig_len(
-            min_contig_len, mean_read_length, adjusted_k_list
+            min_contig_len, median_read_length, adjusted_k_list
         )
         megahit_cmd = [megahit_path]
         if fastq_r2:
@@ -679,20 +703,20 @@ def megahit(
     return message
 
 
-def adjust_megahit_k_list(k_list, mean_read_length, delta):
+def adjust_megahit_k_list(k_list, median_read_length, delta):
     """
-    Remove largest kmers sizes from 'k_list' if they exceed 'mean_read_length' by at least 'delta'
+    Remove largest kmers sizes from 'k_list' if they exceed 'median_read_length' by at least 'delta'
     """
-    return ",".join([k for k in k_list.split(",") if int(k) - mean_read_length <= delta])
+    return ",".join([k for k in k_list.split(",") if int(k) - median_read_length <= delta])
 
 
-def adjust_megahit_min_contig_len(min_contig_len, mean_read_length, k_list):
+def adjust_megahit_min_contig_len(min_contig_len, median_read_length, k_list):
     """
     If 'min_contig_len' is set to 'auto' then adjust it to 'min_read_length' + smallest kmer size in
     'k_list'
     """
     if min_contig_len == "auto":
-        return min(200, mean_read_length + int(k_list.split(",")[0]))
+        return min(200, median_read_length + int(k_list.split(",")[0]))
     elif int(min_contig_len) > 0:
         return min_contig_len
     else:

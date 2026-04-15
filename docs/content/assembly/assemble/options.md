@@ -43,8 +43,13 @@ clean_reads
 {{% /expand %}}
 
 ___
-### **`--sample_reads_target`**
-In case that you want to subsample a fixed amount of reads (e.g. if your FASTQ files have hundreds of millions of reads) you can indicate the number with this option. For example, `--sample_reads_target 10_000_000` will randomly sample 10 million reads (if single-end) or 10 million pairs (if paired-end).
+### **`--srt, --sample_reads_target`**
+In case that you want to subsample a fixed amount of reads (e.g. if your FASTQ files have hundreds of millions of reads) you can indicate the number with this option. For example, `--sample_reads_target 10_000_000` will randomly sample 10 million reads (if single-end) or 10 million pairs (if paired-end). Do not use together with `--sample_bases_target`.
+
+This argument is optional, the default is **0** (no subsampling).
+___
+### **`--sbt, --sample_bases_target`**
+In case that you want to subsample a fixed amount of bases (e.g. if your FASTQ files have hundreds of millions of reads) you can indicate the number with this option. For example, `--sample_bases_target` 20_000_000_000 will randomly sample 20 billion bases. Do not use together with `--sample_reads_target`.
 
 This argument is optional, the default is **0** (no subsampling).
 ___
@@ -130,4 +135,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (02.21.2026)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (04.10.2026)

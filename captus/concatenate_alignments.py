@@ -303,17 +303,19 @@ def main():
         " save the supermatrix as FASTA, PHYLIP or NEXUS, including a partition file",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument(
+
+    captus_group = parser.add_argument_group("Captus alignments options")
+    captus_group.add_argument(
         "-a",
-        "--captus_alignments",
+        "--captus_alignments_dir",
         action="store",
         default="./04_alignments",
-        dest="captus_alignments",
+        dest="captus_alignments_dir",
         help="Path to the directory that contains the output from the alignment step of Captus"
         " The path to a text file containing the list of paths to the alignments can also be"
         " provided (if your alignments contain aminoacid sequences use '-F AA')",
     )
-    parser.add_argument(
+    captus_group.add_argument(
         "-s",
         "--stage",
         action="store",
@@ -322,7 +324,7 @@ def main():
         choices=["untrimmed", "trimmed"],
         help="Trimming stage",
     )
-    parser.add_argument(
+    captus_group.add_argument(
         "-f",
         "--filter",
         action="store",
@@ -338,7 +340,7 @@ def main():
         ],
         help="Paralog filter",
     )
-    parser.add_argument(
+    captus_group.add_argument(
         "-M",
         "--marker",
         action="store",
@@ -347,7 +349,7 @@ def main():
         choices=["NUC", "PTD", "MIT", "DNA", "CLR"],
         help="Marker type",
     )
-    parser.add_argument(
+    captus_group.add_argument(
         "-F",
         "--format",
         action="store",
@@ -356,7 +358,9 @@ def main():
         choices=["AA", "NT", "GE", "GF", "MA", "MF"],
         help="Alignment data format",
     )
-    parser.add_argument(
+
+    alns_list_group = parser.add_argument_group("Alignments by list")
+    alns_list_group.add_argument(
         "-l",
         "--alignments_list",
         action="store",
@@ -366,7 +370,9 @@ def main():
         " will be ignored except for '--format', i.e. if you want to process protein aligments use"
         " '--format AA')",
     )
-    parser.add_argument(
+
+    output_group = parser.add_argument_group("Output options")
+    output_group.add_argument(
         "-o",
         "--out_dir",
         action="store",
@@ -374,7 +380,7 @@ def main():
         dest="out_dir",
         help="Output directory name",
     )
-    parser.add_argument(
+    output_group.add_argument(
         "-p",
         "--prefix",
         action="store",
@@ -382,7 +388,7 @@ def main():
         dest="prefix",
         help="Prefix for output files",
     )
-    parser.add_argument(
+    output_group.add_argument(
         "-e",
         "--out_format",
         action="store",
@@ -391,7 +397,16 @@ def main():
         choices=["fasta", "nexus", "phylip"],
         help="Supermatrix format (will be used as file extension too)",
     )
-    parser.add_argument(
+    output_group.add_argument(
+        "-w",
+        "--wrap",
+        action="store",
+        default=0,
+        type=int,
+        dest="wrap",
+        help="Wrap sequence at this length in bp, 0 means no wrapping will be applied",
+    )
+    output_group.add_argument(
         "-c",
         "--codon",
         action="store",
@@ -400,15 +415,6 @@ def main():
         choices=["123", "1", "2", "3", "12", "13", "23"],
         help="Codon or codon positions to include in the partition file, include all by default"
         " ignored for aminoacid alignments",
-    )
-    parser.add_argument(
-        "-w",
-        "--wrap",
-        action="store",
-        default=0,
-        type=int,
-        dest="wrap",
-        help="Wrap sequence at this length in bp, 0 means no wrapping will be applied",
     )
     args = parser.parse_args()
 
@@ -419,13 +425,13 @@ def main():
         seq_type = "AA"
     fastas_paths = []
     if args.alignments_list is None:
-        if not Path(args.captus_alignments).exists():
+        if not Path(args.captus_alignments_dir).exists():
             quit_with_error(
-                f"'{args.captus_alignments}' not found, verify this Captus alignment directory exists!"
+                f"'{args.captus_alignments_dir}' not found, verify this Captus alignment directory exists!"
             )
-        elif Path(args.captus_alignments).is_dir():
+        elif Path(args.captus_alignments_dir).is_dir():
             aln_dir = Path(
-                args.captus_alignments,
+                args.captus_alignments_dir,
                 CAPTUS_DIRS[args.stage],
                 CAPTUS_DIRS[args.filter],
                 CAPTUS_DIRS[args.marker],
@@ -434,8 +440,8 @@ def main():
             if not aln_dir.exists():
                 quit_with_error(f"'{aln_dir}' not found, verify this Captus alignment directory exists!")
             fastas_paths = list(sorted(aln_dir.glob(f"*.{fasta_ext}")))
-        elif Path(args.captus_alignments).is_file():
-            with open(Path(args.captus_alignments), "rt") as paths_in:
+        elif Path(args.captus_alignments_dir).is_file():
+            with open(Path(args.captus_alignments_dir), "rt") as paths_in:
                 for line in paths_in:
                     fasta_path = Path(line.strip())
                     if fasta_path.exists():
@@ -480,7 +486,7 @@ def main():
         print(f"NEXUS-style partition file saved to '{nexus_part_path}'")
     else:
         print(
-            f"No valid alignments or valid paths to alignments were found in '{args.captus_alignments}'"
+            f"No valid alignments or valid paths to alignments were found in '{args.captus_alignments_dir}'"
         )
 
 

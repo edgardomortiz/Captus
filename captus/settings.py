@@ -73,7 +73,7 @@ QC_ADAPTORS_LIST = Path(DATA_DIR, "qc_adaptors_list.txt")
 
 # Keep reads with a minimum length of this value after trimming, for the adaptor removal stage and
 # the quality filtering/trimming stage
-BBDUK_MIN_LENGTH = 21
+BBDUK_MIN_LENGTH = 31
 
 # K-mer size for first round of adaptor cleaning
 BBDUK_ADAPTOR_ROUND1_K = 21
@@ -141,7 +141,7 @@ MAX_DELTA_AT_GC = 10
 
 # Include largest kmer sizes in MEGAHIT's 'k_list' if they are at most this larger than the mean
 # read length of the input FASTQs
-DELTA_MEAN_READ_LENGTH_TO_MAX_KMER_SIZE = 31
+DELTA_MEDIAN_READ_LENGTH_TO_MAX_KMER_SIZE = 31
 
 # Minimum RAM in bytes for a MEGAHIT assembly
 MEGAHIT_MIN_RAM_B = 4 * 1024**3

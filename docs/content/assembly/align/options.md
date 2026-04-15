@@ -126,13 +126,13 @@ We provide two filtering methods for paralog removal, you can select either or b
 This argument is optional, the default is **both**.
 ___
 ### **`--tolerance`**
-Only applicable to the `informed` filter. If the selected copy's identity to the most commonly chosen reference is below this number of Standard Deviations from the mean, it will also be removed (the lower the number the stricter the filter). Use -1 to disable the filter.
+Only applicable to the 'informed' filter. If the selected copy's identity to the most commonly chosen reference target is below this number of Standard Deviations from the mean, it will also be removed (the lower the number the stricter the filter). The previous default value of 4.0 works well for broad taxonomic scopes, but tends to remove the outgroup in family and genus-level studies. -1 disables this filter.
 
-This argument is optional, the default is **4.0**.
+This argument is optional, the default is **-1**.
 ___
 ## *Trimming (TAPER and ClipKIT)*
 ___
-### **`-c, --taper_cutoff`**
+### **`-t, --taper_cutoff`**
 TAPER cutoff threshold, values greater than 1.0 are recommended, the lower the value the more aggressive the correction, 3.0 recommended by TAPER's authors.
 
 This argument is optional, the default is **3.0**.
@@ -172,7 +172,7 @@ ___
 ### **`--ends_only`**
 Trim only the ends of the alignments (do not trim internal gaps).
 ___
-### **`-v, --min_coverage`**
+### **`-c, --min_coverage`**
 Minimum coverage of sequence as proportion of the mean of sequence lengths in the alignment, ignoring gaps. After `ClipKIT` finishes trimming columns, `Captus` will also remove short sequences below this threshold.
 
 This argument is optional, the default is **0.4**.
@@ -207,4 +207,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)<br>
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#gentaro-shigita">}}) (17.02.2026)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (01.04.2026)

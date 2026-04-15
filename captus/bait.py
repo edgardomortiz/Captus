@@ -450,7 +450,7 @@ def create_baits(
                 locus = ""
                 for ext in settings.FASTA_VALID_EXTENSIONS:
                     if f"{fasta_path}".lower().endswith(ext.lower()):
-                        locus = f"{fasta_path.name}".rstrip(ext)
+                        locus = f"{fasta_path.name}".replace(ext, "")
                         break
                 # in case the locus name contains "-", replace by "_"
                 locus.replace(settings.REF_CLUSTER_SEP, "_")
@@ -1326,7 +1326,7 @@ def prepare_targets(
                 locus = ""
                 for ext in settings.FASTA_VALID_EXTENSIONS:
                     if f"{fasta_path}".lower().endswith(ext.lower()):
-                        locus = f"{fasta_path.name}".rstrip(ext)
+                        locus = f"{fasta_path.name}".replace(ext, "")
                         break
                 # in case the locus name contains "-", replace by "_"
                 locus = locus.replace(settings.REF_CLUSTER_SEP, "_")
@@ -1516,7 +1516,7 @@ def prepare_targets(
             )
             for locus in sorted(loci_baitless):
                 tsv_out.write(
-                    f'{locus}\t0\t0\t{loci_baitless[locus]["max_length"]}\t""\t""\t0\tno baits\n'
+                    f'{locus}\t0\t0\t{loci_baitless[locus]["max_length"]}\t\t\t0\tno baits\n'
                 )
             for locus in sorted(loci_baits):
                 tsv_out.write(

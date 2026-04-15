@@ -400,7 +400,7 @@ def get_read_stats(fastq_path, num_reads):
     read_stats = {
         "min_read_length": min(read_lengths),
         "max_read_length": max(read_lengths),
-        "mean_read_length": math.ceil(statistics.mean(read_lengths)),
+        "median_read_length": math.ceil(statistics.median(read_lengths)),
     }
 
     return read_stats

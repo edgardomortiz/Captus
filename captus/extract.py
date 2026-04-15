@@ -398,6 +398,13 @@ def extract(full_command, args):
         log.log("")
         log.log("")
 
+        if args.paralog_identity_tolerance > 1:
+            args.paralog_identity_tolerance /= 100
+        if args.paralog_coverage_tolerance > 1:
+            args.paralog_coverage_tolerance /= 100
+        if args.paralog_depth_tolerance > 1:
+            args.paralog_depth_tolerance /= 100
+
         log.log(bold(f"{'OUTPUT OPTIONS':>{mar}}:"))
         log.log(f"{'Ignore depth of coverage':>{mar}}: {bold(args.ignore_depth)}")
         log.log(f"{'Disable contig stitching':>{mar}}: {bold(args.disable_stitching)}")
