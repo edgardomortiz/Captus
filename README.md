@@ -44,7 +44,11 @@ or
 mamba create --platform osx-64 -n captus -c bioconda -c conda-forge captus megahit=1.2.9=hfbae3c0_0 mmseqs2=16.747c6
 ```
 
-**WARNING**: MAFFT v7.525 has a bug that has been corrected in v7.526, consider adding to the commands above `mafft=7.526`. BBTools v39.76 also contains a bug, if the cleaning step doesn't work, please add `bbmap=39.52` or another different version.
+> [!WARNING]
+> The following programs provided by `bioconda` contain bugs or compilation errors, if you notice any problem try re-installing a valid version:
+> - __BBTools v39.7X__: use versions <= 39.52 or >= 39.80 (add `bbmap=39.52` to the installation commands, or run `conda install -c bioconda bbmap=39.52` with your Captus environment activated if Captus is already installed)
+> - __Salmon v1.11.4__: use version 1.10.3 (add `salmon=1.10.3` to the installation commands, or run `conda install -c bioconda salmon=1.10.3` with your Captus environment activated if Captus is already installed)
+> - __MAFFT v7.525__: use version 7.526 (add `mafft=7.526` to the installation commands, or run `conda install -c conda-forge mafft=7.526` with your Captus environment activated if Captus is already installed)
 
 Then check that `Captus` was correctly installed:
 
