@@ -368,7 +368,7 @@ def prefilter_seqs(
                 "median_wscore": statistics.median(locus_wscores),
                 "median_coverage": statistics.median(locus_coverages),
             }
-        if len(set(samples)) < min_samples:
+        if locus_name in loci_fastas and len(set(samples)) < min_samples:
             del loci_fastas[locus_name]
             del loci_data[locus_name]
 
