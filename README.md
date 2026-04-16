@@ -2,7 +2,7 @@
   <img src=docs/static/images/logo.svg alt=captus_logo width=500>
 </p>
 
-### *Assembly of Phylogenomic Datasets from High-Throughput Sequencing data*
+### *Assembly of Phylogenomic Datasets from High-Throughput Sequencing Data*
 
 Documentation: [https://edgardomortiz.github.io/captus.docs](https://edgardomortiz.github.io/captus.docs)
 
