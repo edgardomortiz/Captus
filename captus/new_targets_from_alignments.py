@@ -212,11 +212,18 @@ def split_mmseqs_clusters_file(all_seqs_file_path):
 
 def msg_loci_stats(loci_fastas: dict, title: str):
     spacer = (26 - len(title)) * " "
+
+    if not loci_fastas:
+        msg = f"\n{IND}{spacer}{bold(title)}\n\n"
+        msg += f"{IND}               Total loci: 0\n"
+        return msg
+
     num_loci = len(loci_fastas)
     seqs_per_locus = [len(loci_fastas[locus]) for locus in loci_fastas]
     seqs_sd = 0
     if len(seqs_per_locus) > 1:
         seqs_sd = statistics.stdev(seqs_per_locus)
+
     msg = f"\n{IND}{spacer}{bold(title)}\n\n"
     msg += f"{IND}               Total loci: {num_loci}\n"
     msg += f"{IND}     Total singleton loci: {seqs_per_locus.count(1)}\n"
@@ -226,18 +233,24 @@ def msg_loci_stats(loci_fastas: dict, title: str):
     msg += f"{IND}        SD seqs per locus: {seqs_sd:.3f}\n"
     msg += f"{IND}       Min seqs per locus: {min(seqs_per_locus)}\n"
     msg += f"{IND}       Max seqs per locus: {max(seqs_per_locus)}\n"
+
     return msg
 
 
 def msg_samples_copies(loci_data: dict):
+    if not loci_data:
+        return ""
+
     num_samples = [loci_data[locus]["num_samples"] for locus in loci_data]
     samples_sd = 0
     if len(num_samples) > 1:
         samples_sd = statistics.stdev(num_samples)
+
     avg_copies = [loci_data[locus]["avg_copies"] for locus in loci_data]
     copies_sd = 0
     if len(avg_copies) > 1:
         copies_sd = statistics.stdev(avg_copies)
+
     msg = f"{IND} Median samples per locus: {statistics.median(num_samples)}\n"
     msg += f"{IND}   Mean samples per locus: {statistics.mean(num_samples):.3f}\n"
     msg += f"{IND}     SD samples per locus: {samples_sd:.3f}\n"
@@ -248,6 +261,7 @@ def msg_samples_copies(loci_data: dict):
     msg += f"{IND}      SD copies per locus: {copies_sd:.3f}\n"
     msg += f"{IND}     Min copies per locus: {min(avg_copies):.3f}\n"
     msg += f"{IND}     Max copies per locus: {max(avg_copies):.3f}\n"
+
     return msg
 
 
@@ -719,7 +733,7 @@ def write_targets(
     overwrite: bool,
     log: Path,
 ):
-    target_file = Path(out_dir, f"{prefix}_target.fasta")
+    target_file = Path(out_dir, f"{prefix}_targets.fasta")
     tsv_file = Path(out_dir, f"{prefix}_targets.tsv")
     output_files = [target_file, tsv_file]
 
