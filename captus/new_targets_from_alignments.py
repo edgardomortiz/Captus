@@ -957,7 +957,8 @@ def write_targets(
                     break
                 if target_data[locus]["raw_locus"] != target_data[locus]["locus"]:
                     num_split_loci += 1
-                    record += ["TRUE"]
+                    record[-1] = "TRUE"
+
             tsv_out.write("\t".join(record) + "\n")
 
     dict_to_fasta(target_fasta, target_file)
