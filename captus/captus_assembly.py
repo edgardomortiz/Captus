@@ -1003,7 +1003,7 @@ class CaptusAssembly(object):
         mmseqs2_group.add_argument(
             "--cl_mode",
             action="store",
-            default=2,
+            default=1,
             type=int,
             dest="cl_mode",
             choices=[0, 1, 2],
@@ -1046,7 +1046,7 @@ class CaptusAssembly(object):
         mmseqs2_group.add_argument(
             "--cl_min_coverage",
             action="store",
-            default=80,
+            default=50,
             type=float,
             dest="cl_min_coverage",
             help="Any sequence in a cluster has to be at least this percent included in the length"
@@ -1099,7 +1099,7 @@ class CaptusAssembly(object):
         mmseqs2_group.add_argument(
             "--cl_max_copies",
             action="store",
-            default=3,
+            default=6,
             type=float,
             dest="cl_max_copies",
             help="Maximum average number of sequences per sample in a cluster. This can exclude loci"

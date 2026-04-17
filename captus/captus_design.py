@@ -231,7 +231,7 @@ class CaptusDesign(object):
         clustering_group.add_argument(
             "--dedup_coverage",
             action="store",
-            default=66.66,
+            default=40,
             type=float,
             dest="dedup_coverage",
             help="Percent coverage threshold for within-sample marker deduplication",
@@ -248,7 +248,7 @@ class CaptusDesign(object):
         clustering_group.add_argument(
             "--clust_coverage",
             action="store",
-            default=66.66,
+            default=40,
             type=float,
             dest="clust_coverage",
             help="Percent coverage threshold for across-samples marker clustering",

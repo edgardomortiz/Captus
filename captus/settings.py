@@ -621,7 +621,7 @@ MMSEQS_MIN_AUTO_MIN_IDENTITY = 75
 # T: -AVGTAC---  60% 100%  IGN
 #        -c 0.7    -    +    -
 #        -c 0.6    +    +    +
-MMSEQS_COV_MODE = 1
+MMSEQS_COV_MODE = 0
 
 # Penalty for opening a gap when aligning sequences during clustering. The lower the value the
 # slower clustering becomes. Not recommended to go lower than 3 for nucleotides or 9 for aminoacids,
