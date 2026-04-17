@@ -144,6 +144,16 @@ def assemble(full_command, args):
     log.log(f"{'':>{mar}}  {dim(out_dir_msg)}")
     log.log("")
 
+    if skipped_subsample:
+        skipped_msgs = skipped_subsample
+    elif skipped_assemble:
+        skipped_msgs = skipped_assemble
+    if skipped_msgs:
+        log.log(f"{bold('WARNING:')} {len(skipped_msgs)} file(s) will be skipped:")
+        for msg in skipped_msgs:
+            log.log(msg)
+        log.log("")
+
     if reformat_status == "not found":
         skip_subsampling = True
         log.log(

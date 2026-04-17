@@ -188,7 +188,7 @@ def clean(full_command, args):
     log.log("")
 
     if skipped_msgs:
-        log.log(f"{bold('WARNING:')} {len(skipped_msgs)} file(s) will be skipped")
+        log.log(f"{bold('WARNING:')} {len(skipped_msgs)} file(s) will be skipped:")
         for msg in skipped_msgs:
             log.log(msg)
         log.log("")
