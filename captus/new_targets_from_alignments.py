@@ -837,8 +837,8 @@ def write_targets(
             fil_raw_samples = (
                 clust_input_data[locus]["num_samples"] / raw_input_data[locus]["num_samples"]
             ) * 100
-            clu_fil_pcts.append(0)
-            clu_raw_pcts.append(0)
+            # clu_fil_pcts.append(0)
+            # clu_raw_pcts.append(0)
             fil_raw_pcts.append(fil_raw_samples)
             target_data[locus] = {
                 "raw_locus": locus,
@@ -862,9 +862,9 @@ def write_targets(
 
     for locus in raw_input_data:
         if locus not in clust_input_data:
-            clu_fil_pcts.append(0)
-            clu_raw_pcts.append(0)
-            fil_raw_pcts.append(0)
+            # clu_fil_pcts.append(0)
+            # clu_raw_pcts.append(0)
+            # fil_raw_pcts.append(0)
             target_data[locus] = {
                 "raw_locus": locus,
                 "raw_seqs": raw_input_data[locus]["num_seqs"],
