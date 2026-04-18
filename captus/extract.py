@@ -1216,9 +1216,11 @@ def find_and_copy_fastas(fastas, captus_assemblies_dir, overwrite, threads_max, 
         ]
     else:
         fastas = [
-            Path(any_file).resolve()
-            for any_file in fastas
-            if Path(any_file).is_file() and has_valid_ext(any_file, valid_exts)
+            Path(Path(file).parent.resolve(), Path(file).name)
+            for file in fastas
+            if Path(file).resolve().is_file()
+            and has_valid_ext(file, valid_exts)
+            and " " not in Path(file).name
         ]
     check_and_copy_found_fasta_params = []
     for fasta in fastas:
