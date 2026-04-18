@@ -318,6 +318,10 @@ def main():
         " because FastTree is single-threaded",
     )
 
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+
     args = parser.parse_args()
 
     fasta_ext = "fna"

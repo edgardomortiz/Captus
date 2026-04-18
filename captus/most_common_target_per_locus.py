@@ -345,6 +345,11 @@ def main():
     parser.add_argument(
         "--overwrite", action="store_true", dest="overwrite", help="Overwrite previous results"
     )
+
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+
     args = parser.parse_args()
 
     if not Path(args.out_dir).exists():

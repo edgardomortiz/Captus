@@ -309,7 +309,6 @@ def main():
         "-a",
         "--captus_alignments_dir",
         action="store",
-        default="./04_alignments",
         dest="captus_alignments_dir",
         help="Path to the directory that contains the output from the alignment step of Captus"
         " The path to a text file containing the list of paths to the alignments can also be"
@@ -416,6 +415,11 @@ def main():
         help="Codon or codon positions to include in the partition file, include all by default"
         " ignored for aminoacid alignments",
     )
+
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+
     args = parser.parse_args()
 
     fasta_ext = "fna"
