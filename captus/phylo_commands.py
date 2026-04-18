@@ -68,11 +68,19 @@ def create_iqtree_cmds(
     alrt: int,
     force_bifurcating: bool,
     extra_options: str,
+    keep_all: bool,
     threads: int,
 ):
     commands_list = []
     for fasta in fastas_paths:
         locus_name = fasta.stem
+        prefix = Path(Path(phylogenies_dir).resolve(), locus_name)
+        bionj = f"{prefix}.bionj"
+        ckpgz = f"{prefix}.ckp.gz"
+        mldist = f"{prefix}.mldist"
+        modelgz = f"{prefix}.model.gz"
+        contree = f"{prefix}.contree"
+        splitsnex = f"{prefix}.splits.nex"
         cmd = [
             f"{iqtree_path}",
             "-s",
@@ -80,7 +88,7 @@ def create_iqtree_cmds(
             "-st",
             f"{seq_type}",
             "-pre",
-            f"{Path(Path(phylogenies_dir).resolve(), locus_name)}",
+            f"{prefix}",
             "-nt",
             "AUTO",
             "-ntmax",
@@ -98,6 +106,31 @@ def create_iqtree_cmds(
             cmd += ["-czb"]
         if extra_options:
             cmd += extra_options.split()
+        if keep_all is False:
+            cmd += [
+                "&&",
+                "rm",
+                f"{bionj}",
+                ";",
+                "rm",
+                f"{ckpgz}",
+                ";",
+                "rm",
+                f"{mldist}",
+                ";",
+                "rm",
+                f"{modelgz}",
+            ]
+            if "-B" in cmd:
+                cmd += [
+                    ";",
+                    "rm",
+                    f"{contree}",
+                    ";",
+                    "rm",
+                    f"{splitsnex}",
+                ]
+
         commands_list.append(" ".join(cmd))
     return commands_list
 
@@ -241,10 +274,10 @@ def main():
         "-m",
         "--model_test",
         action="store",
-        default="MFP",
+        default="TEST",
         dest="model_test",
-        choices=["MF", "MFP", "TEST", "TESTNEW"],
-        help="IQ-TREE model testing method to use, MF=TEST, MFP=TESTNEW",
+        choices=["TEST", "TESTNEW", "MFP"],
+        help="IQ-TREE model testing method to use TESTNEW=MFP",
     )
     iqtree_group.add_argument(
         "-B",
@@ -272,6 +305,14 @@ def main():
         dest="force_bifurcating",
         help="Do not use the option -czb (Collapse Near Zero Branches) in IQ-TREE, to obtain fully"
         " bifurcating trees",
+    )
+    iqtree_group.add_argument(
+        "--keep_all",
+        action="store_true",
+        dest="keep_all",
+        help="Enable to keep all IQ-TREE's output files, otherwise only .iqtree, .log, and .treefile"
+        " are kept while .bionj, .ckp.gz, .mldist, .model.gz, .contree, and .splits.nex are deleted"
+        " to save space",
     )
 
     output_group = parser.add_argument_group("Output options")
@@ -385,6 +426,7 @@ def main():
                 args.alrt,
                 args.force_bifurcating,
                 args.extra_options,
+                args.keep_all,
                 args.threads,
             )
         elif args.program.lower() == "fasttree":

@@ -364,10 +364,14 @@ def prefilter_seqs(
                     locus_coverages.append(coverage)
         if locus_fasta_out:
             loci_fastas[locus_name] = locus_fasta_out
-            loci_data[locus_name] = {
-                "median_wscore": statistics.median(locus_wscores),
-                "median_coverage": statistics.median(locus_coverages),
-            }
+            if locus_wscores:
+                loci_data[locus_name] = {
+                    "median_wscore": statistics.median(locus_wscores),
+                }
+            if locus_coverages:
+                loci_data[locus_name] = {
+                    "median_coverage": statistics.median(locus_coverages),
+                }
         if locus_name in loci_fastas and len(set(samples)) < min_samples:
             del loci_fastas[locus_name]
             del loci_data[locus_name]
