@@ -145,12 +145,13 @@ def assemble(full_command, args):
     log.log("")
 
     if skipped_subsample:
-        skipped_msgs = skipped_subsample
-    elif skipped_assemble:
-        skipped_msgs = skipped_assemble
-    if skipped_msgs:
-        log.log(f"{bold('WARNING:')} {len(skipped_msgs)} file(s) will be skipped:")
-        for msg in skipped_msgs:
+        log.log(f"{bold('WARNING:')} {len(skipped_subsample)} file(s) will be skipped:")
+        for msg in skipped_subsample:
+            log.log(msg)
+        log.log("")
+    if skipped_assemble:
+        log.log(f"{bold('WARNING:')} {len(skipped_assemble)} file(s) will be skipped:")
+        for msg in skipped_assemble:
             log.log(msg)
         log.log("")
 
