@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Copyright 2020-2025 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
+Copyright 2020-2026 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
 https://github.com/edgardomortiz/Captus
 
 This file is part of Captus. Captus is free software: you can redistribute it and/or modify
@@ -310,9 +310,7 @@ def main():
         "--captus_alignments_dir",
         action="store",
         dest="captus_alignments_dir",
-        help="Path to the directory that contains the output from the alignment step of Captus"
-        " The path to a text file containing the list of paths to the alignments can also be"
-        " provided (if your alignments contain aminoacid sequences use '-F AA')",
+        help="Path to the directory that contains the output from the alignment step of Captus",
     )
     captus_group.add_argument(
         "-s",
@@ -428,7 +426,19 @@ def main():
         fasta_ext = "faa"
         seq_type = "AA"
     fastas_paths = []
-    if args.alignments_list is None:
+    if args.alignments_list:
+        aln_paths_file = Path(args.alignments_list)
+        if aln_paths_file.is_file():
+            with open(aln_paths_file, "rt") as alns:
+                for line in alns:
+                    fasta_path = Path(line.strip())
+                    if not fasta_path.is_file():
+                        print(f"WARNING: file '{fasta_path}' not found, verify its location")
+                    else:
+                        fastas_paths.append(fasta_path)
+        else:
+            quit_with_error(f"'{aln_paths_file}' not found, verify its location")
+    else:
         if not Path(args.captus_alignments_dir).exists():
             quit_with_error(
                 f"'{args.captus_alignments_dir}' not found, verify this Captus alignment directory exists!"
@@ -444,24 +454,6 @@ def main():
             if not aln_dir.exists():
                 quit_with_error(f"'{aln_dir}' not found, verify this Captus alignment directory exists!")
             fastas_paths = list(sorted(aln_dir.glob(f"*.{fasta_ext}")))
-        elif Path(args.captus_alignments_dir).is_file():
-            with open(Path(args.captus_alignments_dir), "rt") as paths_in:
-                for line in paths_in:
-                    fasta_path = Path(line.strip())
-                    if fasta_path.exists():
-                        fastas_paths.append(fasta_path)
-    else:
-        aln_paths_file = Path(args.alignments_list)
-        if aln_paths_file.is_file():
-            with open(aln_paths_file, "rt") as alns:
-                for line in alns:
-                    fasta_path = Path(line.strip())
-                    if not fasta_path.is_file():
-                        print(f"WARNING: file '{fasta_path}' not found, verify its location")
-                    else:
-                        fastas_paths.append(fasta_path)
-        else:
-            quit_with_error(f"'{aln_paths_file}' not found, verify its location")
 
     if not Path(args.out_dir).exists():
         try:

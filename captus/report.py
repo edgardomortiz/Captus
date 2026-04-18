@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Copyright 2020-2025 Gentaro Shigita (gentaro.shigita@tum.de)
+Copyright 2020-2026 Gentaro Shigita (gentaro.shigita@tum.de)
 https://github.com/edgardomortiz/Captus
 
 This file is part of Captus. Captus is free software: you can redistribute it and/or modify
