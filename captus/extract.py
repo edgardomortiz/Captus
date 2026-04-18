@@ -1246,12 +1246,16 @@ def check_and_copy_found_fasta(fasta_path, valid_exts, captus_assemblies_dir, ov
     sample_name = fasta_name[:ext_idx]
     sample_assembly_dir = Path(captus_assemblies_dir, f"{sample_name}__captus-asm", "01_assembly")
     sample_assembly_file = Path(sample_assembly_dir, "assembly.fasta")
+    sample_assembly_fasta = fasta_to_dict(fasta_path)
+    if not sample_assembly_fasta:
+        message = f"'{fasta_name}': SKIPPED, file was empty, double check your file or symbolic link"
+        return message
     if overwrite is True or not sample_assembly_file.exists():
         if sample_assembly_dir.exists():
             shutil.rmtree(sample_assembly_dir, ignore_errors=True)
         sample_assembly_dir.mkdir(parents=True)
         if fasta_type(fasta_path) == "NT":
-            fasta_out, _ = fasta_headers_to_spades(fasta_to_dict(fasta_path))
+            fasta_out, _ = fasta_headers_to_spades(sample_assembly_fasta)
             dict_to_fasta(fasta_out, Path(sample_assembly_dir, "assembly.fasta"), wrap=80)
 
             # Write a log indicating original file location of the 'assembly.fasta'

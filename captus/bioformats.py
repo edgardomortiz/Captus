@@ -1014,11 +1014,13 @@ def fasta_to_dict(fasta_path):
     }}
     ```
     """
+    fasta_out = {}
+    if not Path(fasta_path).resolve().is_file():
+        return fasta_out
     if f"{fasta_path}".endswith(".gz"):
         opener = gzip.open
     else:
         opener = open
-    fasta_out = {}
     with opener(fasta_path, "rt") as fasta_in:
         seq = ""
         name = ""
