@@ -2216,7 +2216,7 @@ def write_fastas_and_stats_tsv(
             #     f'[query={hits[ref][h]["ref_name"]}:{ref_coords}] '
             #     f'[contigs={hits[ref][h]["hit_contigs"]}]'.replace("\n", ";")
             # )
-            query = f"[query={hits[ref][h]['ref_name']}]"
+            query = f"[target={hits[ref][h]['ref_name']}]"
 
             shifts_flanked, shifts_gene, shifts_nt, shifts_aa = "", "", "", ""
             if marker_type in ["NUC", "PTD", "MIT"]:

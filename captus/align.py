@@ -1386,7 +1386,11 @@ def add_refs(ref_path, dest_dir, shared_ref_names):
         refs_needed = []
         fasta_in = fasta_to_dict(fasta)
         for seq_name in fasta_in:
-            if "[query=" in fasta_in[seq_name]["description"] and not seq_name.endswith(
+            if "[target=" in fasta_in[seq_name]["description"] and not seq_name.endswith(
+                f"{settings.SEQ_NAME_SEP}ref"
+            ):
+                refs_needed.append(fasta_in[seq_name]["description"].split("[target=")[1].split("]")[0])
+            elif "[query=" in fasta_in[seq_name]["description"] and not seq_name.endswith(
                 f"{settings.SEQ_NAME_SEP}ref"
             ):
                 refs_needed.append(fasta_in[seq_name]["description"].split("[query=")[1].split("]")[0])
@@ -1848,7 +1852,13 @@ def filter_paralogs_informed(
         refs = {}
         for seq in aln:
             if not seq.endswith(f"{settings.SEQ_NAME_SEP}ref"):
-                if "query=" in aln[seq]["description"] and "hit=00" in aln[seq]["description"]:
+                if "target=" in aln[seq]["description"] and "hit=00" in aln[seq]["description"]:
+                    ref = aln[seq]["description"].split("target=")[1].split("]")[0]
+                    if ref in refs:
+                        refs[ref] += 1
+                    else:
+                        refs[ref] = 1
+                elif "query=" in aln[seq]["description"] and "hit=00" in aln[seq]["description"]:
                     ref = aln[seq]["description"].split("query=")[1].split("]")[0]
                     if ref in refs:
                         refs[ref] += 1
