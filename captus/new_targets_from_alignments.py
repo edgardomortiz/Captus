@@ -265,7 +265,7 @@ def msg_samples_copies(loci_data: dict):
     return msg
 
 
-def get_centroids_data(centroids: dict):
+def calc_per_locus_data(centroids: dict):
     centroids_data = {}
     for locus in centroids:
         num_seqs = 0
@@ -559,17 +559,29 @@ def select_targets(
     clust_output: dict,
     min_depth_prop: float,
     min_length_prop: float,
+    max_target_copies: float,
     best_only: bool,
     split_paralogs: bool,
     min_avg_copies: float,
     min_samples_prop: float,
     log: Path,
 ):
-    def get_best_centroids(centroids: dict):
+    def keep_best_centroids(centroids: dict):
         best_centroids = {}
         for locus in centroids:
             best_centroids[locus] = [centroids[locus][0]]
         return best_centroids
+
+    def remove_high_copy_centroids(centroids: dict, max_target_copies: float):
+        low_copy_centroids = {}
+        for locus in centroids:
+            for centroid in centroids[locus]:
+                if centroid["avg_copies"] <= max_target_copies:
+                    if locus in low_copy_centroids:
+                        low_copy_centroids[locus].append(centroid)
+                    else:
+                        low_copy_centroids[locus] = [centroid]
+        return low_copy_centroids
 
     raw_centroids = {}
 
@@ -608,6 +620,7 @@ def select_targets(
             "sequence": cluster[1],
             "num_seqs": num_seqs,
             "num_samples": num_samples,
+            "avg_copies": num_seqs / num_samples,
             "samples": samples,
             "length": len(cluster[1]),
             "wscore": wscore,
@@ -638,7 +651,7 @@ def select_targets(
                 ):
                     centroids[locus].append(raw_centroids[locus][i])
 
-    clust_output_data = get_centroids_data(centroids)
+    clust_output_data = calc_per_locus_data(centroids)
     msg = msg_loci_stats(centroids, "AFTER CLUSTERING STATS:")
     msg += "\n"
     msg += msg_samples_copies(clust_output_data)
@@ -648,6 +661,7 @@ def select_targets(
         f"{now()} | Selecting new target per locus "
         f"(min_length_proportion={min_length_prop},"
         f" min_depth_proportion={min_depth_prop},"
+        f" max_target_copies={max_target_copies},"
         f" best_only={best_only},"
         f" split_paralogs={split_paralogs})"
     )
@@ -689,12 +703,15 @@ def select_targets(
                             else:
                                 multi_copy_centroids[new_locus] = [centroid]
 
-        if best_only is True:
-            single_copy_centroids = get_best_centroids(single_copy_centroids)
-            multi_copy_centroids = get_best_centroids(multi_copy_centroids)
+        single_copy_centroids = remove_high_copy_centroids(single_copy_centroids, max_target_copies)
+        multi_copy_centroids = remove_high_copy_centroids(multi_copy_centroids, max_target_copies)
 
-        single_copy_data = get_centroids_data(single_copy_centroids)
-        multi_copy_data = get_centroids_data(multi_copy_centroids)
+        if best_only is True:
+            single_copy_centroids = keep_best_centroids(single_copy_centroids)
+            multi_copy_centroids = keep_best_centroids(multi_copy_centroids)
+
+        single_copy_data = calc_per_locus_data(single_copy_centroids)
+        multi_copy_data = calc_per_locus_data(multi_copy_centroids)
 
         if best_only is True:
             msg = bold("\n   AFTER SPLITTING PARALOGS")
@@ -711,10 +728,11 @@ def select_targets(
 
         return single_copy_centroids, multi_copy_centroids
     else:
+        centroids = remove_high_copy_centroids(centroids)
         if best_only is True:
-            centroids = get_best_centroids(centroids)
+            centroids = keep_best_centroids(centroids)
 
-            centroids_data = get_centroids_data(centroids)
+            centroids_data = calc_per_locus_data(centroids)
 
             msg = msg_loci_stats(centroids, "AFTER RETAINING BEST ONLY:")
             msg += "\n"
@@ -747,9 +765,9 @@ def write_targets(
         else:
             quit_with_error("Target output files exist, use '--overwrite' to replace previous results")
 
-    single_copy_data = get_centroids_data(single_copy_centroids)
+    single_copy_data = calc_per_locus_data(single_copy_centroids)
     if multi_copy_centroids:
-        multi_copy_data = get_centroids_data(multi_copy_centroids)
+        multi_copy_data = calc_per_locus_data(multi_copy_centroids)
 
     target_data = {}
     loci_retained = []
@@ -1187,6 +1205,17 @@ def main():
         help="Enable to include a single representative per locus in the target file",
     )
     targets_group.add_argument(
+        "-T",
+        "--max_target_copies",
+        action="store",
+        default=1.33,
+        type=float,
+        dest="max_target_copies",
+        help="Maximum average number of copies allowed per target in the final target file. Average"
+        " copies are calculated dividing the total number of sequences by the total number of"
+        " samples in the cluster that the target represents",
+    )
+    targets_group.add_argument(
         "-P", "--split_paralogs",
         action="store_true",
         dest="split_paralogs",
@@ -1355,6 +1384,7 @@ def main():
         clust_output,
         args.min_depth_proportion,
         args.min_length_proportion,
+        args.max_target_copies,
         args.best_only,
         args.split_paralogs,
         args.min_average_copies,
