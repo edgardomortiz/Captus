@@ -81,6 +81,7 @@ def create_iqtree_cmds(
         modelgz = f"{prefix}.model.gz"
         contree = f"{prefix}.contree"
         splitsnex = f"{prefix}.splits.nex"
+        uniqueseqphy = f"{prefix}.uniqueseq.phy"
         cmd = [
             f"{iqtree_path}",
             "-s",
@@ -120,6 +121,8 @@ def create_iqtree_cmds(
                 ";",
                 "rm",
                 f"{modelgz}",
+                "rm",
+                f"{uniqueseqphy}",
             ]
             if "-B" in cmd:
                 cmd += [

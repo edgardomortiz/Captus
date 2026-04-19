@@ -364,12 +364,9 @@ def prefilter_seqs(
                     locus_coverages.append(coverage)
         if locus_fasta_out:
             loci_fastas[locus_name] = locus_fasta_out
-            if locus_wscores:
+            if locus_wscores and locus_coverages:
                 loci_data[locus_name] = {
                     "median_wscore": statistics.median(locus_wscores),
-                }
-            if locus_coverages:
-                loci_data[locus_name] = {
                     "median_coverage": statistics.median(locus_coverages),
                 }
         if locus_name in loci_fastas and len(set(samples)) < min_samples:
@@ -1190,7 +1187,7 @@ def main():
         help="Enable to include a single representative per locus in the target file",
     )
     targets_group.add_argument(
-        "--split_paralogs",
+        "-P", "--split_paralogs",
         action="store_true",
         dest="split_paralogs",
         help="Enable to split loci flagged as paralogous into separate loci. Only makes sense"
