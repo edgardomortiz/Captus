@@ -1293,6 +1293,16 @@ class CaptusAssembly(object):
             " might be useful if you expect very high ploidy levels for example",
         )
         input_group.add_argument(
+            "--max_average_copies",
+            action="store",
+            default=-1,
+            type=float,
+            dest="max_average_copies",
+            help="Do not align loci with more average copies than this value. Average number of"
+            " copies is defined as number of sequences divided by number of samples. For example, a"
+            " value of 1.33 means that 33%% of the samples can have an extra copy. Use -1 to disable",
+        )
+        input_group.add_argument(
             "-s",
             "--min_samples",
             action="store",

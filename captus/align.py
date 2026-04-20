@@ -181,6 +181,7 @@ def align(full_command, args):
         log.log(f"{'Alignment formats':>{mar}}: {bold(formats)} {dim(formats_ignored)}")
         max_paralogs_msg = dim("(Collect all paralogs)") if args.max_paralogs == -1 else ""
         log.log(f"{'Max. paralogs to collect':>{mar}}: {bold(args.max_paralogs)} {max_paralogs_msg}")
+        log.log(f"{'Max. avg. copies to align':>{mar}}: {bold(args.max_average_copies)}")
         log.log(f"{'Min. samples to align':>{mar}}: {bold(args.min_samples)}")
         log.log("")
         log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
@@ -201,6 +202,7 @@ def align(full_command, args):
             markers,
             formats,
             args.max_paralogs,
+            args.max_average_copies,
             args.min_samples,
             extracted_sample_dirs,
             out_dir,
@@ -1165,6 +1167,7 @@ def collect_extracted_markers(
     markers,
     formats,
     max_paralogs,
+    max_average_copies: float,
     min_samples,
     extracted_sample_dirs,
     out_dir,
@@ -1174,6 +1177,10 @@ def collect_extracted_markers(
     overwrite,
     show_less,
 ):
+
+    if max_average_copies == -1:
+        max_average_copies = math.inf
+
     source_files = [
         Path(settings.MARKER_DIRS[m], f"{m}{settings.FORMAT_SUFFIXES[f]}")
         for m in markers.split(",")
@@ -1250,7 +1257,10 @@ def collect_extracted_markers(
     with tqdm(total=len(fastas_per_marker), ncols=tqdm_cols, unit="file") as pbar:
         for fasta in fastas_per_marker:
             if overwrite is True or not fasta.exists():
-                if num_samples(fastas_per_marker[fasta]) >= min_samples:
+                sequences = len(fastas_per_marker[fasta])
+                samples = num_samples(fastas_per_marker[fasta])
+                avg_copies = sequences / samples
+                if num_samples >= min_samples and avg_copies <= max_average_copies:
                     dict_to_fasta(fastas_per_marker[fasta], fasta, sort=True)
                     accepted += 1
                 else:
@@ -1264,10 +1274,17 @@ def collect_extracted_markers(
             f" [{elapsed_time(time.time() - start)}]"
         )
     )
-    log.log(
-        f"     {accepted} saved, {rejected} not saved for having fewer than {min_samples} samples,"
-        f" {skipped} already existed and were skipped"
-    )
+    if max_average_copies != math.inf:
+        log.log(
+            f"     {accepted} saved, {rejected} not saved for having fewer than {min_samples} samples,"
+            f" {skipped} already existed and were skipped"
+        )
+    else:
+        log.log(
+            f"     {accepted} saved, {rejected} not saved for having fewer than {min_samples} samples"
+            f" or more than {max_average_copies:.2f} average copies, {skipped} already existed and"
+            " were skipped"
+        )
 
     manager = Manager()
     shared_ref_names = manager.list()

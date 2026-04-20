@@ -58,6 +58,11 @@ Maximum number of secondary hits (copies) per sample to import from the extracti
 
 This argument is optional, the default is **5**
 ___
+### **`--max_average_copies`**
+Do not align loci with more average copies than this value. Average number of copies is defined as number of sequences divided by number of samples. For example, a value of 1.33 means that 33%% of the samples can have an extra copy. Use -1 to disable.
+
+This argument is optional, the default is **-1**
+___
 ### **`-s, --min_samples`**
 Minimum number of samples in a marker to proceed with alignment. Markers with fewer samples will be skipped. The default **4** corresponds to smallest number of sequences to build a rooted phylogeny.
 
