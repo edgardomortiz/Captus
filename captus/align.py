@@ -1274,7 +1274,7 @@ def collect_extracted_markers(
             f" [{elapsed_time(time.time() - start)}]"
         )
     )
-    if max_average_copies != math.inf:
+    if max_average_copies == math.inf:
         log.log(
             f"     {accepted} saved, {rejected} not saved for having fewer than {min_samples} samples,"
             f" {skipped} already existed and were skipped"
