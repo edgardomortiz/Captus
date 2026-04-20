@@ -1260,7 +1260,7 @@ def collect_extracted_markers(
                 sequences = len(fastas_per_marker[fasta])
                 samples = num_samples(fastas_per_marker[fasta])
                 avg_copies = sequences / samples
-                if num_samples >= min_samples and avg_copies <= max_average_copies:
+                if samples >= min_samples and avg_copies <= max_average_copies:
                     dict_to_fasta(fastas_per_marker[fasta], fasta, sort=True)
                     accepted += 1
                 else:
