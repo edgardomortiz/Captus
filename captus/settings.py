@@ -73,7 +73,7 @@ QC_ADAPTORS_LIST = Path(DATA_DIR, "qc_adaptors_list.txt")
 
 # Keep reads with a minimum length of this value after trimming, for the adaptor removal stage and
 # the quality filtering/trimming stage
-BBDUK_MIN_LENGTH = 31
+BBDUK_MIN_LENGTH = 25
 
 # K-mer size for first round of adaptor cleaning
 BBDUK_ADAPTOR_ROUND1_K = 21
