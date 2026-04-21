@@ -37,6 +37,7 @@ from .bioformats import (
 )
 from .misc import (
     bold,
+    version_is_at_least,
     clipkit_path_version,
     dim,
     dir_is_empty,
@@ -761,7 +762,6 @@ def align(full_command, args):
                 other_dests.append(filtered_fastas_to_trim[fasta_orig])
 
         taper_clipkit_params = []
-        clipkit_version_float = float(".".join(clipkit_version.split(".")[:2]))
         for aa_orig, aa_dest, nt_orig, nt_dest in zip(aa_origs, aa_dests, nt_origs, nt_dests):
             fasta_origs = list(filter(None, [aa_orig, nt_orig]))
             fasta_dests = list(filter(None, [aa_dest, nt_dest]))
@@ -772,7 +772,7 @@ def align(full_command, args):
                     args.taper_unfiltered,
                     args.disable_taper,
                     clipkit_path,
-                    clipkit_version_float,
+                    clipkit_version,
                     args.clipkit_method,
                     args.clipkit_gaps,
                     fasta_origs,
@@ -792,7 +792,7 @@ def align(full_command, args):
                     args.taper_unfiltered,
                     args.disable_taper,
                     clipkit_path,
-                    clipkit_version_float,
+                    clipkit_version,
                     args.clipkit_method,
                     args.clipkit_gaps,
                     [fasta_orig],
@@ -2101,13 +2101,13 @@ def taper_clipkit(
     taper_unfiltered: bool,
     disable_taper: bool,
     clipkit_path,
-    clipkit_version_float,
+    clipkit_version: str,
     clipkit_method,
     clipkit_gaps,
     fastas_in: list,
     fastas_out: list,
     min_data_per_column,
-    ends_only,
+    ends_only: bool,
     min_coverage,
     min_samples,
     overwrite,
@@ -2167,11 +2167,16 @@ def taper_clipkit(
             "fasta",
             "--log",
         ]
-        # Now NT is trimmed according to the trimming pattern of its AA counterpart
-        if settings.FORMAT_DIRS["NT"] in f"{clipkit_fasta_in}":
+        # CDS can be trimmed by codon in ClipKIT since v2.1.2
+        if (
+            version_is_at_least(clipkit_version, "2.1.2")
+            and settings.FORMAT_DIRS["NT"] in f"{clipkit_fasta_in}"
+        ):
             clipkit_cmd += ["--codon"]
-        if clipkit_version_float >= 2.3 and ends_only is True:
+        # The 'ends_only' feature is only available in ClipKIT since v2.4.0
+        if version_is_at_least(clipkit_version, "2.4.0") and ends_only is True:
             clipkit_cmd += ["--ends_only"]
+
         clipkit_log_file = Path(fasta_out.parent, f"{fasta_out.stem}.clipkit.log")
         with open(clipkit_log_file, "w") as clipkit_log:
             clipkit_log.write(f"Captus' ClipKIT Command:\n  {' '.join(clipkit_cmd)}\n\n\n")

@@ -56,6 +56,22 @@ class ElapsedTimeThread(threading.Thread):
             time.sleep(update_delay)
 
 
+def version_is_at_least(inst_v: str, ref_v: str):
+    """Versions have to be numeric only, separated by '.'"""
+    ref_v = [int(v) for v in ref_v.split(".")]
+    inst_v = [int(v) for v in inst_v.split(".")]
+    max_v_len = max(len(ref_v), len(inst_v))
+    ref_v += [0] * (max_v_len - len(ref_v))
+    inst_v += [0] * (max_v_len - len(inst_v))
+    if ref_v == inst_v:
+        return True
+    for i in range(max_v_len):
+        if inst_v[i] > ref_v[i]:
+            return True
+        elif inst_v[i] < ref_v[i]:
+            return False
+
+
 def get_ram():
     """
     Use 'sysctl' in Mac or 'os.sysconf' in Linux to return RAM size in bytes
