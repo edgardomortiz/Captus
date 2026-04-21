@@ -88,6 +88,11 @@ Again, very high thresholds will throw away useful data. In general, set it to a
 
 This argument is optional, the default is **16**.
 ___
+### **`--min_length`**
+Discard reads shorter than this length after trimming.
+
+This argument is optional, the default is **31*.
+___
 ### **`--ftl`**
 Trim any base to the left of this position. For example, if you want to remove 4 bases from the left of the reads set this number to 5.
 
@@ -122,5 +127,5 @@ ___
 See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
-Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (18.12.2024)
+Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (21.04.2024)

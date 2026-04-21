@@ -174,6 +174,14 @@ class CaptusAssembly(object):
             " will be removed",
         )
         quality_group.add_argument(
+            "--min_length",
+            action="store",
+            default=settings.BBDUK_MIN_LENGTH,
+            type=int,
+            dest="min_length",
+            help="Discard reads shorter than this length after trimming",
+        )
+        quality_group.add_argument(
             "--ftl",
             action="store",
             default=0,
@@ -1490,11 +1498,17 @@ class CaptusAssembly(object):
                 "kpi",
                 "kpi-smart-gap",
                 "kpi-gappy",
+                "gappyout",
+                "block-gappy",
+                "composition-bias",
+                "heterotachy",
             ],
             default="gappy",
             type=str,
             dest="clipkit_method",
-            help="ClipKIT's algorithm, see https://jlsteenwyk.com/ClipKIT/advanced/index.html#modes",
+            help="ClipKIT's algorithm, see https://jlsteenwyk.com/ClipKIT/advanced/index.html#modes."
+            " If ClipKIT's version is not at least 2.11.4 the mode will default to 'gappy' when"
+            " 'gappyout', 'block-gappy', 'composition-bias', or 'heterotachy' are selected.",
         )
         trimming_group.add_argument(
             "-g",

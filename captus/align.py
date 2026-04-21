@@ -2152,6 +2152,16 @@ def taper_clipkit(
             )
             if file_is_empty(clipkit_fasta_in):
                 return red(f"'{fasta_out_short}': FAILED alignment trimming, no TAPER output")
+
+        # If a new method is selected but ClipKIT's version is not at least 2.11.4 default to 'gappy'
+        if not version_is_at_least(clipkit_version, "2.11.4") and clipkit_method in [
+            "gappyout",
+            "block-gappy",
+            "composition-bias",
+            "heterotachy",
+        ]:
+            clipkit_method = "gappy"
+
         clipkit_cmd = [
             clipkit_path,
             f"{clipkit_fasta_in}",

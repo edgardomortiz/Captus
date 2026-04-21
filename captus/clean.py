@@ -177,6 +177,7 @@ def clean(full_command, args):
 
     log.log(f"{'Adaptor set':>{mar}}: {adaptor_set_msg}")
     log.log(f"{'Trim poly-A tails':>{mar}}: {bold(args.rna)}")
+    log.log(f"{'Min. read length':>{mar}}: {bold(args.min_length)}")
     log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
     log.log(f"{'Keep all files':>{mar}}: {bold(args.keep_all)}")
     fastqs_raw, skipped_msgs = find_match_check_fastqs(args.reads, recursive=True)
@@ -214,6 +215,7 @@ def clean(full_command, args):
                 adaptors_trimmed_dir,
                 adaptor_set,
                 args.rna,
+                args.min_length,
                 args.overwrite,
             )
         )
@@ -242,6 +244,7 @@ def clean(full_command, args):
     log.log(f"{'maq':>{mar}}: {bold(args.maq)}")
     log.log(f"{'ftl':>{mar}}: {bold(args.ftl)}")
     log.log(f"{'ftr':>{mar}}: {bold(args.ftr)}")
+    log.log(f"{'Min. read length':>{mar}}: {bold(args.min_length)}")
     log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
     log.log(f"{'Keep all files':>{mar}}: {bold(args.keep_all)}")
     all_fastqs_no_adaptors, skipped_msgs = find_match_check_fastqs(adaptors_trimmed_dir)
@@ -278,6 +281,7 @@ def clean(full_command, args):
                     args.maq,
                     args.ftl,
                     args.ftr,
+                    args.min_length,
                     args.overwrite,
                 )
             )
@@ -526,7 +530,16 @@ def trim_AT_GC_bias(in_dir, in_fastq):
 
 
 def bbduk_trim_adaptors(
-    bbduk_path, ram_MB, threads, in_dir, in_fastq, out_dir, adaptor_set, rna, overwrite
+    bbduk_path,
+    ram_MB,
+    threads,
+    in_dir,
+    in_fastq,
+    out_dir,
+    adaptor_set,
+    rna,
+    min_length: int,
+    overwrite,
 ):
     """
     Trims adaptors from FASTQ reads using bbduk.sh from BBTools. Runs two simultaneous rounds of
@@ -575,7 +588,7 @@ def bbduk_trim_adaptors(
         f"-Xmx{ram_MB}m",
         f"threads={threads}",
         "ktrim=r",
-        f"minlength={settings.BBDUK_MIN_LENGTH}",
+        f"minlength={min_length}",
         "interleaved=f",
     ]
 
@@ -645,7 +658,18 @@ def bbduk_trim_adaptors(
 
 
 def bbduk_filter_quality(
-    bbduk_path, ram_MB, threads, in_dir, in_fastq, out_dir, trimq, maq, ftl, ftr, overwrite
+    bbduk_path,
+    ram_MB,
+    threads,
+    in_dir,
+    in_fastq,
+    out_dir,
+    trimq,
+    maq,
+    ftl,
+    ftr,
+    min_length: int,
+    overwrite,
 ):
     """
     Use bbduk.sh from BBTools to quality-filter reads and filter sequencing artifacts and reads
@@ -679,7 +703,7 @@ def bbduk_filter_quality(
         f"maq={maq}",
         f"ftl={ftl}",
         f"ftr={ftr}",
-        f"minlength={settings.BBDUK_MIN_LENGTH}",
+        f"minlength={min_length}",
         f"maxns={settings.BBDUK_QUALITY_MAXNS}",
         f"ziplevel={settings.BBDUK_QUALITY_ZIPLEVEL}",
     ]

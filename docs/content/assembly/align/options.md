@@ -152,7 +152,7 @@ ___
 Disable TAPER algorithm for masking for erroneous regions in alignments, see https://doi.org/10.1111/2041-210X.13696
 ___
 ### **`--clipkit_method`**
-Select [ClipKIT's trimming mode](https://jlsteenwyk.com/ClipKIT/advanced/index.html#modes). Valid trimming modes are:
+Select [ClipKIT's trimming mode](https://jlsteenwyk.com/ClipKIT/advanced/index.html#modes). If ClipKIT's version is not at least 2.11.4 the mode will default to `gappy` when `gappyout`, `block-gappy`, `composition-bias`, or `heterotachy`are selected. Valid trimming modes are:
 - `smart-gap`
 - `gappy`
 - `kpic`
@@ -161,6 +161,10 @@ Select [ClipKIT's trimming mode](https://jlsteenwyk.com/ClipKIT/advanced/index.h
 - `kpi`
 - `kpi-smart-gap`
 - `kpi-gappy`
+- `gappyout`
+- `block-gappy`
+- `composition-bias`
+- `heterotachy`
 
 This argument is optional, the default is **gappy**.
 ___
@@ -212,4 +216,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)<br>
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (01.04.2026)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (21.04.2026)
