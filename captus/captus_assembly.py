@@ -682,7 +682,8 @@ class CaptusAssembly(object):
             " usually do not overlap but certain organellar genes do",
         )
         output_group.add_argument(
-            "--pit", "--paralog_identity_tolerance",
+            "--pit",
+            "--paralog_identity_tolerance",
             action="store",
             default=0.66,
             type=float,
@@ -691,7 +692,8 @@ class CaptusAssembly(object):
             " hit in the locus, use 0 to disable this filter",
         )
         output_group.add_argument(
-            "--pct", "--paralog_coverage_tolerance",
+            "--pct",
+            "--paralog_coverage_tolerance",
             action="store",
             default=0.33,
             type=float,
@@ -700,7 +702,8 @@ class CaptusAssembly(object):
             " hit in the locus, use 0 to disable this filter",
         )
         output_group.add_argument(
-            "--pdt", "--paralog_depth_tolerance",
+            "--pdt",
+            "--paralog_depth_tolerance",
             action="store",
             default=0.33,
             type=float,
@@ -1242,15 +1245,25 @@ class CaptusAssembly(object):
         input_group = parser.add_argument_group("Input")
         input_group.add_argument(
             "-e",
-            "--captus_extractions_dir",
+            "--captus_extractions",
             action="store",
             default="./03_extractions",
             type=str,
             required=True,
-            dest="captus_extractions_dir",
-            help="Path to the output directory that contains the assemblies and extractions from"
-            " previous steps of Captus-assembly. This directory is called '02_assemblies' if"
-            " you did not specify a different name during the 'assemble' or 'extract' steps",
+            dest="captus_extractions",
+            help="Path to an output directory from the 'extract' step of Captus-assembly which is"
+            " tipically called '03_extractions' or path to a file containing a list of full paths to"
+            " individual sample extraction folders ending with '__captus-ext'",
+        )
+        input_group.add_argument(
+            "-j",
+            "--refs_json",
+            action="store",
+            type=str,
+            dest="refs_json",
+            help="If you provide a list of paths using '--captus_extractions' you also need to"
+            " provide the path to a valid 'caputs-extract_refs.json' file so Captus knows where to"
+            " add the reference target sequences from",
         )
         input_group.add_argument(
             "-m",
@@ -1289,6 +1302,16 @@ class CaptusAssembly(object):
             "ALL = Shortcut for AA,NT,GE,GF,MA,MF",
         )
         input_group.add_argument(
+            "-s",
+            "--min_samples",
+            action="store",
+            default=4,
+            type=int,
+            dest="min_samples",
+            help="Minimum number of samples in a marker to proceed with alignment. Markers with"
+            " fewer samples will be skipped",
+        )
+        input_group.add_argument(
             "--max_paralogs",
             action="store",
             default=5,
@@ -1309,16 +1332,6 @@ class CaptusAssembly(object):
             help="Do not align loci with more average copies than this value. Average number of"
             " copies is defined as number of sequences divided by number of samples. For example, a"
             " value of 1.33 means that 33%% of the samples can have an extra copy. Use -1 to disable",
-        )
-        input_group.add_argument(
-            "-s",
-            "--min_samples",
-            action="store",
-            default=4,
-            type=int,
-            dest="min_samples",
-            help="Minimum number of samples in a marker to proceed with alignment. Markers with"
-            " fewer samples will be skipped",
         )
 
         output_group = parser.add_argument_group("Output")
@@ -1653,8 +1666,10 @@ class CaptusAssembly(object):
         align(full_command, args)
         exit(1)
 
+
 def main():
     CaptusAssembly()
+
 
 if __name__ == "__main__":
     main()

@@ -71,7 +71,7 @@ def align(full_command, args):
     log.log_section_header("Starting Captus-assembly: ALIGN", single_newline=False)
     log.log_explanation(
         "Welcome to the alignment step of Captus-assembly. In this step, Captus will collect all the"
-        f" extracted markers across all samples in '{args.captus_extractions_dir}' and group them by"
+        f" extracted markers across all samples in '{args.captus_extractions}' and group them by"
         " marker. Then Captus will align each marker using MAFFT or MUSCLE. If given, the reference"
         " loci are also included as alignment guides and removed after alignment",
         extra_empty_lines_after=0,
@@ -141,13 +141,13 @@ def align(full_command, args):
     if mafft_status == "not found":
         log.log(
             f"{bold('WARNING:')} MAFFT could not be found, the markers will be collected from"
-            f" '{args.captus_extractions_dir}' but they will not be aligned. Please verify you have"
+            f" '{args.captus_extractions}' but they will not be aligned. Please verify you have"
             " it installed or provide the full path to the program with '--mafft_path'"
         )
     if muscle_status == "not found":
         log.log(
             f"{bold('WARNING:')} MUSCLE could not be found, the markers will be collected from"
-            f" '{args.captus_extractions_dir}' but they will not be aligned. Please verify you have"
+            f" '{args.captus_extractions}' but they will not be aligned. Please verify you have"
             " it installed or provide the full path to the program with '--muscle_path'"
         )
     if clipkit_status == "not found":
@@ -161,7 +161,7 @@ def align(full_command, args):
     ############################################################################# COLLECTING SECTION
     log.log_section_header("Collecting Extracted Markers")
     log.log_explanation(
-        f"Now Captus will search within '{args.captus_extractions_dir}' for all the extracted"
+        f"Now Captus will search within '{args.captus_extractions}' for all the extracted"
         " markers across all samples, and group them in a single FASTA file per marker name, keeping"
         " them organized in subdirectories according to marker type and alignment format. The output"
         " FASTA files are not aligned yet. If provided, Captus will include the reference aminoacid/"
@@ -171,7 +171,17 @@ def align(full_command, args):
     markers, markers_ignored = check_value_list(args.markers, settings.MARKER_DIRS)
     formats, formats_ignored = check_value_list(args.formats, settings.FORMAT_DIRS)
     show_less = not args.show_more
-    refs_paths = prepare_refs(args.captus_extractions_dir, mar)
+    if Path(args.captus_extractions).is_file():
+        if args.refs_json is None:
+            quit_with_error(
+                "Since you provided a FILE containing a list of paths with '--captus_extractions'"
+                f" you also need to provide a path to a valid '{settings.JSON_REFS}' file"
+            )
+        else:
+            refs_json_path = Path(args.refs_json)
+    elif Path(args.captus_extractions).is_dir():
+        refs_json_path = Path(args.captus_extractions, settings.JSON_REFS)
+    refs_paths = prepare_refs(refs_json_path, mar)
     if skip_collection:
         log.log(
             red(f"Skipping the marker collection step because you used '--redo_from {args.redo_from}'")
@@ -181,13 +191,13 @@ def align(full_command, args):
         log.log(f"{'Markers to collect':>{mar}}: {bold(markers)} {dim(markers_ignored)}")
         log.log(f"{'Alignment formats':>{mar}}: {bold(formats)} {dim(formats_ignored)}")
         max_paralogs_msg = dim("(Collect all paralogs)") if args.max_paralogs == -1 else ""
+        log.log(f"{'Min. samples to align':>{mar}}: {bold(args.min_samples)}")
         log.log(f"{'Max. paralogs to collect':>{mar}}: {bold(args.max_paralogs)} {max_paralogs_msg}")
         log.log(f"{'Max. avg. copies to align':>{mar}}: {bold(args.max_average_copies)}")
-        log.log(f"{'Min. samples to align':>{mar}}: {bold(args.min_samples)}")
         log.log("")
         log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
         log.log(f"{'Keep all files':>{mar}}: {bold(args.keep_all)}")
-        extracted_sample_dirs, skipped_align = find_extracted_sample_dirs(args.captus_extractions_dir)
+        extracted_sample_dirs, skipped_align = find_extracted_sample_dirs(args.captus_extractions)
         log.log(f"{'Samples to process':>{mar}}: {bold(len(extracted_sample_dirs))}")
         log.log("")
         if skipped_align:
@@ -205,6 +215,7 @@ def align(full_command, args):
             args.max_paralogs,
             args.max_average_copies,
             args.min_samples,
+            args.captus_extractions,
             extracted_sample_dirs,
             out_dir,
             settings.ALN_DIRS["UNAL"],
@@ -993,45 +1004,64 @@ def check_value_list(input_values: str, valid_values: dict):
     return checked, ignored
 
 
-def find_extracted_sample_dirs(captus_extractions_dir):
+def find_extracted_sample_dirs(captus_extractions: str):
     """
-    List sample extraction directories within 'captus_extractions_dir'. Exit with error if
-    'captus_extractions_dir' is not valid or does not contain valid sample extraction directories
+    List sample extraction directories within 'captus_extractions'. Exit with error if
+    'captus_extractions' is not valid or does not contain valid sample extraction directories
     """
-    captus_extractions_dir = Path(captus_extractions_dir)
-    if not captus_extractions_dir.is_dir():
+    captus_extractions = Path(captus_extractions)
+
+    if not captus_extractions.exists():
         quit_with_error(
-            f"'{captus_extractions_dir}' is not a valid directory, please provide a valid directory"
-            " with '--captus_extractions_dir'"
+            f"'{captus_extractions}' is not a valid FILE or DIRECTORY,"
+            " please provide a valid path with '--captus_extractions'"
         )
-    all_sample_dirs = sorted(list(captus_extractions_dir.resolve().rglob("*__captus-ext")))
-    extracted_sample_dirs = []
+
+    all_sample_ext_dirs = []
+    if captus_extractions.is_file():
+        with open(captus_extractions, "rt") as ext_list:
+            for line in ext_list:
+                ext_path = Path(line.strip())
+                ext_full_path = Path(ext_path.parent.resolve(), ext_path.name)
+                if ext_full_path.is_dir() and f"{ext_full_path}".endswith("__captus-ext"):
+                    all_sample_ext_dirs.append(ext_full_path)
+    elif captus_extractions.is_dir():
+        ext_paths = list(captus_extractions.rglob("*__captus-ext"))
+        for ext_path in ext_paths:
+            ext_full_path = Path(ext_path.parent.resolve(), ext_path.name)
+            if ext_full_path.is_dir():
+                all_sample_ext_dirs.append(ext_full_path)
+
+    sample_ext_dirs = {}
     skipped = []
-    for sample_dir in all_sample_dirs:
+    for sample_dir in all_sample_ext_dirs:
+        sample_name = sample_dir.parts[-1].replace("__captus-ext", "")
         if settings.SEQ_NAME_SEP in f"{sample_dir}".replace("__captus-ext", ""):
-            sample_name = sample_dir.parts[-1].replace("__captus-ext", "")
             skipped.append(
                 f"'{sample_dir.parts[-1]}': SKIPPED, pattern"
                 f" '{settings.SEQ_NAME_SEP}' not allowed in sample name"
                 f" '{sample_name}'"
             )
         else:
-            extracted_sample_dirs.append(sample_dir)
-    if not extracted_sample_dirs:
+            sample_ext_dirs[sample_name] = sample_dir
+
+    sample_ext_dirs = sorted(list(sample_ext_dirs.values()))
+
+    if not sample_ext_dirs:
         quit_with_error(
-            f"Captus did not find valid sample directories within '{captus_extractions_dir}' please"
-            " provide a valid directory with '--captus_extractions_dir"
+            f"Captus did not find valid sample directories within '{captus_extractions}' please"
+            " provide a valid directory with '--captus_extractions"
         )
 
-    return extracted_sample_dirs, skipped
+    return sample_ext_dirs, skipped
 
 
-def prepare_refs(captus_ext_dir, margin):
-    json_path = Path(captus_ext_dir, settings.JSON_REFS)
+def prepare_refs(refs_json: Path, margin):
+    refs_json = Path(refs_json)
     not_found = []
     found = []
     try:
-        with open(json_path, "rt") as jin:
+        with open(refs_json, "rt") as jin:
             refs_paths = json.load(jin)
             for marker in sorted(refs_paths):
                 for info in refs_paths[marker]:
@@ -1056,7 +1086,9 @@ def prepare_refs(captus_ext_dir, margin):
         log.log(f"{'WARNING':>{margin}}: No reference files found!")
     else:
         if found:
-            log.log(bold(f"{'Reference datasets':>{margin}}:"))
+            msg = bold(f"{'Reference datasets':>{margin}}:")
+            msg += dim(f" (paths stored in '{refs_json}')")
+            log.log(msg)
             for ref_path in found:
                 log.log(ref_path)
             log.log("")
@@ -1066,7 +1098,7 @@ def prepare_refs(captus_ext_dir, margin):
                     (
                         f"WARNING: The following reference files were not found. If you moved the"
                         " reference files used for extraction from their original location you can"
-                        f" change the path in the file '{json_path}':\n"
+                        f" change the path in the file '{refs_json}':\n"
                     )
                 )
             )
@@ -1123,7 +1155,7 @@ def select_filtering_refs(refs_paths, markers, formats, method):
 def make_output_dirtree(markers, formats, out_dir, base_dir, margin):
     """
     Create directory structure to receive extracted markers from all the samples in
-    `captus_extractions_dir`, print directory tree created with explanations of the intended content
+    `captus_extractions`, print directory tree created with explanations of the intended content
     of each directory
     """
     base_tree = Path(out_dir, base_dir).resolve()
@@ -1169,6 +1201,7 @@ def collect_extracted_markers(
     max_paralogs,
     max_average_copies: float,
     min_samples,
+    captus_extractions: str,
     extracted_sample_dirs,
     out_dir,
     base_dir,
@@ -1236,7 +1269,7 @@ def collect_extracted_markers(
     tqdm_serial_run(
         collect_sample_markers,
         collect_sample_markers_params,
-        "Collecting extracted markers",
+        f"Collecting extracted markers from '{captus_extractions}'",
         "Collection of extracted markers finished",
         "source",
         show_less,

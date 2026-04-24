@@ -14,10 +14,15 @@ captus align --help
 ___
 ## *Input*
 ___
-### **`-e, --captus_extractions_dir`**
-Path to the output directory from the `extract` command, (e.g. `03_extractions` iy you used the default name). The `align` command depends entirely on the output from the `extract` step, in other words, you can't provide your unaligned or aligned FASTA files for processing.
+### **`-e, --captus_extractions`**
+Path to an output directory from the 'extract' step of Captus-assembly which is tipically called '03_extractions' or path to a file containing a list of full paths to individual sample extraction folders ending with '__captus-ext'. The `align` command depends entirely on the output from the `extract` step, in other words, you can't provide your unaligned or aligned FASTA files for processing.
 
 This argument is **required** <i class="fas fa-exclamation-triangle"></i>, the default is **./03_extractions/**
+___
+### **`-j, --refs_json`**
+f you provide a list of paths using '--captus_extractions' you also need to provide the path to a valid 'caputs-extract_refs.json' file so Captus knows where to add the reference target sequences from.
+
+This argument is optional and has no default.
 ___
 ### **`-m, --markers`**
 Which type(s) of markers to align, you can provide a comma-separated list (no spaces). These are the available marker types:
@@ -53,6 +58,11 @@ This argument is optional, the default is **AA,NT,GE,MA**
 
 
 ___
+### **`-s, --min_samples`**
+Minimum number of samples in a marker to proceed with alignment. Markers with fewer samples will be skipped. The default **4** corresponds to smallest number of sequences to build a rooted phylogeny.
+
+This argument is optional, the default is **4**
+___
 ### **`--max_paralogs`**
 Maximum number of secondary hits (copies) per sample to import from the extraction step. Large numbers of marker copies per sample can increase alignment times. Hits (copies) are ranked from best to worst during the 'extract' step. -1 disables the initial removal of paralogs and aligns which might be useful if you expect very high ploidy levels for example.
 
@@ -62,11 +72,6 @@ ___
 Do not align loci with more average copies than this value. Average number of copies is defined as number of sequences divided by number of samples. For example, a value of 1.33 means that 33%% of the samples can have an extra copy. Use -1 to disable.
 
 This argument is optional, the default is **-1**
-___
-### **`-s, --min_samples`**
-Minimum number of samples in a marker to proceed with alignment. Markers with fewer samples will be skipped. The default **4** corresponds to smallest number of sequences to build a rooted phylogeny.
-
-This argument is optional, the default is **4**
 ___
 ## *Output*
 ___
@@ -216,4 +221,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)<br>
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (23.04.2026)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (24.04.2026)
