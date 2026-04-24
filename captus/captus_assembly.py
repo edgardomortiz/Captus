@@ -622,12 +622,15 @@ class CaptusAssembly(object):
             type=str,
             required=True,
             dest="captus_assemblies",
-            help="Path to an output directory from the 'assemble' step of Captus-assembly which is"
-            " tipically called '02_assemblies' or path to a file containing a list of paths to"
-            " individual sample assembly folders ending with '__captus-asm'. To import assemblies"
-            " from other sources (e.g. genomes from NCBI) provide a directory name here and use"
-            " '--fastas'. Providing a list is useful when your assemblies are located in different"
-            " directories or you want to extract a subset of samples",
+            help="B|Location of Captus-style sample assembly directories (ending in '__captus-asm'),"
+            " there are two ways to provide these:\n"
+            "A directory = path to a Captus assembly DIRECTORY containing multiple individual sample"
+            " assembly directories, this is called by default './02_assemblies'. Any assembly"
+            " imported  from other sources (e.g. genomes from NCBI) using '--fastas' will be stored"
+            " in this directory\n"
+            "A file = path to a FILE containing a list of paths (one per line) to individual sample"
+            " assembly directories, useful when your assembled samples are in different locations"
+            " and/or you only want to extract a subset of samples\n",
         )
         input_group.add_argument(
             "-f",
@@ -640,7 +643,7 @@ class CaptusAssembly(object):
             " extensions are: .fa, .fna, .fasta, .fa.gz, .fna.gz, .fasta.gz. These FASTA files"
             " must contain only nucleotides (no aminoacids). All the text before the extension"
             " of the filename will be used as sample name. These FASTAs will be automatically"
-            " copied to the path provided with '-a'/'--captus_assemblies_dir' using the correct"
+            " copied to a DIRECTORY provided with '--captus_assemblies' using the correct"
             " directory structure needed by Captus. There are a few ways to provide the FASTA"
             " files:\n"
             "A directory = path to directory containing FASTA files (e.g.: -f ./my_fastas)\n"
@@ -1252,11 +1255,15 @@ class CaptusAssembly(object):
             type=str,
             required=True,
             dest="captus_extractions",
-            help="Path to an output directory from the 'extract' step of Captus-assembly which is"
-            " tipically called '03_extractions' or path to a file containing a list of paths to"
-            " individual sample extraction folders ending with '__captus-ext'. Providing a list is"
-            " useful when your extractions are located in different directories or you want to align"
-            " a subset of samples",
+            help="B|Location of Captus-style sample extraction directories (ending in '__captus-ext'),"
+            " there are two ways to provide these:\n"
+            "A directory = path to a Captus extraction DIRECTORY containing multiple individual"
+            " sample extraction directories, this is called by default './03_extractions'\n"
+            "A file = path to a FILE containing a list of paths (one per line) to individual sample"
+            " extraction directories, useful when your extracted samples are in different locations"
+            " and/or you only want to align a subset of samples. When providing a list you need to"
+            " also provide a valid path to a 'captus-extract_refs.json' with '--refs_json' so Captus"
+            " can find the target files and add target sequences to the alignments\n",
         )
         input_group.add_argument(
             "-j",
@@ -1265,8 +1272,8 @@ class CaptusAssembly(object):
             type=str,
             dest="refs_json",
             help="If you provide a list of paths using '--captus_extractions' you also need to"
-            " provide the path to a valid 'caputs-extract_refs.json' file so Captus knows where to"
-            " add the reference target sequences from",
+            " provide the path to a valid 'caputs-extract_refs.json' file so Captus can find the"
+            " target files and add target sequences to the alignments",
         )
         input_group.add_argument(
             "-m",

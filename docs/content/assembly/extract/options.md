@@ -14,8 +14,12 @@ captus extract --help
 ___
 ## *Input*
 ___
-### **`-a, --captus_assemblies_dir`**
-Path to an output directory from the 'assemble' step of Captus-assembly which is tipically called '02_assemblies' or path to a file containing a list of paths to individual sample assembly folders ending with '__captus-asm'. To import assemblies from other sources (e.g. genomes from NCBI) provide a directory name here and use '--fastas'. Providing a list is useful when your assemblies are located in different directories or you want to extract a subset of samples.
+### **`-a, --captus_assemblies`**
+Location of Captus-style sample assembly directories (ending in '__captus-asm'), there are two ways to provide these:
+
+- _**Directory:**_ path to a Captus assembly directory containing multiple individual sample assembly directories, this is called by default './02_assemblies'. Any assembly imported from other sources (e.g. genomes from NCBI) using '--fastas' will be stored in this directory.
+
+- _**File:**_ path to a file containing a list of paths (one per line) to individual sample assembly directories, useful when your assembled samples are in different locations and/or you only want to extract a subset of samples.
 
 This argument is **required** <i class="fas fa-exclamation-triangle"></i>, the default is **./02_assemblies/**
 ___
@@ -339,4 +343,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)<br>
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (22.04.2026)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (24.04.2026)
