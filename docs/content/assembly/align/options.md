@@ -15,7 +15,7 @@ ___
 ## *Input*
 ___
 ### **`-e, --captus_extractions`**
-Path to an output directory from the 'extract' step of Captus-assembly which is tipically called '03_extractions' or path to a file containing a list of full paths to individual sample extraction folders ending with '__captus-ext'. The `align` command depends entirely on the output from the `extract` step, in other words, you can't provide your unaligned or aligned FASTA files for processing.
+Path to an output directory from the 'extract' step of Captus-assembly which is tipically called '03_extractions' or path to a file containing a list of paths to individual sample extraction folders ending with '__captus-ext'. Providing a list is useful when your extractions are located in different directories or you want to align a subset of samples. The `align` command depends entirely on the output from the `extract` step, in other words, you can't provide your unaligned or aligned FASTA files for processing.
 
 This argument is **required** <i class="fas fa-exclamation-triangle"></i>, the default is **./03_extractions/**
 ___

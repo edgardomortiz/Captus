@@ -454,10 +454,6 @@ def find_and_match_fastas_gffs(markers, recursive=False):
     return fastas_to_import
 
 
-def get_sample_name(sample_dir: Path, folder_ending: str):
-    return sample_dir.parts[-1].replace(folder_ending, "")
-
-
 def quit_with_error(message):
     """
     Displays the given message and ends the program's execution.

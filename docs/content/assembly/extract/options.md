@@ -15,7 +15,7 @@ ___
 ## *Input*
 ___
 ### **`-a, --captus_assemblies_dir`**
-Path to an output directory from the 'assemble' step of Captus-assembly which is tipically called '02_assemblies' or path to a file containing a list of full paths to individual sample assembly folders ending with '__captus-asm'. To import assemblies from other sources (e.g. genomes from NCBI) provide a directory name here and use `-fastas`.
+Path to an output directory from the 'assemble' step of Captus-assembly which is tipically called '02_assemblies' or path to a file containing a list of paths to individual sample assembly folders ending with '__captus-asm'. To import assemblies from other sources (e.g. genomes from NCBI) provide a directory name here and use '--fastas'. Providing a list is useful when your assemblies are located in different directories or you want to extract a subset of samples.
 
 This argument is **required** <i class="fas fa-exclamation-triangle"></i>, the default is **./02_assemblies/**
 ___

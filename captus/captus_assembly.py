@@ -623,10 +623,11 @@ class CaptusAssembly(object):
             required=True,
             dest="captus_assemblies",
             help="Path to an output directory from the 'assemble' step of Captus-assembly which is"
-            " tipically called '02_assemblies' or path to a file containing a list of full paths to"
+            " tipically called '02_assemblies' or path to a file containing a list of paths to"
             " individual sample assembly folders ending with '__captus-asm'. To import assemblies"
             " from other sources (e.g. genomes from NCBI) provide a directory name here and use"
-            " '--fastas'.",
+            " '--fastas'. Providing a list is useful when your assemblies are located in different"
+            " directories or you want to extract a subset of samples",
         )
         input_group.add_argument(
             "-f",
@@ -1252,8 +1253,10 @@ class CaptusAssembly(object):
             required=True,
             dest="captus_extractions",
             help="Path to an output directory from the 'extract' step of Captus-assembly which is"
-            " tipically called '03_extractions' or path to a file containing a list of full paths to"
-            " individual sample extraction folders ending with '__captus-ext'",
+            " tipically called '03_extractions' or path to a file containing a list of paths to"
+            " individual sample extraction folders ending with '__captus-ext'. Providing a list is"
+            " useful when your extractions are located in different directories or you want to align"
+            " a subset of samples",
         )
         input_group.add_argument(
             "-j",

@@ -55,7 +55,6 @@ from .misc import (
     elapsed_time,
     file_is_empty,
     format_dep_msg,
-    get_sample_name,
     has_valid_ext,
     mafft_path_version,
     make_output_dir,
@@ -1144,7 +1143,7 @@ def find_and_check_fasta_assemblies(captus_assemblies: str, out_dir: Path, margi
     valid = 0
     for sample_asm_dir in sample_asm_dirs:
         total += 1
-        sample_name = get_sample_name(sample_asm_dir, "__captus-asm")
+        sample_name = sample_asm_dir.parts[-1].replace("__captus-asm", "")
         if settings.SEQ_NAME_SEP in sample_name:
             log.log(
                 f"'{sample_asm_dir.parts[-1]}': SKIPPED, pattern"
