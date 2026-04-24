@@ -15,7 +15,7 @@ ___
 ## *Input*
 ___
 ### **`-a, --captus_assemblies_dir`**
-Path to the output directory from the `assemble` command, (e.g. `02_assemblies` if you used the default name). If you didn't assemble any sample in `Captus` this directory will be created in order to import your contigs assembled elsewhere.
+Path to an output directory from the 'assemble' step of Captus-assembly which is tipically called '02_assemblies' or path to a file containing a list of full paths to individual sample assembly folders ending with '__captus-asm'. To import assemblies from other sources (e.g. genomes from NCBI) provide a directory name here and use `-fastas`.
 
 This argument is **required** <i class="fas fa-exclamation-triangle"></i>, the default is **./02_assemblies/**
 ___
@@ -339,4 +339,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)<br>
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (02.25.2026)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (22.04.2026)

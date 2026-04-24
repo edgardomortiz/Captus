@@ -616,17 +616,17 @@ class CaptusAssembly(object):
         input_group = parser.add_argument_group("Input")
         input_group.add_argument(
             "-a",
-            "--captus_assemblies_dir",
+            "--captus_assemblies",
             action="store",
             default="./02_assemblies",
             type=str,
             required=True,
-            dest="captus_assemblies_dir",
+            dest="captus_assemblies",
             help="Path to an output directory from the 'assemble' step of Captus-assembly which is"
-            " tipically called '02_assemblies'. If you DID NOT assemble any sample within"
-            " Captus and want to start exclusivey with FASTAs assembled elsewhere, the path"
-            " provided here will be created in order to contain your assemblies provided with"
-            " '-f' into a proper directory structure needed by Captus",
+            " tipically called '02_assemblies' or path to a file containing a list of full paths to"
+            " individual sample assembly folders ending with '__captus-asm'. To import assemblies"
+            " from other sources (e.g. genomes from NCBI) provide a directory name here and use"
+            " '--fastas'.",
         )
         input_group.add_argument(
             "-f",
@@ -1542,7 +1542,7 @@ class CaptusAssembly(object):
             "-c",
             "--min_coverage",
             action="store",
-            default=0.40,
+            default=0.20,
             type=float,
             dest="min_coverage",
             help="Minimum coverage of sequence as proportion of the mean of sequence lengths in the"

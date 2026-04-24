@@ -603,7 +603,7 @@ def select_targets(
 
         header_pieces = cluster[0].split()
         seq_name = header_pieces[0].replace(">", "")
-        num_seqs = len(cluster) / 2
+        num_seqs = int(len(cluster) / 2)
         samples = sorted(list(set(samples)))
         num_samples = len(samples)
 

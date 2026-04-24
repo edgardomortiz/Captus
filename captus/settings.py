@@ -359,7 +359,7 @@ FORMAT_DIRS = {
 }
 
 # Translated protein reference suffix
-TRANSLATED_REF_SUFFIX = ".captus.faa"
+TRANSLATED_REF_SUFFIX = ".FAA"
 
 # JSON with paths to references filename
 JSON_REFS = "captus-extract_refs.json"

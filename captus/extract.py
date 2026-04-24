@@ -55,6 +55,7 @@ from .misc import (
     elapsed_time,
     file_is_empty,
     format_dep_msg,
+    get_sample_name,
     has_valid_ext,
     mafft_path_version,
     make_output_dir,
@@ -162,12 +163,6 @@ def extract(full_command, args):
     log.log(format_dep_msg(f"{'plotly':>{mar}}: ", plotly_version, plotly_status))
     log.log("")
 
-    captus_assemblies_dir, _ = make_output_dir(args.captus_assemblies_dir)
-    _, asms_dir_status_msg = status_captus_assemblies_dir(captus_assemblies_dir, args.fastas, mar)
-    log.log(f"{'Captus assemblies dir':>{mar}}: {bold(captus_assemblies_dir)}")
-    log.log(asms_dir_status_msg)
-    log.log("")
-
     # Last dependency verification before modifying Captus' assembly directory
     if any(
         dep_status == "not found"
@@ -211,34 +206,34 @@ def extract(full_command, args):
                 f"{bold('WARNING:')} MAFFT could not be found, please check your '--mafft_path'."
                 " Extraction of reference protein sets will be attempted."
             )
-
-    # Check and import extra FASTA assemblies
-    fastas_to_extract, skipped_extract = find_fasta_assemblies(captus_assemblies_dir, out_dir)
     if args.fastas:
         log.log_explanation(
-            "Now Captus will verify the additional assembly files provided with '--fastas'. A new"
-            f" sample directory will be created within '{out_dir}' for each of the new FASTA"
-            " assemblies to contain the imported file"
+            "Now Captus will verify the additional assemblies provided with '--fastas'. A new sample"
+            f" assembly directory will be created within '{args.captus_assemblies}' for each new"
+            " assembly to contain its imported FASTA file."
         )
-        asms_before_import = len(fastas_to_extract)
+        if Path(args.captus_assemblies).is_file():
+            quit_with_error(
+                f"'{args.captus_assemblies}' is a FILE, please provide the path to a DIRECTORY with"
+                " '--captus_assemblies' to store the assemblies imported from '--fastas'."
+            )
+        captus_assemblies_dir, captus_assemblies_msg = make_output_dir(args.captus_assemblies)
+        log.log(f"{'Captus assemblies dir':>{mar}}: {bold(captus_assemblies_dir)}")
+        log.log(f"{'':>{mar}}  {dim(captus_assemblies_msg)}")
+        log.log("")
         find_and_copy_fastas(
             args.fastas, captus_assemblies_dir, args.overwrite, threads_max, args.show_less
         )
-        fastas_to_extract, skipped_extract = find_fasta_assemblies(captus_assemblies_dir, out_dir)
         log.log("")
-        asms_imported = len(fastas_to_extract) - asms_before_import
-        log.log(f"{'Assemblies imported':>{mar}}: {bold(asms_imported)}")
-    log.log(f"{'Total assemblies found':>{mar}}: {bold(len(fastas_to_extract))}")
-    log.log("")
+    fastas_to_extract = {}
+    if Path(args.captus_assemblies).exists():
+        fastas_to_extract = find_and_check_fasta_assemblies(args.captus_assemblies, out_dir, mar)
+    else:
+        quit_with_error(f"The path '{args.captus_assemblies}' does not exist.")
+
     log.log(f"{'Output directory':>{mar}}: {bold(out_dir)}")
     log.log(f"{'':>{mar}}  {dim(out_dir_msg)}")
     log.log("")
-
-    if skipped_extract:
-        log.log(f"{bold('WARNING:')} {len(skipped_extract)} sample(s) will be skipped")
-        for msg in skipped_extract:
-            log.log(msg)
-        log.log("")
 
     ################################################################################################
     ############################################################################# EXTRACTION SECTION
@@ -266,7 +261,7 @@ def extract(full_command, args):
         if not fastas_to_extract:
             quit_with_error(
                 "Captus could not find FASTA assemblies to process, please verify your "
-                "'--captus_assemblies_dir' and/or '--fastas' argument"
+                "'--captus_assemblies' and/or '--fastas' argument"
             )
 
         num_refs = 0
@@ -734,7 +729,7 @@ def extract(full_command, args):
         if not fastas_to_extract:
             quit_with_error(
                 "Captus could not find FASTA assemblies to process, please verify your "
-                "'--captus_assemblies_dir' and/or '--fastas' argument"
+                "'--captus_assemblies' and/or '--fastas' argument"
             )
 
         if args.cl_mode != 2:
@@ -1123,81 +1118,75 @@ def adjust_concurrency(fastas_to_extract, num_samples, concurrent, threads_max, 
     return int(concurrent), int(threads_per_extraction), int(ram_B_per_extraction)
 
 
-def status_captus_assemblies_dir(captus_assemblies_dir, extra_fastas, margin):
-    """
-    Verify that the internal directory structure of `captus_assemblies_dir` matches the structure
-    produced by the 'assemble' step of 'captus_assembly'
-    """
-    indent = (margin + 2) * " "
-    num_assemblies = 0
-    sample_dirs_lacking_assembly = []
-    sample_dirs = list(Path(captus_assemblies_dir).resolve().rglob("*__captus-asm"))
-    for sample_dir in sample_dirs:
-        if not list(Path(sample_dir).rglob("*assembly.fasta")):
-            sample_dirs_lacking_assembly.append(Path(sample_dir).name)
-        else:
-            num_assemblies += 1
-    if sample_dirs:
-        if len(sample_dirs) == num_assemblies and not sample_dirs_lacking_assembly:
-            message = bold_green(
-                f"{indent}VALID Captus assemblies directory with {len(sample_dirs)} samples"
-                f" and {num_assemblies} 'assembly.fasta' files"
-            )
-            status = "valid"
-            return status, message
-        elif num_assemblies < len(sample_dirs):
-            message = (
-                f"{indent}WARNING: Captus assembly directory with {len(sample_dirs)} samples"
-                f" and only {num_assemblies} 'assembly.fasta' files\n"
-            )
-            message += (
-                f"{indent}{len(sample_dirs_lacking_assembly)} sample(s) lacking FASTA assemblies:\n"
-                f"{indent}- "
-            )
-            message += f"\n{indent}- ".join(
-                [name.replace("__captus-asm", "") for name in sample_dirs_lacking_assembly]
-            )
-            status = "incomplete"
-            return status, message
-    else:
-        if extra_fastas:
-            message = dim(f"{indent}Captus assembly directory sucessfully created")
-            status = "ready"
-            return status, message
-        else:
-            quit_with_error(
-                "No assemblies to process, please provide a valid Captus assemblies directory with"
-                " '--captus_assemblies_dir' and/or provide other pre-assembled FASTA assemblies with"
-                " '--fastas'"
-            )
+def find_and_check_fasta_assemblies(captus_assemblies: str, out_dir: Path, margin: int):
+    captus_assemblies = Path(captus_assemblies)
 
+    sample_asm_dirs = []
+    if captus_assemblies.is_file():
+        with open(captus_assemblies, "rt") as asm_list:
+            for line in asm_list:
+                asm_path = Path(line.strip())
+                asm_full_path = Path(asm_path.parent.resolve(), asm_path.name)
+                if asm_full_path.is_dir() and f"{asm_full_path}".endswith("__captus-asm"):
+                    sample_asm_dirs.append(asm_full_path)
+    elif captus_assemblies.is_dir():
+        asm_paths = list(captus_assemblies.rglob("*__captus-asm"))
+        for asm_path in asm_paths:
+            asm_full_path = Path(asm_path.parent.resolve(), asm_path.name)
+            if asm_full_path.is_dir():
+                sample_asm_dirs.append(asm_full_path)
 
-def find_fasta_assemblies(captus_assemblies_dir, out_dir):
-    captus_assemblies_dir = Path(captus_assemblies_dir)
     fastas_to_extract = {}
-    skipped = []
-    if captus_assemblies_dir.exists():
-        sample_dirs = list(Path(captus_assemblies_dir).resolve().rglob("*__captus-asm"))
-        for sample_dir in sample_dirs:
-            if settings.SEQ_NAME_SEP in f"{sample_dir}".replace("__captus-asm", ""):
-                sample_name = sample_dir.parts[-1].replace("__captus-asm", "")
-                skipped.append(
-                    f"'{sample_dir.parts[-1]}': SKIPPED, pattern"
-                    f" '{settings.SEQ_NAME_SEP}' not allowed in sample name"
-                    f" '{sample_name}'"
-                )
+    total = 0
+    bad_name = 0
+    bad_fasta = 0
+    imported = 0
+    valid = 0
+    for sample_asm_dir in sample_asm_dirs:
+        total += 1
+        sample_name = get_sample_name(sample_asm_dir, "__captus-asm")
+        if settings.SEQ_NAME_SEP in sample_name:
+            log.log(
+                f"'{sample_asm_dir.parts[-1]}': SKIPPED, pattern"
+                f" '{settings.SEQ_NAME_SEP}' not allowed in sample name"
+                f" '{sample_name}'"
+            )
+            bad_name += 1
+        else:
+            fasta_asm_path = Path(sample_asm_dir, "01_assembly", "assembly.fasta")
+            if fasta_asm_path.is_file() and fasta_asm_path.stat().st_size > 0:
+                sample_ext_dir = Path(out_dir, f"{sample_name}__captus-ext")
+                fastas_to_extract[sample_name] = {
+                    "assembly_path": fasta_asm_path,
+                    "assembly_size": fasta_asm_path.stat().st_size,
+                    "sample_dir": sample_ext_dir,
+                }
+                valid += 1
             else:
-                fastas = list(Path(sample_dir.resolve()).rglob("*/assembly.fasta"))
-                for fasta in fastas:
-                    if f"{fasta.parent.parent}".endswith("__captus-asm"):
-                        sample_name = fasta.parent.parent.parts[-1].replace("__captus-asm", "")
-                        sample_dir = Path(out_dir, f"{sample_name}__captus-ext")
-                        fastas_to_extract[sample_name] = {
-                            "assembly_path": fasta,
-                            "assembly_size": fasta.stat().st_size,
-                            "sample_dir": sample_dir,
-                        }
-    return fastas_to_extract, skipped
+                log.log(
+                    f"'{sample_asm_dir.parts[-1]}': SKIPPED, the file"
+                    " 'assembly.fasta' was empty or not found"
+                )
+                bad_fasta += 1
+            if Path(sample_asm_dir, "01_assembly", "assembly.log").is_file():
+                log.log(
+                    f"'{sample_asm_dir.parts[-1]}': assembly was imported, not assembled with Captus"
+                )
+                imported += 1
+
+    if bad_name > 0 or bad_fasta > 0 or imported >0:
+        log.log("")
+    log.log(f"{'Assembly dirs checked':>{margin}}: {bold(total)}")
+    if bad_name > 0:
+        log.log(f"{'Bad sample names':>{margin}}: {red(bad_name)}")
+    if bad_fasta > 0:
+        log.log(f"{'Missing/empty FASTAs':>{margin}}: {red(bad_fasta)}")
+    if imported > 0:
+        log.log(f"{'Assemblies imported':>{margin}}: {bold(imported)}")
+    log.log(f"{'Valid assemblies':>{margin}}: {bold_green(valid)}")
+    log.log("")
+
+    return fastas_to_extract
 
 
 def find_and_copy_fastas(fastas, captus_assemblies_dir, overwrite, threads_max, show_less):
@@ -1212,7 +1201,11 @@ def find_and_copy_fastas(fastas, captus_assemblies_dir, overwrite, threads_max, 
         fastas = [fastas]
     if len(fastas) == 1 and Path(fastas[0]).is_dir():
         fastas = [
-            file for file in Path(fastas[0]).resolve().rglob("*") if has_valid_ext(file, valid_exts)
+            Path(Path(file).parent.resolve(), Path(file).name)
+            for file in Path(fastas[0]).rglob("*")
+            if Path(file).resolve().is_file()
+            and has_valid_ext(file, valid_exts)
+            and " " not in Path(file).name
         ]
     else:
         fastas = [
@@ -1337,7 +1330,7 @@ def prepare_protein_refs(
                 aa_msg = bold(aa_path)
         elif Path(refset).is_file() and fasta_type(refset) == "NT":
             start = time.time()
-            suffix = settings.TRANSLATED_REF_SUFFIX
+            suffix = f".{marker}{settings.TRANSLATED_REF_SUFFIX}"
             if refset.endswith(".gz"):
                 aa_path = Path(
                     Path(refset).resolve().parent, f"{Path(refset.replace('.gz', '')).stem}{suffix}"
