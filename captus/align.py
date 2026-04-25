@@ -1023,27 +1023,30 @@ def find_extracted_sample_dirs(captus_extractions: str):
             for line in ext_list:
                 ext_path = Path(line.strip())
                 ext_full_path = Path(ext_path.parent.resolve(), ext_path.name)
-                if ext_full_path.is_dir() and f"{ext_full_path}".endswith("__captus-ext"):
+                if f"{ext_full_path}".endswith("__captus-ext"):
                     all_sample_ext_dirs.append(ext_full_path)
     elif captus_extractions.is_dir():
         ext_paths = list(captus_extractions.rglob("*__captus-ext"))
         for ext_path in ext_paths:
             ext_full_path = Path(ext_path.parent.resolve(), ext_path.name)
-            if ext_full_path.is_dir():
-                all_sample_ext_dirs.append(ext_full_path)
+            all_sample_ext_dirs.append(ext_full_path)
 
     sample_ext_dirs = {}
     skipped = []
-    for sample_dir in all_sample_ext_dirs:
-        sample_name = sample_dir.parts[-1].replace("__captus-ext", "")
-        if settings.SEQ_NAME_SEP in f"{sample_dir}".replace("__captus-ext", ""):
+    for sample_ext_dir in all_sample_ext_dirs:
+        sample_name = sample_ext_dir.parts[-1].replace("__captus-ext", "")
+        if not sample_ext_dir.is_dir() or not sample_ext_dir.exists():
             skipped.append(
-                f"'{sample_dir.parts[-1]}': SKIPPED, pattern"
+                f"'{sample_ext_dir.parts[-1]}': SKIPPED, directory not found"
+            )
+        elif settings.SEQ_NAME_SEP in f"{sample_ext_dir}".replace("__captus-ext", ""):
+            skipped.append(
+                f"'{sample_ext_dir.parts[-1]}': SKIPPED, pattern"
                 f" '{settings.SEQ_NAME_SEP}' not allowed in sample name"
                 f" '{sample_name}'"
             )
         else:
-            sample_ext_dirs[sample_name] = sample_dir
+            sample_ext_dirs[sample_name] = sample_ext_dir
 
     sample_ext_dirs = sorted(list(sample_ext_dirs.values()))
 

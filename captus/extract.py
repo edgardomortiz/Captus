@@ -1126,17 +1126,17 @@ def find_and_check_fasta_assemblies(captus_assemblies: str, out_dir: Path, margi
             for line in asm_list:
                 asm_path = Path(line.strip())
                 asm_full_path = Path(asm_path.parent.resolve(), asm_path.name)
-                if asm_full_path.is_dir() and f"{asm_full_path}".endswith("__captus-asm"):
+                if f"{asm_full_path}".endswith("__captus-asm"):
                     sample_asm_dirs.append(asm_full_path)
     elif captus_assemblies.is_dir():
         asm_paths = list(captus_assemblies.rglob("*__captus-asm"))
         for asm_path in asm_paths:
             asm_full_path = Path(asm_path.parent.resolve(), asm_path.name)
-            if asm_full_path.is_dir():
-                sample_asm_dirs.append(asm_full_path)
+            sample_asm_dirs.append(asm_full_path)
 
     fastas_to_extract = {}
     total = 0
+    not_found = 0
     bad_name = 0
     bad_fasta = 0
     imported = 0
@@ -1144,7 +1144,12 @@ def find_and_check_fasta_assemblies(captus_assemblies: str, out_dir: Path, margi
     for sample_asm_dir in sample_asm_dirs:
         total += 1
         sample_name = sample_asm_dir.parts[-1].replace("__captus-asm", "")
-        if settings.SEQ_NAME_SEP in sample_name:
+        if not sample_asm_dir.is_dir() or not sample_asm_dir.exists():
+            log.log(
+                f"'{sample_asm_dir.parts[-1]}': SKIPPED, directory not found"
+            )
+            not_found += 1
+        elif settings.SEQ_NAME_SEP in sample_name:
             log.log(
                 f"'{sample_asm_dir.parts[-1]}': SKIPPED, pattern"
                 f" '{settings.SEQ_NAME_SEP}' not allowed in sample name"
@@ -1176,6 +1181,8 @@ def find_and_check_fasta_assemblies(captus_assemblies: str, out_dir: Path, margi
     if bad_name > 0 or bad_fasta > 0 or imported >0:
         log.log("")
     log.log(f"{'Assembly dirs checked':>{margin}}: {bold(total)}")
+    if bad_name > 0:
+        log.log(f"{'Dirs not found':>{margin}}: {red(not_found)}")
     if bad_name > 0:
         log.log(f"{'Bad sample names':>{margin}}: {red(bad_name)}")
     if bad_fasta > 0:
