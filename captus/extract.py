@@ -1178,7 +1178,7 @@ def find_and_check_fasta_assemblies(captus_assemblies: str, out_dir: Path, margi
                 )
                 imported += 1
 
-    if bad_name > 0 or bad_fasta > 0 or imported >0:
+    if not_found > 0 or bad_name > 0 or bad_fasta > 0 or imported >0:
         log.log("")
     log.log(f"{'Assembly dirs checked':>{margin}}: {bold(total)}")
     if bad_name > 0:
