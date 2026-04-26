@@ -1141,16 +1141,15 @@ def find_and_check_fasta_assemblies(captus_assemblies: str, out_dir: Path, margi
     bad_fasta = 0
     imported = 0
     valid = 0
+    messages = []
     for sample_asm_dir in sample_asm_dirs:
         total += 1
         sample_name = sample_asm_dir.parts[-1].replace("__captus-asm", "")
         if not sample_asm_dir.is_dir() or not sample_asm_dir.exists():
-            log.log(
-                f"'{sample_asm_dir.parts[-1]}': SKIPPED, directory not found"
-            )
+            messages.append(f"'{sample_asm_dir.parts[-1]}': SKIPPED, directory not found")
             not_found += 1
         elif settings.SEQ_NAME_SEP in sample_name:
-            log.log(
+            messages.append(
                 f"'{sample_asm_dir.parts[-1]}': SKIPPED, pattern"
                 f" '{settings.SEQ_NAME_SEP}' not allowed in sample name"
                 f" '{sample_name}'"
@@ -1167,19 +1166,24 @@ def find_and_check_fasta_assemblies(captus_assemblies: str, out_dir: Path, margi
                 }
                 valid += 1
             else:
-                log.log(
+                messages.append(
                     f"'{sample_asm_dir.parts[-1]}': SKIPPED, the file"
                     " 'assembly.fasta' was empty or not found"
                 )
                 bad_fasta += 1
             if Path(sample_asm_dir, "01_assembly", "assembly.log").is_file():
-                log.log(
+                messages.append(
                     f"'{sample_asm_dir.parts[-1]}': assembly was imported, not assembled with Captus"
                 )
                 imported += 1
 
-    if not_found > 0 or bad_name > 0 or bad_fasta > 0 or imported >0:
+    if messages:
+        if not_found > 0 or bad_name > 0 or bad_fasta > 0:
+            log.log(f"{bold('WARNING:')} {not_found + bad_name + bad_fasta} sample(s) will be skipped")
+        for msg in messages:
+            log.log(msg)
         log.log("")
+
     log.log(f"{'Assembly dirs checked':>{margin}}: {bold(total)}")
     if bad_name > 0:
         log.log(f"{'Dirs not found':>{margin}}: {red(not_found)}")
