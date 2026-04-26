@@ -768,8 +768,9 @@ def write_targets(
     log: Path,
 ):
     target_file = Path(out_dir, f"{prefix}_targets.fasta")
-    tsv_file = Path(out_dir, f"{prefix}_targets.tsv")
-    output_files = [target_file, tsv_file]
+    tsv_targets_file = Path(out_dir, f"{prefix}_targets.tsv")
+    tsv_stats_file = Path(out_dir, f"{prefix}_stats.tsv")
+    output_files = [target_file, tsv_targets_file]
 
     output_exists = any(of.is_file() for of in output_files)
     if output_exists:
@@ -944,7 +945,7 @@ def write_targets(
     seq_numbers = []
     target_lengths = []
 
-    with open(tsv_file, "wt") as tsv_out:
+    with open(tsv_targets_file, "wt") as tsv_out:
         tsv_out.write("\t".join(tsv_header) + "\n")
         for locus in sorted(target_data):
             record = [
@@ -998,7 +999,8 @@ def write_targets(
     dict_to_fasta(target_fasta, target_file)
 
     msg = f"{now()} | New FASTA target file saved to '{target_file}'\n"
-    msg += f"{now()} | Per-locus target information saved to '{tsv_file}'\n"
+    msg += f"{now()} | Per-locus target information saved to '{tsv_targets_file}'\n"
+    msg += f"{now()} | Run statistics saved to '{tsv_stats_file}'\n"
     wlog(log, msg)
 
     msg = bold("         % SAMPLES RETAINED:\n\n")
@@ -1036,13 +1038,86 @@ def write_targets(
     msg += f"         Min Seqs per Locus: {min(seq_numbers)}\n"
     msg += f"         Max Seqs per Locus: {max(seq_numbers)}\n"
     msg += "\n"
-    msg += f"        Total Target Length: {sum(target_lengths)} bp\n"
-    msg += f"       Median Target Length: {statistics.median(target_lengths):.3f} bp\n"
-    msg += f"         Mean Target Length: {statistics.mean(target_lengths):.3f} bp\n"
-    msg += f"           SD Target Length: {statistics.stdev(target_lengths):.3f} bp\n"
-    msg += f"          Min Target Length: {min(target_lengths)} bp\n"
-    msg += f"          Max Target Length: {max(target_lengths)} bp\n"
+    msg += f"     Total Target Length bp: {sum(target_lengths)}\n"
+    msg += f"    Median Target Length bp: {statistics.median(target_lengths):.3f}\n"
+    msg += f"      Mean Target Length bp: {statistics.mean(target_lengths):.3f}\n"
+    msg += f"        SD Target Length bp: {statistics.stdev(target_lengths):.3f}\n"
+    msg += f"       Min Target Length bp: {min(target_lengths)}\n"
+    msg += f"       Max Target Length bp: {max(target_lengths)}\n"
     wlog(log, msg)
+
+    tsv_stats = [
+        [
+            "Prefix",
+            "FIL_RAW_Median_pct",
+            "FIL_RAW_Mean_pct",
+            "FIL_RAW_SD_pct",
+            "FIL_RAW_Min_pct",
+            "FIL_RAW_Max_pct",
+            "FIN_RAW_Median_pct",
+            "FIN_RAW_Mean_pct",
+            "FIN_RAW_SD_pct",
+            "FIN_RAW_Min_pct",
+            "FIN_RAW_Max_pct",
+            "FIN_FIL_Median_pct",
+            "FIN_FIL_Mean_pct",
+            "FIN_FIL_SD_pct",
+            "FIN_FIL_Min_pct",
+            "FIN_FIL_Max_pct",
+            "Total_Loci",
+            "Total_Singleton_Loci",
+            "Total_Split_Loci",
+            "Total_Sequences",
+            "Median_Seqs_per_Locus",
+            "Mean_Seqs_per_Locus",
+            "SD_Seqs_per_Locus",
+            "Min_Seqs_per_Locus",
+            "Max_Seqs_per_Locus",
+            "Total_Target_Length_bp",
+            "Median_Target_Length_bp",
+            "Mean_Target_Length_bp",
+            "SD_Target_Length_bp",
+            "Min_Target_Length_bp",
+            "Max_Target_Length_bp",
+        ],
+        [
+            f"{prefix}",
+            f"{statistics.median(fil_raw_pcts):.3f}",
+            f"{statistics.mean(fil_raw_pcts):.3f}",
+            f"{statistics.stdev(fil_raw_pcts):.3f}",
+            f"{min(fil_raw_pcts):.3f}",
+            f"{max(fil_raw_pcts):.3f}",
+            f"{statistics.median(clu_raw_pcts):.3f}",
+            f"{statistics.mean(clu_raw_pcts):.3f}",
+            f"{statistics.stdev(clu_raw_pcts):.3f}",
+            f"{min(clu_raw_pcts):.3f}",
+            f"{max(clu_raw_pcts):.3f}",
+            f"{statistics.median(clu_fil_pcts):.3f}",
+            f"{statistics.mean(clu_fil_pcts):.3f}",
+            f"{statistics.stdev(clu_fil_pcts):.3f}",
+            f"{min(clu_fil_pcts):.3f}",
+            f"{max(clu_fil_pcts):.3f}",
+            f"{len(seq_numbers)}",
+            f"{seq_numbers.count(1)}",
+            f"{num_split_loci}",
+            f"{sum(seq_numbers)}",
+            f"{statistics.median(seq_numbers):.3f}",
+            f"{statistics.mean(seq_numbers):.3f}",
+            f"{statistics.stdev(seq_numbers):.3f}",
+            f"{min(seq_numbers)}",
+            f"{max(seq_numbers)}",
+            f"{sum(target_lengths)}",
+            f"{statistics.median(target_lengths):.3f}",
+            f"{statistics.mean(target_lengths):.3f}",
+            f"{statistics.stdev(target_lengths):.3f}",
+            f"{min(target_lengths)}",
+            f"{max(target_lengths)}",
+        ],
+    ]
+
+    with open(tsv_stats_file, "wt") as tsv_out:
+        for line in tsv_stats:
+            tsv_out.write("\t".join(line) + "\n")
 
     msg = f"{now()} | Finished successfully!\n"
     wlog(log, msg)
