@@ -15,6 +15,7 @@ not, see <http://www.gnu.org/licenses/>.
 import argparse
 import datetime
 import gzip
+import math
 import os
 import random
 import re
@@ -1306,7 +1307,8 @@ def main():
         dest="max_target_copies",
         help="Maximum average number of copies allowed per target in the final target file. Average"
         " copies are calculated dividing the total number of sequences by the total number of"
-        " samples in the cluster that the target represents",
+        " samples in the cluster that the target represents. Use decimals greater than 1, use -1 to"
+        " disable this filter",
     )
     targets_group.add_argument(
         "-B",
@@ -1480,6 +1482,11 @@ def main():
         args.overwrite,
         log,
     )
+
+    if 0 <= args.max_target_copies <= 1:
+        args.max_target_copies = 1
+    elif args.max_target_copies == -1:
+        args.max_target_copies = math.inf
 
     single_copy_centroids, multi_copy_centroids = select_targets(
         clust_output,
