@@ -557,8 +557,9 @@ def cluster_seqs(
 
 def select_targets(
     clust_output: dict,
-    min_depth_prop: float,
     min_length_prop: float,
+    min_depth_prop: float,
+    retain_samples,
     max_target_copies: float,
     best_only: bool,
     split_paralogs: bool,
@@ -582,6 +583,9 @@ def select_targets(
                     else:
                         low_copy_centroids[locus] = [centroid]
         return low_copy_centroids
+
+    if retain_samples:
+        retain_samples = set(retain_samples.split(","))
 
     raw_centroids = {}
 
@@ -645,11 +649,21 @@ def select_targets(
             top_centroid_depth = raw_centroids[locus][0]["num_seqs"]
             top_centroid_length = raw_centroids[locus][0]["length"]
             for i in range(1, len(raw_centroids[locus])):
-                if (
-                    raw_centroids[locus][i]["num_seqs"] >= top_centroid_depth * min_depth_prop
-                    and raw_centroids[locus][i]["length"] >= top_centroid_length * min_length_prop
-                ):
-                    centroids[locus].append(raw_centroids[locus][i])
+                if retain_samples:
+                    if (
+                        raw_centroids[locus][i]["length"] >= top_centroid_length * min_length_prop
+                        and raw_centroids[locus][i]["num_seqs"] >= top_centroid_depth * min_depth_prop
+                    ) or (
+                        raw_centroids[locus][i]["length"] >= top_centroid_length * min_length_prop
+                        and not set(raw_centroids[locus][i]["samples"]).isdisjoint(retain_samples)
+                    ):
+                        centroids[locus].append(raw_centroids[locus][i])
+                else:
+                    if (
+                        raw_centroids[locus][i]["length"] >= top_centroid_length * min_length_prop
+                        and raw_centroids[locus][i]["num_seqs"] >= top_centroid_depth * min_depth_prop
+                    ):
+                        centroids[locus].append(raw_centroids[locus][i])
 
     clust_output_data = calc_per_locus_data(centroids)
     msg = msg_loci_stats(centroids, "AFTER CLUSTERING STATS:")
@@ -662,6 +676,7 @@ def select_targets(
         f"(min_length_proportion={min_length_prop},"
         f" min_depth_proportion={min_depth_prop},"
         f" max_target_copies={max_target_copies},"
+        f" retain_samples={retain_samples},"
         f" best_only={best_only},"
         f" split_paralogs={split_paralogs})"
     )
@@ -1198,11 +1213,14 @@ def main():
         " cluster for the locus, depth is defined as the number of sequences contained in a cluster",
     )
     targets_group.add_argument(
-        "-B",
-        "--best_only",
-        action="store_true",
-        dest="best_only",
-        help="Enable to include a single representative per locus in the target file",
+        "-R",
+        "--retain_samples",
+        action="store",
+        dest="retain_samples",
+        help="Retain targets that include any sample in this comma-separated list (no spaces),"
+        " regardless of its '--min_depth_proportion'. Sometimes divergent samples, like those in the"
+        " outgroup, can form small clusters that would be removed if they do not pass the "
+        "'--min_depth_proportion' threshold. This option is ignored if '--best_only' is used",
     )
     targets_group.add_argument(
         "-T",
@@ -1216,7 +1234,15 @@ def main():
         " samples in the cluster that the target represents",
     )
     targets_group.add_argument(
-        "-P", "--split_paralogs",
+        "-B",
+        "--best_only",
+        action="store_true",
+        dest="best_only",
+        help="Enable to include a single representative per locus in the target file",
+    )
+    targets_group.add_argument(
+        "-P",
+        "--split_paralogs",
         action="store_true",
         dest="split_paralogs",
         help="Enable to split loci flagged as paralogous into separate loci. Only makes sense"
@@ -1382,8 +1408,9 @@ def main():
 
     single_copy_centroids, multi_copy_centroids = select_targets(
         clust_output,
-        args.min_depth_proportion,
         args.min_length_proportion,
+        args.min_depth_proportion,
+        args.retain_samples,
         args.max_target_copies,
         args.best_only,
         args.split_paralogs,
