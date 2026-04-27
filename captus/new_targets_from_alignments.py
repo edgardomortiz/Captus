@@ -744,7 +744,7 @@ def select_targets(
 
         return single_copy_centroids, multi_copy_centroids
     else:
-        centroids = remove_high_copy_centroids(centroids)
+        centroids = remove_high_copy_centroids(centroids, max_target_copies)
         if best_only is True:
             centroids = keep_best_centroids(centroids)
 
