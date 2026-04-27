@@ -121,6 +121,7 @@ def create_iqtree_cmds(
                 ";",
                 "rm",
                 f"{modelgz}",
+                ";",
                 "rm",
                 f"{uniqueseqphy}",
             ]

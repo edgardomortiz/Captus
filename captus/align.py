@@ -64,7 +64,7 @@ def align(full_command, args):
     out_dir, out_dir_msg = make_output_dir(args.out)
     log.logger = log.Log(Path(args.out, "captus-align.log"), stdout_verbosity_level=1)
 
-    mar = 26  # Margin for aligning parameters and values
+    mar = 27  # Margin for aligning parameters and values
 
     ################################################################################################
     ############################################################################### STARTING SECTION
