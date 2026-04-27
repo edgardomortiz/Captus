@@ -35,6 +35,9 @@ FASTQ_VALID_EXTENSIONS = [".fq", ".fastq", ".fq.gz", ".fastq.gz"]
 # GFF valid filename extensions:
 GFF_VALID_EXTENSIONS = [".gff", ".gff3", ".gtf", ".gff.gz", ".gff3.gz", ".gtf.gz"]
 
+# Invalid characters in sequence names, will be replaced by "_"
+INVALID_CHARS = str.maketrans({":": "_", "(": "_", ")": "_"})
+
 # Fraction of total RAM available to Captus when using 'auto' in --ram
 RAM_FRACTION = 0.99
 

@@ -3938,14 +3938,15 @@ def cds_from_gff(gff_path, fasta_path, bait_length):
                     shift = int(record[7]) if record[7] != "." else 0
                     start = int(record[3])
                     end = int(record[4])
-                    if notes[key] not in cds:
-                        cds[notes[key]] = {
+                    cds_id = notes[key].translate(settings.INVALID_CHARS)
+                    if cds_id not in cds:
+                        cds[cds_id] = {
                             "seq_id": record[0],
                             "strand": record[6],
                             "coords": [(start, shift, end)],
                         }
                     else:
-                        cds[notes[key]]["coords"].append((start, shift, end))
+                        cds[cds_id]["coords"].append((start, shift, end))
 
     genome = fasta_to_dict(fasta_path)
     fasta_cds = {}

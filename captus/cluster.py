@@ -716,6 +716,7 @@ def filter_fasta(
     transtable: int,
     overwrite: bool,
 ):
+
     start = time.time()
     fasta_out_path = Path(out_dir, sample_dir, f"{sample_name}{settings.DES_SUFFIXES['FILTER']}")
 
@@ -724,8 +725,9 @@ def filter_fasta(
         fasta_out = {}
 
         for seq_name in fasta_in:
+            sanitized_seq_name = seq_name.translate(settings.INVALID_CHARS)
             if len(fasta_in[seq_name]["sequence"]) >= min_seq_len:
-                fasta_out[seq_name] = fasta_in[seq_name]
+                fasta_out[sanitized_seq_name] = fasta_in[seq_name]
 
         if translate_cds:
             fasta_out = shred_fasta_dict(fasta_out, max_seq_len, is_cds=True)

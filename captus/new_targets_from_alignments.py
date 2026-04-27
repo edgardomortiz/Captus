@@ -61,6 +61,9 @@ END_FORMATTING = "\033[0m"
 BOLD = "\033[1m"
 DIM = "\033[2m"
 
+# Invalid characters in sequence names and their replacement
+INVALID_CHARS = str.maketrans({":": ".", "(": ".", ")": "."})
+
 
 def bold(text):
     return f"{BOLD}{text}{END_FORMATTING}"
@@ -350,11 +353,12 @@ def prefilter_seqs(
         loci_fastas_raw[locus_name] = locus_fasta_in
         locus_fasta_out = {}
         for seq_name in locus_fasta_in:
-            sample_name = seq_name.split(SEQ_NAME_SEP)[0]
+            sanitized_seq_name = seq_name.translate(INVALID_CHARS)
+            sample_name = sanitized_seq_name.split(SEQ_NAME_SEP)[0]
             samples.append(sample_name)
             seq = locus_fasta_in[seq_name]["sequence"].replace("-", "").replace("n", "")
             if len(seq) >= min_seq_len and sample_name not in exclude_samples:
-                locus_fasta_out[f"{seq_name}{REF_CLUSTER_SEP}{locus_name}"] = {
+                locus_fasta_out[f"{sanitized_seq_name}{REF_CLUSTER_SEP}{locus_name}"] = {
                     "sequence": seq,
                     "description": locus_fasta_in[seq_name]["description"],
                 }
@@ -378,7 +382,8 @@ def prefilter_seqs(
     for locus in loci_fastas_raw:
         samples = []
         for seq_name in loci_fastas_raw[locus]:
-            sample_name = seq_name.split(SEQ_NAME_SEP)[0]
+            sanitized_seq_name = seq_name.translate(INVALID_CHARS)
+            sample_name = sanitized_seq_name.split(SEQ_NAME_SEP)[0]
             samples.append(sample_name)
         num_seqs = len(loci_fastas_raw[locus])
         num_samples = len(set(samples))
