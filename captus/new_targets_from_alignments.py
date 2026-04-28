@@ -562,6 +562,7 @@ def cluster_seqs(
 
 
 def select_targets(
+    raw_input_data: dict,
     clust_output: dict,
     min_length_prop: float,
     min_depth_prop: float,
@@ -630,6 +631,7 @@ def select_targets(
             "sequence": cluster[1],
             "num_seqs": num_seqs,
             "num_samples": num_samples,
+            "sample_pct": num_samples / raw_input_data[centroid_locus]["num_samples"] * 100,
             "avg_copies": num_seqs / num_samples,
             "samples": samples,
             "length": len(cluster[1]),
@@ -950,6 +952,8 @@ def write_targets(
     num_split_loci = 0
     seq_numbers = []
     target_lengths = []
+    target_copies = []
+    target_sample_pcts = []
 
     with open(tsv_targets_file, "wt") as tsv_out:
         tsv_out.write("\t".join(tsv_header) + "\n")
@@ -977,6 +981,8 @@ def write_targets(
             if locus in single_copy_centroids:
                 seq_numbers.append(len(single_copy_centroids[locus]))
                 for centroid in single_copy_centroids[locus]:
+                    target_copies.append(centroid["avg_copies"])
+                    target_sample_pcts.append(centroid["sample_pct"])
                     new_seq_name = centroid["seq_name"].replace(SEQ_NAME_SEP, "_H")
                     target_fasta[new_seq_name] = {
                         "sequence": centroid["sequence"],
@@ -988,6 +994,8 @@ def write_targets(
             if multi_copy_centroids and locus in multi_copy_centroids:
                 seq_numbers.append(len(multi_copy_centroids[locus]))
                 for centroid in multi_copy_centroids[locus]:
+                    target_copies.append(centroid["avg_copies"])
+                    target_sample_pcts.append(centroid["sample_pct"])
                     new_seq_name = centroid["seq_name"].replace(SEQ_NAME_SEP, "_H")
                     target_fasta[new_seq_name] = {
                         "sequence": centroid["sequence"],
@@ -1037,12 +1045,12 @@ def write_targets(
     msg += f"       Total Singleton Loci: {seq_numbers.count(1)}\n"
     msg += f"           Total Split Loci: {num_split_loci}\n"
     msg += "\n"
-    msg += f"            Total Sequences: {sum(seq_numbers)}\n"
-    msg += f"      Median Seqs per Locus: {statistics.median(seq_numbers):.3f}\n"
-    msg += f"        Mean Seqs per Locus: {statistics.mean(seq_numbers):.3f}\n"
-    msg += f"          SD Seqs per Locus: {statistics.stdev(seq_numbers):.3f}\n"
-    msg += f"         Min Seqs per Locus: {min(seq_numbers)}\n"
-    msg += f"         Max Seqs per Locus: {max(seq_numbers)}\n"
+    msg += f"              Total Targets: {sum(seq_numbers)}\n"
+    msg += f"   Median Targets per Locus: {statistics.median(seq_numbers):.3f}\n"
+    msg += f"     Mean Targets per Locus: {statistics.mean(seq_numbers):.3f}\n"
+    msg += f"       SD Targets per Locus: {statistics.stdev(seq_numbers):.3f}\n"
+    msg += f"      Min Targets per Locus: {min(seq_numbers)}\n"
+    msg += f"      Max Targets per Locus: {max(seq_numbers)}\n"
     msg += "\n"
     msg += f"     Total Target Length bp: {sum(target_lengths)}\n"
     msg += f"    Median Target Length bp: {statistics.median(target_lengths):.3f}\n"
@@ -1050,21 +1058,23 @@ def write_targets(
     msg += f"        SD Target Length bp: {statistics.stdev(target_lengths):.3f}\n"
     msg += f"       Min Target Length bp: {min(target_lengths)}\n"
     msg += f"       Max Target Length bp: {max(target_lengths)}\n"
+    msg += "\n"
+    msg += f"   Median Copies per Target: {statistics.median(target_copies):.3f}\n"
+    msg += f"     Mean Copies per Target: {statistics.mean(target_copies):.3f}\n"
+    msg += f"       SD Copies per Target: {statistics.stdev(target_copies):.3f}\n"
+    msg += f"      Min Copies per Target: {min(target_copies):.3f}\n"
+    msg += f"      Max Copies per Target: {max(target_copies):.3f}\n"
+    msg += "\n"
+    msg += f"Median % Samples per Target: {statistics.median(target_sample_pcts):.3f}\n"
+    msg += f"  Mean % Samples per Target: {statistics.mean(target_sample_pcts):.3f}\n"
+    msg += f"    SD % Samples per Target: {statistics.stdev(target_sample_pcts):.3f}\n"
+    msg += f"   Min % Samples per Target: {min(target_sample_pcts):.3f}\n"
+    msg += f"   Max % Samples per Target: {max(target_sample_pcts):.3f}\n"
     wlog(log, msg)
 
     tsv_stats = [
         [
             "Prefix",
-            "FIL_RAW_Median_pct",
-            "FIL_RAW_Mean_pct",
-            "FIL_RAW_SD_pct",
-            "FIL_RAW_Min_pct",
-            "FIL_RAW_Max_pct",
-            "FIN_RAW_Median_pct",
-            "FIN_RAW_Mean_pct",
-            "FIN_RAW_SD_pct",
-            "FIN_RAW_Min_pct",
-            "FIN_RAW_Max_pct",
             "FIN_FIL_Median_pct",
             "FIN_FIL_Mean_pct",
             "FIN_FIL_SD_pct",
@@ -1073,12 +1083,32 @@ def write_targets(
             "Total_Loci",
             "Total_Singleton_Loci",
             "Total_Split_Loci",
-            "Total_Sequences",
-            "Median_Seqs_per_Locus",
-            "Mean_Seqs_per_Locus",
-            "SD_Seqs_per_Locus",
-            "Min_Seqs_per_Locus",
-            "Max_Seqs_per_Locus",
+            "Total_Targets",
+            "Median_Targets_per_Locus",
+            "Mean_Targets_per_Locus",
+            "SD_Targets_per_Locus",
+            "Min_Targets_per_Locus",
+            "Max_Targets_per_Locus",
+            "Median_Copies_per_Target",
+            "Mean_Copies_per_Target",
+            "SD_Copies_per_Target",
+            "Min_Copies_per_Target",
+            "Max_Copies_per_Target",
+            "Median_pct_Samples_per_Target",
+            "Mean_pct_Samples_per_Target",
+            "SD_pct_Samples_per_Target",
+            "Min_pct_Samples_per_Target",
+            "Max_pct_Samples_per_Target",
+            "FIN_RAW_Median_pct",
+            "FIN_RAW_Mean_pct",
+            "FIN_RAW_SD_pct",
+            "FIN_RAW_Min_pct",
+            "FIN_RAW_Max_pct",
+            "FIL_RAW_Median_pct",
+            "FIL_RAW_Mean_pct",
+            "FIL_RAW_SD_pct",
+            "FIL_RAW_Min_pct",
+            "FIL_RAW_Max_pct",
             "Total_Target_Length_bp",
             "Median_Target_Length_bp",
             "Mean_Target_Length_bp",
@@ -1088,16 +1118,6 @@ def write_targets(
         ],
         [
             f"{prefix}",
-            f"{statistics.median(fil_raw_pcts):.3f}",
-            f"{statistics.mean(fil_raw_pcts):.3f}",
-            f"{statistics.stdev(fil_raw_pcts):.3f}",
-            f"{min(fil_raw_pcts):.3f}",
-            f"{max(fil_raw_pcts):.3f}",
-            f"{statistics.median(clu_raw_pcts):.3f}",
-            f"{statistics.mean(clu_raw_pcts):.3f}",
-            f"{statistics.stdev(clu_raw_pcts):.3f}",
-            f"{min(clu_raw_pcts):.3f}",
-            f"{max(clu_raw_pcts):.3f}",
             f"{statistics.median(clu_fil_pcts):.3f}",
             f"{statistics.mean(clu_fil_pcts):.3f}",
             f"{statistics.stdev(clu_fil_pcts):.3f}",
@@ -1112,6 +1132,26 @@ def write_targets(
             f"{statistics.stdev(seq_numbers):.3f}",
             f"{min(seq_numbers)}",
             f"{max(seq_numbers)}",
+            f"{statistics.median(target_copies):.3f}",
+            f"{statistics.mean(target_copies):.3f}",
+            f"{statistics.stdev(target_copies):.3f}",
+            f"{min(target_copies):.3f}",
+            f"{max(target_copies):.3f}",
+            f"{statistics.median(target_sample_pcts):.3f}",
+            f"{statistics.mean(target_sample_pcts):.3f}",
+            f"{statistics.stdev(target_sample_pcts):.3f}",
+            f"{min(target_sample_pcts):.3f}",
+            f"{max(target_sample_pcts):.3f}",
+            f"{statistics.median(clu_raw_pcts):.3f}",
+            f"{statistics.mean(clu_raw_pcts):.3f}",
+            f"{statistics.stdev(clu_raw_pcts):.3f}",
+            f"{min(clu_raw_pcts):.3f}",
+            f"{max(clu_raw_pcts):.3f}",
+            f"{statistics.median(fil_raw_pcts):.3f}",
+            f"{statistics.mean(fil_raw_pcts):.3f}",
+            f"{statistics.stdev(fil_raw_pcts):.3f}",
+            f"{min(fil_raw_pcts):.3f}",
+            f"{max(fil_raw_pcts):.3f}",
             f"{sum(target_lengths)}",
             f"{statistics.median(target_lengths):.3f}",
             f"{statistics.mean(target_lengths):.3f}",
@@ -1494,6 +1534,7 @@ def main():
         args.max_target_copies = math.inf
 
     single_copy_centroids, multi_copy_centroids = select_targets(
+        raw_input_data,
         clust_output,
         args.min_length_proportion,
         args.min_depth_proportion,
