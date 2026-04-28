@@ -1261,7 +1261,7 @@ def main():
     prefiltering_group.add_argument(
         "--min_seq_len",
         action="store",
-        default=33,
+        default=99,
         type=int,
         dest="min_seq_len",
         help="Minimum sequence length to include in clustering",
@@ -1296,7 +1296,7 @@ def main():
         "-i",
         "--min_identity",
         action="store",
-        default=70,
+        default=75,
         type=float,
         dest="min_identity",
         help="Minimum identity percentage between sequences in a cluster",
@@ -1347,7 +1347,7 @@ def main():
         "-T",
         "--max_target_copies",
         action="store",
-        default=1.33,
+        default=-1,
         type=float,
         dest="max_target_copies",
         help="Maximum average number of copies allowed per target in the final target file. Average"
