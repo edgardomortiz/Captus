@@ -1170,7 +1170,7 @@ def write_targets(
         for line in tsv_stats:
             tsv_out.write("\t".join(line) + "\n")
 
-    msg = f"{now()} | Finished successfully!\n"
+    msg = f"{now()} | Finished successfully!\n\n\n\n\n"
     wlog(log, msg)
 
     return

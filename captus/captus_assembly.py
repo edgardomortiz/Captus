@@ -1114,11 +1114,12 @@ class CaptusAssembly(object):
         mmseqs2_group.add_argument(
             "--cl_max_copies",
             action="store",
-            default=6,
+            default=3,
             type=float,
             dest="cl_max_copies",
-            help="Maximum average number of sequences per sample in a cluster. This can exclude loci"
-            " that are extremely paralogous",
+            help="Maximum average number of sequences per sample in a cluster, defined as total"
+            " number of sequences divided by the total number of samples grouped in a cluster. This"
+            " can exclude loci that are extremely paralogous",
         )
         mmseqs2_group.add_argument(
             "--cl_tmp_dir",
