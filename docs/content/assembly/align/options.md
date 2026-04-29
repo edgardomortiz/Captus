@@ -19,12 +19,12 @@ Location of Captus-style sample extraction directories (ending in '__captus-ext'
 
 - _**Directory:**_ path to a Captus extraction directory containing multiple individual sample extraction directories, this is called by default './03_extractions'.
 
-- _**File:**_ path to a file containing a list of paths (one per line) to individual sample extraction directories, useful when your extracted samples are in different locations and/or you only want to align a subset of samples. When providing a list you need to also provide a valid path to a 'captus-extract_refs.json' with '--refs_json' so Captus can find the target files and add target sequences to the alignments.
+- _**File:**_ path to a file containing a list of paths (one per line) to individual sample extraction directories, useful when your extracted samples are in different locations and/or you only want to align a subset of samples. When providing a list, Captus will try to find a valid 'captus-extract_refs.json', if none can be found you will need to provide it with '--refs_json' so Captus can find the target files and add target sequences to the alignments.
 
 This argument is **required** <i class="fas fa-exclamation-triangle"></i>, the default is **./03_extractions/**
 ___
 ### **`-j, --refs_json`**
-f you provide a list of paths using '--captus_extractions' you also need to provide the path to a valid 'caputs-extract_refs.json' file so Captus can find the target files and add target sequences to the alignments.
+f you provide a list of paths using '--captus_extractions' you might also need to provide the path to a valid 'caputs-extract_refs.json' file so Captus can find the target files and add target sequences to the alignments.
 
 This argument is optional and has no default.
 ___
@@ -225,4 +225,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)<br>
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (24.04.2026)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (29.04.2026)

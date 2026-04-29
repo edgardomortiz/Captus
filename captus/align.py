@@ -173,10 +173,19 @@ def align(full_command, args):
     show_less = not args.show_more
     if Path(args.captus_extractions).is_file():
         if args.refs_json is None:
-            quit_with_error(
-                "Since you provided a FILE containing a list of paths with '--captus_extractions'"
-                f" you also need to provide a path to a valid '{settings.JSON_REFS}' file"
-            )
+            refs_json_path = None
+            with open(args.captus_extractions, "rt") as ext_paths:
+                for line in ext_paths:
+                    ext_path = Path(line.strip())
+                    if Path(ext_path.parent, settings.JSON_REFS).is_file():
+                        refs_json_path = Path(ext_path.parent, settings.JSON_REFS)
+                        break
+            if refs_json_path is None:
+                quit_with_error(
+                    "You provided a FILE containing a list of paths with '--captus_extractions' but"
+                    f" Captus couldn't find any valid '{settings.JSON_REFS}' file, please provide"
+                    " the path to a valid one using '--refs_json'"
+                )
         else:
             refs_json_path = Path(args.refs_json)
     elif Path(args.captus_extractions).is_dir():
