@@ -2103,6 +2103,27 @@ def rem_refs(refs_paths, fastas_paths, min_samples, overwrite, concurrent, debug
         )
 
 
+def strip_empty_sites(fasta: dict):
+    aln_len = 0
+    for seq_name in fasta:
+        aln_len = len(fasta[seq_name]["sequence"])
+        break
+    empty_sites = [True] * aln_len
+    for seq_name in fasta:
+        for s in range(aln_len):
+            if fasta[seq_name]["sequence"][s] != "-":
+                empty_sites[s] = False
+    if empty_sites.count(False) == aln_len:
+        return fasta
+    for seq_name in fasta:
+        stripped_seq = ""
+        for s in range(aln_len):
+            if empty_sites[s] is False:
+                stripped_seq += fasta[seq_name]["sequence"][s]
+        fasta[seq_name]["sequence"] = stripped_seq
+    return fasta
+
+
 def rem_refs_from_fasta(fasta_in: Path, fasta_out: Path, ref_names: list, min_samples, overwrite):
     start = time.time()
 
@@ -2116,6 +2137,7 @@ def rem_refs_from_fasta(fasta_in: Path, fasta_out: Path, ref_names: list, min_sa
             if seq_name not in ref_names:
                 fasta_without_refs[seq_name] = dict(fasta_with_refs[seq_name])
         if num_samples(fasta_without_refs) >= min_samples:
+            fasta_without_refs = strip_empty_sites(fasta_without_refs)
             dict_to_fasta(fasta_without_refs, fasta_out)
             message = f"'{fasta_out_short}': references removed [{elapsed_time(time.time() - start)}]"
         else:
