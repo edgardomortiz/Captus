@@ -730,13 +730,6 @@ def select_targets(
                                 multi_copy_centroids[new_locus].append(centroid)
                             else:
                                 multi_copy_centroids[new_locus] = [centroid]
-    else:
-        for locus in clust_output_data:
-            for centroid in centroids[locus]:
-                centroid["sample_pct"] = (
-                    centroid["num_samples"] / clust_output_data[locus]["num_samples"]
-                )
-            single_copy_centroids[locus] = centroids[locus]
 
         single_copy_centroids = remove_high_copy_centroids(single_copy_centroids, max_target_copies)
         multi_copy_centroids = remove_high_copy_centroids(multi_copy_centroids, max_target_copies)
@@ -763,6 +756,11 @@ def select_targets(
 
         return single_copy_centroids, multi_copy_centroids
     else:
+        for locus in clust_output_data:
+            for centroid in centroids[locus]:
+                centroid["sample_pct"] = (
+                    centroid["num_samples"] / clust_output_data[locus]["num_samples"]
+                )
         centroids = remove_high_copy_centroids(centroids, max_target_copies)
         if best_only is True:
             centroids = keep_best_centroids(centroids)
