@@ -1566,7 +1566,7 @@ class CaptusAssembly(object):
             "-c",
             "--min_coverage",
             action="store",
-            default=0.20,
+            default=0.30,
             type=float,
             dest="min_coverage",
             help="Minimum coverage of sequence as proportion of the mean of sequence lengths in the"
