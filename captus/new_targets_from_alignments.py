@@ -1337,7 +1337,7 @@ def main():
         "-D",
         "--min_depth_proportion",
         action="store",
-        default=0.55,
+        default=0.33,
         type=float,
         dest="min_depth_proportion",
         help="Keep cluster representatives with least this proportion of the depth of the largest"
