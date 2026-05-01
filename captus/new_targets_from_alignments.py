@@ -656,7 +656,7 @@ def select_targets(
 
     for locus in raw_centroids:
         raw_centroids[locus] = sorted(
-            raw_centroids[locus], key=lambda x: (x["num_seqs"], x["length"], x["wscore"]), reverse=True
+            raw_centroids[locus], key=lambda x: (x["num_samples"], x["length"], x["wscore"]), reverse=True
         )
 
     centroids = {}
@@ -711,24 +711,18 @@ def select_targets(
     multi_copy_centroids = {}
     if split_paralogs is True:
         for locus in clust_output_data:
+            for centroid in centroids[locus]:
+                centroid["sample_pct"] = (
+                    centroid["num_samples"] / clust_output_data[locus]["num_samples"]
+                )
             if clust_output_data[locus]["avg_copies"] <= min_avg_copies:
-                for centroid in centroids[locus]:
-                    centroid["sample_pct"] = (
-                        centroid["num_samples"] / clust_output_data[locus]["num_samples"]
-                    )
                 single_copy_centroids[locus] = centroids[locus]
             else:
-                if len(centroids[locus]) == 1:
-                    centroids[locus][0]["sample_pct"] = (
-                        centroid["num_samples"] / clust_output_data[locus]["num_samples"]
-                    )
+                if centroids[locus][0]["sample_pct"] < min_samples_prop:
                     multi_copy_centroids[locus] = centroids[locus]
                 else:
                     paralog_suffix = 1
                     for centroid in centroids[locus]:
-                        centroid["sample_pct"] = (
-                            centroid["num_samples"] / clust_output_data[locus]["num_samples"]
-                        )
                         if centroid["sample_pct"] >= min_samples_prop:
                             new_locus = f"{locus}.PAR{paralog_suffix}"
                             centroid["seq_name"] = f"{centroid['seq_name']}.PAR{paralog_suffix}"
