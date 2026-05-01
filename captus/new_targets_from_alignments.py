@@ -435,9 +435,9 @@ def prefilter_seqs(
     )
     if high_copy_only is True or low_copy_only is True:
         msg += (
-            f" min_locus_copies={min_locus_copies}"
-            f" high_copy_only={high_copy_only}"
-            f" low_copy_only={low_copy_only}"
+            f", min_locus_copies={min_locus_copies}"
+            f", high_copy_only={high_copy_only}"
+            f", low_copy_only={low_copy_only}"
         )
     msg += ")"
     wlog(log, msg)
