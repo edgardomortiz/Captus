@@ -250,21 +250,21 @@ def msg_samples_copies(loci_data: dict):
     if len(num_samples) > 1:
         samples_sd = statistics.stdev(num_samples)
 
-    avg_copies = [loci_data[locus]["avg_copies"] for locus in loci_data]
+    median_copies = [loci_data[locus]["avg_copies"] for locus in loci_data]
     copies_sd = 0
-    if len(avg_copies) > 1:
-        copies_sd = statistics.stdev(avg_copies)
+    if len(median_copies) > 1:
+        copies_sd = statistics.stdev(median_copies)
 
     msg = f"{IND} Median samples per locus: {statistics.median(num_samples)}\n"
     msg += f"{IND}   Mean samples per locus: {statistics.mean(num_samples):.3f}\n"
     msg += f"{IND}     SD samples per locus: {samples_sd:.3f}\n"
     msg += f"{IND}    Min samples per locus: {min(num_samples)}\n"
     msg += f"{IND}    Max samples per locus: {max(num_samples)}\n\n"
-    msg += f"{IND}  Median copies per locus: {statistics.median(avg_copies):.3f}\n"
-    msg += f"{IND}    Mean copies per locus: {statistics.mean(avg_copies):.3f}\n"
+    msg += f"{IND}  Median copies per locus: {statistics.median(median_copies):.3f}\n"
+    msg += f"{IND}    Mean copies per locus: {statistics.mean(median_copies):.3f}\n"
     msg += f"{IND}      SD copies per locus: {copies_sd:.3f}\n"
-    msg += f"{IND}     Min copies per locus: {min(avg_copies):.3f}\n"
-    msg += f"{IND}     Max copies per locus: {max(avg_copies):.3f}\n"
+    msg += f"{IND}     Min copies per locus: {min(median_copies):.3f}\n"
+    msg += f"{IND}     Max copies per locus: {max(median_copies):.3f}\n"
 
     return msg
 
@@ -272,18 +272,19 @@ def msg_samples_copies(loci_data: dict):
 def calc_per_locus_data(centroids: dict):
     centroids_data = {}
     for locus in centroids:
-        num_seqs = 0
-        samples = []
+        samples = {}
         inclusions = []
         for centroid in centroids[locus]:
-            num_seqs += centroid["num_seqs"]
-            samples += centroid["samples"]
+            for sample in centroid["samples"]:
+                if sample in samples:
+                    samples[sample] += centroid["samples"][sample]
+                else:
+                    samples[sample] += centroid["samples"][sample]
             inclusions += centroid["includes"]
-        num_samples = len(set(samples))
         centroids_data[locus] = {
-            "num_seqs": num_seqs,
-            "num_samples": num_samples,
-            "avg_copies": num_seqs / num_samples,
+            "num_seqs": sum(samples.values()),
+            "num_samples": len(samples),
+            "median_copies": statistics.median(samples.values()),
             "includes": ",".join(sorted(list(set(inclusions)))),
         }
 
@@ -313,7 +314,7 @@ def prefilter_seqs(
     min_wscore_prop: float,
     min_coverage_prop: float,
     overwrite: bool,
-    min_average_copies: float,
+    min_locus_copies: float,
     high_copy_only: float,
     low_copy_only: float,
     log: Path,
@@ -348,8 +349,8 @@ def prefilter_seqs(
     loci_fastas_raw = {}
 
     for fasta_path in fastas_paths:
-        samples = []
         locus_name = get_locus_name(fasta_path)
+        samples = {}
         locus_wscores = []
         locus_coverages = []
         locus_fasta_in = fasta_to_dict(fasta_path)
@@ -358,9 +359,12 @@ def prefilter_seqs(
         for seq_name in locus_fasta_in:
             sanitized_seq_name = seq_name.translate(INVALID_CHARS)
             sample_name = sanitized_seq_name.split(SEQ_NAME_SEP)[0]
-            samples.append(sample_name)
             seq = locus_fasta_in[seq_name]["sequence"].replace("-", "").replace("n", "")
             if len(seq) >= min_seq_len and sample_name not in exclude_samples:
+                if sample_name in samples:
+                    samples[sample_name] += 1
+                else:
+                    samples[sample_name] = 1
                 locus_fasta_out[f"{sanitized_seq_name}{REF_CLUSTER_SEP}{locus_name}"] = {
                     "sequence": seq,
                     "description": locus_fasta_in[seq_name]["description"],
@@ -374,34 +378,42 @@ def prefilter_seqs(
             loci_fastas[locus_name] = locus_fasta_out
             if locus_wscores and locus_coverages:
                 loci_data[locus_name] = {
+                    "median_copies": statistics.median(samples.values()),
                     "median_wscore": statistics.median(locus_wscores),
                     "median_coverage": statistics.median(locus_coverages),
                 }
-        num_samples = len(set(samples))
-        avg_copies = len(locus_fasta_out) / num_samples
-        if high_copy_only is True and avg_copies < min_average_copies and locus_name in loci_fastas:
+        if (
+            high_copy_only is True
+            and loci_data[locus_name]["median_copies"] < min_locus_copies
+            and locus_name in loci_fastas
+        ):
             del loci_fastas[locus_name]
             del loci_data[locus_name]
-        if low_copy_only is True and avg_copies >= min_average_copies and locus_name in loci_fastas:
+        if (
+            low_copy_only is True
+            and loci_data[locus_name]["median_copies"] >= min_locus_copies
+            and locus_name in loci_fastas
+        ):
             del loci_fastas[locus_name]
             del loci_data[locus_name]
-        if num_samples < min_samples and locus_name in loci_fastas:
+        if len(samples) < min_samples and locus_name in loci_fastas:
             del loci_fastas[locus_name]
             del loci_data[locus_name]
 
     loci_fastas_raw_data = {}
     for locus in loci_fastas_raw:
-        samples = []
+        samples = {}
         for seq_name in loci_fastas_raw[locus]:
             sanitized_seq_name = seq_name.translate(INVALID_CHARS)
             sample_name = sanitized_seq_name.split(SEQ_NAME_SEP)[0]
-            samples.append(sample_name)
-        num_seqs = len(loci_fastas_raw[locus])
-        num_samples = len(set(samples))
+            if sample_name in samples:
+                samples[sample_name] += 1
+            else:
+                samples[sample_name] = 1
         loci_fastas_raw_data[locus] = {
-            "num_seqs": num_seqs,
-            "num_samples": num_samples,
-            "avg_copies": num_seqs / num_samples,
+            "num_seqs": len(loci_fastas_raw[locus]),
+            "num_samples": len(samples),
+            "median_copies": statistics.median(samples.values()),
         }
     msg = msg_loci_stats(loci_fastas_raw, "RAW STATS:")
     msg += "\n"
@@ -416,6 +428,12 @@ def prefilter_seqs(
         f" min_wscore_proportion={min_wscore_prop},"
         f" min_coverage_proportion={min_coverage_prop})"
     )
+    if high_copy_only is True or low_copy_only is True:
+        msg += (
+            f" min_locus_copies={min_locus_copies})"
+            f" high_copy_only={high_copy_only})"
+            f" low_copy_only={low_copy_only})"
+        )
     wlog(log, msg)
 
     for locus_name in loci_fastas:
@@ -442,16 +460,17 @@ def prefilter_seqs(
         if clust_input_file.is_file():
             clust_input_data = {}
             for locus in loci_fastas:
-                samples = []
+                samples = {}
                 for seq_name in loci_fastas[locus]:
                     sample_name = seq_name.split(REF_CLUSTER_SEP)[0].split(SEQ_NAME_SEP)[0]
-                    samples.append(sample_name)
-                num_seqs = len(loci_fastas[locus])
-                num_samples = len(set(samples))
+                    if sample_name in samples:
+                        samples[sample_name] += 1
+                    else:
+                        samples[sample_name] = 1
                 clust_input_data[locus] = {
-                    "num_seqs": num_seqs,
-                    "num_samples": num_samples,
-                    "avg_copies": num_seqs / num_samples,
+                    "num_seqs": len(loci_fastas[locus]),
+                    "num_samples": len(samples),
+                    "median_copies": statistics.median(samples.values()),
                 }
             msg = msg_loci_stats(loci_fastas, "BEFORE CLUSTERING STATS:")
             msg += "\n"
@@ -580,7 +599,7 @@ def select_targets(
     max_target_copies: float,
     best_only: bool,
     split_paralogs: bool,
-    min_avg_copies: float,
+    min_locus_copies: float,
     min_samples_prop: float,
     log: Path,
 ):
@@ -594,7 +613,7 @@ def select_targets(
         low_copy_centroids = {}
         for locus in centroids:
             for centroid in centroids[locus]:
-                if centroid["avg_copies"] <= max_target_copies:
+                if centroid["median_copies"] <= max_target_copies:
                     if locus in low_copy_centroids:
                         low_copy_centroids[locus].append(centroid)
                     else:
@@ -607,12 +626,13 @@ def select_targets(
     raw_centroids = {}
 
     for cluster in clust_output:
+        samples = {}
         centroid_locus = cluster[0].split()[0].split(REF_CLUSTER_SEP)[-1]
         centroid_sample = (
             cluster[0][1:].split()[0].replace(f"-{centroid_locus}", "").split(SEQ_NAME_SEP)[0]
         )
         includes = []
-        samples = [centroid_sample]
+        samples[centroid_sample] = 1
         for i in range(2, len(cluster), 2):
             member_locus = cluster[i].split()[0].split(REF_CLUSTER_SEP)[-1]
             if member_locus != centroid_locus:
@@ -620,18 +640,21 @@ def select_targets(
             sample_name = (
                 cluster[i][1:].split()[0].replace(f"-{member_locus}", "").split(SEQ_NAME_SEP)[0]
             )
-            samples.append(sample_name)
+            if sample_name in samples:
+                samples[sample_name] += 1
+            else:
+                samples[sample_name] = 1
 
         header_pieces = cluster[0].split()
         seq_name = header_pieces[0].replace(">", "")
+        median_copies = statistics.median(samples.values())
         num_seqs = int(len(cluster) / 2)
-        samples = sorted(list(set(samples)))
         num_samples = len(samples)
 
         description = ""
         if len(header_pieces) > 1:
             description = " ".join(header_pieces[1:])
-        description = f"[seqs={num_seqs:.0f}] [samples={num_samples:.0f}] {description}"
+        description = f"[copies={median_copies:.2f}] [seqs={num_seqs:.0f}] [samples={num_samples:.0f}] {description}"
 
         wscore, coverage = get_wscore_coverage(description)
 
@@ -641,7 +664,7 @@ def select_targets(
             "sequence": cluster[1],
             "num_seqs": num_seqs,
             "num_samples": num_samples,
-            "avg_copies": num_seqs / num_samples,
+            "median_copies": median_copies,
             "samples": samples,
             "length": len(cluster[1]),
             "wscore": wscore,
@@ -656,7 +679,9 @@ def select_targets(
 
     for locus in raw_centroids:
         raw_centroids[locus] = sorted(
-            raw_centroids[locus], key=lambda x: (x["num_samples"], x["length"], x["wscore"]), reverse=True
+            raw_centroids[locus],
+            key=lambda x: (x["num_samples"], x["length"], x["wscore"]),
+            reverse=True,
         )
 
     centroids = {}
@@ -702,7 +727,7 @@ def select_targets(
     if split_paralogs is True:
         msg = (
             f"{now()} | Paralog loci will be split if possible "
-            f"(min_average_copies={min_avg_copies},"
+            f"(min_locus_copies={min_locus_copies},"
             f" min_samples_proportion={min_samples_prop})"
         )
         wlog(log, msg)
@@ -715,7 +740,7 @@ def select_targets(
                 centroid["sample_pct"] = (
                     centroid["num_samples"] / clust_output_data[locus]["num_samples"]
                 )
-            if clust_output_data[locus]["avg_copies"] <= min_avg_copies:
+            if clust_output_data[locus]["median_copies"] <= min_locus_copies:
                 single_copy_centroids[locus] = centroids[locus]
             else:
                 if centroids[locus][0]["sample_pct"] < min_samples_prop:
@@ -832,15 +857,15 @@ def write_targets(
             "raw_locus": locus,
             "raw_seqs": raw_input_data[locus]["num_seqs"],
             "raw_samples": raw_input_data[locus]["num_samples"],
-            "raw_avg_copies": f"{raw_input_data[locus]['avg_copies']:.3f}",
+            "raw_median_copies": f"{raw_input_data[locus]['median_copies']:.3f}",
             "filtered_seqs": clust_input_data[locus]["num_seqs"],
             "filtered_samples": clust_input_data[locus]["num_samples"],
-            "filtered_avg_copies": f"{clust_input_data[locus]['avg_copies']:.3f}",
+            "filtered_median_copies": f"{clust_input_data[locus]['median_copies']:.3f}",
             "locus": locus,
             "targets": len(single_copy_centroids[locus]),
             "sequences": single_copy_data[locus]["num_seqs"],
             "samples": single_copy_data[locus]["num_samples"],
-            "avg_copies": f"{single_copy_data[locus]['avg_copies']:.3f}",
+            "median_copies": f"{single_copy_data[locus]['median_copies']:.3f}",
             "includes": single_copy_data[locus]["includes"],
             "clu_fil_samples": f"{clu_fil_samples:.3f}",
             "clu_raw_samples": f"{clu_raw_samples:.3f}",
@@ -872,15 +897,15 @@ def write_targets(
                 "raw_locus": raw_locus,
                 "raw_seqs": raw_input_data[raw_locus]["num_seqs"],
                 "raw_samples": raw_input_data[raw_locus]["num_samples"],
-                "raw_avg_copies": f"{raw_input_data[raw_locus]['avg_copies']:.3f}",
+                "raw_median_copies": f"{raw_input_data[raw_locus]['median_copies']:.3f}",
                 "filtered_seqs": clust_input_data[raw_locus]["num_seqs"],
                 "filtered_samples": clust_input_data[raw_locus]["num_samples"],
-                "filtered_avg_copies": f"{clust_input_data[raw_locus]['avg_copies']:.3f}",
+                "filtered_median_copies": f"{clust_input_data[raw_locus]['median_copies']:.3f}",
                 "locus": locus,
                 "targets": len(multi_copy_centroids[locus]),
                 "sequences": multi_copy_data[locus]["num_seqs"],
                 "samples": multi_copy_data[locus]["num_samples"],
-                "avg_copies": f"{multi_copy_data[locus]['avg_copies']:.3f}",
+                "median_copies": f"{multi_copy_data[locus]['median_copies']:.3f}",
                 "includes": multi_copy_data[locus]["includes"],
                 "clu_fil_samples": f"{clu_fil_samples:.3f}",
                 "clu_raw_samples": f"{clu_raw_samples:.3f}",
@@ -902,15 +927,15 @@ def write_targets(
                 "raw_locus": locus,
                 "raw_seqs": raw_input_data[locus]["num_seqs"],
                 "raw_samples": raw_input_data[locus]["num_samples"],
-                "raw_avg_copies": f"{raw_input_data[locus]['avg_copies']:.3f}",
+                "raw_median_copies": f"{raw_input_data[locus]['median_copies']:.3f}",
                 "filtered_seqs": clust_input_data[locus]["num_seqs"],
                 "filtered_samples": clust_input_data[locus]["num_samples"],
-                "filtered_avg_copies": f"{clust_input_data[locus]['avg_copies']:.3f}",
+                "filtered_median_copies": f"{clust_input_data[locus]['median_copies']:.3f}",
                 "locus": "NA",
                 "targets": "NA",
                 "sequences": "NA",
                 "samples": "NA",
-                "avg_copies": "NA",
+                "median_copies": "NA",
                 "includes": "NA",
                 "clu_fil_samples": f"{0:.3f}",
                 "clu_raw_samples": f"{0:.3f}",
@@ -927,15 +952,15 @@ def write_targets(
                 "raw_locus": locus,
                 "raw_seqs": raw_input_data[locus]["num_seqs"],
                 "raw_samples": raw_input_data[locus]["num_samples"],
-                "raw_avg_copies": f"{raw_input_data[locus]['avg_copies']:.3f}",
+                "raw_median_copies": f"{raw_input_data[locus]['median_copies']:.3f}",
                 "filtered_seqs": "NA",
                 "filtered_samples": "NA",
-                "filtered_avg_copies": "NA",
+                "filtered_median_copies": "NA",
                 "locus": "NA",
                 "targets": "NA",
                 "sequences": "NA",
                 "samples": "NA",
-                "avg_copies": "NA",
+                "median_copies": "NA",
                 "includes": "NA",
                 "clu_fil_samples": f"{0:.3f}",
                 "clu_raw_samples": f"{0:.3f}",
@@ -948,15 +973,15 @@ def write_targets(
         "targets",
         "sequences",
         "samples",
-        "avg_copies",
+        "median_copies",
         "includes",
         "initial_locus_name",
         "initial_seqs",
         "initial_samples",
-        "initial_avg_copies",
+        "initial_median_copies",
         "filter_seqs",
         "filter_samples",
-        "filter_avg_copies",
+        "filter_median_copies",
         "filter_to_initial_samples",
         "final_to_initial_samples",
         "final_to_filter_samples",
@@ -978,15 +1003,15 @@ def write_targets(
                 f"{target_data[locus]['targets']}",
                 f"{target_data[locus]['sequences']}",
                 f"{target_data[locus]['samples']}",
-                f"{target_data[locus]['avg_copies']}",
+                f"{target_data[locus]['median_copies']}",
                 f"{target_data[locus]['includes']}",
                 f"{target_data[locus]['raw_locus']}",
                 f"{target_data[locus]['raw_seqs']}",
                 f"{target_data[locus]['raw_samples']}",
-                f"{target_data[locus]['raw_avg_copies']}",
+                f"{target_data[locus]['raw_median_copies']}",
                 f"{target_data[locus]['filtered_seqs']}",
                 f"{target_data[locus]['filtered_samples']}",
-                f"{target_data[locus]['filtered_avg_copies']}",
+                f"{target_data[locus]['filtered_median_copies']}",
                 f"{target_data[locus]['fil_raw_samples']}",
                 f"{target_data[locus]['clu_raw_samples']}",
                 f"{target_data[locus]['clu_fil_samples']}",
@@ -996,7 +1021,7 @@ def write_targets(
             if locus in single_copy_centroids:
                 seq_numbers.append(len(single_copy_centroids[locus]))
                 for centroid in single_copy_centroids[locus]:
-                    target_copies.append(centroid["avg_copies"])
+                    target_copies.append(centroid["median_copies"])
                     target_sample_pcts.append(centroid["sample_pct"] * 100)
                     new_seq_name = centroid["seq_name"].replace(SEQ_NAME_SEP, "_H")
                     target_fasta[new_seq_name] = {
@@ -1009,7 +1034,7 @@ def write_targets(
             if multi_copy_centroids and locus in multi_copy_centroids:
                 seq_numbers.append(len(multi_copy_centroids[locus]))
                 for centroid in multi_copy_centroids[locus]:
-                    target_copies.append(centroid["avg_copies"])
+                    target_copies.append(centroid["median_copies"])
                     target_sample_pcts.append(centroid["sample_pct"] * 100)
                     new_seq_name = centroid["seq_name"].replace(SEQ_NAME_SEP, "_H")
                     target_fasta[new_seq_name] = {
@@ -1365,10 +1390,8 @@ def main():
         default=-1,
         type=float,
         dest="max_target_copies",
-        help="Maximum average number of copies allowed per target in the final target file. Average"
-        " copies are calculated dividing the total number of sequences by the total number of"
-        " samples in the cluster that the target represents. Use decimals greater than 1, use -1 to"
-        " disable this filter",
+        help="Maximum median number of copies allowed per target in the final target file. Use"
+        " decimals greater than 1 or -1 to disable this filter",
     )
     targets_group.add_argument(
         "-B",
@@ -1388,14 +1411,14 @@ def main():
     )
     targets_group.add_argument(
         "-A",
-        "--min_average_copies",
+        "--min_locus_copies",
         action="store",
-        default=1.33,
+        default=1.5,
         type=float,
-        dest="min_average_copies",
-        help="Only applies to alignments with multiple sequences per sample (multi-copy). Average"
-        " copies are calculated dividing the total number of sequences by the total number of"
-        " samples. Alignments with more copies than this value will be flagged as paralogous",
+        dest="min_locus_copies",
+        help="Only applies to alignments with multiple sequences per sample (multi-copy). Any"
+        " alignment with a median number of copies of at least this value will be flagged as"
+        " paralogous",
     )
     targets_group.add_argument(
         "-S",
@@ -1446,14 +1469,14 @@ def main():
         "--high_copy_only",
         action="store_true",
         dest="high_copy_only",
-        help="Enable to remove loci under 'min_average_copies' during pre-filtering, useful for"
+        help="Enable to remove loci under 'min_locus_copies' during pre-filtering, useful for"
         " optimizing paralog-splitting parameters",
     )
     other_group.add_argument(
         "--low_copy_only",
         action="store_true",
         dest="low_copy_only",
-        help="Enable to remove loci over 'min_average_copies' during pre-filtering, useful for"
+        help="Enable to remove loci over 'min_locus_copies' during pre-filtering, useful for"
         " optimizing parameters",
     )
 
@@ -1546,7 +1569,7 @@ def main():
         args.min_wscore_proportion,
         args.min_coverage_proportion,
         args.overwrite,
-        args.min_average_copies,
+        args.min_locus_copies,
         args.high_copy_only,
         args.low_copy_only,
         log,
@@ -1577,7 +1600,7 @@ def main():
         args.max_target_copies,
         args.best_only,
         args.split_paralogs,
-        args.min_average_copies,
+        args.min_locus_copies,
         args.min_samples_proportion,
         log,
     )
