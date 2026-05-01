@@ -431,14 +431,15 @@ def prefilter_seqs(
         f" min_samples={min_samples},"
         f" min_seq_len={min_seq_len},"
         f" min_wscore_proportion={min_wscore_prop},"
-        f" min_coverage_proportion={min_coverage_prop})"
+        f" min_coverage_proportion={min_coverage_prop}"
     )
     if high_copy_only is True or low_copy_only is True:
         msg += (
-            f" min_locus_copies={min_locus_copies})"
-            f" high_copy_only={high_copy_only})"
-            f" low_copy_only={low_copy_only})"
+            f" min_locus_copies={min_locus_copies}"
+            f" high_copy_only={high_copy_only}"
+            f" low_copy_only={low_copy_only}"
         )
+    msg += ")"
     wlog(log, msg)
 
     for locus_name in loci_fastas:
@@ -748,7 +749,7 @@ def select_targets(
             if clust_output_data[locus]["median_copies"] <= min_locus_copies:
                 single_copy_centroids[locus] = centroids[locus]
             else:
-                if centroids[locus][0]["sample_pct"] < min_samples_prop:
+                if centroids[locus][0]["sample_pct"] < min_samples_prop or len(centroids[locus]) == 1:
                     multi_copy_centroids[locus] = centroids[locus]
                 else:
                     paralog_suffix = 1
