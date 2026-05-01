@@ -315,6 +315,7 @@ def prefilter_seqs(
     overwrite: bool,
     min_average_copies: float,
     high_copy_only: float,
+    low_copy_only: float,
     log: Path,
 ):
 
@@ -379,6 +380,9 @@ def prefilter_seqs(
         num_samples = len(set(samples))
         avg_copies = len(locus_fasta_out) / num_samples
         if high_copy_only is True and avg_copies < min_average_copies and locus_name in loci_fastas:
+            del loci_fastas[locus_name]
+            del loci_data[locus_name]
+        if low_copy_only is True and avg_copies >= min_average_copies and locus_name in loci_fastas:
             del loci_fastas[locus_name]
             del loci_data[locus_name]
         if num_samples < min_samples and locus_name in loci_fastas:
@@ -1451,12 +1455,23 @@ def main():
         help="Enable to remove loci under 'min_average_copies' during pre-filtering, useful for"
         " optimizing paralog-splitting parameters",
     )
+    other_group.add_argument(
+        "--low_copy_only",
+        action="store_true",
+        dest="low_copy_only",
+        help="Enable to remove loci over 'min_average_copies' during pre-filtering, useful for"
+        " optimizing parameters",
+    )
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
 
     args = parser.parse_args()
+
+    if args.high_copy_only is True and args.low_copy_only is True:
+        quit_with_error("Enable either 'high_copy_only' or 'low_copy_only', never both")
+
     if not Path(args.out_dir).exists():
         try:
             Path(args.out_dir).mkdir(parents=True)
@@ -1539,6 +1554,7 @@ def main():
         args.overwrite,
         args.min_average_copies,
         args.high_copy_only,
+        args.low_copy_only,
         log,
     )
 
