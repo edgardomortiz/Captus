@@ -313,6 +313,8 @@ def prefilter_seqs(
     min_wscore_prop: float,
     min_coverage_prop: float,
     overwrite: bool,
+    min_average_copies: float,
+    high_copy_only: float,
     log: Path,
 ):
 
@@ -374,7 +376,12 @@ def prefilter_seqs(
                     "median_wscore": statistics.median(locus_wscores),
                     "median_coverage": statistics.median(locus_coverages),
                 }
-        if locus_name in loci_fastas and len(set(samples)) < min_samples:
+        num_samples = len(set(samples))
+        avg_copies = len(locus_fasta_out) / num_samples
+        if high_copy_only is True and avg_copies < min_average_copies and locus_name in loci_fastas:
+            del loci_fastas[locus_name]
+            del loci_data[locus_name]
+        if num_samples < min_samples and locus_name in loci_fastas:
             del loci_fastas[locus_name]
             del loci_data[locus_name]
 
@@ -1437,6 +1444,13 @@ def main():
         dest="overwrite",
         help="Enable to overwrite previous results",
     )
+    other_group.add_argument(
+        "--high_copy_only",
+        action="store_true",
+        dest="high_copy_only",
+        help="Enable to remove loci under 'min_average_copies' during pre-filtering, useful for"
+        " optimizing paralog-splitting parameters",
+    )
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
@@ -1523,6 +1537,8 @@ def main():
         args.min_wscore_proportion,
         args.min_coverage_proportion,
         args.overwrite,
+        args.min_average_copies,
+        args.high_copy_only,
         log,
     )
 
