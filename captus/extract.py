@@ -3549,7 +3549,7 @@ def cluster_and_select_refs(
     log.log(clust1_message)
     log.log("")
     msg_p1 = bold(f"Filtering clusters with fewer than {clust_min_samples} samples,")
-    msg_p2 = bold(f" more than {clust_max_copies} copies in average,")
+    msg_p2 = bold(f" more than {clust_max_copies} median copies,")
     msg_p3 = bold(f" and with centroids shorter than {clust_rep_min_len} bp:")
     log.log(f"{msg_p1}{msg_p2}{msg_p3}")
     start = time.time()
@@ -3561,17 +3561,22 @@ def cluster_and_select_refs(
     tqdm_cols = min(shutil.get_terminal_size().columns, 120)
     with tqdm(total=len(clust1_clusters), ncols=tqdm_cols, unit="cluster") as pbar:
         for cluster in clust1_clusters:
-            samples_in_cluster = len(
-                set([cluster[i][1:].split(settings.SEQ_NAME_SEP)[0] for i in range(0, len(cluster), 2)])
-            )
-            avg_copies_in_cluster = len(cluster) / 2 / samples_in_cluster
+            samples_copies = {}
+            for i in range(0, len(cluster), 2):
+                sample_name = cluster[i][1:].split(settings.SEQ_NAME_SEP)[0]
+                if sample_name in samples_copies:
+                    samples_copies[sample_name] += 1
+                else:
+                    samples_copies[sample_name] = 1
+            median_copies = statistics.median(samples_copies.values())
+            samples_in_cluster = len(samples_copies)
             if samples_in_cluster == 1:
                 singletons += 1
                 pbar.update()
                 continue
             elif (
                 samples_in_cluster >= clust_min_samples
-                and avg_copies_in_cluster <= clust_max_copies
+                and median_copies <= clust_max_copies
                 and len(cluster[1]) >= clust_rep_min_len
             ):
                 passed.append(cluster)
