@@ -312,9 +312,9 @@ Do not cluster sequences longer than this length in bp, the maximum allowed by M
 This argument is optional, the default is **5000**.
 ___
 ### **`--cl_max_copies`**
-Maximum average number of sequences per sample in a cluster. Helpful for excluding excessively paralogous loci.
+Maximum median number of sequences (overlapping or not) per sample in a cluster. This parameter can be used to exclude loci that are extremely paralogous.
 
-This argument is optional, the default is **3**.
+This argument is optional, the default is **1.5**.
 ___
 ### **`--cl_tmp_dir`**
 Path where to create the temporary directory for `MMseqs2`. Clustering can become slow when done on external drives, set this location to an internal drive.
@@ -343,4 +343,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)<br>
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (24.04.2026)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (02.05.2026)
