@@ -112,4 +112,4 @@ Documentation and tutorials are available at [https://edgardomortiz.github.io/ca
 
 ## CITATION
 
-Ortiz, E.M., A. Höwener, G. Shigita, M. Raza, O. Maurin, A. Zuntini, F. Forest, W.J. Baker, H. Schaefer. (2023). *A novel phylogenomics pipeline reveals complex pattern of reticulate evolution in Cucurbitales*. bioRxiv [https://doi.org/10.1101/2023.10.27.564367](https://doi.org/10.1101/2023.10.27.564367)
+Ortiz, E.M., A. Höwener, G. Shigita, M. Raza, O. Maurin, A. Zuntini, F. Forest, W.J. Baker, H. Schaefer. (2023). *A novel phylogenomics pipeline reveals extensive topological conflict in the evolution of the angiosperm order Cucurbitales*. bioRxiv [https://doi.org/10.1101/2023.10.27.564367](https://doi.org/10.1101/2023.10.27.564367)
