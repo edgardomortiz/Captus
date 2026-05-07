@@ -45,10 +45,10 @@ mamba create --platform osx-64 -n captus -c bioconda -c conda-forge captus megah
 ```
 
 > [!WARNING]
-> The following programs provided by `bioconda` contain bugs or compilation errors, if you notice any problem try re-installing a valid version:
-> - __BBTools v39.7X__: use versions <= 39.52 or >= 39.80 (add `bbmap=39.52` to the installation commands, or run `conda install -c bioconda bbmap=39.52` with your Captus environment activated if Captus is already installed)
-> - __Salmon v1.11.4__: use version 1.10.3 (add `salmon=1.10.3` to the installation commands, or run `conda install -c bioconda salmon=1.10.3` with your Captus environment activated if Captus is already installed)
-> - __MAFFT v7.525__: use version 7.526 (add `mafft=7.526` to the installation commands, or run `conda install -c conda-forge mafft=7.526` with your Captus environment activated if Captus is already installed)
+> If you are having any of the following problems they might be caused by bugs in some dependencies provided by `bioconda`, if you notice any of these problems try re-installing a valid version:
+> - __`captus clean` produce empty FASTQ files:__ bugs in BBTools v39.7X, use versions <= 39.52 or >= 39.80 (add `bbmap=39.52` to the installation commands, or run `conda install -c bioconda bbmap=39.52` with your Captus environment activated if Captus is already installed)
+> - __`captus assemble` fails to estimate contig depth for some samples:__ bugs in Salmon v1.11.4, use version 1.10.3 (add `salmon=1.10.3` to the installation commands, or run `conda install -c bioconda salmon=1.10.3` with your Captus environment activated if Captus is already installed)
+> - __`captusd cluster` fails to align some clusters:__ bugs in MAFFT v7.525, use version 7.526 (add `mafft=7.526` to the installation commands, or run `conda install -c conda-forge mafft=7.526` with your Captus environment activated if Captus is already installed)
 
 Then check that `Captus` was correctly installed:
 
