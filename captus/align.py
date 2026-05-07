@@ -115,6 +115,9 @@ def align(full_command, args):
     log.log(f"{'':>{mar}}  {dim(out_dir_msg)}")
     log.log("")
 
+    markers, markers_ignored = check_value_list(args.markers, settings.MARKER_DIRS)
+    formats, formats_ignored = check_value_list(args.formats, settings.FORMAT_DIRS)
+
     skip_collection = False
     skip_alignment = False
     skip_filtering = False
@@ -126,16 +129,12 @@ def align(full_command, args):
         elif args.redo_from.lower() == "filtering":
             skip_collection = True
             skip_alignment = True
-        elif args.redo_from.lower() == "removal":
-            skip_collection = True
-            skip_alignment = True
-            skip_filtering = True
         elif args.redo_from.lower() == "trimming":
             skip_collection = True
             skip_alignment = True
             skip_filtering = True
             skip_removal = True
-        prepare_redo(out_dir, args.redo_from)
+        prepare_redo(out_dir, args.markers, args.formats, args.redo_from)
         log.log("")
 
     if mafft_status == "not found":
@@ -168,8 +167,6 @@ def align(full_command, args):
         "nucleotide sequences in the alignments. "
     )
     concurrent = max(1, min(settings.MAX_HDD_READ_INSTANCES, threads_max))
-    markers, markers_ignored = check_value_list(args.markers, settings.MARKER_DIRS)
-    formats, formats_ignored = check_value_list(args.formats, settings.FORMAT_DIRS)
     show_less = not args.show_more
     if Path(args.captus_extractions).is_file():
         if args.refs_json is None:
@@ -946,36 +943,76 @@ def align(full_command, args):
     )
 
 
-def prepare_redo(out_dir, redo_from):
-    if redo_from.lower() == "filtering" and not list(
-        Path(out_dir, settings.ALN_DIRS["ALND"]).rglob("*_w_refs")
-    ):
+def prepare_redo(out_dir, markers: str, formats: str, redo_from):
+
+    unfiltered_w_refs_dir = Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFR"])
+    if redo_from.lower() == "filtering" and not unfiltered_w_refs_dir.is_dir():
         quit_with_error(
-            red(
-                f"'w_refs' directories were not found in {settings.ALN_DIRS['ALND']}, impossible"
-                " to '--redo_from filtering'. Try instead '--redo_from alignment' to re-create the"
-                " 'w_refs' directories. If you plan to repeat the paralog filtering multiple times"
-                " please enable '--keep_w_refs' in future 'captus align' runs."
-            )
+            f"'{unfiltered_w_refs_dir}' directory not found in {settings.ALN_DIRS['ALND']}, impossible"
+            " to '--redo_from filtering'. Try instead '--redo_from alignment' to re-create the"
+            " directory."
         )
-    alignment = [Path(out_dir, settings.ALN_DIRS["ALND"])]
+
+    unfiltered_dirs = [
+        settings.ALN_DIRS["UNFR"],
+        settings.ALN_DIRS["UNFI"],
+    ]
+
+    filtered_dirs = [
+        settings.ALN_DIRS["NAIR"],
+        settings.ALN_DIRS["INFR"],
+        settings.ALN_DIRS["NAIV"],
+        settings.ALN_DIRS["INFO"],
+    ]
+
+    markers = sorted([(settings.MARKER_DIRS[m], m) for m in markers.upper().split(",")])
+    formats = sorted([(settings.FORMAT_DIRS[f], f) for f in formats.upper().split(",")])
+    marker_format_dirs = sorted(
+        [
+            Path(m[0], f[0])
+            for m in markers
+            for f in formats
+            if (m[1], f[1]) in settings.VALID_MARKER_FORMAT_COMBO
+        ]
+    )
+
+    alignment = [
+        Path(out_dir, settings.ALN_DIRS["ALND"], ud, mfd)
+        for ud in unfiltered_dirs
+        for mfd in marker_format_dirs
+    ]
+    alignment += [
+        Path(out_dir, settings.ALN_DIRS["ALND"], fd, mfd)
+        for fd in filtered_dirs
+        for mfd in marker_format_dirs
+    ]
+
     filtering = [
-        Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIR"]),
-        Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["INFR"]),
+        Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"], mfd)
+        for mfd in marker_format_dirs
     ]
-    removal = [
-        Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["UNFI"]),
-        Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["NAIV"]),
-        Path(out_dir, settings.ALN_DIRS["ALND"], settings.ALN_DIRS["INFO"]),
+    filtering += [
+        Path(out_dir, settings.ALN_DIRS["ALND"], fd, mfd)
+        for fd in filtered_dirs
+        for mfd in marker_format_dirs
     ]
-    trimming = [Path(out_dir, settings.ALN_DIRS["TRIM"])]
+
+    trimming = [
+        Path(out_dir, settings.ALN_DIRS["TRIM"], ud, mfd)
+        for ud in unfiltered_dirs
+        for mfd in marker_format_dirs
+    ]
+    trimming += [
+        Path(out_dir, settings.ALN_DIRS["TRIM"], fd, mfd)
+        for fd in filtered_dirs
+        for mfd in marker_format_dirs
+    ]
+
     dirs_to_delete = []
     if redo_from.lower() == "alignment":
         dirs_to_delete = alignment + trimming
     elif redo_from.lower() == "filtering":
-        dirs_to_delete = filtering + removal + trimming
-    elif redo_from.lower() == "removal":
-        dirs_to_delete = removal + trimming
+        dirs_to_delete = filtering + trimming
     elif redo_from.lower() == "trimming":
         dirs_to_delete = trimming
 
@@ -1045,9 +1082,7 @@ def find_extracted_sample_dirs(captus_extractions: str):
     for sample_ext_dir in all_sample_ext_dirs:
         sample_name = sample_ext_dir.parts[-1].replace("__captus-ext", "")
         if not sample_ext_dir.is_dir() or not sample_ext_dir.exists():
-            skipped.append(
-                f"'{sample_ext_dir.parts[-1]}': SKIPPED, directory not found"
-            )
+            skipped.append(f"'{sample_ext_dir.parts[-1]}': SKIPPED, directory not found")
         elif settings.SEQ_NAME_SEP in f"{sample_ext_dir}".replace("__captus-ext", ""):
             skipped.append(
                 f"'{sample_ext_dir.parts[-1]}': SKIPPED, pattern"
@@ -2286,13 +2321,13 @@ def taper_clipkit(
                     if ungapped > 0:
                         ungapped_lengths.append(ungapped)
                 if ungapped_lengths:
-                    mean_ungapped = statistics.mean(ungapped_lengths)
+                    median_ungapped = statistics.median(ungapped_lengths)
                 else:
-                    mean_ungapped = aln_length
+                    median_ungapped = aln_length
                 seqs_to_remove = []
                 for seq_name in fasta_trimmed:
                     ungapped = len(trim_missing(fasta_trimmed[seq_name]["sequence"], ambig))
-                    if ungapped / mean_ungapped < min_coverage:
+                    if ungapped / median_ungapped < min_coverage:
                         seqs_to_remove.append(seq_name)
                 if seqs_to_remove:
                     for seq_name in seqs_to_remove:
