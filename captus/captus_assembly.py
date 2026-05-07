@@ -1569,7 +1569,7 @@ class CaptusAssembly(object):
             default=0.30,
             type=float,
             dest="min_coverage",
-            help="Minimum coverage of sequence as proportion of the mean of sequence lengths in the"
+            help="Minimum coverage of sequence as proportion of the median sequence length in the"
             " alignment, ignoring gaps. Accepted values between 0 and 1. After ClipKIT finishes"
             " trimming columns, Captus will also remove short sequences below this threshold",
         )
@@ -1581,17 +1581,14 @@ class CaptusAssembly(object):
             choices=[
                 "alignment",
                 "filtering",
-                "removal",
                 "trimming",
             ],
             type=str,
             dest="redo_from",
             help="B|Repeat analysis from a particular stage:\n"
-            "alignment = Delete all subdirectories with alignments and restart\n"
-            "filtering = Delete all subdirectories with filtered alignments and restart\n"
-            "removal = Delete all subdirectories with alignments with reference targets removed"
-            " and restart\n"
-            "trimming = Delete all subdirectories with trimmed alignments and restart",
+            "alignment = Delete subdirectories with alignments and restart\n"
+            "filtering = Delete subdirectories with filtered alignments and restart\n"
+            "trimming = Delete subdirectories with trimmed alignments and restart",
         )
         other_group.add_argument(
             "--mafft_path",

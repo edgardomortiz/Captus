@@ -205,10 +205,9 @@ Keep the directories containing the alignments that include target reference seq
 ___
 ### **`--redo_from`**
 You can repeat the analysis without undoing all the steps. These are the points from which you can restart the `align` command:
-- `alignment` = Delete all subdirectories with alignments and restart.
-- `filtering` = Delete all subdirectories with paralog-filtered alignments and restart.
-- `removal` = Delete all subdirectories with alignments whose references have been removed and restart.
-- `trimming` = Delete all subdirectories with trimmed alignments and restart.
+- `alignment` = Delete subdirectories with alignments and restart.
+- `filtering` = Delete subdirectories with paralog-filtered alignments and restart.
+- `trimming` = Delete subdirectories with trimmed alignments and restart.
 
 This argument is optional and has no default.
 ___
@@ -225,4 +224,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)<br>
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (29.04.2026)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.05.2026)
