@@ -744,7 +744,7 @@ def extract(full_command, args):
             )
         else:
             cl_min_identity = float(args.cl_min_identity)
-            if "--dna_min_identity" not in full_command:
+            if "--dna_min_i" not in full_command:
                 dna_min_identity = cl_min_identity
             else:
                 dna_min_identity = float(args.dna_min_identity)
