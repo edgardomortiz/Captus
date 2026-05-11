@@ -3814,7 +3814,7 @@ def write_gff3(hits, marker_type, disable_stitching, tsv_comment, out_gff_path):
             if hits[ref][h]["ctg_mean_depth"] == "NA":
                 depth = ""
             else:
-                depth = f"""Depth={f"{hits[ref][h]['ctg_mean_depth']:.2f}"}"""
+                depth = f"""Depth={f"{hits[ref][h]['ctg_mean_depth']:.4f}"}"""
             score = f"""Score={f"{hits[ref][h]['score']:.3f}"}"""
             color = f"Color={urllib.parse.quote(settings.GFF_COLORS[marker_type])}"
             hit_ids = hits[ref][h]["hit_ids"].split("\n")
