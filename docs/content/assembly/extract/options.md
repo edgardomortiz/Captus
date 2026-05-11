@@ -72,7 +72,7 @@ Keep paralogs if they have at least this proportion of the depth of the best hit
 This argument is optional, the default is **0.33**
 ___
 ### **`--max_paralogs`**
-Maximum number of secondary hits (copies) of any particular reference marker allowed in the output. We recommend disabling the removal of paralogs (secondary hits/copies) during the `extract` step because the `align` step uses a more sophisticated filter for paralogs. This can be useful for exploratory runs, for example: if after an initial run allowing all paralogs we found out that the average number of secondary hits across samples is 5, we could use this number to get rid of outliers.
+Maximum number of secondary hits (copies) of any particular reference marker allowed in the output. We recommend disabling the removal of paralogs (secondary hits/copies) during the `extract` step because the `align` step uses a more sophisticated paralog filter. This can be useful for exploratory runs, for example: if after an initial run allowing all paralogs we found out that the mean number of secondary hits across samples is 5, we could use this number to get rid of outliers.
 
 This argument is optional, the default is **-1** (include all paralogs in the output).
 ___

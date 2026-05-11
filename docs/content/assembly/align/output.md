@@ -107,7 +107,8 @@ A tab-separated-values table recording alignment statistics for each of the alig
 |**locus**|Name of the locus.|
 |**seqs**|Number of sequences in the alignment.|
 |**samples**|Number of samples represented in the alignment. The number can be smaller than `seqs` if the alignment has paralogs.|
-|**avg_copies**|`seqs` / `samples`|
+|**median_copies**|Median number of copies per sample|
+|**mean_copies**|`seqs` / `samples`|
 |**sites**|Alignment length.|
 |**informative**|Number of parsimony-informative-sites in the alignment.|
 |**informativeness**|(`informative` / `sites`) * 100|
@@ -115,7 +116,7 @@ A tab-separated-values table recording alignment statistics for each of the alig
 |**constant**|Number of invariant sites in the alignment.|
 |**singleton**|Number of sites with variaton in a single sequence.|
 |**paterns**|Number of unique columns, for a detailed explanation see IQ-TREE's F.A.Q.: [What are the differences between alignment columns/sites and patterns?](http://www.iqtree.org/doc/Frequently-Asked-Questions).|
-|**avg_pid**|Average pairwise identity between sequences in the alignment.|
+|**mean_pid**|Mean pairwise identity between sequences in the alignment.|
 |**missingness**|Proportion of missing data (`-`, `N`, `X`, `?`, `.`, `~`) in the alignment.|
 |**gc**||
 |**gc_codon_p1**||
@@ -186,5 +187,5 @@ ___
 This is the log from `Captus`, it contains the command used and all the information shown during the run. Even if the option `--show_more` was disabled, the log will contain all the extra detailed information that was hidden during the run.
 
 ___
-Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)  
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (23.12.2024)
+Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (07.05.2026)

@@ -1173,7 +1173,7 @@ def fasta_type(fasta_path):
 def alignment_stats(fasta_dict, aln_type, coding: bool):
     """
     Tally number of sequences, sites (total, singletons, informative, constant), patterns (unique
-    sites), average pairwise identity and percentage of missingness (including gaps and ambiguities)
+    sites), mean pairwise identity and percentage of missingness (including gaps and ambiguities)
     """
 
     def aligned_length(fasta_dict):
@@ -1192,12 +1192,16 @@ def alignment_stats(fasta_dict, aln_type, coding: bool):
         else:
             return False
 
-    def num_samples(fasta_dict):
-        sample_names = []
+    def copies_per_sample(fasta_dict):
+        sample_copies = {}
         for seq in fasta_dict:
-            sample_names.append(seq.split(settings.SEQ_NAME_SEP)[0])
+            sample_name = seq.split(settings.SEQ_NAME_SEP)[0]
+            if sample_name in sample_copies:
+                sample_copies[sample_name] += 1
+            else:
+                sample_copies[sample_name] = 1
 
-        return len(set(sample_names))
+        return sample_copies
 
     def mark_terminal_gaps(fasta_dict):
         fasta_list = []
@@ -1292,7 +1296,8 @@ def alignment_stats(fasta_dict, aln_type, coding: bool):
     stats = {
         "sequences": "NA",
         "samples": "NA",
-        "avg_copies": 0.0,
+        "median_copies": 0.0,
+        "mean_copies": 0.0,
         "sites": "NA",
         "informative": 0,
         "informativeness": 0.0,
@@ -1300,7 +1305,7 @@ def alignment_stats(fasta_dict, aln_type, coding: bool):
         "constant": 0,
         "singleton": 0,
         "patterns": "NA",
-        "avg_pid": "NA",
+        "mean_pid": "NA",
         "missingness": "NA",
         "gc": "NA",
         "gc_codon_p1": "NA",
@@ -1316,9 +1321,13 @@ def alignment_stats(fasta_dict, aln_type, coding: bool):
     for seq_name in fasta_dict:
         seq_upper = fasta_dict[seq_name]["sequence"].upper()
         fasta_dict[seq_name]["sequence"] = seq_upper
+
+    sample_copies = copies_per_sample(fasta_dict)
+
     stats["sequences"] = len(fasta_dict)
-    stats["samples"] = num_samples(fasta_dict)
-    stats["avg_copies"] = round(stats["sequences"] / stats["samples"], 2)
+    stats["samples"] = len(sample_copies)
+    stats["median_copies"] = statistics.median(sample_copies.values())
+    stats["mean_copies"] = round(stats["sequences"] / stats["samples"], 2)
 
     num_sites = aligned_length(fasta_dict)
     if not num_sites:
@@ -1333,7 +1342,7 @@ def alignment_stats(fasta_dict, aln_type, coding: bool):
     for idc in ids_combos:
         identities += idc[0] * idc[1]
         combos += idc[1]
-    stats["avg_pid"] = round(identities / combos, 2)
+    stats["mean_pid"] = round(identities / combos, 2)
 
     sites = clean_patterns(sites, missing_chars)
     for site in sites:
@@ -1531,7 +1540,7 @@ def fasta_headers_to_spades(fasta_dict):
         return fasta_dict, assembler
 
 
-def calc_avg_contig_depth(hit_contigs: str):
+def calc_mean_contig_depth(hit_contigs: str):
     """
     Input must be a string where the names of contigs are separated by "\n"
     """
@@ -2424,7 +2433,7 @@ def scipio_yaml_to_dict(
             "mismatches": [],  # number of aminoacid mismatches per 'target'
             "coverage": 0.0,  # (matches + mismatches) / ref_size * 100
             "identity": 0.0,  # matches / (matches + mismatches) * 100
-            "ctg_avg_depth": "NA",  # contig average depth, only if "_cov_" in contig names
+            "ctg_mean_depth": "NA",  # mean contig avrage depth, only if "_cov_" in contig names
             "score": 0.0,  # (matches - mismatches) / ref_size
             "wscore": 0.0,  # score * (length AA / max length AA across refs)
             "gapped": False,  # recovered protein has gaps with respect to the reference
@@ -2566,7 +2575,7 @@ def scipio_yaml_to_dict(
         matches = prot_len_matched - mismatches
         mod["coverage"] = prot_len_matched / mod["ref_size"] * 100
         mod["identity"] = matches / prot_len_matched * 100
-        mod["ctg_avg_depth"] = calc_avg_contig_depth(mod["hit_contigs"])
+        mod["ctg_mean_depth"] = calc_mean_contig_depth(mod["hit_contigs"])
         mod["score"] = (matches - mismatches) / mod["ref_size"]
         mod["gapped"] = bool("gap" in "".join(mod["mat_notes"]))
         mod["match_len"] = min(prot_len_matched, mod["ref_size"])
@@ -2648,7 +2657,7 @@ def scipio_yaml_to_dict(
             accepted_models = sorted(accepted_models, key=lambda i: i["wscore"], reverse=True)
             best_hit_identity = accepted_models[0]["identity"]
             best_hit_coverage = accepted_models[0]["coverage"]
-            best_hit_depth = accepted_models[0]["ctg_avg_depth"]
+            best_hit_depth = accepted_models[0]["ctg_mean_depth"]
             accepted_models = [
                 model
                 for model in accepted_models
@@ -2659,7 +2668,7 @@ def scipio_yaml_to_dict(
                 depth_filtered_models = []
                 for model in accepted_models:
                     try:
-                        if model["ctg_avg_depth"] >= best_hit_depth * paralog_depth_tolerance:
+                        if model["ctg_mean_depth"] >= best_hit_depth * paralog_depth_tolerance:
                             depth_filtered_models.append(model)
                     except TypeError:
                         depth_filtered_models.append(model)
@@ -3042,7 +3051,7 @@ def blat_misc_dna_psl_to_dict(
                 "mismatches": path[0]["mismatches"],  # accumulated mismatches across targets
                 "coverage": path[0]["coverage"],  # ((matches + mismatches) / ref_size) * 100
                 "identity": path[0]["identity"],  # (matches / (matches + mismatches)) * 100
-                "ctg_avg_depth": calc_avg_contig_depth(path[0]["hit_contig"]),  # from "_cov_"
+                "ctg_mean_depth": calc_mean_contig_depth(path[0]["hit_contig"]),  # from "_cov_"
                 "score": path[0]["score"],  # Scipio-like score as (matches - mismatches) / ref_size
                 "wscore": path[0]["wscore"],  # Scipio-like * (len matched / locus max len matched)
                 "gapped": path[0]["gapped"],  # set to True when is assembly of partial hits
@@ -3121,7 +3130,7 @@ def blat_misc_dna_psl_to_dict(
                 asm_hit["coverage"] = match_len / asm_hit["ref_size"] * 100.0
                 # Calculate the mean 'identity' of all the partial hits used in the assembled path
                 asm_hit["identity"] = statistics.mean(hit_ids)
-                asm_hit["ctg_avg_depth"] = calc_avg_contig_depth(asm_hit["hit_contigs"])
+                asm_hit["ctg_mean_depth"] = calc_mean_contig_depth(asm_hit["hit_contigs"])
                 # Recalculate the 'score' and 'wscore' using sum of matches/mismatches from all
                 # partial hits used in the assemble path
                 matches = (sum_matches * match_len) / (sum_matches + sum_mismatches)
@@ -3401,7 +3410,7 @@ def blat_misc_dna_psl_to_dict(
             # Filter by 'paralog_tolerance'
             best_hit_identity = dna_hits[dna_ref][0]["identity"]
             best_hit_coverage = dna_hits[dna_ref][0]["coverage"]
-            best_hit_depth = dna_hits[dna_ref][0]["ctg_avg_depth"]
+            best_hit_depth = dna_hits[dna_ref][0]["ctg_mean_depth"]
             dna_hits[dna_ref] = [
                 hit
                 for hit in dna_hits[dna_ref]
@@ -3412,7 +3421,7 @@ def blat_misc_dna_psl_to_dict(
                 depth_filtered_dna_hits = []
                 for hit in dna_hits[dna_ref]:
                     try:
-                        if hit["ctg_avg_depth"] >= best_hit_depth * paralog_depth_tolerance:
+                        if hit["ctg_mean_depth"] >= best_hit_depth * paralog_depth_tolerance:
                             depth_filtered_dna_hits.append(hit)
                     except TypeError:
                         depth_filtered_dna_hits.append(hit)
@@ -3802,10 +3811,10 @@ def write_gff3(hits, marker_type, disable_stitching, tsv_comment, out_gff_path):
             strands = hits[ref][h]["strand"].split("\n")
             ident_pct = f"""Identity={f"{hits[ref][h]['identity']:.2f}"}"""
             cover_pct = f"""Coverage={f"{hits[ref][h]['coverage']:.2f}"}"""
-            if hits[ref][h]["ctg_avg_depth"] == "NA":
+            if hits[ref][h]["ctg_mean_depth"] == "NA":
                 depth = ""
             else:
-                depth = f"""Depth={f"{hits[ref][h]['ctg_avg_depth']:.2f}"}"""
+                depth = f"""Depth={f"{hits[ref][h]['ctg_mean_depth']:.2f}"}"""
             score = f"""Score={f"{hits[ref][h]['score']:.3f}"}"""
             color = f"Color={urllib.parse.quote(settings.GFF_COLORS[marker_type])}"
             hit_ids = hits[ref][h]["hit_ids"].split("\n")

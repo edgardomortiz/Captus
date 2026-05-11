@@ -2036,7 +2036,7 @@ def run_scipio_command(
         f"--min_score={scipio_min_score}",
         f"--min_identity={min_identity_scipio}",
         f"--min_coverage={min_coverage}",
-        "--max_mismatch=0",  # 0 means infinite
+        "--max_mismatch=0",  # 0 means infinity
         "--multiple_results",
         f"--blat_bin={blat_path}",
         f"--blat_score={blat_min_score}",
@@ -2186,7 +2186,7 @@ def write_fastas_and_stats_tsv(
             else:
                 num_paralogs += 1
 
-            if hits[ref][h]["ctg_avg_depth"] == "NA":
+            if hits[ref][h]["ctg_mean_depth"] == "NA":
                 description = (
                     f" [hit={h:02}]"
                     f" [wscore={hits[ref][h]['wscore']:.3f}]"
@@ -2200,7 +2200,7 @@ def write_fastas_and_stats_tsv(
                     f" [wscore={hits[ref][h]['wscore']:.3f}]"
                     f" [ident={hits[ref][h]['identity']:.2f}]"
                     f" [cover={hits[ref][h]['coverage']:.2f}]"
-                    f" [depth={hits[ref][h]['ctg_avg_depth']:.2f}]"
+                    f" [depth={hits[ref][h]['ctg_mean_depth']:.2f}]"
                     f" [score={hits[ref][h]['score']:.3f}]"
                 )
 
@@ -2318,7 +2318,7 @@ def write_fastas_and_stats_tsv(
                         f"{hits[ref][h]['hit_contigs']}".replace("\n", ";"),
                         f"{hits[ref][h]['strand']}".replace("\n", ";"),
                         format_coords(hits[ref][h]["hit_coords"]),
-                        f"{hits[ref][h]['ctg_avg_depth']}",
+                        f"{hits[ref][h]['ctg_mean_depth']}",
                     ]
                 )
             )

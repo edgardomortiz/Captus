@@ -199,7 +199,7 @@ def align(full_command, args):
         max_paralogs_msg = dim("(Collect all paralogs)") if args.max_paralogs == -1 else ""
         log.log(f"{'Min. samples to align':>{mar}}: {bold(args.min_samples)}")
         log.log(f"{'Max. paralogs to collect':>{mar}}: {bold(args.max_paralogs)} {max_paralogs_msg}")
-        log.log(f"{'Max. avg. copies to align':>{mar}}: {bold(args.max_average_copies)}")
+        log.log(f"{'Max. copies to align':>{mar}}: {bold(args.max_copies)}")
         log.log("")
         log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
         log.log(f"{'Keep all files':>{mar}}: {bold(args.keep_all)}")
@@ -219,7 +219,7 @@ def align(full_command, args):
             markers,
             formats,
             args.max_paralogs,
-            args.max_average_copies,
+            args.max_copies,
             args.min_samples,
             args.captus_extractions,
             extracted_sample_dirs,
@@ -1246,7 +1246,7 @@ def collect_extracted_markers(
     markers,
     formats,
     max_paralogs,
-    max_average_copies: float,
+    max_copies: float,
     min_samples,
     captus_extractions: str,
     extracted_sample_dirs,
@@ -1258,8 +1258,8 @@ def collect_extracted_markers(
     show_less,
 ):
 
-    if max_average_copies == -1:
-        max_average_copies = math.inf
+    if max_copies == -1:
+        max_copies = math.inf
 
     source_files = [
         Path(settings.MARKER_DIRS[m], f"{m}{settings.FORMAT_SUFFIXES[f]}")
@@ -1337,10 +1337,9 @@ def collect_extracted_markers(
     with tqdm(total=len(fastas_per_marker), ncols=tqdm_cols, unit="file") as pbar:
         for fasta in fastas_per_marker:
             if overwrite is True or not fasta.exists():
-                sequences = len(fastas_per_marker[fasta])
-                samples = num_samples(fastas_per_marker[fasta])
-                avg_copies = sequences / samples
-                if samples >= min_samples and avg_copies <= max_average_copies:
+                sample_copies = copies_per_sample(fastas_per_marker[fasta])
+                median_copies = statistics(sample_copies.values())
+                if len(sample_copies) >= min_samples and median_copies <= max_copies:
                     dict_to_fasta(fastas_per_marker[fasta], fasta, sort=True)
                     accepted += 1
                 else:
@@ -1354,7 +1353,7 @@ def collect_extracted_markers(
             f" [{elapsed_time(time.time() - start)}]"
         )
     )
-    if max_average_copies == math.inf:
+    if max_copies == math.inf:
         log.log(
             f"     {accepted} saved, {rejected} not saved for having fewer than {min_samples} samples,"
             f" {skipped} already existed and were skipped"
@@ -1362,7 +1361,7 @@ def collect_extracted_markers(
     else:
         log.log(
             f"     {accepted} saved, {rejected} not saved for having fewer than {min_samples} samples"
-            f" or more than {max_average_copies:.2f} average copies, {skipped} already existed and"
+            f" or more than {max_copies:.1f} median copies, {skipped} already existed and"
             " were skipped"
         )
 
@@ -1518,7 +1517,7 @@ def add_refs(ref_path, dest_dir, shared_ref_names):
     return message
 
 
-def num_samples(fasta_dict):
+def copies_per_sample(fasta_dict):
     """
     Determine number of different samples in alignment with sequence length greater than 0,
     and excluding sequences whose name ends in '|ref'
@@ -1600,7 +1599,7 @@ def msa(
     fasta_out = fastas_out[0]
 
     fasta_out_short = Path(*fasta_out.parts[-3:])
-    if num_samples(fasta_to_dict(fasta_in)) < min_samples:
+    if len(copies_per_sample(fasta_to_dict(fasta_in))) < min_samples:
         message = dim(f"'{fasta_out_short}': SKIPPED (input FASTA has fewer than {min_samples} samples)")
         return message
     if fasta_out.exists():
@@ -1756,7 +1755,7 @@ def codon_align(
     else:
         start = time.time()
         fasta_out_short = Path(*nt_dest.parts[-3:])
-        if num_samples(fasta_to_dict(nt_orig)) < min_samples:
+        if len(copies_per_sample(fasta_to_dict(nt_orig))) < min_samples:
             message = dim(
                 f"'{fasta_out_short}': SKIPPED (input FASTA has fewer than {min_samples} samples)"
             )
@@ -1840,7 +1839,7 @@ def filter_paralogs_naive(fasta_in: Path, fasta_out: Path, min_samples, overwrit
             ):
                 seq_name_out = seq_name.replace(f"{settings.SEQ_NAME_SEP}00", "")
                 fasta_without_paralogs[seq_name_out] = dict(fasta_with_paralogs[seq_name])
-        if num_samples(fasta_without_paralogs) >= min_samples:
+        if len(copies_per_sample(fasta_without_paralogs)) >= min_samples:
             dict_to_fasta(fasta_without_paralogs, fasta_out)
             message = f"'{fasta_out_short}': paralogs removed [{elapsed_time(time.time() - start)}]"
         else:
@@ -2038,7 +2037,7 @@ def filter_paralogs_informed(
                             seq_name.split(settings.SEQ_NAME_SEP)[:-1]
                         )
                         fasta_without_paralogs[seq_name_out] = fasta_with_paralogs[seq_name]
-            if num_samples(fasta_without_paralogs) >= min_samples:
+            if len(copies_per_sample(fasta_without_paralogs)) >= min_samples:
                 dict_to_fasta(fasta_without_paralogs, fastas_paths[fasta])
             else:
                 fastas_saved -= 1
@@ -2171,7 +2170,7 @@ def rem_refs_from_fasta(fasta_in: Path, fasta_out: Path, ref_names: list, min_sa
         for seq_name in fasta_with_refs:
             if seq_name not in ref_names:
                 fasta_without_refs[seq_name] = dict(fasta_with_refs[seq_name])
-        if num_samples(fasta_without_refs) >= min_samples:
+        if len(copies_per_sample(fasta_without_refs)) >= min_samples:
             fasta_without_refs = strip_empty_sites(fasta_without_refs)
             dict_to_fasta(fasta_without_refs, fasta_out)
             message = f"'{fasta_out_short}': references removed [{elapsed_time(time.time() - start)}]"
@@ -2333,7 +2332,7 @@ def taper_clipkit(
                     for seq_name in seqs_to_remove:
                         del fasta_trimmed[seq_name]
                     dict_to_fasta(fasta_trimmed, fasta_out)
-                if num_samples(fasta_trimmed) >= min_samples:
+                if len(copies_per_sample(fasta_trimmed)) >= min_samples:
                     message = f"'{fasta_out_short}': trimmed [{elapsed_time(time.time() - start)}]"
                     if len(fastas_in) == 2:
                         codon_message = codon_trim(
@@ -2468,20 +2467,21 @@ def compute_stats(shared_sam_stats, shared_aln_stats, fasta_path):
             fasta_path.stem,  # [6] locus name
             f"{aln_stats['sequences']}",  # [7] num sequences
             f"{aln_stats['samples']}",  # [8] num samples
-            f"{aln_stats['avg_copies']}",  # [9] avg num copies
-            f"{aln_stats['sites']}",  # [10] num sites
-            f"{aln_stats['informative']}",  # [11] num informative sites
-            f"{aln_stats['informativeness']}",  # [12] pct of informative sites
-            f"{aln_stats['uninformative']}",  # [13] num constant + singleton sites
-            f"{aln_stats['constant']}",  # [14] num constant sites
-            f"{aln_stats['singleton']}",  # [15] num singleton sites
-            f"{aln_stats['patterns']}",  # [16] num unique columns
-            f"{aln_stats['avg_pid']}",  # [17] average pairwise identity
-            f"{aln_stats['missingness']}",  # [18] pct of gaps and Ns or Xs
-            f"{aln_stats['gc']}",  # [19] GC content in %
-            f"{aln_stats['gc_codon_p1']}",  # [20] GC content of pos1 in codon in %
-            f"{aln_stats['gc_codon_p2']}",  # [21] GC content of pos2 in codon in %
-            f"{aln_stats['gc_codon_p3']}",  # [22] GC content of pos3 in codon in %
+            f"{aln_stats['median_copies']}",  # [9] median num copies
+            f"{aln_stats['mean_copies']}",  # [10] mean num copies
+            f"{aln_stats['sites']}",  # [11] num sites
+            f"{aln_stats['informative']}",  # [12] num informative sites
+            f"{aln_stats['informativeness']}",  # [13] pct of informative sites
+            f"{aln_stats['uninformative']}",  # [14] num constant + singleton sites
+            f"{aln_stats['constant']}",  # [15] num constant sites
+            f"{aln_stats['singleton']}",  # [16] num singleton sites
+            f"{aln_stats['patterns']}",  # [17] num unique columns
+            f"{aln_stats['mean_pid']}",  # [18] mean pairwise identity
+            f"{aln_stats['missingness']}",  # [19] pct of gaps and Ns or Xs
+            f"{aln_stats['gc']}",  # [20] GC content in %
+            f"{aln_stats['gc_codon_p1']}",  # [21] GC content of pos1 in codon in %
+            f"{aln_stats['gc_codon_p2']}",  # [22] GC content of pos2 in codon in %
+            f"{aln_stats['gc_codon_p3']}",  # [23] GC content of pos3 in codon in %
         ]
     ]
     shared_aln_stats += ["\t".join(row) + "\n" for row in aln_tsv]
@@ -2531,7 +2531,8 @@ def write_aln_stats(out_dir, tsv_comment, shared_aln_stats):
                         "locus",
                         "seqs",
                         "samples",
-                        "avg_copies",
+                        "median_copies",
+                        "mean_copies",
                         "sites",
                         "informative",
                         "informativeness",
@@ -2539,7 +2540,7 @@ def write_aln_stats(out_dir, tsv_comment, shared_aln_stats):
                         "constant",
                         "singleton",
                         "patterns",
-                        "avg_pid",
+                        "mean_pid",
                         "missingness",
                         "gc",
                         "gc_codon_p1",

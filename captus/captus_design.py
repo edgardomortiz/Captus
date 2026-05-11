@@ -253,6 +253,14 @@ class CaptusDesign(object):
             dest="clust_coverage",
             help="Percent coverage threshold for across-samples marker clustering",
         )
+        clustering_group.add_argument(
+            "--clust_min_species",
+            action="store",
+            default=2,
+            type=int,
+            dest="clust_min_species",
+            help="Only save clusters that contain at least this number of species",
+        )
 
         align_group = parser.add_argument_group("Alignment of clusters")
         align_group.add_argument(
@@ -273,21 +281,21 @@ class CaptusDesign(object):
             " https://mafft.cbrc.jp/alignment/software/algorithms/algorithms.html",
         )
         align_group.add_argument(
-            "--align_min_species",
+            "--align_min_samples",
             action="store",
             default=2,
             type=int,
-            dest="align_min_species",
-            help="Align only clusters that contain at least this number of species",
+            dest="align_min_samples",
+            help="Only align clusters that contain at least this number of samples",
         )
         align_group.add_argument(
             "--align_max_copies",
             action="store",
-            default=10,
+            default=2,
             type=float,
             dest="align_max_copies",
-            help="Do not align a cluster if the average number of sequences per"
-            " sample exceeds this number, use -1 to ignore the limit",
+            help="Only align clusters with a median number of copies per sample that does not"
+            " exceed this number, use -1 to ignore the limit",
         )
         align_group.add_argument(
             "--timeout",
@@ -498,20 +506,32 @@ class CaptusDesign(object):
 
         filter_group = parser.add_argument_group("Filtering of markers")
         filter_group.add_argument(
-            "--cop",
+            "--mdc",
+            "--median_copies",
             action="store",
             type=str,
-            dest="avg_copies",
-            default="1,1",
-            help="Average number of copies range, decimals are allowed, e.g. 1,1.5 (min,max)",
+            dest="median_copies",
+            default="1,inf",
+            help="Median number of copies range, decimals are allowed, inf=infinity, e.g. 1,1.5"
+            " (min,max), more robust if the distribution of copies per sample is skewed",
+        )
+        filter_group.add_argument(
+            "--mnc",
+            "--mean_copies",
+            action="store",
+            type=str,
+            dest="mean_copies",
+            default="1,inf",
+            help="Mean number of copies range, decimals are allowed, inf=infinity, e.g. 1,1.5"
+            " (min,max), more sensitive to outliers",
         )
         filter_group.add_argument(
             "--len",
             action="store",
             type=str,
             dest="length",
-            default="0,20000",
-            help="Alignment length range in bp (min,max)",
+            default="0,inf",
+            help="Alignment length range in bp (min,max), inf=infinity",
         )
         filter_group.add_argument(
             "--pid",
@@ -519,7 +539,7 @@ class CaptusDesign(object):
             type=str,
             dest="pairwise_identity",
             default="0.0,100.0",
-            help="Range of average pairwise percent identity (min,max)",
+            help="Range of mean pairwise percent identity (min,max)",
         )
         filter_group.add_argument(
             "--gc",
@@ -534,8 +554,8 @@ class CaptusDesign(object):
             action="store",
             type=str,
             dest="informative_sites",
-            default="0,20000",
-            help="Range of number of parsimony informative sites (min,max)",
+            default="0,inf",
+            help="Range of number of parsimony informative sites (min,max), inf=infinity",
         )
         filter_group.add_argument(
             "--inf",

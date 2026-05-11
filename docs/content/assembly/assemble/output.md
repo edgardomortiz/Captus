@@ -157,11 +157,11 @@ Assembly statistics, before and after filtering:
 |**pct_lengt_50kbp**|Percentage of total assembly length in contigs over 50kbp|
 |**shortest_contig**|Length of shortest contig in bp|
 |**longest_contig**|Length of longest contig in bp|
-|**avg_length**|Average contig length in bp|
+|**mean_length**|Mean contig length in bp|
 |**median_length**|Median contig length in bp|
-|**avg_depth**|Average contig depth|
+|**mean_depth**|Mean contig depth|
 |**median_depth**|Median contig depth|
-|**gc**|Average contig GC content|
+|**gc**|Mean contig GC content|
 |**N50**|Assembly N50 in bp|
 |**N75**|Assembly N75 in bp|
 |**L50**|Assembly L50 in number of contigs|
@@ -220,11 +220,11 @@ Assembly statistics compiled across all samples, before and after filtering:
 |**pct_lengt_50kbp**|Percentage of total assembly length in contigs over 50kbp|
 |**shortest_contig**|Length of shortest contig in bp|
 |**longest_contig**|Length of longest contig in bp|
-|**avg_length**|Average contig length in bp|
+|**mean_length**|Mean contig length in bp|
 |**median_length**|Median contig length in bp|
-|**avg_depth**|Average contig depth|
+|**mean_depth**|Mean contig depth|
 |**median_depth**|Median contig depth|
-|**gc**|Average contig GC content|
+|**gc**|Mean contig GC content|
 |**N50**|Assembly N50 in bp|
 |**N75**|Assembly N75 in bp|
 |**L50**|Assembly L50 in number of contigs|

@@ -134,7 +134,7 @@ QC_FILES = {
     "ADCO": "adaptor_content.tsv",
 }
 
-# Caculate the min, max, average read length of a FASTQ with this many reads
+# Caculate the min, max, mean read length of a FASTQ with this many reads
 NUM_READS_TO_CALCULATE_STATS = 100000
 
 # Maximum difference between percetange of A and T or C and G in the last base of a read, if the
@@ -690,7 +690,7 @@ EXT_STATS_HEADER = [
     "ctg_names",
     "ctg_strands",
     "ctg_coords",
-    "ctg_avg_depth",
+    "ctg_mean_depth",
 ]
 
 # GFF feature colors, Okabe & Ito palette

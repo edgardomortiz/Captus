@@ -15,6 +15,7 @@ not, see <http://www.gnu.org/licenses/>.
 import math
 import platform
 import shutil
+import statistics
 import subprocess
 import time
 from multiprocessing import Manager
@@ -258,7 +259,7 @@ def cluster(full_command, args):
     log.log(f"{'Deduplication cov.':>{mar}}: {bold(args.dedup_coverage)}%")
     log.log(f"{'Clustering id.':>{mar}}: {bold(args.clust_threshold)}%")
     log.log(f"{'Clustering cov.':>{mar}}: {bold(args.clust_coverage)}%")
-    log.log(f"{'Align min. species':>{mar}}: {bold(args.align_min_species)}")
+    log.log(f"{'Min. species in cluster':>{mar}}: {bold(args.clust_min_species)}")
     log.log("")
     log.log(f"{'Overwrite files':>{mar}}: {bold(args.overwrite)}")
     log.log(f"{'Keep all files':>{mar}}: {bold(args.keep_all)}")
@@ -366,7 +367,7 @@ def cluster(full_command, args):
         args.strand,
         args.clust_threshold,
         args.clust_coverage,
-        args.align_min_species,
+        args.clust_min_species,
         threads_max,
         ram_MB,
         args.translate_cds,
@@ -383,21 +384,6 @@ def cluster(full_command, args):
     fastas_to_align = find_fastas_in_dir(cluster_dir_path, ".fasta")
     concurrent, threads_per_alignment = adjust_align_concurrency(args.concurrent, threads_max)
     align_dir_path, align_dir_msg = make_output_dir(Path(out_dir, settings.DES_DIRS["ALN"]))
-    align_params = []
-    for fasta_path in fastas_to_align:
-        align_params.append(
-            (
-                args.mafft_path,
-                args.align_method,
-                args.align_max_copies,
-                threads_per_alignment,
-                args.timeout,
-                fasta_path,
-                align_dir_path,
-                args.translate_cds,
-                args.overwrite,
-            )
-        )
 
     log.log(f"{'Concurrent alignments':>{mar}}: {bold(concurrent)}")
     log.log(f"{'Threads per alignment':>{mar}}: {bold(threads_per_alignment)}")
@@ -406,6 +392,7 @@ def cluster(full_command, args):
         f"{'Algorithm':>{mar}}: {bold(args.align_method)}"
         f" {dim(settings.ALIGN_ALGORITHMS[args.align_method]['aka'])}"
     )
+    log.log(f"{'Min. samples to align':>{mar}}: {bold(args.align_min_samples)}")
     log.log(f"{'Max. copies to align':>{mar}}: {bold(args.align_max_copies)}")
     log.log(f"{'Timeout':>{mar}}: {bold(args.timeout)} {dim(f'[{elapsed_time(args.timeout)}]')}")
     log.log("")
@@ -416,6 +403,23 @@ def cluster(full_command, args):
     log.log(f"{'Alignment directory':>{mar}}: {bold(align_dir_path)}")
     log.log(f"{'':>{mar}}  {dim(align_dir_msg)}")
     log.log("")
+
+    align_params = []
+    for fasta_path in fastas_to_align:
+        align_params.append(
+            (
+                args.mafft_path,
+                args.align_method,
+                args.align_min_samples,
+                args.align_max_copies,
+                threads_per_alignment,
+                args.timeout,
+                fasta_path,
+                align_dir_path,
+                args.translate_cds,
+                args.overwrite,
+            )
+        )
 
     if args.debug:
         tqdm_serial_run(
@@ -947,7 +951,7 @@ def cluster_markers(
     strand: str,
     clust_threshold: float,
     clust_coverage: float,
-    align_min_species: int,
+    clust_min_species: int,
     threads: int,
     ram_mb: int,
     translate_cds: bool,
@@ -1050,7 +1054,7 @@ def cluster_markers(
                 if species_name not in species:
                     species.append(species_name)
             if len(samples) > 1:
-                if len(species) >= align_min_species:
+                if len(species) >= clust_min_species:
                     clusters_pass[centroid] = clusters_all[centroid]
                 else:
                     toofew_species_clusters += 1
@@ -1072,7 +1076,7 @@ def cluster_markers(
                 pbar.update()
         message = (
             f"A total of {len(clusters_pass)} valid clusters were written, {toofew_species_clusters}"
-            f" clusters contained fewer than {align_min_species} species and were skipped"
+            f" clusters contained fewer than {clust_min_species} species and were skipped"
             f" [{elapsed_time(time.time() - start)}]"
         )
         log.log(bold(f" \u2514\u2500\u2192 {message}"))
@@ -1110,6 +1114,7 @@ def adjust_align_concurrency(concurrent, threads_max):
 def mafft_assembly(
     mafft_path: Path,
     mafft_algorithm: str,
+    align_min_samples: int,
     align_max_copies: float,
     threads_per_alignment: int,
     timeout: int,
@@ -1144,11 +1149,14 @@ def mafft_assembly(
         long_fasta = {}
         short_fasta = {}
 
-        samples = []
+        sample_copies = {}
         max_seq_length = 0
         for seq_name in input_fasta:
             sample_name = seq_name.split(settings.SEQ_NAME_SEP)[0]
-            samples.append(sample_name)
+            if sample_name in sample_copies:
+                sample_copies[sample_name] += 1
+            else:
+                sample_copies[sample_name] = 1
             seq_length = len(input_fasta[seq_name]["sequence"])
             if seq_length > max_seq_length:
                 max_seq_length = seq_length
@@ -1158,16 +1166,21 @@ def mafft_assembly(
                 long_fasta[seq_name] = input_fasta[seq_name]
             else:
                 short_fasta[seq_name] = input_fasta[seq_name]
-        avg_copies = len(samples) / len(set(samples))
+        # avg_copies = sum(samples.values()) / len(samples)
+        median_copies = statistics.median(sample_copies.values())
         align = False
-        if avg_copies <= align_max_copies or align_max_copies == -1:
+        if (median_copies <= align_max_copies or align_max_copies == -1) and len(
+            sample_copies
+        ) >= align_min_samples:
             align = True
         if align is True:
             dict_to_fasta(long_fasta, long_fasta_path)
             if len(short_fasta) > 0:
                 dict_to_fasta(short_fasta, short_fasta_path)
         else:
-            message = dim(f"'{input_fasta_path.name}': SKIPPED (cluster has {avg_copies:.2f} copies)")
+            message = dim(
+                f"'{input_fasta_path.name}': SKIPPED (cluster has {len(sample_copies)} samples and {median_copies:.1f} copies)"
+            )
             return message
 
         mafft_long_cmd = [
@@ -1358,7 +1371,7 @@ def curate(
                 return False
         return True
 
-    def min_copies(aln_trimmed: dict, aln_width: int):
+    def min_copies_per_sample(aln_trimmed: dict, aln_width: int):
         haplos = {}
         for seq_name in aln_trimmed:
             sample_name = aln_trimmed[seq_name]["sample_name"]
@@ -1384,12 +1397,15 @@ def curate(
                         break
                     else:
                         continue
-        min_copies = 0
+        sample_min_copies = {}
         for sample_name in haplos:
             for haplo in haplos[sample_name]:
                 if len(haplo.strip("-")) > 0:
-                    min_copies += 1
-        return min_copies
+                    if sample_name in sample_min_copies:
+                        sample_min_copies[sample_name] += 1
+                    else:
+                        sample_min_copies[sample_name] = 1
+        return sample_min_copies
 
     start = time.time()
     curated_fasta_path = Path(curate_dir_path, input_fasta_path.name)
@@ -1481,6 +1497,8 @@ def curate(
                 if aln[seq_name]["cds_id"] in exons_data:
                     cds_ids[aln[seq_name]["cds_id"]] = seq_len_ungapped
 
+        sample_min_copies = min_copies_per_sample(aln_trimmed, aln_width)
+
         if len(aln_trimmed) > 1:
             ast = alignment_stats(aln_trimmed, "NT", coding=False)
             ast["genera"] = len(set(aln_genera))
@@ -1489,8 +1507,9 @@ def curate(
             ast["outgroup"] = len(set(aln_outgroup_species))
             ast["samples"] = len(set(aln_samples))
             ast["addons"] = len(set(aln_addon_samples))
-            ast["copies"] = min_copies(aln_trimmed, aln_width)
-            ast["avg_copies"] = ast["copies"] / ast["samples"]
+            ast["copies"] = sum(sample_min_copies.values())
+            ast["median_copies"] = statistics.median(sample_min_copies.values())
+            ast["mean_copies"] = ast["copies"] / ast["samples"]
             ast["cds_id"] = "NA"
             ast["exons"] = "NA"
             ast["exons_len"] = "NA"
@@ -1548,10 +1567,11 @@ def curate(
                 f"{curated_fasta_path}",  # Path to curated FASTA
                 f"{curated_fasta_path.stem}",  # Locus name
                 f"{ast['copies']}",  # Minimum number of copies in locus
-                f"{ast['avg_copies']:.2f}",  # Average number of copies in locus
+                f"{ast['median_copies']:.1f}",  # Median number of copies in locus
+                f"{ast['mean_copies']:.2f}",  # Mean number of copies in locus
                 f"{ast['sites']}",  # Alignment length
                 f"{ast['gc']:.2f}",  # % GC content
-                f"{ast['avg_pid']:.2f}",  # % Pairwise identity
+                f"{ast['mean_pid']:.2f}",  # % Pairwise identity
                 f"{ast['informative']}",  # Number of informative sites
                 f"{ast['informativeness']:.2f}",  # % Informativeness
                 f"{ast['missingness']:.2f}",  # % Missingness
@@ -1601,10 +1621,11 @@ def write_aln_stats(out_dir: Path, tsv_comment: str, shared_aln_stats: list):
                         "path",
                         "locus",
                         "copies",
-                        "avg_copies",
+                        "median_copies",
+                        "mean_copies",
                         "length",
                         "gc_content",
-                        "avg_pid",
+                        "mean_pid",
                         "informative_sites",
                         "informativeness",
                         "missingness",

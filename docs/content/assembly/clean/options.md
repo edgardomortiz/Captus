@@ -75,14 +75,14 @@ ___
 Here you can control [PHRED](https://drive5.com/usearch/manual/quality_score.html) quality score thresholds. `BBTools` uses the [PHRED algorithm](http://seqanswers.com/forums/showpost.php?p=144154&postcount=17) to trim low-quality bases or to discard low-quality reads.
 ___
 ### **`--trimq`**
-Leading and trailing read regions with average PHRED quality score below this value will be trimmed.
+Leading and trailing read regions with mean PHRED quality score below this value will be trimmed.
 
 Many people raise this value to 20 or even higher but that usually [discards lots of useful data for *de novo* assembly](https://www.biostars.org/p/124207/). In general, unless you have really high sequencing depth, don't increase this threshold beyond ~16.
 
 This argument is optional, the default is **13**.
 ___
 ### **`--maq`**
-Once the trimming of low-quality bases from both ends of the reads has been completed, the average PHRED score of the entire read is recalculated and reads that do not have at least this **m**inimum **a**verage **q**uality are discarded.
+Once the trimming of low-quality bases from both ends of the reads has been completed, the mean PHRED score of the entire read is recalculated and reads that do not have at least this **m**inimum **a**verage **q**uality are discarded.
 
 Again, very high thresholds will throw away useful data. In general, set it to at least `trimq` or just a couple numbers higher.
 
@@ -128,4 +128,4 @@ See [Parallelization (and other common options)]({{< ref "parallelization">}})
 
 ___
 Created by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (06.08.2021)
-Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (21.04.2024)
+Last modified by [Edgardo M. Ortiz]({{< ref "../../more/credits/#edgardo-m-ortiz">}}) (07.05.2026)

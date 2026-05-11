@@ -1557,7 +1557,7 @@ def build_assembly_report(out_dir, asm_stats_tsv, len_stats_tsv, dep_stats_tsv):
             "N50",
             "L50",
             "gc",
-            "avg_depth",
+            "mean_depth",
         ]
     )
     df.rename(
@@ -1570,7 +1570,7 @@ def build_assembly_report(out_dir, asm_stats_tsv, len_stats_tsv, dep_stats_tsv):
             "N50": "N50 (bp)",
             "L50": "L50",
             "gc": "GC Content (%)",
-            "avg_depth": "Mean Depth (x)",
+            "mean_depth": "Mean Depth (x)",
         },
         inplace=True,
     )
@@ -1763,7 +1763,7 @@ def build_assembly_report(out_dir, asm_stats_tsv, len_stats_tsv, dep_stats_tsv):
             None,
         ],
         "Mean Length (bp)": [
-            "avg_length",
+            "mean_length",
             None,
             None,
             None,
@@ -1803,7 +1803,7 @@ def build_assembly_report(out_dir, asm_stats_tsv, len_stats_tsv, dep_stats_tsv):
             None,
         ],
         "Mean Depth (x)": [
-            "avg_depth",
+            "mean_depth",
             None,
             None,
             None,
@@ -2382,8 +2382,8 @@ def build_extraction_report(out_dir, ext_stats_tsv):
         "Best Hit LG50",
         "Best Hit LG90",
     ]
-    if not df["ctg_avg_depth"].isna().all():
-        var_list.append("ctg_avg_depth")
+    if not df["ctg_mean_depth"].isna().all():
+        var_list.append("ctg_mean_depth")
         var_lab_list.append("Mean Depth (x)")
     colorscale = [
         [0.0, "rgb(94,79,162)"],
@@ -2496,7 +2496,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
             ])
         else:
             customdata = data
-            if not df["ctg_avg_depth"].isna().all():
+            if not df["ctg_mean_depth"].isna().all():
                 hovertemplate = "<br>".join([
                     "Sample: <b>%{customdata[0]}</b>",
                     "Marker type: <b>%{customdata[1]}</b>",
@@ -2716,7 +2716,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
                         "Locus: <b>%{x}</b>",
                         "Best hit LG90: <b>%{z}</b><extra></extra>",
                     ])
-            elif var == "ctg_avg_depth":
+            elif var == "ctg_mean_depth":
                 q1 = pd.to_numeric(data[var], errors="coerce").quantile(0.25)
                 q3 = pd.to_numeric(data[var], errors="coerce").quantile(0.75)
                 iqr = q3 - q1
@@ -2961,7 +2961,8 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
     var_dict = {
         "Sequences": "seqs",
         "Samples": "samples",
-        "Sequences Per Sample": "avg_copies",
+        "Median Sequences Per Sample": "median_copies",
+        "Mean Sequences Per Sample": "mean_copies",
         "Alignment Length": "sites",
         "Informative Sites": "informative",
         "Informativeness (%)": "informativeness",
@@ -2969,7 +2970,7 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
         "Constant Sites": "constant",
         "Singleton Sites": "singleton",
         "Patterns": "patterns",
-        "Mean Pairwise Identity (%)": "avg_pid",
+        "Mean Pairwise Identity (%)": "mean_pid",
         "Missingness (%)": "missingness",
         "GC Content (%)": "gc",
         "GC Content at<br>1st Codon Position (%)": "gc_codon_p1",
@@ -3059,7 +3060,7 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
             type="dropdown",
             direction="up",
             pad={"t": 30, "b": 10},
-            active=3,
+            active=4,
             showactive=True,
             x=0.5,
             xanchor="center",
@@ -3158,53 +3159,56 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
             "Marker type: <b>%{customdata[4]}</b>",
             "Sequences: <b>%{customdata[7]:,.0f}</b>",
             "Samples: <b>%{customdata[8]:,.0f}</b>",
-            "Sequences per sample: <b>%{customdata[9]:.2f}</b>",
-            "Alignment length: <b>%{customdata[10]:,.0f} aa</b>",
-            "Informative sites: <b>%{customdata[11]:,.0f}</b>",
-            "Informativeness: <b>%{customdata[12]:.2f}%</b>",
-            "Uninformative sites: <b>%{customdata[13]:,.0f}</b>",
-            "Constant sites: <b>%{customdata[14]:,.0f}</b>",
-            "Singleton sites: <b>%{customdata[15]:,.0f}</b>",
-            "Patterns: <b>%{customdata[16]:,.0f}</b>",
-            "Mean pairwise identity: <b>%{customdata[17]:.2f}%</b>",
-            "Missingness: <b>%{customdata[18]:.2f}%</b>",
+            "Median Seqs. per sample: <b>%{customdata[9]:.2f}</b>",
+            "Mean Seqs. per sample: <b>%{customdata[10]:.2f}</b>",
+            "Alignment length: <b>%{customdata[11]:,.0f} aa</b>",
+            "Informative sites: <b>%{customdata[12]:,.0f}</b>",
+            "Informativeness: <b>%{customdata[13]:.2f}%</b>",
+            "Uninformative sites: <b>%{customdata[14]:,.0f}</b>",
+            "Constant sites: <b>%{customdata[15]:,.0f}</b>",
+            "Singleton sites: <b>%{customdata[16]:,.0f}</b>",
+            "Patterns: <b>%{customdata[17]:,.0f}</b>",
+            "Mean pairwise identity: <b>%{customdata[18]:.2f}%</b>",
+            "Missingness: <b>%{customdata[19]:.2f}%</b>",
     ])
     hovertemplate_nt = "<br>".join([
             "Locus: <b>%{customdata[6]}</b>",
             "Marker type: <b>%{customdata[4]}</b>",
             "Sequences: <b>%{customdata[7]:,.0f}</b>",
             "Samples: <b>%{customdata[8]:,.0f}</b>",
-            "Sequences per sample: <b>%{customdata[9]:.2f}</b>",
-            "Alignment length: <b>%{customdata[10]:,.0f} bp</b>",
-            "Informative sites: <b>%{customdata[11]:,.0f}</b>",
-            "Informativeness: <b>%{customdata[12]:.2f}%</b>",
-            "Uninformative sites: <b>%{customdata[13]:,.0f}</b>",
-            "Constant sites: <b>%{customdata[14]:,.0f}</b>",
-            "Singleton sites: <b>%{customdata[15]:,.0f}</b>",
-            "Patterns: <b>%{customdata[16]:,.0f}</b>",
-            "Mean pairwise identity: <b>%{customdata[17]:.2f}%</b>",
-            "Missingness: <b>%{customdata[18]:.2f}%</b>",
-            "GC content: <b>%{customdata[19]:.2f}%</b>",
-            "GC content at 1st codon position: <b>%{customdata[20]:.2f}%</b>",
-            "GC content at 2nd codon position: <b>%{customdata[21]:.2f}%</b>",
-            "GC content at 3rd codon position: <b>%{customdata[22]:.2f}%</b>",
+            "Median Seqs. per sample: <b>%{customdata[9]:.2f}</b>",
+            "Mean Seqs. per sample: <b>%{customdata[10]:.2f}</b>",
+            "Alignment length: <b>%{customdata[11]:,.0f} bp</b>",
+            "Informative sites: <b>%{customdata[12]:,.0f}</b>",
+            "Informativeness: <b>%{customdata[13]:.2f}%</b>",
+            "Uninformative sites: <b>%{customdata[14]:,.0f}</b>",
+            "Constant sites: <b>%{customdata[15]:,.0f}</b>",
+            "Singleton sites: <b>%{customdata[16]:,.0f}</b>",
+            "Patterns: <b>%{customdata[17]:,.0f}</b>",
+            "Mean pairwise identity: <b>%{customdata[18]:.2f}%</b>",
+            "Missingness: <b>%{customdata[19]:.2f}%</b>",
+            "GC content: <b>%{customdata[20]:.2f}%</b>",
+            "GC content at 1st codon position: <b>%{customdata[21]:.2f}%</b>",
+            "GC content at 2nd codon position: <b>%{customdata[22]:.2f}%</b>",
+            "GC content at 3rd codon position: <b>%{customdata[23]:.2f}%</b>",
     ])
     hovertemplate_other = "<br>".join([
             "Locus: <b>%{customdata[6]}</b>",
             "Marker type: <b>%{customdata[4]}</b>",
             "Sequences: <b>%{customdata[7]:,.0f}</b>",
             "Samples: <b>%{customdata[8]:,.0f}</b>",
-            "Sequences per sample: <b>%{customdata[9]:.2f}</b>",
-            "Alignment length: <b>%{customdata[10]:,.0f} bp</b>",
-            "Informative sites: <b>%{customdata[11]:,.0f}</b>",
-            "Informativeness: <b>%{customdata[12]:.2f}%</b>",
-            "Uninformative sites: <b>%{customdata[13]:,.0f}</b>",
-            "Constant sites: <b>%{customdata[14]:,.0f}</b>",
-            "Singleton sites: <b>%{customdata[15]:,.0f}</b>",
-            "Patterns: <b>%{customdata[16]:,.0f}</b>",
-            "Mean pairwise identity: <b>%{customdata[17]:.2f}%</b>",
-            "Missingness: <b>%{customdata[18]:.2f}%</b>",
-            "GC content: <b>%{customdata[19]:.2f}%</b>",
+            "Median Seqs. per sample: <b>%{customdata[9]:.2f}</b>",
+            "Mean Seqs. per sample: <b>%{customdata[10]:.2f}</b>",
+            "Alignment length: <b>%{customdata[11]:,.0f} bp</b>",
+            "Informative sites: <b>%{customdata[12]:,.0f}</b>",
+            "Informativeness: <b>%{customdata[13]:.2f}%</b>",
+            "Uninformative sites: <b>%{customdata[14]:,.0f}</b>",
+            "Constant sites: <b>%{customdata[15]:,.0f}</b>",
+            "Singleton sites: <b>%{customdata[16]:,.0f}</b>",
+            "Patterns: <b>%{customdata[17]:,.0f}</b>",
+            "Mean pairwise identity: <b>%{customdata[18]:.2f}%</b>",
+            "Missingness: <b>%{customdata[19]:.2f}%</b>",
+            "GC content: <b>%{customdata[20]:.2f}%</b>",
     ])
 
     for j, marker_type in enumerate(marker_type_list):
@@ -3378,7 +3382,7 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
                 type="dropdown",
                 direction="up",
                 pad={"t": 30, "b": 10},
-                active=3,
+                active=4,
                 showactive=True,
                 x=0.475,
                 xanchor="center",
@@ -3390,7 +3394,7 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
                 type="dropdown",
                 direction="down",
                 pad={"t": 10, "b": 10, "r": 40},
-                active=4,
+                active=5,
                 showactive=True,
                 x=0,
                 xanchor="right",
@@ -3496,29 +3500,32 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
 
     df = df.groupby(
         [
-            "sample",
-            "stage_marker_format",
-            "stage",
-            "filter",
-            "marker",
-            "format",
+            "sample", #0
+            "stage_marker_format", #1
+            "stage", #2
+            "filter", #3
+            "marker", #4
+            "format", #5
         ]
     ).agg(
-        num_loci = ("locus", "nunique"),
-        mean_len = ("len_ungapped", "mean"),
-        total_len = ("len_ungapped", "sum"),
-        mean_gaps = ("gaps", "mean"),
-        total_gaps = ("gaps", "sum"),
-        mean_ambig = ("ambigs", "mean"),
-        mean_gc = ("gc", "mean"),
-        mean_gc_codon1 = ("gc_codon_p1", "mean"),
-        mean_gc_codon2 = ("gc_codon_p2", "mean"),
-        mean_gc_codon3 = ("gc_codon_p3", "mean"),
-        mean_copies = ("num_copies", "mean"),
+        num_loci = ("locus", "nunique"), #6
+        median_len = ("len_ungapped", "median"), #7
+        mean_len = ("len_ungapped", "mean"), #8
+        total_len = ("len_ungapped", "sum"), #9
+        mean_gaps = ("gaps", "mean"), #10
+        total_gaps = ("gaps", "sum"), #11
+        mean_ambig = ("ambigs", "mean"), #12
+        mean_gc = ("gc", "mean"), #13
+        mean_gc_codon1 = ("gc_codon_p1", "mean"), #14
+        mean_gc_codon2 = ("gc_codon_p2", "mean"), #15
+        mean_gc_codon3 = ("gc_codon_p3", "mean"), #16
+        median_copies = ("num_copies", "median"), #17
+        mean_copies = ("num_copies", "mean"), #18
     ).reset_index()
 
     var_dict = {
         "num_loci": "Number of Loci",
+        "median_len": "Median Ungapped Length",
         "mean_len": "Mean Ungapped Length",
         "total_len": "Total Ungapped Length",
         "mean_gaps": "Mean Gaps",
@@ -3528,6 +3535,7 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
         "mean_gc_codon1": "Mean GC Content at<br>1st Codon Position (%)",
         "mean_gc_codon2": "Mean GC Content at<br>2nd Codon Position (%)",
         "mean_gc_codon3": "Mean GC Content at<br>3rd Codon Position (%)",
+        "median_copies": "Median Copies",
         "mean_copies": "Mean Copies",
     }
 
@@ -3586,12 +3594,14 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
         "Marker type: <b>%{customdata[4]}</b>",
         "Format: <b>%{customdata[5]}</b>",
         "Number of loci: <b>%{customdata[6]}</b>",
-        "Mean ungapped length: <b>%{customdata[7]:,.0f} aa</b>",
-        "Total ungapped length: <b>%{customdata[8]:,.0f} aa</b>",
-        "Mean gaps: <b>%{customdata[9]:,.0f} aa</b>",
-        "Total gaps: <b>%{customdata[10]:,.0f} aa</b>",
-        "Mean ambiguities: <b>%{customdata[11]:,.2f}</b>",
-        "Mean copies: <b>%{customdata[16]:,.2f}</b><extra></extra>",
+        "Median ungapped length: <b>%{customdata[7]:,.0f} aa</b>",
+        "Mean ungapped length: <b>%{customdata[8]:,.0f} aa</b>",
+        "Total ungapped length: <b>%{customdata[9]:,.0f} aa</b>",
+        "Mean gaps: <b>%{customdata[10]:,.0f} aa</b>",
+        "Total gaps: <b>%{customdata[11]:,.0f} aa</b>",
+        "Mean ambiguities: <b>%{customdata[12]:,.2f}</b>",
+        "Median copies: <b>%{customdata[17]:,.1f}</b><extra></extra>",
+        "Mean copies: <b>%{customdata[18]:,.2f}</b><extra></extra>",
     ])
     hovertemplate_nt = "<br>".join([
         "Sample: <b>%{customdata[0]}</b>",
@@ -3600,16 +3610,18 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
         "Marker type: <b>%{customdata[4]}</b>",
         "Format: <b>%{customdata[5]}</b>",
         "Number of loci: <b>%{customdata[6]}</b>",
-        "Mean ungapped length: <b>%{customdata[7]:,.0f} bp</b>",
-        "Total ungapped length: <b>%{customdata[8]:,.0f} bp</b>",
-        "Mean gaps: <b>%{customdata[9]:,.0f} bp</b>",
-        "Total gaps: <b>%{customdata[10]:,.0f} bp</b>",
-        "Mean ambiguities: <b>%{customdata[11]:,.2f}</b>",
-        "Mean GC content: <b>%{customdata[12]:.2f}%</b>",
-        "Mean GC content (1st codon pos.): <b>%{customdata[13]:.2f}%</b>",
-        "Mean GC content (2nd codon pos.): <b>%{customdata[14]:.2f}%</b>",
-        "Mean GC content (3rd codon pos.): <b>%{customdata[15]:.2f}%</b>",
-        "Mean copies: <b>%{customdata[16]:,.2f}</b><extra></extra>",
+        "Median ungapped length: <b>%{customdata[7]:,.0f} bp</b>",
+        "Mean ungapped length: <b>%{customdata[8]:,.0f} bp</b>",
+        "Total ungapped length: <b>%{customdata[9]:,.0f} bp</b>",
+        "Mean gaps: <b>%{customdata[10]:,.0f} bp</b>",
+        "Total gaps: <b>%{customdata[11]:,.0f} bp</b>",
+        "Mean ambiguities: <b>%{customdata[12]:,.2f}</b>",
+        "Mean GC content: <b>%{customdata[13]:.2f}%</b>",
+        "Mean GC content (1st codon pos.): <b>%{customdata[14]:.2f}%</b>",
+        "Mean GC content (2nd codon pos.): <b>%{customdata[15]:.2f}%</b>",
+        "Mean GC content (3rd codon pos.): <b>%{customdata[16]:.2f}%</b>",
+        "Median copies: <b>%{customdata[17]:,.1f}</b><extra></extra>",
+        "Mean copies: <b>%{customdata[18]:,.2f}</b><extra></extra>",
     ])
     hovertemplate_other = "<br>".join([
         "Sample: <b>%{customdata[0]}</b>",
@@ -3618,13 +3630,15 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
         "Marker type: <b>%{customdata[4]}</b>",
         "Format: <b>%{customdata[5]}</b>",
         "Number of loci: <b>%{customdata[6]}</b>",
-        "Mean ungapped length: <b>%{customdata[7]:,.0f} bp</b>",
-        "Total ungapped length: <b>%{customdata[8]:,.0f} bp</b>",
-        "Mean gaps: <b>%{customdata[9]:,.0f} bp</b>",
-        "Total gaps: <b>%{customdata[10]:,.0f} bp</b>",
-        "Mean ambiguities: <b>%{customdata[11]:,.2f}</b>",
-        "Mean GC content: <b>%{customdata[12]:.2f}%</b>",
-        "Mean copies: <b>%{customdata[16]:,.2f}</b><extra></extra>",
+        "Median ungapped length: <b>%{customdata[7]:,.0f} bp</b>",
+        "Mean ungapped length: <b>%{customdata[8]:,.0f} bp</b>",
+        "Total ungapped length: <b>%{customdata[9]:,.0f} bp</b>",
+        "Mean gaps: <b>%{customdata[10]:,.0f} bp</b>",
+        "Total gaps: <b>%{customdata[11]:,.0f} bp</b>",
+        "Mean ambiguities: <b>%{customdata[12]:,.2f}</b>",
+        "Mean GC content: <b>%{customdata[13]:.2f}%</b>",
+        "Median copies: <b>%{customdata[17]:,.1f}</b><extra></extra>",
+        "Mean copies: <b>%{customdata[18]:,.2f}</b><extra></extra>",
     ])
 
     for i, marker_type in enumerate(marker_type_list):
@@ -3835,17 +3849,18 @@ def build_design_report(out_dir, des_stats_tsv, step):
 
     df = pd.read_table(
         des_stats_tsv,
-        usecols=range(1, 24),
+        usecols=range(1, 25),
         low_memory=False,
         comment="#",
     ).fillna("NaN")
     if (df["cds_id"] == "NaN").all():
         var_dict = {
             "Total copies": "copies",
-            "Mean copies": "avg_copies",
+            "Median copies": "median_copies",
+            "Mean copies": "mean_copies",
             "Length (bp)": "length",
             "GC content (%)": "gc_content",
-            "Mean pairwise identity (%)": "avg_pid",
+            "Mean pairwise identity (%)": "mean_pid",
             "Informative sites": "informative_sites",
             "Informativeness (%)": "informativeness",
             "Missingness (%)": "missingness",
@@ -3860,28 +3875,30 @@ def build_design_report(out_dir, des_stats_tsv, step):
         hovertemplate = "<br>".join([
             "Locus: <b>%{customdata[0]}</b>",
             "Total copies: <b>%{customdata[1]:,.0f}</b>",
-            "Mean copies: <b>%{customdata[2]:,.2f}</b>",
-            "Length: <b>%{customdata[3]:,.0f} bp</b>",
-            "GC content: <b>%{customdata[4]:,.2f}%</b>",
-            "Mean pairwise identity: <b>%{customdata[5]:.2f}%</b>",
-            "Informative sites: <b>%{customdata[6]:,.0f}</b>",
-            "Informativeness: <b>%{customdata[7]:.2f}%</b>",
-            "Missingness: <b>%{customdata[8]:,.2f}%</b>",
-            "Sequences: <b>%{customdata[9]:,.0f}</b>",
-            "Samples: <b>%{customdata[10]:,.0f}</b>",
-            "Focal species: <b>%{customdata[11]:,.0f}</b>",
-            "Outgroup species: <b>%{customdata[12]:,.0f}</b>",
-            "Add-on samples: <b>%{customdata[13]:,.0f}</b>",
-            "Species: <b>%{customdata[14]:,.0f}</b>",
-            "Genera: <b>%{customdata[15]:,.0f}</b><extra></extra>",
+            "Median copies: <b>%{customdata[2]:,.1f}</b>",
+            "Mean copies: <b>%{customdata[3]:,.2f}</b>",
+            "Length: <b>%{customdata[4]:,.0f} bp</b>",
+            "GC content: <b>%{customdata[5]:,.2f}%</b>",
+            "Mean pairwise identity: <b>%{customdata[6]:.2f}%</b>",
+            "Informative sites: <b>%{customdata[7]:,.0f}</b>",
+            "Informativeness: <b>%{customdata[8]:.2f}%</b>",
+            "Missingness: <b>%{customdata[9]:,.2f}%</b>",
+            "Sequences: <b>%{customdata[10]:,.0f}</b>",
+            "Samples: <b>%{customdata[11]:,.0f}</b>",
+            "Focal species: <b>%{customdata[12]:,.0f}</b>",
+            "Outgroup species: <b>%{customdata[13]:,.0f}</b>",
+            "Add-on samples: <b>%{customdata[14]:,.0f}</b>",
+            "Species: <b>%{customdata[15]:,.0f}</b>",
+            "Genera: <b>%{customdata[16]:,.0f}</b><extra></extra>",
         ])
     else:
         var_dict = {
             "Total copies": "copies",
-            "Mean copies": "avg_copies",
+            "Median copies": "median_copies",
+            "Mean copies": "mean_copies",
             "Length (bp)": "length",
             "GC content (%)": "gc_content",
-            "Mean pairwise identity (%)": "avg_pid",
+            "Mean pairwise identity (%)": "mean_pid",
             "Informative sites": "informative_sites",
             "Informativeness (%)": "informativeness",
             "Missingness (%)": "missingness",
@@ -3902,33 +3919,34 @@ def build_design_report(out_dir, des_stats_tsv, step):
         hovertemplate = "<br>".join([
             "Locus: <b>%{customdata[0]}</b>",
             "Total copies: <b>%{customdata[1]:,.0f}</b>",
-            "Mean copies: <b>%{customdata[2]:,.2f}</b>",
-            "Length: <b>%{customdata[3]:,.0f} bp</b>",
-            "GC content: <b>%{customdata[4]:,.2f}%</b>",
-            "Mean pairwise identity: <b>%{customdata[5]:.2f}%</b>",
-            "Informative sites: <b>%{customdata[6]:,.0f}</b>",
-            "Informativeness: <b>%{customdata[7]:.2f}%</b>",
-            "Missingness: <b>%{customdata[8]:,.2f}%</b>",
-            "Sequences: <b>%{customdata[9]:,.0f}</b>",
-            "Samples: <b>%{customdata[10]:,.0f}</b>",
-            "Focal species: <b>%{customdata[11]:,.0f}</b>",
-            "Outgroup species: <b>%{customdata[12]:,.0f}</b>",
-            "Add-on samples: <b>%{customdata[13]:,.0f}</b>",
-            "Species: <b>%{customdata[14]:,.0f}</b>",
-            "Genera: <b>%{customdata[15]:,.0f}</b>",
-            "CDS id: <b>%{customdata[16]}</b>",
-            "CDS length: <b>%{customdata[17]:,.0f} bp</b>",
-            "Length of long exons retained: <b>%{customdata[18]:,.0f} bp</b>",
-            "Length of short exons retained: <b>%{customdata[19]:,.0f} bp</b>",
-            "Percentage of exons retained: <b>%{customdata[20]:.2f}%</b>",
-            "Percentage of long exons retained: <b>%{customdata[21]:.2f}%</b>",
-            "Percentage of short exons retained: <b>%{customdata[22]:.2f}%</b><extra></extra>",
+            "Median copies: <b>%{customdata[2]:,.1f}</b>",
+            "Mean copies: <b>%{customdata[3]:,.2f}</b>",
+            "Length: <b>%{customdata[4]:,.0f} bp</b>",
+            "GC content: <b>%{customdata[5]:,.2f}%</b>",
+            "Mean pairwise identity: <b>%{customdata[6]:.2f}%</b>",
+            "Informative sites: <b>%{customdata[7]:,.0f}</b>",
+            "Informativeness: <b>%{customdata[8]:.2f}%</b>",
+            "Missingness: <b>%{customdata[9]:,.2f}%</b>",
+            "Sequences: <b>%{customdata[10]:,.0f}</b>",
+            "Samples: <b>%{customdata[11]:,.0f}</b>",
+            "Focal species: <b>%{customdata[12]:,.0f}</b>",
+            "Outgroup species: <b>%{customdata[13]:,.0f}</b>",
+            "Add-on samples: <b>%{customdata[14]:,.0f}</b>",
+            "Species: <b>%{customdata[15]:,.0f}</b>",
+            "Genera: <b>%{customdata[16]:,.0f}</b>",
+            "CDS id: <b>%{customdata[17]}</b>",
+            "CDS length: <b>%{customdata[18]:,.0f} bp</b>",
+            "Length of long exons retained: <b>%{customdata[19]:,.0f} bp</b>",
+            "Length of short exons retained: <b>%{customdata[20]:,.0f} bp</b>",
+            "Percentage of exons retained: <b>%{customdata[21]:.2f}%</b>",
+            "Percentage of long exons retained: <b>%{customdata[22]:.2f}%</b>",
+            "Percentage of short exons retained: <b>%{customdata[23]:.2f}%</b><extra></extra>",
         ])
 
     fig = go.Figure()
     x=df["length"]
     y=df["informative_sites"]
-    color=df["avg_copies"]
+    color=df["median_copies"]
     fig.add_trace(
         go.Scatter(
             x=x,
@@ -4021,7 +4039,7 @@ def build_design_report(out_dir, des_stats_tsv, step):
                 type="dropdown",
                 direction="up",
                 pad={"t": 30, "b": 10},
-                active=2,
+                active=3,
                 showactive=True,
                 x=0.475,
                 xanchor="center",
@@ -4033,7 +4051,7 @@ def build_design_report(out_dir, des_stats_tsv, step):
                 type="dropdown",
                 direction="down",
                 pad={"t": 10, "b": 10, "r": 40},
-                active=5,
+                active=6,
                 showactive=True,
                 x=0,
                 xanchor="right",

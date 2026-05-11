@@ -53,7 +53,7 @@ Those files are paired-end reads (`R1` and `R2`) obtained from four plant specie
 ---
 
 Let's start the analysis with cleaning the raw reads using the `clean` command.  
-The `clean` command trims adapter sequences and low-quality bases, and filters out reads with low average quality score.
+The `clean` command trims adapter sequences and low-quality bases, and filters out reads with low mean quality score.
 {{% notice style="warning" title="IMPORTANT" %}}
 When working with your own data, **all FASTQ files must be named according to the [<i class="fab fa-readme"></i> naming convention]({{< ref "assembly/clean/preparation.md">}})**.  
 Since `Captus` automatically recognizes sample name and library layout (single-end or paired-end) from the FASTQ file name, improper file naming may cause improper data processing.

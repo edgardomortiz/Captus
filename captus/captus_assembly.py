@@ -161,7 +161,7 @@ class CaptusAssembly(object):
             default=13,
             type=int,
             dest="trimq",
-            help="Leading and trailing read regions with average PHRED quality score below this"
+            help="Leading and trailing read regions with mean PHRED quality score below this"
             " value will be trimmed",
         )
         quality_group.add_argument(
@@ -170,7 +170,7 @@ class CaptusAssembly(object):
             default=16,
             type=int,
             dest="maq",
-            help="After quality trimming, reads with average PHRED quality score below this value"
+            help="After quality trimming, reads with mean PHRED quality score below this value"
             " will be removed",
         )
         quality_group.add_argument(
@@ -1335,14 +1335,13 @@ class CaptusAssembly(object):
             " might be useful if you expect very high ploidy levels for example",
         )
         input_group.add_argument(
-            "--max_average_copies",
+            "--max_copies",
             action="store",
             default=-1,
             type=float,
-            dest="max_average_copies",
-            help="Do not align loci with more average copies than this value. Average number of"
-            " copies is defined as number of sequences divided by number of samples. For example, a"
-            " value of 1.33 means that 33%% of the samples can have an extra copy. Use -1 to disable",
+            dest="max_copies",
+            help="Do not align loci with median copies per sample greater than this value. Use -1"
+            " to disable",
         )
 
         output_group = parser.add_argument_group("Output")

@@ -1050,7 +1050,7 @@ def get_asm_stats(
         sample_name, asm, stage, asm_stats_tsv_path, depth_stats_tsv_path, length_stats_tsv_path
     ):
         """
-        4847 contigs, total 2895219 bp, min 183 bp, max 4250 bp, avg 597 bp, N50 673 bp
+        4847 contigs, total 2895219 bp, min 183 bp, max 4250 bp, mean 597 bp, N50 673 bp
         """
         lengths = []
         depths = []
@@ -1120,26 +1120,26 @@ def get_asm_stats(
                 lengths_hist["inf"]["length"] += length
 
         num_contigs = len(asm)
-        tot_length = sum(lengths)
+        total_length = sum(lengths)
         min_length = min(lengths)
         max_length = max(lengths)
-        avg_length = math.ceil(statistics.mean(lengths))
-        med_length = math.ceil(statistics.median(lengths))
-        avg_depth = round(statistics.mean(depths), 4)
-        med_depth = round(statistics.median(depths), 4)
-        gc = round(gc_count / tot_length * 100, 3)
+        mean_length = math.ceil(statistics.mean(lengths))
+        median_length = math.ceil(statistics.median(lengths))
+        mean_depth = round(statistics.mean(depths), 4)
+        median_depth = round(statistics.median(depths), 4)
+        gc = round(gc_count / total_length * 100, 3)
         for D in depths_hist:
-            depths_hist[D]["fraction"] = round(depths_hist[D]["length"] / tot_length * 100, 3)
+            depths_hist[D]["fraction"] = round(depths_hist[D]["length"] / total_length * 100, 3)
         for L in lengths_hist:
-            lengths_hist[L]["fraction"] = round(lengths_hist[L]["length"] / tot_length * 100, 3)
-        p50_length, cum_length, n50, l50 = tot_length * 0.50, 0, 0, 0
+            lengths_hist[L]["fraction"] = round(lengths_hist[L]["length"] / total_length * 100, 3)
+        p50_length, cum_length, n50, l50 = total_length * 0.50, 0, 0, 0
         for L in sorted(lengths, reverse=True):
             cum_length += L
             l50 += 1
             if cum_length >= p50_length:
                 n50 = L
                 break
-        p75_length, cum_length, n75, l75 = tot_length * 0.75, 0, 0, 0
+        p75_length, cum_length, n75, l75 = total_length * 0.75, 0, 0, 0
         for L in sorted(lengths, reverse=True):
             cum_length += L
             l75 += 1
@@ -1154,12 +1154,12 @@ def get_asm_stats(
         num_20kbp = round(len(list(filter(lambda L: L >= 20000, lengths))) / num_contigs * 100, 3)
         num_50kbp = round(len(list(filter(lambda L: L >= 50000, lengths))) / num_contigs * 100, 3)
 
-        len_1kbp = round(sum(list(filter(lambda L: L >= 1000, lengths))) / tot_length * 100, 3)
-        len_2kbp = round(sum(list(filter(lambda L: L >= 2000, lengths))) / tot_length * 100, 3)
-        len_5kbp = round(sum(list(filter(lambda L: L >= 5000, lengths))) / tot_length * 100, 3)
-        len_10kbp = round(sum(list(filter(lambda L: L >= 10000, lengths))) / tot_length * 100, 3)
-        len_20kbp = round(sum(list(filter(lambda L: L >= 20000, lengths))) / tot_length * 100, 3)
-        len_50kbp = round(sum(list(filter(lambda L: L >= 50000, lengths))) / tot_length * 100, 3)
+        len_1kbp = round(sum(list(filter(lambda L: L >= 1000, lengths))) / total_length * 100, 3)
+        len_2kbp = round(sum(list(filter(lambda L: L >= 2000, lengths))) / total_length * 100, 3)
+        len_5kbp = round(sum(list(filter(lambda L: L >= 5000, lengths))) / total_length * 100, 3)
+        len_10kbp = round(sum(list(filter(lambda L: L >= 10000, lengths))) / total_length * 100, 3)
+        len_20kbp = round(sum(list(filter(lambda L: L >= 20000, lengths))) / total_length * 100, 3)
+        len_50kbp = round(sum(list(filter(lambda L: L >= 50000, lengths))) / total_length * 100, 3)
 
         asm_stats_record = "\t".join(
             [
@@ -1172,7 +1172,7 @@ def get_asm_stats(
                 f"{num_10kbp}",
                 f"{num_20kbp}",
                 f"{num_50kbp}",
-                f"{tot_length}",
+                f"{total_length}",
                 f"{len_1kbp}",
                 f"{len_2kbp}",
                 f"{len_5kbp}",
@@ -1181,10 +1181,10 @@ def get_asm_stats(
                 f"{len_50kbp}",
                 f"{min_length}",
                 f"{max_length}",
-                f"{avg_length}",
-                f"{med_length}",
-                f"{avg_depth}",
-                f"{med_depth}",
+                f"{mean_length}",
+                f"{median_length}",
+                f"{mean_depth}",
+                f"{median_depth}",
                 f"{gc}",
                 f"{n50}",
                 f"{n75}",
@@ -1224,8 +1224,8 @@ def get_asm_stats(
                 stats_tsv.write(f"{length_stats_record}\n")
 
         msg = (
-            f"'{sample_name}': {stage.upper()} {num_contigs:,} contigs, total {tot_length:,} bp,"
-            f" min {min_length:,} bp, max {max_length:,} bp, avg {avg_length:,} bp, N50 {n50:,} bp"
+            f"'{sample_name}': {stage.upper()} {num_contigs:,} contigs, total {total_length:,} bp,"
+            f" min {min_length:,} bp, max {max_length:,} bp, mean {mean_length:,} bp, N50 {n50:,} bp"
         )
         return msg
 
@@ -1249,9 +1249,9 @@ def get_asm_stats(
             "pct_length_50kbp",
             "shortest_contig",
             "longest_contig",
-            "avg_length",
+            "mean_length",
             "median_length",
-            "avg_depth",
+            "mean_depth",
             "median_depth",
             "gc",
             "N50",
@@ -1342,9 +1342,9 @@ def collect_asm_stats(out_dir, tsv_comment):
                 "pct_length_50kbp",
                 "shortest_contig",
                 "longest_contig",
-                "avg_length",
+                "mean_length",
                 "median_length",
-                "avg_depth",
+                "mean_depth",
                 "median_depth",
                 "gc",
                 "N50",

@@ -234,7 +234,7 @@ def clean(full_command, args):
     log.log_section_header("Quality Trimming and Filtering with bbduk.sh")
     log.log_explanation(
         "Now Captus will trim the regions of reads with PHRED quality score lower than '--trimq' and"
-        " afterwards will remove reads with average PHRED quality lower than '--maq'. Common"
+        " afterwards will remove reads with mean PHRED quality lower than '--maq'. Common"
         " sequencing artifacts and reads belonging to the viral genome phiX174 will also be"
         " filtered out. Other parameters are hard-coded but can be modified directly in the file:"
         f" '{settings.SETTINGS_ASSEMBLY_PATH}'"

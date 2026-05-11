@@ -90,7 +90,8 @@ def select(full_command, args):
     aln_stats = load_aln_stats_tsv(args.captus_clusters_dir)
     aln_stats_filtered = filter_loci(
         aln_stats,
-        args.avg_copies,
+        args.median_copies,
+        args.mean_copies,
         args.length,
         args.pairwise_identity,
         args.gc_content,
@@ -166,27 +167,28 @@ def load_aln_stats_tsv(clusters_dir: Path):
                     aln_stats[record[1]] = {
                         "path": Path(record[0]),
                         "copies": int(record[2]),
-                        "avg_copies": float(record[3]),
-                        "length": int(record[4]),
-                        "gc_content": float(record[5]),
-                        "avg_pid": float(record[6]),
-                        "informative_sites": int(record[7]),
-                        "informativeness": float(record[8]),
-                        "missingness": float(record[9]),
-                        "num_sequences": int(record[10]),
-                        "num_samples": int(record[11]),
-                        "num_focal_species": int(record[12]),
-                        "num_outgroup_species": int(record[13]),
-                        "num_addon_samples": int(record[14]),
-                        "num_species": int(record[15]),
-                        "num_genera": int(record[16]),
-                        "cds_id": record[17],
-                        "cds_len": record[18],
-                        "len_long_exons_retained": record[19],
-                        "len_short_exons_retained": record[20],
-                        "perc_exons_retained": record[21],
-                        "perc_long_exons_retained": record[22],
-                        "perc_short_exons_retained": record[23],
+                        "median_copies": float(record[3]),
+                        "mean_copies": float(record[4]),
+                        "length": int(record[5]),
+                        "gc_content": float(record[6]),
+                        "mean_pid": float(record[7]),
+                        "informative_sites": int(record[8]),
+                        "informativeness": float(record[9]),
+                        "missingness": float(record[10]),
+                        "num_sequences": int(record[11]),
+                        "num_samples": int(record[12]),
+                        "num_focal_species": int(record[13]),
+                        "num_outgroup_species": int(record[14]),
+                        "num_addon_samples": int(record[15]),
+                        "num_species": int(record[16]),
+                        "num_genera": int(record[17]),
+                        "cds_id": record[18],
+                        "cds_len": record[19],
+                        "len_long_exons_retained": record[20],
+                        "len_short_exons_retained": record[21],
+                        "perc_exons_retained": record[22],
+                        "perc_long_exons_retained": record[23],
+                        "perc_short_exons_retained": record[24],
                     }
         log.log(bold(f"Data from {aln_stats_tsv_path} loaded in {elapsed_time(time.time() - start)}"))
         return aln_stats
@@ -196,7 +198,8 @@ def load_aln_stats_tsv(clusters_dir: Path):
 
 def filter_loci(
     aln_stats: dict,
-    avg_copies: float,
+    median_copies: float,
+    mean_copies: float,
     length: str,
     pairwise_identity: str,
     gc_content: str,
@@ -221,20 +224,31 @@ def filter_loci(
     log.log(f"{'':>{mar}}  {len(aln_stats)} loci found")
     log.log("")
 
-    log.log(f"{'Avg. number of copies (--cop)':>{mar}}: {bold(avg_copies)}")
+    log.log(f"{'Median number of copies (--mdc)':>{mar}}: {bold(median_copies)}")
     try:
-        min_par, max_par = (float(par) for par in avg_copies.split(","))
+        min_par, max_par = (float(par) for par in median_copies.split(","))
     except ValueError:
         quit_with_error(
-            "Average number of copies must be given as two decimals separated by a comma without spaces"
+            "Median number of copies must be given as two decimals separated by a comma without spaces"
         )
-    aln_stats = {k: aln_stats[k] for k in aln_stats if min_par <= aln_stats[k]["avg_copies"] <= max_par}
+    aln_stats = {k: aln_stats[k] for k in aln_stats if min_par <= aln_stats[k]["median_copies"] <= max_par}
+    log.log(f"{'':>{mar}}  {len(aln_stats)} remaining loci")
+    log.log("")
+
+    log.log(f"{'Mean number of copies (--mnc)':>{mar}}: {bold(mean_copies)}")
+    try:
+        min_par, max_par = (float(par) for par in mean_copies.split(","))
+    except ValueError:
+        quit_with_error(
+            "Mean number of copies must be given as two decimals separated by a comma without spaces"
+        )
+    aln_stats = {k: aln_stats[k] for k in aln_stats if min_par <= aln_stats[k]["mean_copies"] <= max_par}
     log.log(f"{'':>{mar}}  {len(aln_stats)} remaining loci")
     log.log("")
 
     log.log(f"{'Length (--len)':>{mar}}: {bold(length)} bp")
     try:
-        min_par, max_par = (int(par) for par in length.split(","))
+        min_par, max_par = (float(par) for par in length.split(","))
     except ValueError:
         quit_with_error("Length range must be given as two integers separated by a comma without spaces")
     aln_stats = {k: aln_stats[k] for k in aln_stats if min_par <= aln_stats[k]["length"] <= max_par}
@@ -246,10 +260,10 @@ def filter_loci(
         min_par, max_par = (float(par) for par in pairwise_identity.split(","))
     except ValueError:
         quit_with_error(
-            "Average pairwise identity range must be given as"
+            "Mean pairwise identity range must be given as"
             " two decimals separated by a comma without spaces"
         )
-    aln_stats = {k: aln_stats[k] for k in aln_stats if min_par <= aln_stats[k]["avg_pid"] <= max_par}
+    aln_stats = {k: aln_stats[k] for k in aln_stats if min_par <= aln_stats[k]["mean_pid"] <= max_par}
     log.log(f"{'':>{mar}}  {len(aln_stats)} remaining loci")
     log.log("")
 
@@ -267,7 +281,7 @@ def filter_loci(
 
     log.log(f"{'Informative sites (--pis)':>{mar}}: {bold(informative_sites)}")
     try:
-        min_par, max_par = (int(par) for par in informative_sites.split(","))
+        min_par, max_par = (float(par) for par in informative_sites.split(","))
     except ValueError:
         quit_with_error(
             "Informative sites range must be given as two integers separated by a comma without spaces"
@@ -538,10 +552,11 @@ def write_aln_stats(out_dir: Path, tsv_comment: str, aln_stats_filtered: dict):
                         "path",
                         "locus",
                         "copies",
-                        "avg_copies",
+                        "median_copies",
+                        "mean_copies",
                         "length",
                         "gc_content",
-                        "avg_pid",
+                        "mean_pid",
                         "informative_sites",
                         "informativeness",
                         "missingness",
@@ -570,10 +585,11 @@ def write_aln_stats(out_dir: Path, tsv_comment: str, aln_stats_filtered: dict):
                             f"{aln_stats_filtered[locus]['path']}",
                             f"{locus}",
                             f"{aln_stats_filtered[locus]['copies']}",
-                            f"{aln_stats_filtered[locus]['avg_copies']}",
+                            f"{aln_stats_filtered[locus]['median_copies']}",
+                            f"{aln_stats_filtered[locus]['mean_copies']}",
                             f"{aln_stats_filtered[locus]['length']}",
                             f"{aln_stats_filtered[locus]['gc_content']}",
-                            f"{aln_stats_filtered[locus]['avg_pid']}",
+                            f"{aln_stats_filtered[locus]['mean_pid']}",
                             f"{aln_stats_filtered[locus]['informative_sites']}",
                             f"{aln_stats_filtered[locus]['informativeness']}",
                             f"{aln_stats_filtered[locus]['missingness']}",
