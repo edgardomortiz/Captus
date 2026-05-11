@@ -84,19 +84,17 @@ def assemble(full_command, args):
         skip_subsampling = False
         _, reformat_version, reformat_status = bbtools_path_version(args.reformat_path)
         if args.sample_reads_target > 0 and args.sample_bases_target > 0:
-            quit_with_error(
-                "Set either 'sample_reads_target' or 'sample_bases_target', never both..."
-            )
+            quit_with_error("Set either 'sample_reads_target' or 'sample_bases_target', never both...")
         elif args.sample_reads_target > 0:
             intro_msg += (
                 f" MEGAHIT de novo assemblies will start after subsampling {args.sample_reads_target}"
                 " read pairs (or single-end reads)."
-        )
+            )
         elif args.sample_bases_target > 0:
             intro_msg += (
                 f" MEGAHIT de novo assemblies will start after subsampling {args.sample_bases_target}"
                 " bases."
-        )
+            )
     else:
         fastqs_to_assemble, skipped_assemble = find_match_check_fastqs(args.reads, recursive=False)
         skip_subsampling = True

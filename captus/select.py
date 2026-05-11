@@ -231,7 +231,9 @@ def filter_loci(
         quit_with_error(
             "Median number of copies must be given as two decimals separated by a comma without spaces"
         )
-    aln_stats = {k: aln_stats[k] for k in aln_stats if min_par <= aln_stats[k]["median_copies"] <= max_par}
+    aln_stats = {
+        k: aln_stats[k] for k in aln_stats if min_par <= aln_stats[k]["median_copies"] <= max_par
+    }
     log.log(f"{'':>{mar}}  {len(aln_stats)} remaining loci")
     log.log("")
 

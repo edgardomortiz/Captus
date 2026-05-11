@@ -1515,9 +1515,7 @@ def prepare_targets(
                 "locus\tnum_targets\tnum_baits\tlength\tincludes\tincluded_in\texp_tiling\tremoved\n"
             )
             for locus in sorted(loci_baitless):
-                tsv_out.write(
-                    f'{locus}\t0\t0\t{loci_baitless[locus]["max_length"]}\t\t\t0\tno baits\n'
-                )
+                tsv_out.write(f"{locus}\t0\t0\t{loci_baitless[locus]['max_length']}\t\t\t0\tno baits\n")
             for locus in sorted(loci_baits):
                 tsv_out.write(
                     f"{locus}\t"

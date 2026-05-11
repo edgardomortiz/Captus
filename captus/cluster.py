@@ -1179,7 +1179,8 @@ def mafft_assembly(
                 dict_to_fasta(short_fasta, short_fasta_path)
         else:
             message = dim(
-                f"'{input_fasta_path.name}': SKIPPED (cluster has {len(sample_copies)} samples and {median_copies:.1f} copies)"
+                f"'{input_fasta_path.name}': SKIPPED (cluster has {len(sample_copies)}"
+                f" samples and {median_copies:.1f} copies)"
             )
             return message
 

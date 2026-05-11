@@ -1361,7 +1361,7 @@ def collect_extracted_markers(
     else:
         log.log(
             f"     {accepted} saved, {rejected} not saved for having fewer than {min_samples} samples"
-            f" or more than {max_copies:.1f} median copies, {skipped} already existed and"
+            f" or more than {round(max_copies, 1)} median copies, {skipped} already existed and"
             " were skipped"
         )
 
