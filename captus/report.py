@@ -2452,7 +2452,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
                         "Best hit L90: <b>%{customdata[19]}</b>",
                         "Best hit LG50: <b>%{customdata[20]}</b>",
                         "Best hit LG90: <b>%{customdata[21]}</b>",
-                        "Mean depth: <b>%{customdata[22]:,.2f} x</b><extra></extra>",
+                        "Mean depth: <b>%{customdata[22]} x</b><extra></extra>",
                     ]
                 )
             else:
@@ -2688,7 +2688,7 @@ def build_extraction_report(out_dir, ext_stats_tsv):
                         [
                             "Sample: <b>%{y}</b>",
                             "Locus: <b>%{x}</b>",
-                            "Mean depth: <b>%{z:,.2f} x</b><extra></extra>",
+                            "Mean depth: <b>%{z} x</b><extra></extra>",
                         ]
                     )
             button = dict(
@@ -2947,7 +2947,7 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
         for i, fmt in enumerate(fmt_list):
             fig.add_trace(
                 go.Violin(
-                    x=data[data["format"] == fmt][list(var_dict.values())[3]],
+                    x=data[data["format"] == fmt][list(var_dict.values())[4]],
                     y=data[data["format"] == fmt]["stage"].map(stage_dict),
                     name=fmt,
                     line=dict(
@@ -3194,8 +3194,8 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
                     hovertemplate = hovertemplate_other
                 fig.add_trace(
                     go.Histogram2dContour(
-                        x=d[list(var_dict.values())[3]],
-                        y=d[list(var_dict.values())[4]],
+                        x=d[list(var_dict.values())[4]],
+                        y=d[list(var_dict.values())[5]],
                         contours_coloring="fill",
                         colorscale=[
                             [0, "rgba(8,8,8,0)"],
@@ -3211,8 +3211,8 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
                 )
                 fig.add_trace(
                     go.Scatter(
-                        x=d[list(var_dict.values())[3]],
-                        y=d[list(var_dict.values())[4]],
+                        x=d[list(var_dict.values())[4]],
+                        y=d[list(var_dict.values())[5]],
                         name=fmt,
                         mode="markers",
                         visible=True if i == 0 else False,
@@ -3232,7 +3232,7 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
                 )
                 fig.add_trace(
                     go.Histogram(
-                        x=d[list(var_dict.values())[3]],
+                        x=d[list(var_dict.values())[4]],
                         yaxis="y2",
                         name=fmt,
                         bingroup=stage + "_x",
@@ -3257,7 +3257,7 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
                 )
                 fig.add_trace(
                     go.Histogram(
-                        y=d[list(var_dict.values())[4]],
+                        y=d[list(var_dict.values())[5]],
                         xaxis="x2",
                         name=fmt,
                         bingroup=stage + "_y",
