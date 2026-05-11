@@ -2200,7 +2200,7 @@ def write_fastas_and_stats_tsv(
                     f" [wscore={hits[ref][h]['wscore']:.3f}]"
                     f" [ident={hits[ref][h]['identity']:.2f}]"
                     f" [cover={hits[ref][h]['coverage']:.2f}]"
-                    f" [depth={hits[ref][h]['ctg_mean_depth']:.2f}]"
+                    f" [depth={hits[ref][h]['ctg_mean_depth']:.4f}]"
                     f" [score={hits[ref][h]['score']:.3f}]"
                 )
 
@@ -2318,7 +2318,7 @@ def write_fastas_and_stats_tsv(
                         f"{hits[ref][h]['hit_contigs']}".replace("\n", ";"),
                         f"{hits[ref][h]['strand']}".replace("\n", ";"),
                         format_coords(hits[ref][h]["hit_coords"]),
-                        f"{hits[ref][h]['ctg_mean_depth']}",
+                        f"{hits[ref][h]['ctg_mean_depth']:.4f}",
                     ]
                 )
             )
