@@ -1338,7 +1338,7 @@ def collect_extracted_markers(
         for fasta in fastas_per_marker:
             if overwrite is True or not fasta.exists():
                 sample_copies = copies_per_sample(fastas_per_marker[fasta])
-                median_copies = statistics(sample_copies.values())
+                median_copies = statistics.median(sample_copies.values())
                 if len(sample_copies) >= min_samples and median_copies <= max_copies:
                     dict_to_fasta(fastas_per_marker[fasta], fasta, sort=True)
                     accepted += 1
@@ -1522,14 +1522,20 @@ def copies_per_sample(fasta_dict):
     Determine number of different samples in alignment with sequence length greater than 0,
     and excluding sequences whose name ends in '|ref'
     """
-    samples = [
-        seq_name.split(settings.SEQ_NAME_SEP)[0]
-        for seq_name in fasta_dict
-        if not seq_name.endswith(f"{settings.SEQ_NAME_SEP}ref")
-        and len(fasta_dict[seq_name]["sequence"].replace("-", "")) > 0
-    ]
+    sample_copies = {}
 
-    return len(set(samples))
+    for seq_name in fasta_dict:
+        if (
+            not seq_name.endswith(f"{settings.SEQ_NAME_SEP}ref")
+            and len(fasta_dict[seq_name]["sequence"].replace("-", "")) > 0
+        ):
+            sample_name = seq_name.split(settings.SEQ_NAME_SEP)[0]
+            if sample_name in sample_copies:
+                sample_copies[sample_name] += 1
+            else:
+                sample_copies[sample_name] = 1
+
+    return sample_copies
 
 
 def adjust_align_concurrency(concurrent, threads_max):
