@@ -3761,9 +3761,9 @@ def check_strand_and_save_refs(
         for centroid in cluster_refs_unstranded[clr]:
             for sample_name in centroid["samples_copies"]:
                 if sample_name in samples_copies:
-                    samples_copies[sample_name] += 1
+                    samples_copies[sample_name] += centroid["samples_copies"][sample_name]
                 else:
-                    samples_copies[sample_name] = 1
+                    samples_copies[sample_name] = centroid["samples_copies"][sample_name]
         if (
             len(samples_copies) >= clust_min_samples
             and statistics.median(samples_copies.values()) <= clust_max_copies
