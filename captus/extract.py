@@ -3569,13 +3569,13 @@ def cluster_and_select_refs(
                 else:
                     samples_copies[sample_name] = 1
             median_copies = statistics.median(samples_copies.values())
-            samples_in_cluster = len(samples_copies)
-            if samples_in_cluster == 1:
+            samples = len(samples_copies)
+            if samples == 1:
                 singletons += 1
                 pbar.update()
                 continue
             elif (
-                samples_in_cluster >= clust_min_samples
+                samples >= clust_min_samples
                 and median_copies <= clust_max_copies
                 and len(cluster[1]) >= clust_rep_min_len
             ):
@@ -3651,44 +3651,57 @@ def cluster_and_select_refs(
         log.log("")
     log.log(bold("Selecting final cluster representatives:"))
     cluster_refs = {}
-    min_samples_in_cluster = max(1, math.ceil(num_samples * settings.CLR_REP_MIN_SAMPLE_PROP))
+    centroid_min_samples = max(1, math.ceil(num_samples * settings.CLR_REP_MIN_SAMPLE_PROP))
     tqdm_cols = min(shutil.get_terminal_size().columns, 120)
     with tqdm(total=len(clust2_clusters), ncols=tqdm_cols, unit="cluster") as pbar:
         for cluster in clust2_clusters:
-            samples_in_cluster = len(
-                set(
-                    [
-                        "_C".join(cluster[i][1:].split(settings.SEQ_NAME_SEP)[0].split("_C")[:-1])
-                        for i in range(0, len(cluster), 2)
-                    ]
-                )
-            )
+            samples_copies = {}
+            for i in range(0, len(cluster), 2):
+                sample_name = "_C".join(cluster[i][1:].split(settings.SEQ_NAME_SEP)[0].split("_C")[:-1])
+                if sample_name in samples_copies:
+                    samples_copies[sample_name] += 1
+                else:
+                    samples_copies[sample_name] = 1
             h = cluster[0][1:].split(settings.SEQ_NAME_SEP)
             seq_name = h[0]
             clr = seq_name.split(settings.REF_CLUSTER_SEP)[-1]
-            size = len(cluster) // 2
+            num_seqs = len(cluster) // 2
             seq = cluster[1]
-            desc = f"[cluster_size={size}] [contig={h[1]}]"
+            median_copies = statistics.median(samples_copies.values())
+            desc = (
+                f"[copies={median_copies:.1f}] [samples={len(samples_copies):.0f}]"
+                f" [seqs={num_seqs:.0f}] [contig={h[1]}]"
+            )
             if (
                 len(seq) / cluster_lenghts[clr] >= settings.CLR_REP_MIN_LEN_PROP
-                and samples_in_cluster >= min_samples_in_cluster
+                and len(samples_copies) >= centroid_min_samples
             ):
                 if clr not in cluster_refs:
                     cluster_refs[clr] = {
                         seq_name: {
                             "sequence": seq,
                             "description": desc,
+                            "samples_copies": samples_copies,
                         }
                     }
                 else:
                     cluster_refs[clr][seq_name] = {
                         "sequence": seq,
                         "description": desc,
+                        "samples_copies": samples_copies,
                     }
             pbar.update()
     log.log("")
     cluster_refs_fasta = Path(clustering_dir, f"{clust1_prefix}_captus_cluster_refs.fasta")
-    check_strand_and_save_refs(cluster_refs, cluster_refs_fasta, mafft_path, max_threads, debug)
+    check_strand_and_save_refs(
+        cluster_refs,
+        cluster_refs_fasta,
+        clust_min_samples,
+        clust_max_copies,
+        mafft_path,
+        max_threads,
+        debug,
+    )
     if clust_rep_single is False:
         Path(clustering_dir, f"{clust2_prefix}_all_seqs.fasta").unlink()
         Path(clustering_dir, f"{clust2_prefix}_rep_seq.fasta").unlink()
@@ -3705,6 +3718,8 @@ def cluster_and_select_refs(
 def check_strand_and_save_refs(
     cluster_refs_unstranded: dict,
     cluster_refs_fasta: Path,
+    clust_min_samples: int,
+    clust_max_copies: float,
     mafft_path: str,
     max_threads: int,
     debug: bool,
@@ -3742,14 +3757,25 @@ def check_strand_and_save_refs(
     # Align non-singleton clusters with MAFFT to fix strands in cluster representatives
     mafft_params = []
     for clr in sorted(cluster_refs_unstranded):
-        if len(cluster_refs_unstranded[clr]) == 1:
-            for seq_name in cluster_refs_unstranded[clr]:
-                cluster_refs[seq_name] = cluster_refs_unstranded[clr][seq_name]
-        else:
-            fasta_in = Path(tmp_unaligned_dir, f"{clr}.fasta")
-            fasta_out = Path(tmp_aligned_dir, f"{clr}.fasta")
-            dict_to_fasta(cluster_refs_unstranded[clr], fasta_in)
-            mafft_params.append([mafft_path, fasta_in, fasta_out])
+        samples_copies = {}
+        for centroid in cluster_refs_unstranded[clr]:
+            for sample_name in centroid["samples_copies"]:
+                if sample_name in samples_copies:
+                    samples_copies[sample_name] += 1
+                else:
+                    samples_copies[sample_name] = 1
+        if (
+            len(samples_copies) >= clust_min_samples
+            and statistics.median(samples_copies.values()) <= clust_max_copies
+        ):
+            if len(cluster_refs_unstranded[clr]) == 1:
+                for seq_name in cluster_refs_unstranded[clr]:
+                    cluster_refs[seq_name] = cluster_refs_unstranded[clr][seq_name]
+            else:
+                fasta_in = Path(tmp_unaligned_dir, f"{clr}.fasta")
+                fasta_out = Path(tmp_aligned_dir, f"{clr}.fasta")
+                dict_to_fasta(cluster_refs_unstranded[clr], fasta_in)
+                mafft_params.append([mafft_path, fasta_in, fasta_out])
     show_less = True
     concurrent = max_threads // 2
     if mafft_params:

@@ -661,8 +661,8 @@ def select_targets(
         if len(header_pieces) > 1:
             description = " ".join(header_pieces[1:])
         description = (
-            f"[copies={median_copies:.1f}] [seqs={num_seqs:.0f}]"
-            f" [samples={num_samples:.0f}] {description}"
+            f"[copies={median_copies:.1f}] [samples={num_samples:.0f}]"
+            f" [seqs={num_seqs:.0f}] {description}"
         )
 
         wscore, coverage = get_wscore_coverage(description)
