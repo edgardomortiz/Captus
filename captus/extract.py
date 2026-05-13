@@ -3758,12 +3758,16 @@ def check_strand_and_save_refs(
     mafft_params = []
     for clr in sorted(cluster_refs_unstranded):
         samples_copies = {}
-        for centroid in cluster_refs_unstranded[clr]:
-            for sample_name in centroid["samples_copies"]:
+        for seq_name in cluster_refs_unstranded[clr]:
+            for sample_name in cluster_refs_unstranded[clr][seq_name]["samples_copies"]:
                 if sample_name in samples_copies:
-                    samples_copies[sample_name] += centroid["samples_copies"][sample_name]
+                    samples_copies[sample_name] += cluster_refs_unstranded[clr][seq_name][
+                        "samples_copies"
+                    ][sample_name]
                 else:
-                    samples_copies[sample_name] = centroid["samples_copies"][sample_name]
+                    samples_copies[sample_name] = cluster_refs_unstranded[clr][seq_name][
+                        "samples_copies"
+                    ][sample_name]
         if (
             len(samples_copies) >= clust_min_samples
             and statistics.median(samples_copies.values()) <= clust_max_copies
