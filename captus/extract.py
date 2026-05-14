@@ -3623,32 +3623,29 @@ def cluster_and_select_refs(
     log.log(dim(f"     Retained sequences written to {clust2_input_fasta}"))
     log.log("")
     start = time.time()
-    if clust_rep_single is True:
-        clust2_clusters = passed
-    else:
-        min_id2 = min(min_identity + ((100 - min_identity) / 2), min_identity + 1)
-        log.log(bold(f"Re-clustering passing clusters at {min_id2}% identity:"))
-        clust2_prefix = f"cl{min_id2:.2f}_cov{min_coverage:.2f}"
-        clust2_message = mmseqs_cluster(
-            mmseqs_path,
-            mmseqs_method,
-            clustering_dir,
-            clust2_input_fasta,
-            clust2_prefix,
-            clust_tmp_dir,
-            cluster_sensitivity,
-            min_id2,
-            seq_id_mode,
-            min_coverage,
-            cov_mode,
-            cluster_mode,
-            max_threads,
-            ram_mb,
-        )
-        log.log(clust2_message)
-        clust2_all_seqs_file = Path(clustering_dir, f"{clust2_prefix}_all_seqs.fasta")
-        clust2_clusters = split_mmseqs_clusters_file(clust2_all_seqs_file)
-        log.log("")
+    min_id2 = min(min_identity + ((100 - min_identity) / 2), min_identity + 1)
+    log.log(bold(f"Re-clustering passing clusters at {min_id2}% identity:"))
+    clust2_prefix = f"cl{min_id2:.2f}_cov{min_coverage:.2f}"
+    clust2_message = mmseqs_cluster(
+        mmseqs_path,
+        mmseqs_method,
+        clustering_dir,
+        clust2_input_fasta,
+        clust2_prefix,
+        clust_tmp_dir,
+        cluster_sensitivity,
+        min_id2,
+        seq_id_mode,
+        min_coverage,
+        cov_mode,
+        cluster_mode,
+        max_threads,
+        ram_mb,
+    )
+    log.log(clust2_message)
+    clust2_all_seqs_file = Path(clustering_dir, f"{clust2_prefix}_all_seqs.fasta")
+    clust2_clusters = split_mmseqs_clusters_file(clust2_all_seqs_file)
+    log.log("")
     log.log(bold("Selecting final cluster representatives:"))
     cluster_refs = {}
     centroid_min_samples = max(1, math.ceil(num_samples * settings.CLR_REP_MIN_SAMPLE_PROP))
@@ -3676,20 +3673,18 @@ def cluster_and_select_refs(
                 len(seq) / cluster_lenghts[clr] >= settings.CLR_REP_MIN_LEN_PROP
                 and len(samples_copies) >= centroid_min_samples
             ):
+                centroid_info = {
+                    "seq_name": seq_name,
+                    "sequence": seq,
+                    "description": desc,
+                    "num_samples": len(samples_copies),
+                    "length": len(seq),
+                    "samples_copies": samples_copies,
+                }
                 if clr not in cluster_refs:
-                    cluster_refs[clr] = {
-                        seq_name: {
-                            "sequence": seq,
-                            "description": desc,
-                            "samples_copies": samples_copies,
-                        }
-                    }
+                    cluster_refs[clr] = [centroid_info]
                 else:
-                    cluster_refs[clr][seq_name] = {
-                        "sequence": seq,
-                        "description": desc,
-                        "samples_copies": samples_copies,
-                    }
+                    cluster_refs[clr].append(centroid_info)
             pbar.update()
     log.log("")
     cluster_refs_fasta = Path(clustering_dir, f"{clust1_prefix}_captus_cluster_refs.fasta")
@@ -3698,6 +3693,7 @@ def cluster_and_select_refs(
         cluster_refs_fasta,
         clust_min_samples,
         clust_max_copies,
+        clust_rep_single,
         mafft_path,
         max_threads,
         debug,
@@ -3720,6 +3716,7 @@ def check_strand_and_save_refs(
     cluster_refs_fasta: Path,
     clust_min_samples: int,
     clust_max_copies: float,
+    clust_rep_single: bool,
     mafft_path: str,
     max_threads: int,
     debug: bool,
@@ -3757,28 +3754,35 @@ def check_strand_and_save_refs(
     # Align non-singleton clusters with MAFFT to fix strands in cluster representatives
     mafft_params = []
     for clr in sorted(cluster_refs_unstranded):
+        cluster_refs_unstranded[clr] = sorted(
+            cluster_refs_unstranded[clr], key=lambda x: (x["num_samples"], x["length"]), reverse=True
+        )
         samples_copies = {}
-        for seq_name in cluster_refs_unstranded[clr]:
-            for sample_name in cluster_refs_unstranded[clr][seq_name]["samples_copies"]:
+        for centroid in cluster_refs_unstranded[clr]:
+            for sample_name in centroid["samples_copies"]:
                 if sample_name in samples_copies:
-                    samples_copies[sample_name] += cluster_refs_unstranded[clr][seq_name][
-                        "samples_copies"
-                    ][sample_name]
+                    samples_copies[sample_name] += centroid["samples_copies"][sample_name]
                 else:
-                    samples_copies[sample_name] = cluster_refs_unstranded[clr][seq_name][
-                        "samples_copies"
-                    ][sample_name]
+                    samples_copies[sample_name] = centroid["samples_copies"][sample_name]
         if (
             len(samples_copies) >= clust_min_samples
             and statistics.median(samples_copies.values()) <= clust_max_copies
         ):
-            if len(cluster_refs_unstranded[clr]) == 1:
-                for seq_name in cluster_refs_unstranded[clr]:
-                    cluster_refs[seq_name] = cluster_refs_unstranded[clr][seq_name]
+            if len(cluster_refs_unstranded[clr]) == 1 or clust_rep_single is True:
+                cluster_refs[cluster_refs_unstranded[clr][0]["seq_name"]] = {
+                    "sequence": cluster_refs_unstranded[clr][0]["sequence"],
+                    "description": cluster_refs_unstranded[clr][0]["description"],
+                }
             else:
+                fasta_unstranded = {}
+                for centroid in cluster_refs_unstranded[clr]:
+                    fasta_unstranded[centroid["seq_name"]] = {
+                        "sequence": centroid["sequence"],
+                        "description": centroid["description"],
+                    }
                 fasta_in = Path(tmp_unaligned_dir, f"{clr}.fasta")
                 fasta_out = Path(tmp_aligned_dir, f"{clr}.fasta")
-                dict_to_fasta(cluster_refs_unstranded[clr], fasta_in)
+                dict_to_fasta(fasta_unstranded, fasta_in)
                 mafft_params.append([mafft_path, fasta_in, fasta_out])
     show_less = True
     concurrent = max_threads // 2

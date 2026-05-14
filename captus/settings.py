@@ -658,7 +658,7 @@ CLR_MIN_SAMPLE_PROP = 0.66
 
 # Minimum proportion of longest cluster representative to be retained for secondary cluster
 # representatives
-CLR_REP_MIN_LEN_PROP = 0.8
+CLR_REP_MIN_LEN_PROP = 0.75
 
 # Minimum proportion of total samples allowed in a secondary cluster representative
 CLR_REP_MIN_SAMPLE_PROP = 0.01
