@@ -3698,10 +3698,9 @@ def cluster_and_select_refs(
         max_threads,
         debug,
     )
-    if clust_rep_single is False:
-        Path(clustering_dir, f"{clust2_prefix}_all_seqs.fasta").unlink()
-        Path(clustering_dir, f"{clust2_prefix}_rep_seq.fasta").unlink()
-        Path(clustering_dir, f"{clust2_prefix}_cluster.tsv").unlink()
+    Path(clustering_dir, f"{clust2_prefix}_all_seqs.fasta").unlink()
+    Path(clustering_dir, f"{clust2_prefix}_rep_seq.fasta").unlink()
+    Path(clustering_dir, f"{clust2_prefix}_cluster.tsv").unlink()
     shutil.rmtree(clust_tmp_dir, ignore_errors=True)
     msg_p1 = bold(f"Reference saved to {cluster_refs_fasta}")
     msg_p2 = bold(f" [{elapsed_time(time.time() - start)}]")
