@@ -58,9 +58,10 @@ def assemble(full_command, args):
     log.log_section_header("Starting Captus-assembly: ASSEMBLE", single_newline=False)
     log.log_explanation(
         "Welcome to the de novo assembly step of Captus-assembly. In this step, Captus will use"
-        " MEGAHIT to assemble your input reads. It is also possible to subsample a number of reads"
-        " using reformat.sh from BBTools prior to assembly, this is useful while performing tests or"
-        " when including samples with considerably higher sequencing depth in a dataset.",
+        " MEGAHIT to assemble your input reads and then Salmon to accurately estimate contig depth."
+        " It is also possible to subsample a number of reads using reformat.sh from BBTools prior to"
+        " assembly, this is useful while performing tests or when including samples with"
+        " considerably higher sequencing depth in a dataset.",
         extra_empty_lines_after=0,
     )
     if len(args.reads) == 1 and Path(args.reads[0]).is_dir():

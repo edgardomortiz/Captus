@@ -74,7 +74,7 @@ def cluster(full_command, args):
         " the files provided with the '--markers_to_cluster' option. If a FASTA file is found"
         " together with a matching GFF annotation file, Captus will extract the CDS for clustering,"
         " otherwise every sequence in the FASTA file that is shorter than '--max_seq_len' will be"
-        " clustered",
+        " clustered. If you want cluster CDS as protein enable '--tanslate_cds'",
         extra_empty_lines_after=0,
     )
     if len(args.markers_to_cluster) == 1 and Path(args.markers_to_cluster[0]).is_dir():
@@ -238,7 +238,8 @@ def cluster(full_command, args):
     #################################################### MARKER DEDUPLICATION AND CLUSTERING SECTION
     log.log_section_header("Deduplication and clustering of markers")
     clust_msg = (
-        "Now Captus will shred sequences longer than '--max_seq_len', then the sequences will be"
+        " If '--translate_cds' is enabled Captus will translate the markers sequences first. Then"
+        " Captus will shred sequences longer than '--max_seq_len', then the sequences will be"
         " deduplicated sample-wise at the identity threshold given by '--dedup_threshold'. Finally,"
         " markers will be clustered across samples using '--clust_threshold' as identity threshold."
     )
@@ -536,9 +537,8 @@ def cluster(full_command, args):
     log.log_section_header("Statistics Summarization and File Cleanup")
     log.log_explanation(
         "Captus will calculate and then summarize alignment statistics into an HTML report."
-        " Additionally, the sequence-to-sample equivalence file needed for ASTRAL-Pro will be"
-        " generated. Finally, empty directories will be removed as well as MAFFT and ClipKIT logs"
-        " unless the flag '--keep_all' is enabled."
+        " Finally, empty directories will be removed as well as MAFFT logs unless the flag"
+        " '--keep_all' is enabled."
     )
 
     start = time.time()

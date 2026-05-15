@@ -194,9 +194,9 @@ def bait(full_command, args):
     ######################################################################### BAIT FILTERING SECTION
     log.log_section_header("Filtering baits")
     log.log_explanation(
-        "Now Captus will filter the potential bait sequences according to several chemistry"
+        "Now Captus will filter the potential bait sequences according to several chemical"
         " parameters. If you want to exclude potential bait sequences that map to a specific"
-        " genomic sequence (e.g. if you want to avoid potential capture of regions of chloroplasts"
+        " genomic sequence (e.g., if you want to avoid potential capture of regions of chloroplasts"
         " or mitochondria) you can provide a single FASTA file containing the genomic sequence(s)"
         " to exclude with '--exclude_reference'"
     )

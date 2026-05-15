@@ -404,9 +404,8 @@ def align(full_command, args):
     elif not list(Path(out_dir, settings.ALN_DIRS["ALND"]).rglob("*_w_refs")):
         log.log(
             red(
-                "Skipping the paralog filtering step because the 'w_dirs' do not exist, to repeat"
-                " try '--redo_from alignment' or enable '--keep_w_refs' in the future if you plan"
-                " to repeat the filtering multiple times"
+                "Skipping the paralog filtering step because the 'unfiltered_w_refs' was not found,"
+                " to recreate it try '--redo_from alignment'"
             )
         )
         log.log("")
@@ -515,7 +514,7 @@ def align(full_command, args):
     log.log_section_header("Reference Sequences Removal")
     log.log_explanation(
         "Now Captus will create copies of the alignnments that will not include the reference"
-        " sequences used as alignment guide and for paralog filtering"
+        " target sequences used as alignment guide and for paralog filtering"
     )
     if skip_removal:
         log.log(
@@ -636,8 +635,8 @@ def align(full_command, args):
         " '--taper_cutoff' unless '--disable_taper' is chosen. Then it proceeds with ClipKIT"
         " trimming, the strategy can be specified with the flag '--clipkit_method'. Once columns are"
         " trimmed by ClipKIT, Captus will remove sequences with less than '--min_coverage' than the"
-        " mean length of sequences, ignoring gaps. Trimmed alignments are saved separately in a new"
-        " directory called '03_aligned_trimmed'"
+        " median length of sequences, ignoring gaps. Trimmed alignments are saved separately in a"
+        " new directory called '03_aligned_trimmed'"
     )
     if clipkit_status == "not found":
         log.log(
