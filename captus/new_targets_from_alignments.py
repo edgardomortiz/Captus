@@ -632,13 +632,13 @@ def select_targets(
     raw_centroids = {}
 
     for cluster in clust_output:
-        samples = {}
+        sample_copies = {}
         centroid_locus = cluster[0].split()[0].split(REF_CLUSTER_SEP)[-1]
         centroid_sample = (
             cluster[0][1:].split()[0].replace(f"-{centroid_locus}", "").split(SEQ_NAME_SEP)[0]
         )
         includes = []
-        samples[centroid_sample] = 1
+        sample_copies[centroid_sample] = 1
         for i in range(2, len(cluster), 2):
             member_locus = cluster[i].split()[0].split(REF_CLUSTER_SEP)[-1]
             if member_locus != centroid_locus:
@@ -646,16 +646,16 @@ def select_targets(
             sample_name = (
                 cluster[i][1:].split()[0].replace(f"-{member_locus}", "").split(SEQ_NAME_SEP)[0]
             )
-            if sample_name in samples:
-                samples[sample_name] += 1
+            if sample_name in sample_copies:
+                sample_copies[sample_name] += 1
             else:
-                samples[sample_name] = 1
+                sample_copies[sample_name] = 1
 
         header_pieces = cluster[0].split()
         seq_name = header_pieces[0].replace(">", "")
-        median_copies = statistics.median(samples.values())
+        median_copies = statistics.median(sample_copies.values())
         num_seqs = int(len(cluster) / 2)
-        num_samples = len(samples)
+        num_samples = len(sample_copies)
 
         description = ""
         if len(header_pieces) > 1:
@@ -674,7 +674,7 @@ def select_targets(
             "num_seqs": num_seqs,
             "num_samples": num_samples,
             "median_copies": median_copies,
-            "samples": samples,
+            "samples": sample_copies,
             "length": len(cluster[1]),
             "wscore": wscore,
             "coverage": coverage,
@@ -746,23 +746,43 @@ def select_targets(
     if split_paralogs is True:
         for locus in clust_output_data:
             for centroid in centroids[locus]:
-                centroid["sample_pct"] = (
+                centroid["sample_prop"] = (
                     centroid["num_samples"] / clust_output_data[locus]["num_samples"]
                 )
             if clust_output_data[locus]["median_copies"] <= min_locus_copies:
                 single_copy_centroids[locus] = centroids[locus]
             else:
-                if centroids[locus][0]["sample_pct"] < min_samples_prop or len(centroids[locus]) == 1:
+                if centroids[locus][0]["sample_prop"] < min_samples_prop or len(centroids[locus]) == 1:
                     multi_copy_centroids[locus] = centroids[locus]
                 else:
-                    paralog_suffix = 1
+                    high_sp_centroids = []
+                    low_sp_centroids = []
                     for centroid in centroids[locus]:
-                        if centroid["sample_pct"] >= min_samples_prop:
+                        if centroid["sample_prop"] >= min_samples_prop:
+                            high_sp_centroids.append(centroid)
+                        else:
+                            low_sp_centroids.append(centroid)
+                    pminor_samples = {}
+                    if low_sp_centroids:
+                        for centroid in low_sp_centroids:
+                            pminor_samples.update(centroid["samples"])
+                    pminor_sample_prop = len(pminor_samples) / clust_output_data[locus]["num_samples"]
+                    if len(high_sp_centroids) > 1:
+                        paralog_suffix = 1
+                        for centroid in high_sp_centroids:
                             new_locus = f"{locus}.PAR{paralog_suffix}"
                             centroid["seq_name"] = f"{centroid['seq_name']}.PAR{paralog_suffix}"
                             multi_copy_centroids[new_locus] = [centroid]
                             paralog_suffix += 1
+                    elif len(high_sp_centroids) == 1:
+                        if pminor_sample_prop < min_samples_prop:
+                            multi_copy_centroids[locus] = centroids[locus]
                         else:
+                            new_locus = f"{locus}.PAR1"
+                            high_sp_centroids[0]["seq_name"] = f"{high_sp_centroids[0]['seq_name']}.PAR1"
+                            multi_copy_centroids[new_locus] = high_sp_centroids[0]
+                    if pminor_sample_prop >= min_samples_prop:
+                        for centroid in low_sp_centroids:
                             new_locus = f"{locus}.PMIN"
                             centroid["seq_name"] = f"{centroid['seq_name']}.PMIN"
                             if new_locus in multi_copy_centroids:
@@ -797,7 +817,7 @@ def select_targets(
     else:
         for locus in clust_output_data:
             for centroid in centroids[locus]:
-                centroid["sample_pct"] = (
+                centroid["sample_prop"] = (
                     centroid["num_samples"] / clust_output_data[locus]["num_samples"]
                 )
         centroids = remove_high_copy_centroids(centroids, max_target_copies)
@@ -1031,7 +1051,7 @@ def write_targets(
                 seq_numbers.append(len(single_copy_centroids[locus]))
                 for centroid in single_copy_centroids[locus]:
                     target_copies.append(centroid["median_copies"])
-                    target_sample_pcts.append(centroid["sample_pct"] * 100)
+                    target_sample_pcts.append(centroid["sample_prop"] * 100)
                     new_seq_name = centroid["seq_name"].replace(SEQ_NAME_SEP, "_H")
                     target_fasta[new_seq_name] = {
                         "sequence": centroid["sequence"],
@@ -1044,7 +1064,7 @@ def write_targets(
                 seq_numbers.append(len(multi_copy_centroids[locus]))
                 for centroid in multi_copy_centroids[locus]:
                     target_copies.append(centroid["median_copies"])
-                    target_sample_pcts.append(centroid["sample_pct"] * 100)
+                    target_sample_pcts.append(centroid["sample_prop"] * 100)
                     new_seq_name = centroid["seq_name"].replace(SEQ_NAME_SEP, "_H")
                     target_fasta[new_seq_name] = {
                         "sequence": centroid["sequence"],
