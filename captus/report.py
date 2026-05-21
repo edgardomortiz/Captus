@@ -3571,7 +3571,7 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
             "Mean gaps: <b>%{customdata[10]:,.0f} aa</b>",
             "Total gaps: <b>%{customdata[11]:,.0f} aa</b>",
             "Mean ambiguities: <b>%{customdata[12]:,.2f}</b>",
-            "Median copies: <b>%{customdata[17]:,.1f}</b><extra></extra>",
+            "Median copies: <b>%{customdata[17]:,.1f}</b>",
             "Mean copies: <b>%{customdata[18]:,.2f}</b><extra></extra>",
         ]
     )
@@ -3593,7 +3593,7 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
             "Mean GC content (1st codon pos.): <b>%{customdata[14]:.2f}%</b>",
             "Mean GC content (2nd codon pos.): <b>%{customdata[15]:.2f}%</b>",
             "Mean GC content (3rd codon pos.): <b>%{customdata[16]:.2f}%</b>",
-            "Median copies: <b>%{customdata[17]:,.1f}</b><extra></extra>",
+            "Median copies: <b>%{customdata[17]:,.1f}</b>",
             "Mean copies: <b>%{customdata[18]:,.2f}</b><extra></extra>",
         ]
     )
@@ -3612,7 +3612,7 @@ def build_alignment_report(out_dir, aln_stats_tsv, sam_stats_tsv):
             "Total gaps: <b>%{customdata[11]:,.0f} bp</b>",
             "Mean ambiguities: <b>%{customdata[12]:,.2f}</b>",
             "Mean GC content: <b>%{customdata[13]:.2f}%</b>",
-            "Median copies: <b>%{customdata[17]:,.1f}</b><extra></extra>",
+            "Median copies: <b>%{customdata[17]:,.1f}</b>",
             "Mean copies: <b>%{customdata[18]:,.2f}</b><extra></extra>",
         ]
     )
