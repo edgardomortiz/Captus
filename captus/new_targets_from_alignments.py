@@ -780,7 +780,7 @@ def select_targets(
                         else:
                             new_locus = f"{locus}.PAR1"
                             high_sp_centroids[0]["seq_name"] = f"{high_sp_centroids[0]['seq_name']}.PAR1"
-                            multi_copy_centroids[new_locus] = high_sp_centroids[0]
+                            multi_copy_centroids[new_locus] = [high_sp_centroids[0]]
                     if pminor_sample_prop >= min_samples_prop:
                         for centroid in low_sp_centroids:
                             new_locus = f"{locus}.PMIN"
