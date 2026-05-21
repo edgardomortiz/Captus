@@ -1339,7 +1339,7 @@ def main():
         "-W",
         "--min_wscore_proportion",
         action="store",
-        default=0.6666,
+        default=0.3333,
         type=float,
         dest="min_wscore_proportion",
         help="Only applies to alignments produced by Captus. The sequences contained within these"
@@ -1351,7 +1351,7 @@ def main():
         "-C",
         "--min_coverage_proportion",
         action="store",
-        default=0.6666,
+        default=0.3333,
         type=float,
         dest="min_coverage_proportion",
         help="Only applies to alignments produced by Captus. The sequences contained within these"
