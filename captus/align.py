@@ -188,6 +188,10 @@ def align(full_command, args):
             refs_json_path = Path(args.refs_json)
     elif Path(args.captus_extractions).is_dir():
         refs_json_path = Path(args.captus_extractions, settings.JSON_REFS)
+    else:
+        quit_with_error(
+            f"Captus extractions  were not found at '{args.captus_extractions}', verify the path"
+        )
     refs_paths = prepare_refs(refs_json_path, mar)
     if skip_collection:
         log.log(
