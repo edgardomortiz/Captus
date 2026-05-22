@@ -168,9 +168,9 @@ def align(full_command, args):
     )
     concurrent = max(1, min(settings.MAX_HDD_READ_INSTANCES, threads_max))
     show_less = not args.show_more
+    refs_json_path = args.refs_json
     if Path(args.captus_extractions).is_file():
         if args.refs_json is None:
-            refs_json_path = None
             with open(args.captus_extractions, "rt") as ext_paths:
                 for line in ext_paths:
                     ext_path = Path(line.strip())
@@ -178,10 +178,11 @@ def align(full_command, args):
                         refs_json_path = Path(ext_path.parent, settings.JSON_REFS)
                         break
             if refs_json_path is None:
-                quit_with_error(
-                    "You provided a FILE containing a list of paths with '--captus_extractions' but"
-                    f" Captus couldn't find any valid '{settings.JSON_REFS}' file, please provide"
-                    " the path to a valid one using '--refs_json'"
+                log.log(
+                    f"{bold('WARNING:')} You provided a FILE containing a list of paths with"
+                    " '--captus_extractions' but Captus couldn't find any valid"
+                    f" '{settings.JSON_REFS}' file, provide the path to a valid one using"
+                    " '--refs_json' if you want to add reference target sequences to the alignments"
                 )
         else:
             refs_json_path = Path(args.refs_json)
