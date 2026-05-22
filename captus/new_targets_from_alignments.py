@@ -504,6 +504,8 @@ def cluster_seqs(
     prefix: str,
     min_identity: float,
     min_coverage: float,
+    cluster_mode: int,
+    cov_mode: int,
     threads,
     overwrite: bool,
     log: Path,
@@ -528,7 +530,7 @@ def cluster_seqs(
         "-c",
         f"{min_coverage}",
         "--cov-mode",
-        f"{1}",
+        f"{cov_mode}",
         "--alignment-mode",
         f"{3}",
         "--min-seq-id",
@@ -536,7 +538,7 @@ def cluster_seqs(
         "--seq-id-mode",
         f"{1}",
         "--cluster-mode",
-        f"{2}",
+        f"{cluster_mode}",
         "--kmer-per-seq-scale",
         f"{0.3}",
         "--threads",
@@ -1339,7 +1341,7 @@ def main():
         "-W",
         "--min_wscore_proportion",
         action="store",
-        default=0.3333,
+        default=0.5,
         type=float,
         dest="min_wscore_proportion",
         help="Only applies to alignments produced by Captus. The sequences contained within these"
@@ -1351,7 +1353,7 @@ def main():
         "-C",
         "--min_coverage_proportion",
         action="store",
-        default=0.3333,
+        default=0.5,
         type=float,
         dest="min_coverage_proportion",
         help="Only applies to alignments produced by Captus. The sequences contained within these"
@@ -1379,6 +1381,30 @@ def main():
         dest="min_coverage",
         help="Any sequence in a cluster has to be at least this percent included in the length"
         " of the longest sequence in the cluster",
+    )
+    clustering_group.add_argument(
+        "--clm",
+        "--cluster_mode",
+        action="store",
+        default=2,
+        type=int,
+        dest="cluster_mode",
+        choices=[0, 1, 2],
+        help="B|MMseqs2 clustering mode (https://github.com/soedinglab/mmseqs2/wiki#clustering-"
+        "modes), options are:\n"
+        "0 = Greedy set cover\n"
+        "1 = Connected component\n"
+        "2 = Greedy incremental (analogous to CD-HIT)",
+    )
+    clustering_group.add_argument(
+        "--com",
+        "--cov_mode",
+        action="store",
+        default=1,
+        type=int,
+        dest="cov_mode",
+        help="MMseqs2 sequence coverage mode (https://github.com/soedinglab/mmseqs2/wiki#how-"
+        "to-set-the-right-alignment-coverage-to-cluster)",
     )
 
     targets_group = parser.add_argument_group("Target selection")
@@ -1611,6 +1637,8 @@ def main():
         args.prefix,
         args.min_identity,
         args.min_coverage,
+        args.cluster_mode,
+        args.cov_mode,
         args.threads,
         args.overwrite,
         log,
