@@ -1376,7 +1376,7 @@ def main():
         "-c",
         "--min_coverage",
         action="store",
-        default=40,
+        default=70,
         type=float,
         dest="min_coverage",
         help="Any sequence in a cluster has to be at least this percent included in the length"
