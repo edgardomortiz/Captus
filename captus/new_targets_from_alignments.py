@@ -1341,7 +1341,7 @@ def main():
         "-W",
         "--min_wscore_proportion",
         action="store",
-        default=0.5,
+        default=0.3333,
         type=float,
         dest="min_wscore_proportion",
         help="Only applies to alignments produced by Captus. The sequences contained within these"
@@ -1353,7 +1353,7 @@ def main():
         "-C",
         "--min_coverage_proportion",
         action="store",
-        default=0.5,
+        default=0.3333,
         type=float,
         dest="min_coverage_proportion",
         help="Only applies to alignments produced by Captus. The sequences contained within these"
@@ -1376,7 +1376,7 @@ def main():
         "-c",
         "--min_coverage",
         action="store",
-        default=70,
+        default=50,
         type=float,
         dest="min_coverage",
         help="Any sequence in a cluster has to be at least this percent included in the length"
