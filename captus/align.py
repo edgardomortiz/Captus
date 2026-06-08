@@ -173,10 +173,12 @@ def align(full_command, args):
         if args.refs_json is None:
             with open(args.captus_extractions, "rt") as ext_paths:
                 for line in ext_paths:
-                    ext_path = Path(line.strip())
-                    if Path(ext_path.parent, settings.JSON_REFS).is_file():
-                        refs_json_path = Path(ext_path.parent, settings.JSON_REFS)
-                        break
+                    line = line.strip()
+                    if line:
+                        ext_path = Path(line.strip())
+                        if Path(ext_path.parent, settings.JSON_REFS).is_file():
+                            refs_json_path = Path(ext_path.parent, settings.JSON_REFS)
+                            break
             if refs_json_path is None:
                 log.log(
                     f"{bold('WARNING:')} You provided a FILE containing a list of paths with"

@@ -431,11 +431,13 @@ def main():
         if aln_paths_file.is_file():
             with open(aln_paths_file, "rt") as alns:
                 for line in alns:
-                    fasta_path = Path(line.strip())
-                    if not fasta_path.is_file():
-                        print(f"WARNING: file '{fasta_path}' not found, verify its location")
-                    else:
-                        fastas_paths.append(fasta_path)
+                    line = line.strip()
+                    if line:
+                        fasta_path = Path(line)
+                        if not fasta_path.is_file():
+                            print(f"WARNING: file '{fasta_path}' not found, verify its location")
+                        else:
+                            fastas_paths.append(fasta_path)
         else:
             quit_with_error(f"'{aln_paths_file}' not found, verify its location")
     else:

@@ -1124,10 +1124,12 @@ def find_and_check_fasta_assemblies(captus_assemblies: str, out_dir: Path, margi
     if captus_assemblies.is_file():
         with open(captus_assemblies, "rt") as asm_list:
             for line in asm_list:
-                asm_path = Path(line.strip())
-                asm_full_path = Path(asm_path.parent.resolve(), asm_path.name)
-                if f"{asm_full_path}".endswith("__captus-asm"):
-                    sample_asm_dirs.append(asm_full_path)
+                line = line.strip()
+                if line:
+                    asm_path = Path(line.strip())
+                    asm_full_path = Path(asm_path.parent.resolve(), asm_path.name)
+                    if f"{asm_full_path}".endswith("__captus-asm"):
+                        sample_asm_dirs.append(asm_full_path)
     elif captus_assemblies.is_dir():
         asm_paths = list(captus_assemblies.rglob("*__captus-asm"))
         for asm_path in asm_paths:

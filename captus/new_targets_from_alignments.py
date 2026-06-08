@@ -1600,11 +1600,15 @@ def main():
 
         with open(Path(args.alignments_list), "rt") as al:
             for line in al:
-                fasta_path = Path(line.strip())
-                if fasta_path.exists():
-                    fastas_paths.append(fasta_path)
-                else:
-                    print(f"WARNING: the file '{fasta_path}' doesn't exist!")
+                line = line.strip()
+                if line:
+                    fasta_path = Path(line)
+                    if fasta_path.is_file():
+                        fastas_paths.append(fasta_path)
+                    else:
+                        print(
+                            f"WARNING: the path '{fasta_path}' is not a valid file or it doesn't exist"
+                        )
 
     msg = f"{now()} | {len(fastas_paths)} alignments verified"
     wlog(log, msg)
