@@ -188,7 +188,7 @@ class CaptusDesign(object):
             "--mmseqs_cluster_mode",
             action="store",
             default=1,
-            type=float,
+            type=int,
             dest="mmseqs_cluster_mode",
             choices=[0, 1, 2],
             help="B|MMseqs2 clustering mode (https://github.com/soedinglab/mmseqs2/wiki#clustering-"
