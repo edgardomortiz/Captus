@@ -195,10 +195,10 @@ SALMON_QUANT_DIR = "01_salmon_quant"
 LARGE_GENOME_THRESHOLD = 4_000_000_000
 
 # BLAT RAM multiplier for protein searches
-BLAT_PROT_RAM_FACTOR = 3.666
+BLAT_PROT_RAM_FACTOR = 4
 
 # BLAT RAM multiplier for nuecleotide searches
-BLAT_DNA_RAM_FACTOR = 2
+BLAT_DNA_RAM_FACTOR = 3
 
 # BLAT/Scipio are now parallelized, is good to split the load across threads
 EXTRACT_MIN_THREADS = 4
