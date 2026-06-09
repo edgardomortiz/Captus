@@ -2292,6 +2292,10 @@ def write_fastas_and_stats_tsv(
             frag_stats = fragmentation(
                 hits[ref][h]["hit_contigs"], hits[ref][h]["ref_coords"], hits[ref][h]["ref_size"]
             )
+            try:
+                ctg_mean_depth = f"{hits[ref][h]['ctg_mean_depth']:.4f}"
+            except ValueError:
+                ctg_mean_depth = f"{hits[ref][h]['ctg_mean_depth']}"
             stats.append(
                 "\t".join(
                     [
@@ -2320,7 +2324,7 @@ def write_fastas_and_stats_tsv(
                         f"{hits[ref][h]['hit_contigs']}".replace("\n", ";"),
                         f"{hits[ref][h]['strand']}".replace("\n", ";"),
                         format_coords(hits[ref][h]["hit_coords"]),
-                        f"{hits[ref][h]['ctg_mean_depth']:.4f}",
+                        ctg_mean_depth,
                     ]
                 )
             )
