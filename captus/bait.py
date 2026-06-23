@@ -1387,7 +1387,7 @@ def prepare_targets(
             target_clust_threshold,
             1,
             target_min_coverage,
-            1,
+            settings.MMSEQS_COV_MODE,
             2,
             threads,
             ram_mb,

@@ -187,7 +187,7 @@ class CaptusDesign(object):
         clustering_group.add_argument(
             "--mmseqs_cluster_mode",
             action="store",
-            default=1,
+            default=2,
             type=int,
             dest="mmseqs_cluster_mode",
             choices=[0, 1, 2],

@@ -1018,7 +1018,7 @@ class CaptusAssembly(object):
         mmseqs2_group.add_argument(
             "--cl_mode",
             action="store",
-            default=1,
+            default=2,
             type=int,
             dest="cl_mode",
             choices=[0, 1, 2],
