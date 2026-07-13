@@ -1524,6 +1524,7 @@ def main():
         "--ram",
         action="store",
         default=0,
+        type=int,
         dest="ram",
         help="Maximum RAM to use in GB, 0 will try to use all the RAM available in the system",
     )
