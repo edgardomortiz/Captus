@@ -507,6 +507,7 @@ def cluster_seqs(
     cluster_mode: int,
     cov_mode: int,
     threads,
+    ram: int,
     overwrite: bool,
     log: Path,
 ):
@@ -517,12 +518,16 @@ def cluster_seqs(
         threads = os.cpu_count()
     else:
         threads = int(threads)
+    if ram > 0:
+        ram = f"{ram}G"
     mmseqs_cmd = [
         "mmseqs",
         "easy-cluster",
         f"{clust_input_file}",
         f"{Path(out_dir, prefix)}",
         f"{tmp_path}",
+        "--split-memory-limit",
+        f"{ram}",
         "--mask",
         f"{1}",
         "--spaced-kmer-mode",
@@ -1515,6 +1520,14 @@ def main():
         help="Number of threads to use",
     )
     other_group.add_argument(
+        "-r",
+        "--ram",
+        action="store",
+        default=0,
+        dest="ram",
+        help="Maximum RAM to use in GB, 0 will try to use all the RAM available in the system",
+    )
+    other_group.add_argument(
         "--overwrite",
         action="store_true",
         dest="overwrite",
@@ -1644,6 +1657,7 @@ def main():
         args.cluster_mode,
         args.cov_mode,
         args.threads,
+        args.ram,
         args.overwrite,
         log,
     )
