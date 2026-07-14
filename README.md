@@ -19,29 +19,29 @@ Documentation: [https://edgardomortiz.github.io/captus.docs](https://edgardomort
 
 #### _Linux:_
 ```shell
-conda create -n captus -c bioconda -c conda-forge captus
+conda create -n captus -c bioconda -c conda-forge captus bbmap=39.80 salmon=1.10.3 mafft=7.526
 ```
 or
 ```shell
-mamba create -n captus -c bioconda -c conda-forge captus
+mamba create -n captus -c bioconda -c conda-forge captus bbmap=39.80 salmon=1.10.3 mafft=7.526
 ```
 
 #### _Mac computers with Intel processors:_
 ```shell
-conda create -n captus -c bioconda -c conda-forge captus megahit=1.2.9=hfbae3c0_0
+conda create -n captus -c bioconda -c conda-forge captus megahit=1.2.9=hfbae3c0_0 bbmap=39.80 salmon=1.10.3 mafft=7.526
 ```
 or
 ```shell
-mamba create -n captus -c bioconda -c conda-forge captus megahit=1.2.9=hfbae3c0_0
+mamba create -n captus -c bioconda -c conda-forge captus megahit=1.2.9=hfbae3c0_0 bbmap=39.80 salmon=1.10.3 mafft=7.526
 ```
 
 #### _Mac computers with Apple silicon (M processors):_
 ```shell
-conda create --platform osx-64 -n captus -c bioconda -c conda-forge captus megahit=1.2.9=hfbae3c0_0 mmseqs2=16.747c6
+conda create --platform osx-64 -n captus -c bioconda -c conda-forge captus megahit=1.2.9=hfbae3c0_0 mmseqs2=16.747c6 bbmap=39.80 salmon=1.10.3 mafft=7.526
 ```
 or
 ```shell
-mamba create --platform osx-64 -n captus -c bioconda -c conda-forge captus megahit=1.2.9=hfbae3c0_0 mmseqs2=16.747c6
+mamba create --platform osx-64 -n captus -c bioconda -c conda-forge captus megahit=1.2.9=hfbae3c0_0 mmseqs2=16.747c6 bbmap=39.80 salmon=1.10.3 mafft=7.526
 ```
 
 > [!WARNING]
@@ -62,7 +62,7 @@ If the program was correctly installed, you will see the following help message:
 ```text
 usage: captus command [options]
 
-Captus 1.6.5: Assembly of Phylogenomic Datasets from High-Throughput Sequencing data
+Captus 1.6.6: Assembly of Phylogenomic Datasets from High-Throughput Sequencing data
 
 Captus-assembly commands:
   command     Program commands (in typical order of execution)
@@ -112,4 +112,4 @@ Documentation and tutorials are available at [https://edgardomortiz.github.io/ca
 
 ## CITATION
 
-Ortiz, E.M., A. Höwener, G. Shigita, M. Raza, O. Maurin, A. Zuntini, F. Forest, W.J. Baker, H. Schaefer. (2023). *A novel phylogenomics pipeline reveals extensive topological conflict in the evolution of the angiosperm order Cucurbitales*. bioRxiv [https://doi.org/10.1101/2023.10.27.564367](https://doi.org/10.1101/2023.10.27.564367)
+Ortiz, E.M., A. Höwener, G. Shigita, M. Raza, O. Maurin, A. Zuntini, F. Forest, W.J. Baker, H. Schaefer. (2023). *A novel phylogenomics pipeline reveals extensive topological conflict in the evolution of the angiosperm order Cucurbitales*. Systematic Biology [https://doi.org/10.1093/sysbio/syag046](https://doi.org/10.1093/sysbio/syag046)
