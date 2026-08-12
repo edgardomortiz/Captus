@@ -13,7 +13,6 @@ not, see <http://www.gnu.org/licenses/>.
 """
 
 import argparse
-import datetime
 import gzip
 import math
 import os
@@ -23,6 +22,7 @@ import shutil
 import statistics
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Captus directories
@@ -81,12 +81,10 @@ def wlog(log_file: Path, message: str):
     with open(log_file, "at") as log:
         log.write(f"{remove_formatting(message)}\n")
     print(message)
-    return
 
 
 def now():
-    now = dim(f"{datetime.datetime.now()}")
-    return now
+    return dim(f"{datetime.now(timezone.utc)}")
 
 
 def fasta_to_dict(fasta_path):
@@ -271,7 +269,7 @@ def msg_samples_copies(loci_data: dict):
 
 def calc_per_locus_data(centroids: dict):
     centroids_data = {}
-    for locus in centroids:
+    for locus in centroids:  # noqa: PLC0206
         samples = {}
         inclusions = []
         for centroid in centroids[locus]:
@@ -285,7 +283,7 @@ def calc_per_locus_data(centroids: dict):
             "num_seqs": sum(samples.values()),
             "num_samples": len(samples),
             "median_copies": statistics.median(samples.values()),
-            "includes": ",".join(sorted(list(set(inclusions)))),
+            "includes": ",".join(sorted(set(inclusions))),
         }
 
     return centroids_data
@@ -406,9 +404,9 @@ def prefilter_seqs(
             del loci_data[locus_name]
 
     loci_fastas_raw_data = {}
-    for locus in loci_fastas_raw:
+    for locus, locus_fasta_in in loci_fastas_raw.items():
         samples = {}
-        for seq_name in loci_fastas_raw[locus]:
+        for seq_name in locus_fasta_in:
             sanitized_seq_name = seq_name.translate(INVALID_CHARS)
             sample_name = sanitized_seq_name.split(SEQ_NAME_SEP)[0]
             if sample_name in samples:
@@ -416,7 +414,7 @@ def prefilter_seqs(
             else:
                 samples[sample_name] = 1
         loci_fastas_raw_data[locus] = {
-            "num_seqs": len(loci_fastas_raw[locus]),
+            "num_seqs": len(locus_fasta_in),
             "num_samples": len(samples),
             "median_copies": statistics.median(samples.values()),
         }
@@ -442,19 +440,18 @@ def prefilter_seqs(
     msg += ")"
     wlog(log, msg)
 
-    for locus_name in loci_fastas:
-        locus_fasta_in = loci_fastas[locus_name]
+    for locus_name, locus_fasta_in in loci_fastas.items():
         locus_fasta_out = {}
-        for seq_name in locus_fasta_in:
-            wscore, coverage = get_wscore_coverage(locus_fasta_in[seq_name]["description"])
+        for seq_name, seq_info in locus_fasta_in.items():
+            wscore, coverage = get_wscore_coverage(seq_info["description"])
             if wscore:
                 if (
                     wscore >= loci_data[locus_name]["median_wscore"] * min_wscore_prop
                     and coverage >= loci_data[locus_name]["median_coverage"] * min_coverage_prop
                 ):
-                    locus_fasta_out[seq_name] = locus_fasta_in[seq_name]
+                    locus_fasta_out[seq_name] = seq_info
             else:
-                locus_fasta_out[seq_name] = locus_fasta_in[seq_name]
+                locus_fasta_out[seq_name] = seq_info
         if locus_fasta_out:
             loci_fastas[locus_name] = locus_fasta_out
         else:
@@ -465,16 +462,16 @@ def prefilter_seqs(
             dict_to_fasta(loci_fastas[locus_name], clust_input_file, append=True)
         if clust_input_file.is_file():
             clust_input_data = {}
-            for locus in loci_fastas:
+            for locus, locus_fasta in loci_fastas.items():
                 samples = {}
-                for seq_name in loci_fastas[locus]:
+                for seq_name in locus_fasta:
                     sample_name = seq_name.split(REF_CLUSTER_SEP)[0].split(SEQ_NAME_SEP)[0]
                     if sample_name in samples:
                         samples[sample_name] += 1
                     else:
                         samples[sample_name] = 1
                 clust_input_data[locus] = {
-                    "num_seqs": len(loci_fastas[locus]),
+                    "num_seqs": len(locus_fasta),
                     "num_samples": len(samples),
                     "median_copies": statistics.median(samples.values()),
                 }
@@ -586,10 +583,10 @@ def cluster_seqs(
     msg = f"{now()} | Clustering with MMseqs2 (min_identity={min_identity}, min_coverage={min_coverage})"
     wlog(log, msg)
 
-    with open(clust_log_file, "a") as log:
+    with open(clust_log_file, "a") as clust_log:
         log.write(f"Captus' MMseqs2 Command:\n  {' '.join(mmseqs_cmd)}\n\n")
-    with open(clust_log_file, "a") as log:
-        subprocess.run(mmseqs_cmd, stdout=log, stdin=log)
+    with open(clust_log_file, "a") as clust_log:
+        subprocess.run(mmseqs_cmd, stdout=clust_log, stdin=clust_log, check=False)
 
     clust_output = split_mmseqs_clusters_file(all_seqs)
 
@@ -624,8 +621,8 @@ def select_targets(
 
     def remove_high_copy_centroids(centroids: dict, max_target_copies: float):
         low_copy_centroids = {}
-        for locus in centroids:
-            for centroid in centroids[locus]:
+        for locus, locus_centroids in centroids.items():
+            for centroid in locus_centroids:
                 if centroid["median_copies"] <= max_target_copies:
                     if locus in low_copy_centroids:
                         low_copy_centroids[locus].append(centroid)
@@ -685,7 +682,7 @@ def select_targets(
             "length": len(cluster[1]),
             "wscore": wscore,
             "coverage": coverage,
-            "includes": sorted(list(set(includes))),
+            "includes": sorted(set(includes)),
         }
 
         if centroid_locus in raw_centroids:
@@ -693,7 +690,7 @@ def select_targets(
         else:
             raw_centroids[centroid_locus] = [centroid_info]
 
-    for locus in raw_centroids:
+    for locus in raw_centroids:  # noqa: PLC0206
         raw_centroids[locus] = sorted(
             raw_centroids[locus],
             key=lambda x: (x["num_samples"], x["length"], x["wscore"]),
@@ -701,27 +698,27 @@ def select_targets(
         )
 
     centroids = {}
-    for locus in raw_centroids:
-        centroids[locus] = [raw_centroids[locus][0]]
-        if len(raw_centroids[locus]) > 1:
-            top_centroid_depth = raw_centroids[locus][0]["num_seqs"]
-            top_centroid_length = raw_centroids[locus][0]["length"]
-            for i in range(1, len(raw_centroids[locus])):
+    for locus, locus_raw_centroids in raw_centroids.items():
+        centroids[locus] = [locus_raw_centroids[0]]
+        if len(locus_raw_centroids) > 1:
+            top_centroid_depth = locus_raw_centroids[0]["num_seqs"]
+            top_centroid_length = locus_raw_centroids[0]["length"]
+            for i in range(1, len(locus_raw_centroids)):
                 if retain_samples:
                     if (
-                        raw_centroids[locus][i]["length"] >= top_centroid_length * min_length_prop
-                        and raw_centroids[locus][i]["num_seqs"] >= top_centroid_depth * min_depth_prop
+                        locus_raw_centroids[i]["length"] >= top_centroid_length * min_length_prop
+                        and locus_raw_centroids[i]["num_seqs"] >= top_centroid_depth * min_depth_prop
                     ) or (
-                        raw_centroids[locus][i]["length"] >= top_centroid_length * min_length_prop
-                        and not set(raw_centroids[locus][i]["samples"]).isdisjoint(retain_samples)
+                        locus_raw_centroids[i]["length"] >= top_centroid_length * min_length_prop
+                        and not set(locus_raw_centroids[i]["samples"]).isdisjoint(retain_samples)
                     ):
-                        centroids[locus].append(raw_centroids[locus][i])
+                        centroids[locus].append(locus_raw_centroids[i])
                 else:
                     if (
-                        raw_centroids[locus][i]["length"] >= top_centroid_length * min_length_prop
-                        and raw_centroids[locus][i]["num_seqs"] >= top_centroid_depth * min_depth_prop
+                        locus_raw_centroids[i]["length"] >= top_centroid_length * min_length_prop
+                        and locus_raw_centroids[i]["num_seqs"] >= top_centroid_depth * min_depth_prop
                     ):
-                        centroids[locus].append(raw_centroids[locus][i])
+                        centroids[locus].append(locus_raw_centroids[i])
 
     clust_output_data = calc_per_locus_data(centroids)
     msg = msg_loci_stats(centroids, "AFTER CLUSTERING STATS:")
@@ -875,7 +872,7 @@ def write_targets(
     clu_raw_pcts = []
     fil_raw_pcts = []
 
-    for locus in single_copy_centroids:
+    for locus in single_copy_centroids:  # noqa: PLC0206
         loci_retained.append(locus)
         clu_fil_samples = (
             single_copy_data[locus]["num_samples"] / clust_input_data[locus]["num_samples"]
@@ -910,7 +907,7 @@ def write_targets(
         }
 
     if multi_copy_centroids:
-        for locus in multi_copy_centroids:
+        for locus in multi_copy_centroids:  # noqa: PLC0206
             raw_locus = locus
             if len(locus.split(".")) > 1:
                 suffix = locus.split(".")[-1]
@@ -1238,13 +1235,10 @@ def write_targets(
     ]
 
     with open(tsv_stats_file, "wt") as tsv_out:
-        for line in tsv_stats:
-            tsv_out.write("\t".join(line) + "\n")
+        tsv_out.writelines("\t".join(line) + "\n" for line in tsv_stats)
 
     msg = f"{now()} | Finished successfully!\n\n\n\n\n"
     wlog(log, msg)
-
-    return
 
 
 def main():
@@ -1603,7 +1597,7 @@ def main():
         if args.format == "AA":
             fasta_ext = "faa"
 
-        fastas_paths = list(sorted(aln_dir.glob(f"*.{fasta_ext}")))
+        fastas_paths = sorted(aln_dir.glob(f"*.{fasta_ext}"))
 
     elif args.alignments_list:
         msg = f"{now()} | Verifying alignments in '{args.alignments_list}'..."

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Copyright 2020-2026 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
 https://github.com/edgardomortiz/Captus
@@ -25,7 +24,8 @@ from pathlib import Path
 
 from tqdm import tqdm
 
-from . import log, settings
+from . import log
+from . import settings as sett
 from .bioformats import (
     blat_misc_dna_psl_to_dict,
     dict_to_fasta,
@@ -266,22 +266,16 @@ def extract(full_command, args):
         num_refs = 0
         if args.nuc_refs:
             num_refs += 1
-            if args.nuc_refs.lower() in settings.PROT_REF_TARGETS["NUC"]:
-                args.nuc_transtable = settings.PROT_REF_TARGETS["NUC"][args.nuc_refs.lower()][
-                    "transtable"
-                ]
+            if args.nuc_refs.lower() in sett.PROT_REF_TARGETS["NUC"]:
+                args.nuc_transtable = sett.PROT_REF_TARGETS["NUC"][args.nuc_refs.lower()]["transtable"]
         if args.ptd_refs:
             num_refs += 1
-            if args.ptd_refs.lower() in settings.PROT_REF_TARGETS["PTD"]:
-                args.ptd_transtable = settings.PROT_REF_TARGETS["PTD"][args.ptd_refs.lower()][
-                    "transtable"
-                ]
+            if args.ptd_refs.lower() in sett.PROT_REF_TARGETS["PTD"]:
+                args.ptd_transtable = sett.PROT_REF_TARGETS["PTD"][args.ptd_refs.lower()]["transtable"]
         if args.mit_refs:
             num_refs += 1
-            if args.mit_refs.lower() in settings.PROT_REF_TARGETS["MIT"]:
-                args.mit_transtable = settings.PROT_REF_TARGETS["MIT"][args.mit_refs.lower()][
-                    "transtable"
-                ]
+            if args.mit_refs.lower() in sett.PROT_REF_TARGETS["MIT"]:
+                args.mit_transtable = sett.PROT_REF_TARGETS["MIT"][args.mit_refs.lower()]["transtable"]
         num_prot_extractions = len(fastas_to_extract) * num_refs
 
         protein_refs = prepare_protein_refs(
@@ -596,25 +590,25 @@ def extract(full_command, args):
                 log.log(
                     f"{'Nuclear proteins':>{mar}}:"
                     f" {bold(f'{out_dir}/[Sample_name]__captus-ext/')}"
-                    f"{bold(settings.MARKER_DIRS['NUC'])}"
+                    f"{bold(sett.MARKER_DIRS['NUC'])}"
                 )
             if protein_refs["PTD"]["AA_path"]:
                 log.log(
                     f"{'Plastidial proteins':>{mar}}:"
                     f" {bold(f'{out_dir}/[Sample_name]__captus-ext/')}"
-                    f"{bold(settings.MARKER_DIRS['PTD'])}"
+                    f"{bold(sett.MARKER_DIRS['PTD'])}"
                 )
             if protein_refs["MIT"]["AA_path"]:
                 log.log(
                     f"{'Mitochondrial proteins':>{mar}}:"
                     f" {bold(f'{out_dir}/[Sample_name]__captus-ext/')}"
-                    f"{bold(settings.MARKER_DIRS['MIT'])}"
+                    f"{bold(sett.MARKER_DIRS['MIT'])}"
                 )
             if dna_ref["DNA"]["NT_path"]:
                 log.log(
                     f"{'Miscellaneous DNA markers':>{mar}}:"
                     f" {bold(f'{out_dir}/[Sample_name]__captus-ext/')}"
-                    f"{bold(settings.MARKER_DIRS['DNA'])}"
+                    f"{bold(sett.MARKER_DIRS['DNA'])}"
                 )
             log.log(
                 f"{'Annotated assemblies':>{mar}}: "
@@ -667,7 +661,7 @@ def extract(full_command, args):
 
             d_msg = "Merging GFFs, summarizing recovery stats, and cleaning up"
             f_msg = "Merged GFF and summary recovery stats created"
-            cleanup_concurrent = min(settings.MAX_HDD_WRITE_INSTANCES, threads_max)
+            cleanup_concurrent = min(sett.MAX_HDD_WRITE_INSTANCES, threads_max)
             if args.debug:
                 tqdm_serial_run(
                     cleanup_post_extraction, cleanup_params, d_msg, f_msg, "sample", args.show_less
@@ -683,7 +677,7 @@ def extract(full_command, args):
                     args.show_less,
                 )
             if not args.keep_all:
-                shutil.rmtree(Path(out_dir, settings.REF_TARGETS_SPLIT_DIR), ignore_errors=True)
+                shutil.rmtree(Path(out_dir, sett.REF_TARGETS_SPLIT_DIR), ignore_errors=True)
             log.log("")
 
         # Nothing to extract
@@ -737,10 +731,10 @@ def extract(full_command, args):
         # When 'cl_min_identity' is set to 'auto' it becomes 99% of 'dna_min_identity' never
         # becoming less than 75%
         if args.cl_min_identity == "auto":
-            dna_min_identity = max(args.dna_min_identity, settings.MMSEQS_MIN_AUTO_MIN_IDENTITY)
+            dna_min_identity = max(args.dna_min_identity, sett.MMSEQS_MIN_AUTO_MIN_IDENTITY)
             cl_min_identity = max(
-                settings.MMSEQS_BLAT_DNA_IDENTITY_FACTOR * dna_min_identity,
-                settings.MMSEQS_MIN_AUTO_MIN_IDENTITY,
+                sett.MMSEQS_BLAT_DNA_IDENTITY_FACTOR * dna_min_identity,
+                sett.MMSEQS_MIN_AUTO_MIN_IDENTITY,
             )
         else:
             cl_min_identity = float(args.cl_min_identity)
@@ -752,7 +746,7 @@ def extract(full_command, args):
         fastas_to_cluster, num_leftovers = find_fasta_leftovers(fastas_to_extract, args.exclude_samples)
         num_samples = len(fastas_to_cluster)
         if args.cl_min_samples == "auto":
-            cl_min_samples = int(max(4, num_samples * settings.CLR_MIN_SAMPLE_PROP))
+            cl_min_samples = int(max(4, num_samples * sett.CLR_MIN_SAMPLE_PROP))
         else:
             cl_min_samples = min(int(args.cl_min_samples), num_samples)
 
@@ -771,8 +765,8 @@ def extract(full_command, args):
         log.log(f"{'seq_id_mode':>{mar}}: {bold(args.cl_seq_id_mode)}")
         log.log(f"{'cov':>{mar}}: {bold(args.cl_min_coverage)}")
         log.log(f"{'cov_mode':>{mar}}: {bold(args.cl_cov_mode)}")
-        log.log(f"{'gap_open':>{mar}}: {bold(settings.MMSEQS_GAP_OPEN_NT)}")
-        log.log(f"{'gap_extend':>{mar}}: {bold(settings.MMSEQS_GAP_EXTEND_NT)}")
+        log.log(f"{'gap_open':>{mar}}: {bold(sett.MMSEQS_GAP_OPEN_NT)}")
+        log.log(f"{'gap_extend':>{mar}}: {bold(sett.MMSEQS_GAP_EXTEND_NT)}")
         log.log(f"{'max_seq_len':>{mar}}: {bold(args.cl_max_seq_len)}")
         log.log(f"{'tmp_dir':>{mar}}: {bold(clust_tmp_dir)}")
         log.log("")
@@ -802,12 +796,12 @@ def extract(full_command, args):
             else:
                 if clustering_input_file.is_file():
                     clustering_input_file.unlink()
-                rehead_and_concatenate_fastas(
+                clustering_input_file = rehead_and_concatenate_fastas(
                     fastas_to_cluster,
                     clustering_dir,
                     clustering_input_file,
                     args.cl_max_seq_len,
-                    min(settings.MAX_HDD_WRITE_INSTANCES, threads_max),
+                    min(sett.MAX_HDD_WRITE_INSTANCES, threads_max),
                     args.show_less,
                 )
 
@@ -821,7 +815,14 @@ def extract(full_command, args):
                     passed.unlink()
                 if passed_gz.exists():
                     passed_gz.unlink()
+        else:
+            log.log(
+                f"{bold('WARNING:')} A valid target file was found: '{bold(captus_cluster_refs)}'"
+                " and it will be used for extraction, to recreate it enable '--overwrite'"
+            )
+            log.log("")
 
+        if clustering_input_file is not None:
             captus_cluster_refs = cluster_and_select_refs(
                 num_samples,
                 cl_min_samples,
@@ -847,10 +848,7 @@ def extract(full_command, args):
             log.log("")
             log.log("")
         else:
-            log.log(
-                f"{bold('WARNING:')} A valid target file was found: '{bold(captus_cluster_refs)}'"
-                " and it will be used for extraction, to recreate it enable '--overwrite'"
-            )
+            log.log(red("Skipping clustering because clustering input file was empty..."))
             log.log("")
 
         if captus_cluster_refs.is_file() and not file_is_empty(captus_cluster_refs):
@@ -943,7 +941,7 @@ def extract(full_command, args):
                 log.log(
                     f"{'Clustering output':>{mar}}:"
                     f" {bold(f'{out_dir}/[Sample_name]__captus-ext/')}"
-                    f"{bold(settings.MARKER_DIRS['CLR'])}"
+                    f"{bold(sett.MARKER_DIRS['CLR'])}"
                 )
                 log.log(f"{'':>{mar}}  {dim('(A directory will be created for each sample)')}")
                 log.log("")
@@ -997,7 +995,7 @@ def extract(full_command, args):
                     )
                 d_msg = "Merging GFFs, summarizing recovery stats, and cleaning up"
                 f_msg = "Merged GFF and summary recovery stats created"
-                cleanup_concurrent = min(settings.MAX_HDD_WRITE_INSTANCES, threads_max)
+                cleanup_concurrent = min(sett.MAX_HDD_WRITE_INSTANCES, threads_max)
                 if args.debug:
                     tqdm_serial_run(
                         cleanup_post_extraction,
@@ -1023,8 +1021,8 @@ def extract(full_command, args):
         else:
             log.log(
                 red(
-                    f"Skipping extraction, invalid target file: '{captus_cluster_refs}',"
-                    " to recreate it enable --overwrite"
+                    f"Skipping cluster extraction, the expected target file '{captus_cluster_refs.name}'"
+                    " was empty or could not be produced..."
                 )
             )
             log.log("")
@@ -1082,19 +1080,19 @@ def adjust_concurrency(fastas_to_extract, num_samples, concurrent, threads_max, 
     asm_sizes = [fastas_to_extract[sample]["assembly_size"] for sample in fastas_to_extract]
 
     largest_asm = max(asm_sizes)
-    if largest_asm >= settings.LARGE_GENOME_THRESHOLD:
+    if largest_asm >= sett.LARGE_GENOME_THRESHOLD:
         concurrent = 1
         asm_size = math.ceil(largest_asm / 512**3) * 512**3  # Round up to the 0.5GB
     else:
-        i = int(round(len(asm_sizes) * 9 / 10)) - 1
+        i = round(len(asm_sizes) * 9 / 10) - 1
         asm_size = math.ceil(sorted(asm_sizes)[i] / 512**3) * 512**3  # Round up to the 0.5GB
 
     if ref_type == "protein":
-        min_ram_b = asm_size * settings.BLAT_PROT_RAM_FACTOR
+        min_ram_b = asm_size * sett.BLAT_PROT_RAM_FACTOR
     elif ref_type == "dna":
-        min_ram_b = asm_size * settings.BLAT_DNA_RAM_FACTOR
+        min_ram_b = asm_size * sett.BLAT_DNA_RAM_FACTOR
 
-    min_threads = settings.EXTRACT_MIN_THREADS
+    min_threads = sett.EXTRACT_MIN_THREADS
 
     if min_ram_b > ram_B or min_threads > threads_max:
         return 1, 1, ram_B
@@ -1150,10 +1148,10 @@ def find_and_check_fasta_assemblies(captus_assemblies: str, out_dir: Path, margi
         if not sample_asm_dir.is_dir() or not sample_asm_dir.exists():
             messages.append(f"'{sample_asm_dir.parts[-1]}': SKIPPED, directory not found")
             not_found += 1
-        elif settings.SEQ_NAME_SEP in sample_name:
+        elif sett.SEQ_NAME_SEP in sample_name:
             messages.append(
                 f"'{sample_asm_dir.parts[-1]}': SKIPPED, pattern"
-                f" '{settings.SEQ_NAME_SEP}' not allowed in sample name"
+                f" '{sett.SEQ_NAME_SEP}' not allowed in sample name"
                 f" '{sample_name}'"
             )
             bad_name += 1
@@ -1208,7 +1206,7 @@ def find_and_copy_fastas(fastas, captus_assemblies_dir, overwrite, threads_max, 
     Sample names are derived from the filenames by removing the extensions.
     Search within a provided directory is recursive
     """
-    valid_exts = settings.FASTA_VALID_EXTENSIONS
+    valid_exts = sett.FASTA_VALID_EXTENSIONS
     if not isinstance(fastas, list):
         fastas = [fastas]
     if len(fastas) == 1 and Path(fastas[0]).is_dir():
@@ -1310,9 +1308,9 @@ def prepare_protein_refs(
         aa_path, nt_path, aa_msg, nt_msg = None, None, dim("not used"), dim("not used")
         if refset is None:
             return {"AA_path": aa_path, "AA_msg": aa_msg, "NT_path": nt_path, "NT_msg": nt_msg}
-        elif f"{refset}".lower() in settings.PROT_REF_TARGETS[marker]:
-            aa_path = settings.PROT_REF_TARGETS[marker][f"{refset}".lower()]["AA"]
-            nt_path = settings.PROT_REF_TARGETS[marker][f"{refset}".lower()]["NT"]
+        elif f"{refset}".lower() in sett.PROT_REF_TARGETS[marker]:
+            aa_path = sett.PROT_REF_TARGETS[marker][f"{refset}".lower()]["AA"]
+            nt_path = sett.PROT_REF_TARGETS[marker][f"{refset}".lower()]["NT"]
             aa_msg = f"{bold(refset)} {dim(aa_path)}"
             nt_msg = f"{bold(refset)} {dim(nt_path)}"
         elif Path(refset).is_file() and "odb1" in refset and refset.endswith(".tar.gz"):
@@ -1324,7 +1322,7 @@ def prepare_protein_refs(
             if amino_refset is None:
                 aa_msg = red("BUSCO lineage database could not be imported")
             else:
-                refset_dir = Path(out_dir, settings.REF_TARGETS_DIR)
+                refset_dir = Path(out_dir, sett.REF_TARGETS_DIR)
                 refset_stem = Path(refset).name.replace("".join(Path(refset).suffixes), "")
                 make_output_dir(refset_dir)
                 amino_refset_fixed = fix_premature_stops(amino_refset)
@@ -1342,7 +1340,7 @@ def prepare_protein_refs(
                 aa_msg = bold(aa_path)
         elif Path(refset).is_file() and fasta_type(refset) == "NT":
             start = time.time()
-            suffix = f".{marker}{settings.TRANSLATED_REF_SUFFIX}"
+            suffix = f".{marker}{sett.TRANSLATED_REF_SUFFIX}"
             if refset.endswith(".gz"):
                 aa_path = Path(
                     Path(refset).resolve().parent, f"{Path(refset.replace('.gz', '')).stem}{suffix}"
@@ -1404,8 +1402,8 @@ def prepare_dna_refs(dna_refs, cluster=False):
     nt_path, nt_msg = None, dim("not used")
     if dna_refs is None:
         return {"DNA": {"AA_path": None, "AA_msg": None, "NT_path": nt_path, "NT_msg": nt_msg}}
-    elif f"{dna_refs}".lower() in settings.DNA_REF_TARGETS:
-        nt_path = settings.DNA_REF_TARGETS[dna_refs.lower()].resolve()
+    elif f"{dna_refs}".lower() in sett.DNA_REF_TARGETS:
+        nt_path = sett.DNA_REF_TARGETS[dna_refs.lower()].resolve()
         nt_msg = f"{bold(dna_refs)} {dim(nt_path)}"
     elif Path(dna_refs).is_file() and fasta_type(dna_refs) == "NT":
         nt_path = Path(dna_refs).resolve()
@@ -1429,7 +1427,7 @@ def update_refs_json(refs_paths: dict, out_dir):
     refs_paths : dict
         A dictionary with the reference paths for each marker type except CLR
     """
-    json_path = Path(out_dir, settings.JSON_REFS)
+    json_path = Path(out_dir, sett.JSON_REFS)
     try:
         with open(json_path, "rt") as jin:
             refs_json = json.load(jin)
@@ -1443,13 +1441,13 @@ def update_refs_json(refs_paths: dict, out_dir):
         }
 
     if refs_json:
-        for marker in refs_paths:
-            for info in refs_paths[marker]:
-                if refs_paths[marker][info]:
+        for marker, marker_info in refs_paths.items():
+            for info in marker_info:
+                if marker_info[info]:
                     if info.endswith("_path"):
-                        refs_json[marker][info] = f"{refs_paths[marker][info]}"
+                        refs_json[marker][info] = f"{marker_info[info]}"
                     else:
-                        msg_clean = remove_formatting(f"{refs_paths[marker][info]}")
+                        msg_clean = remove_formatting(f"{marker_info[info]}")
                         if msg_clean != "not used":
                             refs_json[marker][info] = msg_clean
 
@@ -1467,8 +1465,8 @@ def adjust_min_identity(min_identity, transtable):
     """
     if 1 >= min_identity > 0:
         min_identity = round(min_identity * 100, 2)
-    if transtable in settings.DIVERGENT_GENETIC_CODES:
-        return min(settings.SCIPIO_MAX_IDENT_DIV_CODE, min_identity)
+    if transtable in sett.DIVERGENT_GENETIC_CODES:
+        return min(sett.SCIPIO_MAX_IDENT_DIV_CODE, min_identity)
     else:
         return min_identity
 
@@ -1484,13 +1482,13 @@ def split_refs(query_dict, out_dir, marker_type, threads, final_round=False):
     # Split reference file in groups of roughly REFS_SPLIT_CHUNK_SIZE to run Scipio in parallel
     # on each
 
-    ref_split_chunk_size = settings.REF_SPLIT_CHUNK_SIZE
-    ref_split_dir = Path(out_dir, settings.REF_TARGETS_SPLIT_DIR, settings.MARKER_DIRS[marker_type])
+    ref_split_chunk_size = sett.REF_SPLIT_CHUNK_SIZE
+    ref_split_dir = Path(out_dir, sett.REF_TARGETS_SPLIT_DIR, sett.MARKER_DIRS[marker_type])
     if final_round is True:
         ref_split_dir = Path(out_dir)
-        ref_split_chunk_size = ref_split_chunk_size // settings.BEST_N_TARGETS_INITIAL
+        ref_split_chunk_size = ref_split_chunk_size // sett.BEST_N_TARGETS_INITIAL
     seq_names = list(query_dict)
-    random.Random(settings.RANDOM_SEED).shuffle(seq_names)
+    random.Random(sett.RANDOM_SEED).shuffle(seq_names)
     num_seqs = len(seq_names)
     if num_seqs < threads:
         seqs_per_chunk = num_seqs
@@ -1530,19 +1528,21 @@ def reference_info(query_dict):
 
     for seq_name in query_dict:
         total_size += len(query_dict[seq_name]["sequence"])
-        if settings.REF_CLUSTER_SEP in seq_name:
-            if len(list(filter(None, seq_name.split(settings.REF_CLUSTER_SEP)))) > 1:
-                separators_found += 1
+        if (
+            sett.REF_CLUSTER_SEP in seq_name
+            and len(list(filter(None, seq_name.split(sett.REF_CLUSTER_SEP)))) > 1
+        ):
+            separators_found += 1
 
     loci_lengths = {}
     if separators_found == num_seqs:
         for seq_name in query_dict:
-            locus_name = seq_name.split(settings.REF_CLUSTER_SEP)[-1]
+            locus_name = seq_name.split(sett.REF_CLUSTER_SEP)[-1]
             if locus_name not in loci_lengths:
                 loci_lengths[locus_name] = [len(query_dict[seq_name]["sequence"])]
             else:
                 loci_lengths[locus_name].append(len(query_dict[seq_name]["sequence"]))
-        for locus_name in loci_lengths:
+        for locus_name in loci_lengths:  # noqa: PLC0206
             loci_lengths[locus_name] = statistics.mean(loci_lengths[locus_name])
     else:
         for seq_name in query_dict:
@@ -1558,7 +1558,7 @@ def reference_info(query_dict):
             info_msg += dim("(loci names found, detected multiple sequences per locus)")
     else:
         info_msg += dim(
-            f'(locus name separator "{settings.REF_CLUSTER_SEP}" missing in '
+            f'(locus name separator "{sett.REF_CLUSTER_SEP}" missing in '
             f"{num_seqs - separators_found} sequences, each sequence taken as a different locus)"
         )
 
@@ -1634,9 +1634,9 @@ def scipio_coding(
 
     # Set programs' paths in case of using the bundled versions
     if scipio_path == "bundled":
-        scipio_path = settings.BUNDLED_SCIPIO
+        scipio_path = sett.BUNDLED_SCIPIO
     if blat_path == "bundled":
-        blat_path = settings.BUNDLED_BLAT
+        blat_path = sett.BUNDLED_BLAT
 
     # Group Scipio's basic parameters, the 'sample_dir', and the 'marker_type' into a dictionary
     scipio_params = {
@@ -1826,7 +1826,7 @@ def parallel_scipio(
 ):
     # Set output directory and files according to 'sample_dir' and 'stage'
     marker_type = scipio_params["marker_type"]
-    scipio_out_dir = Path(scipio_params["sample_dir"], settings.MARKER_DIRS[marker_type])
+    scipio_out_dir = Path(scipio_params["sample_dir"], sett.MARKER_DIRS[marker_type])
     if stage == "initial":
         scipio_out_dir = Path(scipio_out_dir, f"00_initial_scipio_{marker_type}")
         blat_prot_out_file = Path(scipio_out_dir, f"{marker_type}_scipio_initial.psl")
@@ -1834,7 +1834,7 @@ def parallel_scipio(
         scipio_log_file = Path(scipio_out_dir, f"{marker_type}_scipio_initial.log")
 
         # Adjust Scipio's 'min_score' for initial round allowing more lenient matching
-        scipio_min_score = round(scipio_params["min_score"] * settings.SCIPIO_SCORE_INITIAL_FACTOR, 5)
+        scipio_min_score = round(scipio_params["min_score"] * sett.SCIPIO_SCORE_INITIAL_FACTOR, 5)
     else:
         blat_prot_out_file = Path(scipio_out_dir, f"{marker_type}_scipio_final.psl")
         scipio_out_file = Path(scipio_out_dir, f"{marker_type}_scipio_final.yaml")
@@ -1844,21 +1844,21 @@ def parallel_scipio(
     # Set minimum BLAT score according to number of references (too many hits created when using
     # a large number of reference proteins), higher score, fewer hits
     if stage == "single":
-        blat_min_score = settings.SCIPIO_ROUND1_SETTINGS[marker_type]["blat"]["min_score"]
+        blat_min_score = sett.SCIPIO_ROUND1_SETTINGS[marker_type]["blat"]["min_score"]
     else:
-        blat_min_score = settings.SCIPIO_ROUND2_SETTINGS[marker_type]["blat"]["min_score"]
+        blat_min_score = sett.SCIPIO_ROUND2_SETTINGS[marker_type]["blat"]["min_score"]
 
     # Additional Scipio settings according to first (or single) or second Scipio round
     if stage == "final":
-        extra_settings = settings.SCIPIO_ROUND2_SETTINGS[marker_type]["scipio"]
-        tile_size = settings.SCIPIO_ROUND2_SETTINGS[marker_type]["blat"]["tile_size"]
-        one_off = settings.SCIPIO_ROUND2_SETTINGS[marker_type]["blat"]["one_off"]
-        max_intron = settings.SCIPIO_ROUND2_SETTINGS[marker_type]["blat"]["max_intron"]
+        extra_settings = sett.SCIPIO_ROUND2_SETTINGS[marker_type]["scipio"]
+        tile_size = sett.SCIPIO_ROUND2_SETTINGS[marker_type]["blat"]["tile_size"]
+        one_off = sett.SCIPIO_ROUND2_SETTINGS[marker_type]["blat"]["one_off"]
+        max_intron = sett.SCIPIO_ROUND2_SETTINGS[marker_type]["blat"]["max_intron"]
     else:
-        extra_settings = settings.SCIPIO_ROUND1_SETTINGS[marker_type]["scipio"]
-        tile_size = settings.SCIPIO_ROUND1_SETTINGS[marker_type]["blat"]["tile_size"]
-        one_off = settings.SCIPIO_ROUND1_SETTINGS[marker_type]["blat"]["one_off"]
-        max_intron = settings.SCIPIO_ROUND1_SETTINGS[marker_type]["blat"]["max_intron"]
+        extra_settings = sett.SCIPIO_ROUND1_SETTINGS[marker_type]["scipio"]
+        tile_size = sett.SCIPIO_ROUND1_SETTINGS[marker_type]["blat"]["tile_size"]
+        one_off = sett.SCIPIO_ROUND1_SETTINGS[marker_type]["blat"]["one_off"]
+        max_intron = sett.SCIPIO_ROUND1_SETTINGS[marker_type]["blat"]["max_intron"]
 
     scipio_out_dir, _ = make_output_dir(scipio_out_dir)
 
@@ -1969,19 +1969,18 @@ def parallel_scipio(
                 if scipio_yaml is not None:
                     yamls_to_cat.append(scipio_yaml)
             subexecutor.shutdown()
-        with open(scipio_out_file, "wt") as yaml_out:
-            with open(scipio_log_file, "at") as yaml_log:
-                for scipio_yaml in yamls_to_cat:
-                    part = scipio_yaml.stem.split("_")[1].replace("part", "")
-                    with open(scipio_yaml, "rt") as yaml_in:
-                        for line in yaml_in:
-                            if line.startswith("  - ID: "):
-                                line = line.replace("  - ID: ", f"  - ID: {part}_")
-                            yaml_out.write(line)
-                    scipio_log = Path(scipio_yaml.parent, f"{scipio_yaml.stem}.log")
-                    with open(scipio_log, "rt") as log_in:
-                        yaml_log.write(f"\n\n{scipio_log}:\n")
-                        yaml_log.writelines(log_in.readlines())
+        with open(scipio_out_file, "wt") as yaml_out, open(scipio_log_file, "at") as yaml_log:
+            for scipio_yaml in yamls_to_cat:
+                part = scipio_yaml.stem.split("_")[1].replace("part", "")
+                with open(scipio_yaml, "rt") as yaml_in:
+                    for line in yaml_in:
+                        if line.startswith("  - ID: "):
+                            line = line.replace("  - ID: ", f"  - ID: {part}_")
+                        yaml_out.write(line)
+                scipio_log = Path(scipio_yaml.parent, f"{scipio_yaml.stem}.log")
+                with open(scipio_log, "rt") as log_in:
+                    yaml_log.write(f"\n\n{scipio_log}:\n")
+                    yaml_log.writelines(log_in.readlines())
 
         # Merge partial output files, then delete all partial files
         if not file_is_empty(scipio_out_file):
@@ -1999,11 +1998,10 @@ def parallel_scipio(
 
 
 def split_psl_by_targets(psl_path_in, seq_names_set, psl_out_path):
-    with open(psl_out_path, "wt") as part_psl_out:
-        with open(psl_path_in, "rt") as full_psl_in:
-            for line in full_psl_in:
-                if line.split()[9] in seq_names_set:
-                    part_psl_out.write(line)
+    with open(psl_out_path, "wt") as part_psl_out, open(psl_path_in, "rt") as full_psl_in:
+        for line in full_psl_in:
+            if line.split()[9] in seq_names_set:
+                part_psl_out.write(line)
     return psl_out_path
 
 
@@ -2026,8 +2024,8 @@ def run_scipio_command(
     scipio_log_file,
 ):
     # Build the basic part of the command
-    min_identity_scipio = math.floor(min_identity * settings.SEARCH_IDENT_PROP)
-    min_identity_blat = math.floor(min_identity * settings.PROT_BLAT_IDENT_PROP)
+    min_identity_scipio = math.floor(min_identity * sett.SEARCH_IDENT_PROP)
+    min_identity_blat = math.floor(min_identity * sett.PROT_BLAT_IDENT_PROP)
     basic = [
         "perl",
         f"{scipio_path}",
@@ -2044,7 +2042,7 @@ def run_scipio_command(
         f"--blat_score={blat_min_score}",
         f"--blat_identity={min_identity_blat}",
         f"--transtable={transtable}",
-        f"--accepted_intron_penalty={settings.SCIPIO_ACCEPTED_INTRON_PENALTY}",
+        f"--accepted_intron_penalty={sett.SCIPIO_ACCEPTED_INTRON_PENALTY}",
     ]
     if disable_stitching:
         basic += ["--single_target_hits"]  # Scipio finds matches in a single contig only
@@ -2052,27 +2050,19 @@ def run_scipio_command(
     # Finish building the command and run Scipio
     if blat_only:
         scipio_cmd = basic + extra_settings + ["--blat_only"] + [f"{target_path}", f"{query_path}"]
+        expected_output = blat_out_file
         with open(scipio_log_file, "wt") as yaml_log:
-            try:
-                subprocess.run(scipio_cmd, stderr=yaml_log)
-            except Exception:
-                return None
-        if file_is_empty(blat_out_file):
-            return None
-        else:
-            return blat_out_file
+            subprocess.run(scipio_cmd, stderr=yaml_log, check=False)
     else:
         scipio_cmd = basic + extra_settings + [f"{target_path}", f"{query_path}"]
-        with open(scipio_out_file, "w") as yaml_out:
-            with open(scipio_log_file, "w") as yaml_log:
-                try:
-                    subprocess.run(scipio_cmd, stdout=yaml_out, stderr=yaml_log)
-                except Exception:
-                    return None
-        if file_is_empty(scipio_out_file):
-            return None
-        else:
-            return scipio_out_file
+        expected_output = scipio_out_file
+        with open(scipio_out_file, "w") as yaml_out, open(scipio_log_file, "w") as yaml_log:
+            subprocess.run(scipio_cmd, stdout=yaml_out, stderr=yaml_log, check=False)
+
+    if file_is_empty(expected_output):
+        return None
+
+    return expected_output
 
 
 def filter_query_and_target(query_dict, target_dict, psl_initial_file, marker_type):
@@ -2093,9 +2083,9 @@ def filter_query_and_target(query_dict, target_dict, psl_initial_file, marker_ty
     dict_to_fasta(best_proteins, final_query, wrap=80)
     if marker_type in ["MIT", "PTD"]:
         filtered_contigs = {}
-        for contig in hit_contigs:
-            if len(hit_contigs[contig]["sequence"]) <= settings.MAX_ORGANELLE_SIZE[marker_type]:
-                filtered_contigs[contig] = hit_contigs[contig]
+        for contig, contig_info in hit_contigs.items():
+            if len(contig_info["sequence"]) <= sett.MAX_ORGANELLE_SIZE[marker_type]:
+                filtered_contigs[contig] = contig_info
         dict_to_fasta(filtered_contigs, final_target, wrap=80)
     else:
         dict_to_fasta(hit_contigs, final_target, wrap=80)
@@ -2175,7 +2165,7 @@ def write_fastas_and_stats_tsv(
     num_loci, num_paralogs = 0, 0
     lengths_best_hits, coverages_best_hits = [], []
     flanked_seqs, gene_seqs, cds_aa_seqs, cds_nt_seqs, hit_contigs = {}, {}, {}, {}, {}
-    stats_header = "\t".join(settings.EXT_STATS_HEADER)
+    stats_header = "\t".join(sett.EXT_STATS_HEADER)
     stats = []
     for ref in sorted(hits):
         num_loci += 1
@@ -2244,9 +2234,9 @@ def write_fastas_and_stats_tsv(
                     shifts_aa, shifts_nt = "", ""
 
             if len(hits[ref]) == 1:
-                seq_name = settings.SEQ_NAME_SEP.join([sample_name, ref])
+                seq_name = sett.SEQ_NAME_SEP.join([sample_name, ref])
             else:
-                seq_name = settings.SEQ_NAME_SEP.join([sample_name, ref, f"{h:02}"])
+                seq_name = sett.SEQ_NAME_SEP.join([sample_name, ref, f"{h:02}"])
 
             flanked_seqs[seq_name] = {
                 "description": f"{query}{description}{len_flanked}{shifts_flanked}",
@@ -2345,20 +2335,20 @@ def write_fastas_and_stats_tsv(
             hit_list_out.write(f"{contig}\n")
 
     if marker_type in ["NUC", "PTD", "MIT"]:
-        dict_to_fasta(cds_aa_seqs, Path(out_dir, f"{marker_type}{settings.FORMAT_SUFFIXES['AA']}"))
-        dict_to_fasta(cds_nt_seqs, Path(out_dir, f"{marker_type}{settings.FORMAT_SUFFIXES['NT']}"))
-        dict_to_fasta(gene_seqs, Path(out_dir, f"{marker_type}{settings.FORMAT_SUFFIXES['GE']}"))
-        dict_to_fasta(flanked_seqs, Path(out_dir, f"{marker_type}{settings.FORMAT_SUFFIXES['GF']}"))
+        dict_to_fasta(cds_aa_seqs, Path(out_dir, f"{marker_type}{sett.FORMAT_SUFFIXES['AA']}"))
+        dict_to_fasta(cds_nt_seqs, Path(out_dir, f"{marker_type}{sett.FORMAT_SUFFIXES['NT']}"))
+        dict_to_fasta(gene_seqs, Path(out_dir, f"{marker_type}{sett.FORMAT_SUFFIXES['GE']}"))
+        dict_to_fasta(flanked_seqs, Path(out_dir, f"{marker_type}{sett.FORMAT_SUFFIXES['GF']}"))
     elif marker_type in ["DNA", "CLR"]:
-        dict_to_fasta(gene_seqs, Path(out_dir, f"{marker_type}{settings.FORMAT_SUFFIXES['MA']}"))
-        dict_to_fasta(flanked_seqs, Path(out_dir, f"{marker_type}{settings.FORMAT_SUFFIXES['MF']}"))
+        dict_to_fasta(gene_seqs, Path(out_dir, f"{marker_type}{sett.FORMAT_SUFFIXES['MA']}"))
+        dict_to_fasta(flanked_seqs, Path(out_dir, f"{marker_type}{sett.FORMAT_SUFFIXES['MF']}"))
 
     if len(gene_seqs) <= max_loci_files:
         if marker_type in ["NUC", "PTD", "MIT"]:
-            cds_aa_seqs_dir, _ = make_output_dir(Path(out_dir, settings.FORMAT_DIRS["AA"]))
-            cds_nt_seqs_dir, _ = make_output_dir(Path(out_dir, settings.FORMAT_DIRS["NT"]))
-            gene_seqs_dir, _ = make_output_dir(Path(out_dir, settings.FORMAT_DIRS["GE"]))
-            flanked_seqs_dir, _ = make_output_dir(Path(out_dir, settings.FORMAT_DIRS["GF"]))
+            cds_aa_seqs_dir, _ = make_output_dir(Path(out_dir, sett.FORMAT_DIRS["AA"]))
+            cds_nt_seqs_dir, _ = make_output_dir(Path(out_dir, sett.FORMAT_DIRS["NT"]))
+            gene_seqs_dir, _ = make_output_dir(Path(out_dir, sett.FORMAT_DIRS["GE"]))
+            flanked_seqs_dir, _ = make_output_dir(Path(out_dir, sett.FORMAT_DIRS["GF"]))
             if dir_is_empty(cds_aa_seqs_dir) is True or overwrite is True:
                 for faa_file in cds_aa_seqs_dir.glob("*.faa"):
                     faa_file.unlink()
@@ -2366,8 +2356,8 @@ def write_fastas_and_stats_tsv(
                 for fna_file in cds_nt_seqs_dir.glob("*.fna"):
                     fna_file.unlink()
         elif marker_type in ["DNA", "CLR"]:
-            gene_seqs_dir, _ = make_output_dir(Path(out_dir, settings.FORMAT_DIRS["MA"]))
-            flanked_seqs_dir, _ = make_output_dir(Path(out_dir, settings.FORMAT_DIRS["MF"]))
+            gene_seqs_dir, _ = make_output_dir(Path(out_dir, sett.FORMAT_DIRS["MA"]))
+            flanked_seqs_dir, _ = make_output_dir(Path(out_dir, sett.FORMAT_DIRS["MF"]))
 
         if dir_is_empty(gene_seqs_dir) is True or overwrite is True:
             for fna_file in gene_seqs_dir.glob("*.fna"):
@@ -2377,12 +2367,10 @@ def write_fastas_and_stats_tsv(
                 fna_file.unlink()
 
         for seq_name_full in sorted(flanked_seqs):
-            if len(seq_name_full.split(settings.SEQ_NAME_SEP)) == 3:
-                seq_name_short = settings.SEQ_NAME_SEP.join(
-                    seq_name_full.split(settings.SEQ_NAME_SEP)[::2]
-                )
+            if len(seq_name_full.split(sett.SEQ_NAME_SEP)) == 3:
+                seq_name_short = sett.SEQ_NAME_SEP.join(seq_name_full.split(sett.SEQ_NAME_SEP)[::2])
             else:
-                seq_name_short = seq_name_full.split(settings.SEQ_NAME_SEP)[0]
+                seq_name_short = seq_name_full.split(sett.SEQ_NAME_SEP)[0]
             dict_to_fasta(
                 {seq_name_short: dict(flanked_seqs[seq_name_full])},
                 Path(flanked_seqs_dir, f"{flanked_seqs[seq_name_full]['ref_name']}.fna"),
@@ -2454,10 +2442,10 @@ def blat_misc_dna(
 
     # Set BLAT path in case of using the bundled version
     if blat_path == "bundled":
-        blat_path = settings.BUNDLED_BLAT
+        blat_path = sett.BUNDLED_BLAT
 
     # Create output directory
-    blat_dna_out_dir = Path(sample_dir, settings.MARKER_DIRS[marker_type])
+    blat_dna_out_dir = Path(sample_dir, sett.MARKER_DIRS[marker_type])
     blat_dna_out_file = Path(blat_dna_out_dir, f"{marker_type}_blat_search.psl")
     blat_dna_log_file = Path(blat_dna_out_dir, f"{marker_type}_blat_search.log")
     dna_gff_file = Path(blat_dna_out_dir, f"{marker_type}_contigs.gff")
@@ -2576,7 +2564,7 @@ def parallel_blat(
     no_head=True,
 ):
     # 1. Reduce number of threads if there is less than 1GB RAM per thread
-    while ram_bytes / threads < (settings.RAM_FRACTION * 1024**3):
+    while ram_bytes / threads < (sett.RAM_FRACTION * 1024**3):
         threads -= 1
     threads = max(1, threads)
 
@@ -2628,7 +2616,7 @@ def parallel_blat(
         for psl_part_path in psl_parts_paths_to_cat:
             with open(psl_part_path, "rb") as psl_part:
                 while True:
-                    chunk = psl_part.read(settings.CHUNK_SIZE)
+                    chunk = psl_part.read(sett.CHUNK_SIZE)
                     if not chunk:
                         break
                     psl_log.write(chunk)
@@ -2636,7 +2624,7 @@ def parallel_blat(
         for psl_log_part_path in psl_log_parts_paths_to_cat:
             with open(psl_log_part_path, "rb") as psl_part:
                 while True:
-                    chunk = psl_part.read(settings.CHUNK_SIZE)
+                    chunk = psl_part.read(sett.CHUNK_SIZE)
                     if not chunk:
                         break
                     psl_log.write(chunk)
@@ -2663,9 +2651,9 @@ def split_asm_by_contigs(
     asm_part_path: Path,
 ):
     asm_part = {}
-    for contig in asm_full:
+    for contig, contig_info in asm_full.items():
         if contigs_parts[contig] == part:
-            asm_part[contig] = asm_full[contig]
+            asm_part[contig] = contig_info
     dict_to_fasta(asm_part, asm_part_path, write_if_empty=False)
 
     if asm_part_path.exists():
@@ -2689,9 +2677,9 @@ def run_blat_command(
     max_intron,
 ):
     if query_type == "prot":
-        min_identity_blat = math.floor(min_identity * settings.PROT_BLAT_IDENT_PROP)
+        min_identity_blat = math.floor(min_identity * sett.PROT_BLAT_IDENT_PROP)
     else:
-        min_identity_blat = math.floor(min_identity * settings.SEARCH_IDENT_PROP)
+        min_identity_blat = math.floor(min_identity * sett.SEARCH_IDENT_PROP)
     blat_cmd = [
         f"{blat_path}",
         f"-t={target_type}",
@@ -2710,7 +2698,7 @@ def run_blat_command(
         if max_intron:
             blat_cmd += [f"-maxIntron={max_intron}"]
     else:
-        blat_cmd += [f"-maxIntron={settings.DNA_BLAT_MAX_INSERTION}"]
+        blat_cmd += [f"-maxIntron={sett.DNA_BLAT_MAX_INSERTION}"]
     blat_cmd += [
         f"{target_path}",
         f"{query_part_path}",
@@ -2720,7 +2708,7 @@ def run_blat_command(
     with open(psl_log_part_path, "w") as blat_log:
         blat_log.write(f"Captus' BLAT command:\n  {' '.join(blat_cmd)}\n\n")
     with open(psl_log_part_path, "a") as blat_log:
-        subprocess.run(blat_cmd, stdout=blat_log, stderr=blat_log)
+        subprocess.run(blat_cmd, stdout=blat_log, stderr=blat_log, check=False)
         blat_log.write("\n\n")
 
     if psl_part_path.exists():
@@ -2745,7 +2733,7 @@ def prefilter_blat_psl(
     debug: bool,
     keep_all: bool,
 ):
-    size_mul = settings.SIZE_MUL[marker_type]
+    size_mul = sett.SIZE_MUL[marker_type]
 
     # 1. Determine if contigs contain depth of coverage info in their names
     contigs_have_depth = None
@@ -2798,7 +2786,7 @@ def prefilter_blat_psl(
         for path in rejected_psls_to_cat:
             with open(path, "rb") as psl_part_rej:
                 while True:
-                    chunk = psl_part_rej.read(settings.CHUNK_SIZE)
+                    chunk = psl_part_rej.read(sett.CHUNK_SIZE)
                     if not chunk:
                         break
                     psl_rej.write(chunk)
@@ -2822,7 +2810,7 @@ def prefilter_blat_psl(
             for path in accepted_psls_to_cat:
                 with open(path, "rb") as psl_part_acc:
                     while True:
-                        chunk = psl_part_acc.read(settings.CHUNK_SIZE)
+                        chunk = psl_part_acc.read(sett.CHUNK_SIZE)
                         if not chunk:
                             break
                         psl_acc.write(chunk)
@@ -2838,7 +2826,7 @@ def prefilter_blat_psl(
                     continue
                 locus = p["q_name"]
                 if separators_found is True:
-                    locus = p["q_name"].split(settings.REF_CLUSTER_SEP)[-1]
+                    locus = p["q_name"].split(sett.REF_CLUSTER_SEP)[-1]
                 hit_info = {
                     "psl_record": line.strip(),
                     "locus": locus,
@@ -2882,38 +2870,37 @@ def prefilter_blat_psl(
                     best_hit_wscoreld = loci_depths[locus][contig]["max_wscoreld"]
                     depth = loci_depths[locus][contig]["depth"]
                 elif loci_depths[locus][contig]["max_wscoreld"] == best_hit_wscoreld:
-                    if loci_depths[locus][contig]["depth"] > depth:
-                        depth = loci_depths[locus][contig]["depth"]
+                    depth = max(depth, loci_depths[locus][contig]["depth"])
             try:
                 loci_min_depths[locus] = 10 ** (round(math.log10(depth) * depth_tolerance, 2))
             except ValueError:
                 loci_min_depths[locus] = 0
 
         # 9. Write rejected and accepted hits after filtering by depth
-        with open(blat_out_file, "wt") as psl_acc:
-            with open(psl_rejected_path, "at") as psl_rej:
-                for locus in sorted(loci):
-                    for i in range(len(loci[locus])):
-                        if loci[locus][i]["depth"] >= loci_min_depths[locus]:
-                            psl_record = "\t".join(loci[locus][i]["psl_record"].split()[0:21])
-                            psl_acc.write(f"{psl_record}\n")
-                        else:
-                            reason = f"min_locus_depth={loci_min_depths[locus]:.4f}"
-                            psl_rej.write(f"{loci[locus][i]['psl_record']};{reason}\n")
+        with open(blat_out_file, "wt") as psl_acc, open(psl_rejected_path, "at") as psl_rej:
+            for locus in sorted(loci):
+                for i in range(len(loci[locus])):
+                    if loci[locus][i]["depth"] >= loci_min_depths[locus]:
+                        psl_record = "\t".join(loci[locus][i]["psl_record"].split()[0:21])
+                        psl_acc.write(f"{psl_record}\n")
+                    else:
+                        reason = f"min_locus_depth={loci_min_depths[locus]:.4f}"
+                        psl_rej.write(f"{loci[locus][i]['psl_record']};{reason}\n")
 
         # 10. Write depth contig statistics for accepted hits
         accepted_contigs_depths = Path(
             blat_out_file.parent, blat_out_file.name.replace(".psl", "_depths.tsv")
         )
-        depths_header = "\t".join(
-            [
-                "locus",
-                "contig",
-                "wscore",
-                "depth",
-                "max_wscoreld",
-            ]
-        )
+
+        depths_header = [
+            "locus",
+            "contig",
+            "wscore",
+            "depth",
+            "max_wscoreld",
+        ]
+        depths_header = "\t".join(depths_header)
+
         with open(accepted_contigs_depths, "wt") as dep_out:
             dep_out.write(f"{depths_header}\n")
             for locus in sorted(loci_depths):
@@ -2977,41 +2964,41 @@ def split_psl_by_contigs_add_wscore(
             if target not in target_max_wscores:
                 target_max_wscores[target] = wscore
             else:
-                if wscore > target_max_wscores[target]:
-                    target_max_wscores[target] = wscore
+                target_max_wscores[target] = max(target_max_wscores[target], wscore)
 
     # 1. Filter hits according to 'MIN_PROP_WSCORE', store contig sizes for accepted hits
     contig_sizes = {}
     target_all_wscores = {}
-    with open(psl_raw_path, "rt") as psl_in:
-        with open(psl_rejected_path, "wt") as psl_rej:
-            with open(psl_wscore_path, "wt") as psl_wsc:
-                for line in psl_in:
-                    p = parse_psl_record(line)
-                    if p is None:
-                        continue
-                    wscore = calc_wscore(p)
-                    locus = p["q_name"]
-                    if separators_found is True:
-                        locus = p["q_name"].split(settings.REF_CLUSTER_SEP)[-1]
-                    target = p["q_name"]
-                    line_out = f"{line.strip()}\t{wscore:.5f}"
-                    max_target_wscore = target_max_wscores[target]
-                    if wscore >= max(
-                        settings.MIN_ABS_WSCORE, max_target_wscore * settings.MIN_PROP_WSCORE
-                    ):
-                        if locus not in target_all_wscores:
-                            target_all_wscores[locus] = {target: wscore}
-                        else:
-                            if target not in target_all_wscores[locus]:
-                                target_all_wscores[locus][target] = wscore
-                            else:
-                                if wscore > target_all_wscores[locus][target]:
-                                    target_all_wscores[locus][target] = wscore
-                        contig_sizes[p["t_name"]] = p["t_size"]
-                        psl_wsc.write(f"{line_out}\n")
+    with (
+        open(psl_raw_path, "rt") as psl_in,
+        open(psl_rejected_path, "wt") as psl_rej,
+        open(psl_wscore_path, "wt") as psl_wsc,
+    ):
+        for line in psl_in:
+            p = parse_psl_record(line)
+            if p is None:
+                continue
+            wscore = calc_wscore(p)
+            locus = p["q_name"]
+            if separators_found is True:
+                locus = p["q_name"].split(sett.REF_CLUSTER_SEP)[-1]
+            target = p["q_name"]
+            line_out = f"{line.strip()}\t{wscore:.5f}"
+            max_target_wscore = target_max_wscores[target]
+            if wscore >= max(sett.MIN_ABS_WSCORE, max_target_wscore * sett.MIN_PROP_WSCORE):
+                if locus not in target_all_wscores:
+                    target_all_wscores[locus] = {target: wscore}
+                else:
+                    if target not in target_all_wscores[locus]:
+                        target_all_wscores[locus][target] = wscore
                     else:
-                        psl_rej.write(f"{line_out};max_target_wscore={max_target_wscore:.5f}\n")
+                        target_all_wscores[locus][target] = max(
+                            target_all_wscores[locus][target], wscore
+                        )
+                contig_sizes[p["t_name"]] = p["t_size"]
+                psl_wsc.write(f"{line_out}\n")
+            else:
+                psl_rej.write(f"{line_out};max_target_wscore={max_target_wscore:.5f}\n")
 
     # Exit if there were no accepted hits
     if len(contig_sizes) == 0:
@@ -3020,34 +3007,34 @@ def split_psl_by_contigs_add_wscore(
     if separators_found is True:
         num_targets = sum([len(target_all_wscores[locus]) for locus in target_all_wscores])
         potential_combos = (num_targets) * (num_targets - 1)
-        if potential_combos > settings.MAX_CROSS_LOCI_COMP or stage == "initial":
+        if potential_combos > sett.MAX_CROSS_LOCI_COMP or stage == "initial":
             # 2. Sort targets by wscores in reverse order inside each locus in target_wscores
-            for locus in target_all_wscores:
+            for locus in target_all_wscores:  # noqa: PLC0206
                 target_all_wscores[locus] = dict(
                     sorted(target_all_wscores[locus].items(), key=lambda item: item[1], reverse=True)
                 )
             # 3. Determine best_n_targets
-            if stage == "initial" and potential_combos < settings.MAX_CROSS_LOCI_COMP:
-                best_n_targets = settings.BEST_N_TARGETS_INITIAL
-                if max(contig_sizes.values()) >= settings.MIN_CHROM_SIZE:
+            if stage == "initial" and potential_combos < sett.MAX_CROSS_LOCI_COMP:
+                best_n_targets = sett.BEST_N_TARGETS_INITIAL
+                if max(contig_sizes.values()) >= sett.MIN_CHROM_SIZE:
                     best_n_targets = max(1, best_n_targets // 2)
             else:
-                best_n_targets = settings.BEST_N_TARGETS_GLOBAL
-                if max(contig_sizes.values()) >= settings.MIN_CHROM_SIZE:
+                best_n_targets = sett.BEST_N_TARGETS_GLOBAL
+                if max(contig_sizes.values()) >= sett.MIN_CHROM_SIZE:
                     best_n_targets //= 10
                 num_loci = len(target_all_wscores)
                 for n in range(best_n_targets, 1, -1):
                     loci_target_combos = (num_loci * n) * ((num_loci - 1) * n)
-                    if loci_target_combos > settings.MAX_CROSS_LOCI_COMP:
+                    if loci_target_combos > sett.MAX_CROSS_LOCI_COMP:
                         best_n_targets -= 1
                     else:
                         break
                 best_n_targets = max(1, best_n_targets)
             # 4. Get n_best targets from every locus in target_wscores
             allowed_targets = []
-            for locus in target_all_wscores:
+            for locus, locus_targets in target_all_wscores.items():
                 counter = 0
-                for target in target_all_wscores[locus]:
+                for target in locus_targets:
                     if counter < best_n_targets:
                         allowed_targets.append(target)
                         counter += 1
@@ -3060,15 +3047,17 @@ def split_psl_by_contigs_add_wscore(
                 psl_wscore_path.parent, psl_wscore_path.name.replace(".psl", "_unfiltered.psl")
             )
             psl_wscore_path.rename(unfiltered_psl_wscore_path)
-            with open(unfiltered_psl_wscore_path, "rt") as psl_in:
-                with open(psl_rejected_path, "at") as psl_rej:
-                    with open(psl_wscore_path, "wt") as psl_wsc:
-                        for line in psl_in:
-                            if line.split()[9] in allowed_targets:
-                                psl_wsc.write(line)
-                            else:
-                                line_out = f"{line.strip()};LWT\n"  # LWT = Low Wscore Target
-                                psl_rej.write(line_out)
+            with (
+                open(unfiltered_psl_wscore_path, "rt") as psl_in,
+                open(psl_rejected_path, "at") as psl_rej,
+                open(psl_wscore_path, "wt") as psl_wsc,
+            ):
+                for line in psl_in:
+                    if line.split()[9] in allowed_targets:
+                        psl_wsc.write(line)
+                    else:
+                        line_out = f"{line.strip()};LWT\n"  # LWT = Low Wscore Target
+                        psl_rej.write(line_out)
             unfiltered_psl_wscore_path.unlink()
 
     # 6. Assign contigs to as many groups as threads, filling the groups with smaller contigs first
@@ -3081,8 +3070,8 @@ def split_psl_by_contigs_add_wscore(
         if part == threads:
             part = 0
     contigs_parts = {}
-    for part in contigs_lists:
-        for contig in contigs_lists[part]:
+    for part, part_info in contigs_lists.items():
+        for contig in part_info:
             contigs_parts[contig] = part
 
     # 7. Prepare parameters to run the split in parallel
@@ -3118,11 +3107,10 @@ def split_psl_by_contigs_add_wscore(
 def split_psl_by_contigs(
     psl_path_wscore: Path, contigs_parts: dict, part: int, psl_wscore_part_path: Path
 ):
-    with open(psl_path_wscore, "rt") as full_psl_in:
-        with open(psl_wscore_part_path, "wt") as part_psl_out:
-            for line in full_psl_in:
-                if contigs_parts[line.split()[13]] == part:
-                    part_psl_out.write(line)
+    with open(psl_path_wscore, "rt") as full_psl_in, open(psl_wscore_part_path, "wt") as part_psl_out:
+        for line in full_psl_in:
+            if contigs_parts[line.split()[13]] == part:
+                part_psl_out.write(line)
     if psl_wscore_part_path.exists():
         if psl_wscore_part_path.stat().st_size > 0:
             return psl_wscore_part_path
@@ -3152,7 +3140,7 @@ def filter_psl_overlaps(
                 continue
             locus = p["q_name"]
             if separators_found is True:
-                locus = p["q_name"].split(settings.REF_CLUSTER_SEP)[-1]
+                locus = p["q_name"].split(sett.REF_CLUSTER_SEP)[-1]
             contig = p["t_name"]
             t_starts = p["t_starts"]
             t_ends = [
@@ -3180,47 +3168,42 @@ def filter_psl_overlaps(
                 contigs[contig].append(hit_info)
 
     # Mark lower wscore hits for deletion if cross-loci overlaps are detected
-    with open(psl_wscore_part_path, "wt") as psl_acc:
-        with open(psl_wscore_part_rejected_path, "wt") as psl_rej:
-            for contig in sorted(contigs):
-                contigs[contig] = sorted(contigs[contig], key=lambda i: i["wscore"], reverse=True)
-                contigs[contig][0]["accepted"] = True
-                if len(contigs[contig]) == 1:
-                    psl_acc.write(f"{contigs[contig][0]['psl_record']}\n")
-                else:
-                    if max_locus_overlap < 100:
-                        for i in range(len(contigs[contig])):
-                            for j in range(i + 1, len(contigs[contig])):
-                                if (
-                                    contigs[contig][i]["target"] == contigs[contig][j]["target"]
-                                    or contigs[contig][i]["locus"] != contigs[contig][j]["locus"]
-                                ):
-                                    if contigs[contig][j]["accepted"] is not False:
-                                        pct_overlap, overlap_types = calculate_hit_overlap(
-                                            contigs[contig][i], contigs[contig][j]
-                                        )
-                                        if (
-                                            pct_overlap > max_locus_overlap
-                                            and "allowed" not in overlap_types
-                                        ):
-                                            contigs[contig][j]["accepted"] = False
-                                            contigs[contig][j]["reason"] = (
-                                                f"pct_overlap={pct_overlap:.2f};overlap_types={overlap_types}"
-                                            )
+    with (
+        open(psl_wscore_part_path, "wt") as psl_acc,
+        open(psl_wscore_part_rejected_path, "wt") as psl_rej,
+    ):
+        for contig in sorted(contigs):
+            contigs[contig] = sorted(contigs[contig], key=lambda i: i["wscore"], reverse=True)
+            contigs[contig][0]["accepted"] = True
+            if len(contigs[contig]) == 1:
+                psl_acc.write(f"{contigs[contig][0]['psl_record']}\n")
+            else:
+                if max_locus_overlap < 100:
                     for i in range(len(contigs[contig])):
-                        if (
-                            contigs[contig][i]["accepted"] is None
-                            or contigs[contig][i]["accepted"] is True
-                        ):
-                            psl_acc.write(f"{contigs[contig][i]['psl_record']}\n")
-                        else:
-                            psl_rej.write(
-                                f"{contigs[contig][i]['psl_record']};{contigs[contig][j]['reason']}\n"
-                            )
-                            # t_ends = ",".join([str(j) for j in contigs[contig][i]["t_ends"]])
-                            # printout = (f"{contigs[contig][i]['psl']}\t{t_ends}\t{contigs[contig][i]['locus']}\t"
-                            #             f"{contigs[contig][i]['wscore']:.4f}\t{contigs[contig][i]['accepted']}\t")
-                            # print(printout)
+                        for j in range(i + 1, len(contigs[contig])):
+                            if (
+                                contigs[contig][i]["target"] == contigs[contig][j]["target"]
+                                or contigs[contig][i]["locus"] != contigs[contig][j]["locus"]
+                            ) and contigs[contig][j]["accepted"] is not False:
+                                pct_overlap, overlap_types = calculate_hit_overlap(
+                                    contigs[contig][i], contigs[contig][j]
+                                )
+                                if pct_overlap > max_locus_overlap and "allowed" not in overlap_types:
+                                    contigs[contig][j]["accepted"] = False
+                                    contigs[contig][j]["reason"] = (
+                                        f"pct_overlap={pct_overlap:.2f};overlap_types={overlap_types}"
+                                    )
+                for i in range(len(contigs[contig])):
+                    if contigs[contig][i]["accepted"] is None or contigs[contig][i]["accepted"] is True:
+                        psl_acc.write(f"{contigs[contig][i]['psl_record']}\n")
+                    else:
+                        psl_rej.write(
+                            f"{contigs[contig][i]['psl_record']};{contigs[contig][j]['reason']}\n"
+                        )
+                        # t_ends = ",".join([str(j) for j in contigs[contig][i]["t_ends"]])
+                        # printout = (f"{contigs[contig][i]['psl']}\t{t_ends}\t{contigs[contig][i]['locus']}\t"
+                        #             f"{contigs[contig][i]['wscore']:.4f}\t{contigs[contig][i]['accepted']}\t")
+                        # print(printout)
     psl_accepted = None
     psl_rejected = None
     if psl_wscore_part_path.exists():
@@ -3255,7 +3238,7 @@ def calculate_hit_overlap(hit1: dict, hit2: dict):
     if h1e[-1] <= h2s[0] or h2e[-1] <= h1s[0]:
         return 0.0, "N"
 
-    if sorted([hit1["locus"], hit2["locus"]]) in settings.VALID_OVERLAPS:
+    if sorted([hit1["locus"], hit2["locus"]]) in sett.VALID_OVERLAPS:
         return 0.0, "allowed"
 
     overlapped_bp = 0
@@ -3322,10 +3305,10 @@ def cleanup_post_extraction(
 
     if dir_is_empty(annotated_assembly_dir) is True or overwrite is True:
         # Concatenate all GFF from different genomes
-        sample_gffs = sorted(list(sample_dir.resolve().rglob("[A-Z]*_contigs.gff")))
+        sample_gffs = sorted(sample_dir.resolve().rglob("[A-Z]*_contigs.gff"))
         sample_gffs = [gff for gff in sample_gffs if gff.parts[-2] != "06_assembly_annotated"]
         if not cluster and not skip_clustering:
-            sample_gffs = [gff for gff in sample_gffs if gff.parts[-2] != settings.MARKER_DIRS["CLR"]]
+            sample_gffs = [gff for gff in sample_gffs if gff.parts[-2] != sett.MARKER_DIRS["CLR"]]
         gff_lines = 0
         with open(gff_file, "wt") as gff_out:
             gff_out.write("##gff-version 3\n")
@@ -3350,11 +3333,11 @@ def cleanup_post_extraction(
             return message
 
         # Concatenate all recovery statistics tables
-        stats_header = "\t".join(settings.EXT_STATS_HEADER) + "\n"
-        sample_stats = sorted(list(sample_dir.resolve().rglob("[A-Z]*_recovery_stats.tsv")))
+        stats_header = "\t".join(sett.EXT_STATS_HEADER) + "\n"
+        sample_stats = sorted(sample_dir.resolve().rglob("[A-Z]*_recovery_stats.tsv"))
         sample_stats = [tsv for tsv in sample_stats if tsv.parts[-2] != "06_assembly_annotated"]
         if not cluster and not skip_clustering:
-            sample_stats = [tsv for tsv in sample_stats if tsv.parts[-2] != settings.MARKER_DIRS["CLR"]]
+            sample_stats = [tsv for tsv in sample_stats if tsv.parts[-2] != sett.MARKER_DIRS["CLR"]]
         tsv_lines = 0
         with open(stats_file, "wt") as tsv_out:
             tsv_out.write(f"{tsv_comment[0]}\n{tsv_comment[1]}\n")
@@ -3373,7 +3356,7 @@ def cleanup_post_extraction(
         hit_contigs = {}
         contig_lists = list(sample_dir.resolve().rglob("[A-Z]*_contigs.list.txt"))
         if not cluster and not skip_clustering:
-            contig_lists = [cl for cl in contig_lists if cl.parts[-2] != settings.MARKER_DIRS["CLR"]]
+            contig_lists = [cl for cl in contig_lists if cl.parts[-2] != sett.MARKER_DIRS["CLR"]]
         if contig_lists:
             for cl in contig_lists:
                 with open(cl, "rt") as clin:
@@ -3471,6 +3454,11 @@ def rehead_and_concatenate_fastas(
     )
     log.log("")
     fastas_to_concatenate = list(clustering_dir.glob("*_leftover_contigs.fasta"))
+    if len(fastas_to_concatenate) == 0:
+        log.log(red("All the 'leftover_contigs.fasta.gz' files were empty, no data to cluster..."))
+        log.log("")
+        return None
+
     log.log(bold("Concatenating input for clustering:"))
     tqdm_cols = min(shutil.get_terminal_size().columns, 120)
     with tqdm(total=len(fastas_to_concatenate), ncols=tqdm_cols, unit="file") as pbar:
@@ -3483,14 +3471,28 @@ def rehead_and_concatenate_fastas(
                 dict_to_fasta(reheaded_fasta, clustering_input_file_decompressed, append=True)
             cat_fasta.unlink()
             pbar.update()
-    log.log(
-        bold(
-            f" \u2514\u2500\u2192 File '{clustering_input_file_decompressed.name}'"
-            f" prepared in {elapsed_time(time.time() - start)}(s)"
+    if (
+        file_is_empty(clustering_input_file_decompressed)
+        or not clustering_input_file_decompressed.exists()
+    ):
+        log.log(
+            red(
+                f" \u2514\u2500\u2192 File '{clustering_input_file_decompressed.name}'"
+                " was empty, nothing to cluster ..."
+            )
         )
-    )
-    log.log("")
-    compress_list_files([clustering_input_file_decompressed], threads_max)
+        log.log("")
+        return None
+    else:
+        log.log(
+            bold(
+                f" \u2514\u2500\u2192 File '{clustering_input_file_decompressed.name}'"
+                f" prepared in {elapsed_time(time.time() - start)}(s)"
+            )
+        )
+        log.log("")
+        compress_list_files([clustering_input_file_decompressed], threads_max)
+        return clustering_input_file
 
 
 def rehead_fasta_with_sample_name(sample_name, sample_fasta_path, clustering_dir):
@@ -3502,7 +3504,7 @@ def rehead_fasta_with_sample_name(sample_name, sample_fasta_path, clustering_dir
     reheaded_fasta = {}
     reheaded_fasta_file = Path(clustering_dir, f"{sample_name}_leftover_contigs.fasta")
     for header in sample_fasta:
-        reheaded_fasta[f"{sample_name}{settings.SEQ_NAME_SEP}{header}"] = dict(sample_fasta[header])
+        reheaded_fasta[f"{sample_name}{sett.SEQ_NAME_SEP}{header}"] = dict(sample_fasta[header])
     dict_to_fasta(reheaded_fasta, reheaded_fasta_file)
     message = (
         f"'{sample_name}': file '{sample_fasta_path.name}'"
@@ -3569,7 +3571,7 @@ def cluster_and_select_refs(
         for cluster in clust1_clusters:
             samples_copies = {}
             for i in range(0, len(cluster), 2):
-                sample_name = cluster[i][1:].split(settings.SEQ_NAME_SEP)[0]
+                sample_name = cluster[i][1:].split(sett.SEQ_NAME_SEP)[0]
                 if sample_name in samples_copies:
                     samples_copies[sample_name] += 1
                 else:
@@ -3602,10 +3604,10 @@ def cluster_and_select_refs(
         for i in range(0, len(cluster), 2):
             if i == 0:
                 cluster_lenghts[clr] = len(cluster[1])
-            h = cluster[i][1:].split(settings.SEQ_NAME_SEP)
+            h = cluster[i][1:].split(sett.SEQ_NAME_SEP)
             smp, ctg = h[0], h[1]
-            ref_sep = settings.REF_CLUSTER_SEP
-            seq_sep = settings.SEQ_NAME_SEP
+            ref_sep = sett.REF_CLUSTER_SEP
+            seq_sep = sett.SEQ_NAME_SEP
             seq_name = f"{smp}_C{(i // 2) + 1}{ref_sep}{clr}{seq_sep}{ctg}"
             cluster[i] = f">{seq_name}"  # rename headers in case clust_rep_single is True
             fasta_to_recluster[seq_name] = {
@@ -3654,20 +3656,20 @@ def cluster_and_select_refs(
     log.log("")
     log.log(bold("Selecting final cluster representatives:"))
     cluster_refs = {}
-    centroid_min_samples = max(1, math.ceil(num_samples * settings.CLR_REP_MIN_SAMPLE_PROP))
+    centroid_min_samples = max(1, math.ceil(num_samples * sett.CLR_REP_MIN_SAMPLE_PROP))
     tqdm_cols = min(shutil.get_terminal_size().columns, 120)
     with tqdm(total=len(clust2_clusters), ncols=tqdm_cols, unit="cluster") as pbar:
         for cluster in clust2_clusters:
             samples_copies = {}
             for i in range(0, len(cluster), 2):
-                sample_name = "_C".join(cluster[i][1:].split(settings.SEQ_NAME_SEP)[0].split("_C")[:-1])
+                sample_name = "_C".join(cluster[i][1:].split(sett.SEQ_NAME_SEP)[0].split("_C")[:-1])
                 if sample_name in samples_copies:
                     samples_copies[sample_name] += 1
                 else:
                     samples_copies[sample_name] = 1
-            h = cluster[0][1:].split(settings.SEQ_NAME_SEP)
+            h = cluster[0][1:].split(sett.SEQ_NAME_SEP)
             seq_name = h[0]
-            clr = seq_name.split(settings.REF_CLUSTER_SEP)[-1]
+            clr = seq_name.split(sett.REF_CLUSTER_SEP)[-1]
             num_seqs = len(cluster) // 2
             seq = cluster[1]
             median_copies = statistics.median(samples_copies.values())
@@ -3676,7 +3678,7 @@ def cluster_and_select_refs(
                 f" [seqs={num_seqs:.0f}] [contig={h[1]}]"
             )
             if (
-                len(seq) / cluster_lenghts[clr] >= settings.CLR_REP_MIN_LEN_PROP
+                len(seq) / cluster_lenghts[clr] >= sett.CLR_REP_MIN_LEN_PROP
                 and len(samples_copies) >= centroid_min_samples
             ):
                 centroid_info = {
@@ -3814,7 +3816,7 @@ def check_strand_and_save_refs(
         log.log("")
 
     # Load aligned and correctly stranded FASTAs to add to the reference, disalign first
-    stranded_fastas = sorted(list(tmp_aligned_dir.resolve().glob("*.fasta")))
+    stranded_fastas = sorted(tmp_aligned_dir.resolve().glob("*.fasta"))
     for stranded_fasta_path in stranded_fastas:
         stranded_fasta = fasta_to_dict(stranded_fasta_path)
         for seq_name in stranded_fasta:
@@ -3827,8 +3829,6 @@ def check_strand_and_save_refs(
     # Remove temporary directories
     for tmp_dir in [tmp_unaligned_dir, tmp_aligned_dir]:
         shutil.rmtree(tmp_dir, ignore_errors=True)
-
-    return
 
 
 def mafft_auto_strand(mafft_path: str, fasta_in: Path, fasta_out: Path):
@@ -3847,15 +3847,14 @@ def mafft_auto_strand(mafft_path: str, fasta_in: Path, fasta_out: Path):
     mafft_log_file = Path(fasta_out.parent, f"{fasta_out.stem}.mafft.log")
     with open(mafft_log_file, "w") as mafft_log:
         mafft_log.write(f"Captus' MAFFT Command:\n  {' '.join(mafft_cmd)} > {fasta_out}\n\n\n")
-    with open(fasta_out, "w") as mafft_out:
-        with open(mafft_log_file, "a") as mafft_log:
-            subprocess.run(mafft_cmd, stdout=mafft_out, stderr=mafft_log)
-            if file_is_empty(fasta_out):
-                message = red(f"'{fasta_out_short}': FAILED alignment, empty output file")
-                fasta_out.unlink()
-            else:
-                rehead_root_msa(fasta_in, fasta_out, None, remove_R_=True)
-                message = f"'{fasta_out_short}': aligned [{elapsed_time(time.time() - start)}]"
+    with open(fasta_out, "w") as mafft_out, open(mafft_log_file, "a") as mafft_log:
+        subprocess.run(mafft_cmd, stdout=mafft_out, stderr=mafft_log, check=False)
+        if file_is_empty(fasta_out):
+            message = red(f"'{fasta_out_short}': FAILED alignment, empty output file")
+            fasta_out.unlink()
+        else:
+            rehead_root_msa(fasta_in, fasta_out, None, remove_R_=True)
+            message = f"'{fasta_out_short}': aligned [{elapsed_time(time.time() - start)}]"
     return message
 
 
@@ -3864,13 +3863,13 @@ def collect_ext_stats(out_dir, tsv_comment):
     ext_dirs = sorted(p.resolve() for p in list(Path(out_dir).rglob("*__captus-ext")))
     samples_stats = []
     for ext_dir in ext_dirs:
-        samples_stats += sorted(list(ext_dir.rglob("*_recovery_stats.tsv")))
+        samples_stats += sorted(ext_dir.rglob("*_recovery_stats.tsv"))
     samples_stats = [tsv for tsv in samples_stats if tsv.parts[-2] == "06_assembly_annotated"]
     if not samples_stats:
         return None
     else:
         stats_file_out = Path(out_dir, "captus-extract_stats.tsv")
-        header = "\t".join(settings.EXT_STATS_HEADER) + "\n"
+        header = "\t".join(sett.EXT_STATS_HEADER) + "\n"
         with open(stats_file_out, "wt") as tsv_out:
             tsv_out.write(tsv_comment)
             tsv_out.write(header)

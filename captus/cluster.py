@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Copyright 2020-2026 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
 https://github.com/edgardomortiz/Captus
@@ -602,9 +601,7 @@ def prepare_redo(out_dir: Path, redo_from: str):
     dirs_to_delete = []
     if redo_from == "importation":
         dirs_to_delete = importation + concatenation + clustering + alignment + curation
-    elif redo_from == "dereplication":
-        dirs_to_delete = concatenation + clustering + alignment + curation
-    elif redo_from == "clustering":
+    elif redo_from == "dereplication" or redo_from == "clustering":
         dirs_to_delete = concatenation + clustering + alignment + curation
     elif redo_from == "alignment":
         dirs_to_delete = alignment + curation
@@ -662,8 +659,7 @@ def import_fasta(
             dict_to_fasta(long, long_path, write_if_empty=True)
             dict_to_fasta(short, short_path, write_if_empty=True)
             with open(data_path, "wt") as data_out:
-                for line in data:
-                    data_out.write("\t".join(line) + "\n")
+                data_out.writelines("\t".join(line) + "\n" for line in data)
             message = (
                 f"'{sample_name}': CDS and exon data imported [{elapsed_time(time.time() - start)}]"
             )
@@ -879,7 +875,7 @@ def dedup_fasta(
         with open(dedup_log_file, "w") as dedup_log:
             dedup_log.write(f"Captus' Deduplication Command:\n  {' '.join(dedup_cmd)}\n\n\n")
         with open(dedup_log_file, "a") as dedup_log:
-            subprocess.run(dedup_cmd, stdout=dedup_log, stdin=dedup_log, stderr=dedup_log)
+            subprocess.run(dedup_cmd, stdout=dedup_log, stdin=dedup_log, stderr=dedup_log, check=False)
         rep_seq_path = Path(f"{result_prefix}_rep_seq.fasta")
         if rep_seq_path.exists():
             rep_seq_path.replace(fasta_out_path)
@@ -1043,10 +1039,10 @@ def cluster_markers(
                     clusters_all[centroid] += [member]
         single_sample_clusters = 0
         toofew_species_clusters = 0
-        for centroid in clusters_all:
+        for centroid, members in clusters_all.items():
             samples = []
             species = []
-            for member in clusters_all[centroid]:
+            for member in members:
                 sample_name = member.split(settings.SEQ_NAME_SEP)[0]
                 if sample_name not in samples:
                     samples.append(sample_name)
@@ -1055,7 +1051,7 @@ def cluster_markers(
                     species.append(species_name)
             if len(samples) > 1:
                 if len(species) >= clust_min_species:
-                    clusters_pass[centroid] = clusters_all[centroid]
+                    clusters_pass[centroid] = members
                 else:
                     toofew_species_clusters += 1
             else:
@@ -1082,8 +1078,6 @@ def cluster_markers(
         log.log(bold(f" \u2514\u2500\u2192 {message}"))
     else:
         log.log(dim(f"SKIPPED writing of FASTA clusters, '{cluster_dir_path}' is not empty"))
-
-    return
 
 
 def find_fastas_in_dir(cluster_dir_path: Path, extension: str):
@@ -1127,7 +1121,6 @@ def mafft_assembly(
         for file in all_fastas:
             if file.exists():
                 file.unlink()
-        return
 
     start = time.time()
 
@@ -1158,8 +1151,7 @@ def mafft_assembly(
             else:
                 sample_copies[sample_name] = 1
             seq_length = len(input_fasta[seq_name]["sequence"])
-            if seq_length > max_seq_length:
-                max_seq_length = seq_length
+            max_seq_length = max(max_seq_length, seq_length)
         for seq_name in input_fasta:
             seq_length = len(input_fasta[seq_name]["sequence"])
             if seq_length > max_seq_length * settings.MIN_SEQ_LEN_PROP:
@@ -1222,7 +1214,11 @@ def mafft_assembly(
                 with open(mafft_log_file, "a") as mafft_log:
                     try:
                         subprocess.run(
-                            mafft_long_cmd, stdout=mafft_mid_out, stderr=mafft_log, timeout=timeout
+                            mafft_long_cmd,
+                            stdout=mafft_mid_out,
+                            stderr=mafft_log,
+                            timeout=timeout,
+                            check=False,
                         )
                         if file_is_empty(mid_fasta_path):
                             cleanup_fastas(all_fastas)
@@ -1253,6 +1249,7 @@ def mafft_assembly(
                             stdout=mafft_intermediate_out,
                             stderr=mafft_log,
                             timeout=timeout,
+                            check=False,
                         )
                         if file_is_empty(intermediate_fasta_path):
                             cleanup_fastas(all_fastas)
@@ -1399,8 +1396,8 @@ def curate(
                     else:
                         continue
         sample_min_copies = {}
-        for sample_name in haplos:
-            for haplo in haplos[sample_name]:
+        for sample_name, sample_haplos in haplos.items():
+            for haplo in sample_haplos:
                 if len(haplo.strip("-")) > 0:
                     if sample_name in sample_min_copies:
                         sample_min_copies[sample_name] += 1
@@ -1532,13 +1529,10 @@ def curate(
             ast["perc_short_exons_retained"] = "NA"
 
             if cds_ids:
-                if len(cds_ids) > 1:
-                    median_len = list(sorted(cds_ids.values()))[max(0, (len(cds_ids) // 2) - 1)]
-                else:
-                    median_len = list(sorted(cds_ids.values()))[0]
+                median_len = statistics.median(cds_ids.values())
                 cds_id = ""
-                for cds in cds_ids:
-                    if cds_ids[cds] == median_len:
+                for cds, cds_len in cds_ids.items():
+                    if cds_len == median_len:
                         cds_id = cds
 
                 ast["cds_id"] = cds_id
@@ -1616,37 +1610,34 @@ def write_aln_stats(out_dir: Path, tsv_comment: str, shared_aln_stats: list):
     else:
         with open(stats_tsv_file, "wt") as tsv_out:
             tsv_out.write(tsv_comment)
-            tsv_out.write(
-                "\t".join(
-                    [
-                        "path",
-                        "locus",
-                        "copies",
-                        "median_copies",
-                        "mean_copies",
-                        "length",
-                        "gc_content",
-                        "mean_pid",
-                        "informative_sites",
-                        "informativeness",
-                        "missingness",
-                        "sequences",
-                        "samples",
-                        "focal_species",
-                        "outgroup_species",
-                        "addon_samples",
-                        "species",
-                        "genera",
-                        "cds_id",
-                        "cds_len",
-                        "len_long_exons_retained",
-                        "len_short_exons_retained",
-                        "perc_exons_retained",
-                        "perc_long_exons_retained",
-                        "perc_short_exons_retained",
-                    ]
-                )
-                + "\n"
-            )
+            tsv_header = [
+                "path",
+                "locus",
+                "copies",
+                "median_copies",
+                "mean_copies",
+                "length",
+                "gc_content",
+                "mean_pid",
+                "informative_sites",
+                "informativeness",
+                "missingness",
+                "sequences",
+                "samples",
+                "focal_species",
+                "outgroup_species",
+                "addon_samples",
+                "species",
+                "genera",
+                "cds_id",
+                "cds_len",
+                "len_long_exons_retained",
+                "len_short_exons_retained",
+                "perc_exons_retained",
+                "perc_long_exons_retained",
+                "perc_short_exons_retained",
+            ]
+
+            tsv_out.write("\t".join(tsv_header) + "\n")
             tsv_out.writelines(sorted(shared_aln_stats))
         return stats_tsv_file

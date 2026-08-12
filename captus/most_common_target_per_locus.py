@@ -358,11 +358,12 @@ def main():
         except OSError:
             quit_with_error(f"Captus was unable to make the output directory {Path(args.out_dir)}")
 
-    if args.captus_extractions_dir is None and args.captus_alignments_dir is None:
-        quit_with_error(
-            "Please provide the path to a Captus extractions directory OR to a Captus alignments directory"
-        )
-    elif args.captus_extractions_dir is not None and args.captus_alignments_dir is not None:
+    if (
+        args.captus_extractions_dir is None
+        and args.captus_alignments_dir is None
+        or args.captus_extractions_dir is not None
+        and args.captus_alignments_dir is not None
+    ):
         quit_with_error(
             "Please provide the path to a Captus extractions directory OR to a Captus alignments directory"
         )

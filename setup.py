@@ -14,17 +14,18 @@ details. You should have received a copy of the GNU General Public License along
 not, see <http://www.gnu.org/licenses/>.
 """
 
-# Make sure this is being run with Python 3.6 or later.
-import sys
+from setuptools import find_packages, setup
 
-if sys.version_info.major != 3 or sys.version_info.minor < 6:
-    sys.exit("Error: you must execute setup.py using Python 3.6 or later")
-
-from setuptools import setup, find_packages
-
-# Get the program version from another file.
+# Get the program version from another file safely without using exec().
 __version__ = "0.0.0"
-exec(open("captus/version.py").read())
+with open("captus/version.py", encoding="utf-8") as f:
+    for line in f:
+        if line.startswith("__version__"):
+            __version__ = line.split("=")[1].strip().strip('"').strip("'")
+            break
+
+with open("README.md", encoding="utf-8") as f:
+    long_description = f.read()
 
 setup(
     name="captus",
@@ -34,10 +35,14 @@ setup(
     author_email="e.ortiz.v@gmail.com",
     description="Tools for hybridization capture-based target enrichment: "
     "Probe Design, Data Assembly, Marker Extraction and Alignment",
-    long_description=open("README.md").read(),
+    long_description=long_description,
     long_description_content_type="text/markdown",
     packages=find_packages(),
-    package_data={"data": ["*"], "dependencies": ["scipio-1.4/*", "blat/*"]},
+    # Enforces Python 3.6+ natively at the package installer level
+    python_requires=">=3.6",
+    package_data={
+        "captus": ["data/*", "dependencies/scipio-1.4/*", "dependencies/blat/*"]
+    },
     include_package_data=True,
     entry_points={
         "console_scripts": [
@@ -54,6 +59,7 @@ setup(
     license="GPL",
     classifiers=[
         "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
@@ -61,5 +67,7 @@ setup(
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14",
     ],
 )

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Copyright 2020-2026 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
 https://github.com/edgardomortiz/Captus
@@ -20,7 +19,7 @@ not, see <http://www.gnu.org/licenses/>.
 import argparse
 import sys
 
-from . import settings as settings
+from . import settings as sett
 from .bait import bait
 from .cluster import cluster
 from .misc import MyHelpFormatter, bold, red
@@ -28,7 +27,7 @@ from .select import select
 from .version import __version__
 
 
-class CaptusDesign(object):
+class CaptusDesign:
     ################################################################################################
     ########################################################################## CAPTUS-DESIGN SECTION
     def __init__(self):
@@ -67,14 +66,14 @@ class CaptusDesign(object):
 
         if len(sys.argv) == 1:
             parser.print_help()
-            exit(red("\nERROR: Missing command\n"))
+            sys.exit(red("\nERROR: Missing command\n"))
 
         # parse_args defaults to [1:] for args, but you need to
         # exclude the rest of the args too, or validation will fail
         args = parser.parse_args(sys.argv[1:2])
         if not hasattr(self, args.command):
             parser.print_help()
-            exit(red(f"\nERROR: Unrecognized command: {sys.argv[1]}\n"))
+            sys.exit(red(f"\nERROR: Unrecognized command: {sys.argv[1]}\n"))
         # use dispatch pattern to invoke method with same name
         getattr(self, args.command)()
 
@@ -123,13 +122,13 @@ class CaptusDesign(object):
         input_group.add_argument(
             "--transtable",
             action="store",
-            default=settings.DEFAULT_GENETIC_CODES["NUC"]["id"],
+            default=sett.DEFAULT_GENETIC_CODES["NUC"]["id"],
             type=int,
             dest="transtable",
             help="Genetic code table to translate your CDS. Complete list of tables at:"
             " https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi (default:"
-            f" {settings.DEFAULT_GENETIC_CODES['NUC']['id']}:"
-            f" {settings.DEFAULT_GENETIC_CODES['NUC']['name']})",
+            f" {sett.DEFAULT_GENETIC_CODES['NUC']['id']}:"
+            f" {sett.DEFAULT_GENETIC_CODES['NUC']['name']})",
         )
         input_group.add_argument(
             "-b",
@@ -178,7 +177,7 @@ class CaptusDesign(object):
         clustering_group.add_argument(
             "--mmseqs_sensitivity",
             action="store",
-            default=settings.MMSEQS_SENSITIVITY,
+            default=sett.MMSEQS_SENSITIVITY,
             type=float,
             dest="mmseqs_sensitivity",
             help="MMseqs2 sensitivity, from 1 to 7.5. Common reference points are: 1 (faster),"
@@ -395,7 +394,7 @@ class CaptusDesign(object):
             type=str,
             dest="ram",
             help="Maximum RAM in GB (e.g.: 4.5) dedicated to Captus, 'auto' uses"
-            f" {settings.RAM_FRACTION:.0%}% of available RAM",
+            f" {sett.RAM_FRACTION:.0%}% of available RAM",
         )
         other_group.add_argument(
             "--threads",
@@ -441,12 +440,12 @@ class CaptusDesign(object):
 
         if len(sys.argv) == 2:
             parser.print_help()
-            exit(red("\nERROR: Missing required argument -m/--markers_to_cluster\n"))
+            sys.exit(red("\nERROR: Missing required argument -m/--markers_to_cluster\n"))
 
         full_command = " ".join(sys.argv)
         args = parser.parse_args(sys.argv[2:])
         cluster(full_command, args)
-        exit(1)
+        sys.exit(1)
 
     ################################################################################################
     ################################################################################# SELECT SECTION
@@ -698,12 +697,12 @@ class CaptusDesign(object):
 
         if len(sys.argv) == 2:
             parser.print_help()
-            exit(red("\nERROR: Missing required argument -c/--captus_clusters_dir\n"))
+            sys.exit(red("\nERROR: Missing required argument -c/--captus_clusters_dir\n"))
 
         full_command = " ".join(sys.argv)
         args = parser.parse_args(sys.argv[2:])
         select(full_command, args)
-        exit(1)
+        sys.exit(1)
 
     ################################################################################################
     ################################################################################### BAIT SECTION
@@ -959,7 +958,7 @@ class CaptusDesign(object):
             type=str,
             dest="ram",
             help="Maximum RAM in GB (e.g.: 4.5) dedicated to Captus, 'auto' uses"
-            f" {settings.RAM_FRACTION:.0%}% of available RAM",
+            f" {sett.RAM_FRACTION:.0%}% of available RAM",
         )
         other_group.add_argument(
             "--threads",
@@ -1003,12 +1002,12 @@ class CaptusDesign(object):
 
         if len(sys.argv) == 2:
             parser.print_help()
-            exit(red("\nERROR: Missing required argument -a/--captus_assemblies_dir\n"))
+            sys.exit(red("\nERROR: Missing required argument -a/--captus_assemblies_dir\n"))
 
         full_command = " ".join(sys.argv)
         args = parser.parse_args(sys.argv[2:])
         bait(full_command, args)
-        exit(1)
+        sys.exit(1)
 
 
 def main():

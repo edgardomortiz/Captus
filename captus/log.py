@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Copyright 2020-2026 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
 https://github.com/edgardomortiz/Captus
@@ -15,15 +14,15 @@ details. You should have received a copy of the GNU General Public License along
 not, see <http://www.gnu.org/licenses/>.
 """
 
-import datetime
 import re
 import shutil
 import subprocess
 import sys
 import textwrap
+from datetime import datetime, timezone
 
 
-class Log(object):
+class Log:
     def __init__(self, log_filename=None, stdout_verbosity_level=1, log_file_verbosity_level=None):
         """
         Modified to accept 'log_filename' as a str or Path
@@ -47,7 +46,7 @@ class Log(object):
 
         if self.log_filename:
             log_file_exists = self.log_filename.is_file()
-            self.log_file = open(self.log_filename, "at", 1, encoding="utf8")  # line buffering
+            self.log_file = open(self.log_filename, "at", 1, encoding="utf8")  # line buffering  # noqa: SIM115
 
             # If the log file already exists, we pad out a bit of space before appending to it.
             if log_file_exists:
@@ -180,7 +179,7 @@ def int_to_str(num, max_num=0):
 
 
 def get_timestamp():
-    return f"{datetime.datetime.now():%Y-%m-%d %H:%M:%S}"
+    return f"{datetime.now(timezone.utc):%Y-%m-%d %H:%M:%S}"
 
 
 END_FORMATTING = "\033[0m"

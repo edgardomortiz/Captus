@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Copyright 2020-2026 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
 https://github.com/edgardomortiz/Captus
@@ -20,7 +19,8 @@ import subprocess
 import time
 from pathlib import Path
 
-from . import log, settings
+from . import log
+from . import settings as sett
 from .bioformats import dict_to_fasta, fasta_headers_to_spades, fasta_to_dict, get_read_stats
 from .misc import (
     bbtools_path_version,
@@ -42,6 +42,7 @@ from .misc import (
     successful_exit,
     tqdm_parallel_async_run,
     tqdm_serial_run,
+    version_is_at_least,
 )
 from .version import __version__
 
@@ -280,17 +281,17 @@ def assemble(full_command, args):
 
     log.log(f"{'preset':>{mar}}: {bold(args.preset.upper())}")
     if not args.k_list:
-        args.k_list = settings.MEGAHIT_PRESETS[args.preset]["k_list"]
+        args.k_list = sett.MEGAHIT_PRESETS[args.preset]["k_list"]
     log.log(f"{'k_list':>{mar}}: {bold(args.k_list)}")
     if not args.min_count:
-        args.min_count = settings.MEGAHIT_PRESETS[args.preset]["min_count"]
+        args.min_count = sett.MEGAHIT_PRESETS[args.preset]["min_count"]
     log.log(f"{'min_count':>{mar}}: {bold(args.min_count)}")
     if not args.prune_level:
-        args.prune_level = settings.MEGAHIT_PRESETS[args.preset]["prune_level"]
+        args.prune_level = sett.MEGAHIT_PRESETS[args.preset]["prune_level"]
     log.log(f"{'prune_level':>{mar}}: {bold(args.prune_level)}")
     log.log(f"{'merge_level':>{mar}}: {bold(args.merge_level)}")
     log.log(f"{'min_contig_len':>{mar}}: {bold(args.min_contig_len)}")
-    extra_options = settings.MEGAHIT_PRESETS[args.preset]["extra_options"]
+    extra_options = sett.MEGAHIT_PRESETS[args.preset]["extra_options"]
     log.log(f"{'extra_options':>{mar}}: {bold(extra_options)}")
     tmp_dir = make_tmp_dir_within(args.tmp_dir, "captus_megahit_tmp")
     log.log(f"{'tmp_dir':>{mar}}: {bold(tmp_dir)}")
@@ -335,7 +336,7 @@ def assemble(full_command, args):
         fastqs_to_assemble[fastq_r1]["sample_name"] = sample_name
         read_stats = get_read_stats(
             Path(fastqs_to_assemble[fastq_r1]["fastq_dir"], fastq_r1),
-            settings.NUM_READS_TO_CALCULATE_STATS,
+            sett.NUM_READS_TO_CALCULATE_STATS,
         )
         fastqs_to_assemble[fastq_r1]["min_read_length"] = read_stats["min_read_length"]
         fastqs_to_assemble[fastq_r1]["max_read_length"] = read_stats["max_read_length"]
@@ -392,6 +393,7 @@ def assemble(full_command, args):
             salmon_params.append(
                 (
                     args.salmon_path,
+                    salmon_version,
                     fastqs_to_assemble[fastq_r1]["fastq_dir"],
                     fastq_r1,
                     fastqs_to_assemble[fastq_r1]["fastq_r2"],
@@ -529,8 +531,8 @@ def subsample_reads(
         f"threads={threads}",
         f"in={Path(in_dir, in_fastq)}",
         f"out={Path(sample_subsampled_out_dir, in_fastq)}",
-        f"minlength={settings.BBDUK_MIN_LENGTH}",
-        f"ziplevel={settings.REFORMAT_ZIPLEVEL}",
+        f"minlength={sett.BBDUK_MIN_LENGTH}",
+        f"ziplevel={sett.REFORMAT_ZIPLEVEL}",
     ]
     if sample_reads_target > 0:
         reformat_cmd += [f"samplereadstarget={sample_reads_target}"]
@@ -540,7 +542,7 @@ def subsample_reads(
     if overwrite is True or not reformat_log_file.exists():
         reformat_cmd += ["overwrite=t"]
         with open(reformat_log_file, "w") as reformat_log:
-            subprocess.run(reformat_cmd, stderr=reformat_log)
+            subprocess.run(reformat_cmd, stderr=reformat_log, check=False)
         message = f"'{sample_name}': reads subsampled [{elapsed_time(time.time() - start)}]"
     else:
         message = dim(f"'{sample_name}': SKIPPED (output files already exist)")
@@ -591,12 +593,11 @@ def adjust_megahit_concurrency(concurrent, threads_max, ram_B, num_samples, pres
         except ValueError:
             quit_with_error("Invalid value for '--concurrent', set it to 'auto' or use a number")
 
-    min_ram_B = settings.MEGAHIT_MIN_RAM_B
-    min_threads = settings.MEGAHIT_MIN_THREADS
-    if preset:
-        if preset.upper() in settings.MEGAHIT_PRESETS:
-            min_ram_B = settings.MEGAHIT_PRESETS[preset.upper()]["min_ram_B"]
-            min_threads = settings.MEGAHIT_PRESETS[preset.upper()]["min_threads"]
+    min_ram_B = sett.MEGAHIT_MIN_RAM_B
+    min_threads = sett.MEGAHIT_MIN_THREADS
+    if preset and preset.upper() in sett.MEGAHIT_PRESETS:
+        min_ram_B = sett.MEGAHIT_PRESETS[preset.upper()]["min_ram_B"]
+        min_threads = sett.MEGAHIT_PRESETS[preset.upper()]["min_threads"]
 
     if threads_max < min_threads or ram_B < min_ram_B:
         return 1, threads_max, ram_B
@@ -658,7 +659,7 @@ def megahit(
             )
             return message
         adjusted_k_list = adjust_megahit_k_list(
-            k_list, median_read_length, settings.DELTA_MEDIAN_READ_LENGTH_TO_MAX_KMER_SIZE
+            k_list, median_read_length, sett.DELTA_MEDIAN_READ_LENGTH_TO_MAX_KMER_SIZE
         )
         adjusted_min_contig_len = adjust_megahit_min_contig_len(
             min_contig_len, median_read_length, adjusted_k_list
@@ -699,7 +700,7 @@ def megahit(
         with open(megahit_log_file, "w") as megahit_log:
             megahit_log.write(f"Captus' MEGAHIT Command:\n  {' '.join(megahit_cmd)}\n\n\n")
         with open(megahit_log_file, "a") as megahit_log:
-            subprocess.run(megahit_cmd, stdout=megahit_log, stderr=megahit_log)
+            subprocess.run(megahit_cmd, stdout=megahit_log, stderr=megahit_log, check=False)
         if cleanup_megahit_out_dir(
             sample_megahit_out_dir, megahit_log_file, megahit_toolkit_path, keep_all
         ):
@@ -770,6 +771,7 @@ def cleanup_megahit_out_dir(sample_megahit_out_dir, megahit_log_file, megahit_to
 
 def salmon(
     salmon_path,
+    salmon_version,
     fastq_dir,
     fastq_r1,
     fastq_r2,
@@ -786,8 +788,8 @@ def salmon(
     sample_megahit_out_dir = Path(out_dir, f"{sample_name}__captus-asm", "01_assembly")
     assembly_fasta = Path(sample_megahit_out_dir, "assembly.fasta")
     removed_fasta = Path(sample_megahit_out_dir, "removed_contigs.fasta")
-    sample_index_dir = Path(sample_megahit_out_dir, settings.SALMON_INDEX_DIR)
-    sample_quant_dir = Path(sample_megahit_out_dir, settings.SALMON_QUANT_DIR)
+    sample_index_dir = Path(sample_megahit_out_dir, sett.SALMON_INDEX_DIR)
+    sample_quant_dir = Path(sample_megahit_out_dir, sett.SALMON_QUANT_DIR)
     k_min = k_list.split(",")[0]
 
     if not assembly_fasta.exists() or assembly_fasta.stat().st_size == 0:
@@ -825,11 +827,14 @@ def salmon(
             f"{sample_quant_dir}",
             "--validateMappings",
             "--recoverOrphans",
-            "--minAssignedFrags",
-            f"{1}",
             "--threads",
             f"{threads}",
         ]
+        if not version_is_at_least(salmon_version, "2.0.0"):
+            salmon_quant_cmd += [
+                "--minAssignedFrags",
+                f"{1}",
+            ]
         if fastq_r2 is None:
             salmon_quant_cmd += [
                 "--libType",
@@ -851,13 +856,13 @@ def salmon(
         with open(salmon_log_file, "w") as salmon_log:
             salmon_log.write(f"Captus' Salmon Index Command:\n  {' '.join(salmon_index_cmd)}\n\n\n")
         with open(salmon_log_file, "a") as salmon_log:
-            subprocess.run(salmon_index_cmd, stdout=salmon_log, stderr=salmon_log)
+            subprocess.run(salmon_index_cmd, stdout=salmon_log, stderr=salmon_log, check=False)
         with open(salmon_log_file, "a") as salmon_log:
             salmon_log.write(
                 f"\n\n\nCaptus' Salmon Quant Command:\n  {' '.join(salmon_quant_cmd)}\n\n\n"
             )
         with open(salmon_log_file, "a") as salmon_log:
-            subprocess.run(salmon_quant_cmd, stdout=salmon_log, stderr=salmon_log)
+            subprocess.run(salmon_quant_cmd, stdout=salmon_log, stderr=salmon_log, check=False)
         if cleanup_salmon_out_dirs(sample_index_dir, sample_quant_dir, keep_all):
             write_depth_coverage_tsv(sample_megahit_out_dir, "salmon", tsv_comment, max_read_length)
             message = (
@@ -893,18 +898,18 @@ def write_depth_coverage_tsv(sample_megahit_out_dir, depth_estimator, tsv_commen
     fasta_asm_file = Path(sample_megahit_out_dir, "assembly.fasta")
     fasta_asm = fasta_to_dict(fasta_asm_file)
 
-    tsv_header = "\t".join(
-        [
-            "megahit_contig_name",
-            "megahit_depth",
-            "length",
-            "salmon_contig_name",
-            "salmon_num_reads",
-            "salmon_depth",
-        ]
-    )
+    tsv_header = [
+        "megahit_contig_name",
+        "megahit_depth",
+        "length",
+        "salmon_contig_name",
+        "salmon_num_reads",
+        "salmon_depth",
+    ]
+    tsv_header = "\t".join(tsv_header)
+
     if depth_estimator == "megahit":
-        with open(Path(sample_megahit_out_dir, settings.CONTIGS_DEPTH), "w") as tsv_out:
+        with open(Path(sample_megahit_out_dir, sett.CONTIGS_DEPTH), "w") as tsv_out:
             tsv_out.write(tsv_comment)
             tsv_out.write(f"{tsv_header}\n")
             for ctg_name in fasta_asm:
@@ -922,8 +927,8 @@ def write_depth_coverage_tsv(sample_megahit_out_dir, depth_estimator, tsv_commen
                 tsv_out.write(f"{tsv_record}\n")
     elif depth_estimator == "salmon":
         reheaded_fasta_asm = {}
-        salmon_quant_file = Path(sample_megahit_out_dir, settings.SALMON_QUANT_DIR, "quant.sf")
-        with open(Path(sample_megahit_out_dir, settings.CONTIGS_DEPTH), "w") as tsv_out:
+        salmon_quant_file = Path(sample_megahit_out_dir, sett.SALMON_QUANT_DIR, "quant.sf")
+        with open(Path(sample_megahit_out_dir, sett.CONTIGS_DEPTH), "w") as tsv_out:
             tsv_out.write(tsv_comment)
             tsv_out.write(f"{tsv_header}\n")
             with open(salmon_quant_file, "r") as quant:
@@ -950,8 +955,6 @@ def write_depth_coverage_tsv(sample_megahit_out_dir, depth_estimator, tsv_commen
                         tsv_out.write(f"{tsv_record}\n")
                         reheaded_fasta_asm[salmon_contig_name] = fasta_asm[record[0]]
         dict_to_fasta(reheaded_fasta_asm, fasta_asm_file, wrap=80)
-
-    return
 
 
 def filter_assembly(
@@ -1127,9 +1130,9 @@ def get_asm_stats(
         mean_depth = round(statistics.mean(depths), 4)
         median_depth = round(statistics.median(depths), 4)
         gc = round(gc_count / total_length * 100, 3)
-        for D in depths_hist:
+        for D in depths_hist:  # noqa: PLC0206
             depths_hist[D]["fraction"] = round(depths_hist[D]["length"] / total_length * 100, 3)
-        for L in lengths_hist:
+        for L in lengths_hist:  # noqa: PLC0206
             lengths_hist[L]["fraction"] = round(lengths_hist[L]["length"] / total_length * 100, 3)
         p50_length, cum_length, n50, l50 = total_length * 0.50, 0, 0, 0
         for L in sorted(lengths, reverse=True):
@@ -1228,57 +1231,57 @@ def get_asm_stats(
         )
         return msg
 
-    asm_stats_header = "\t".join(
-        [
-            "sample_name",
-            "stage",
-            "num_contigs",
-            "pct_contigs_1kbp",
-            "pct_contigs_2kbp",
-            "pct_contigs_5kbp",
-            "pct_contigs_10kbp",
-            "pct_contigs_20kbp",
-            "pct_contigs_50kbp",
-            "total_length",
-            "pct_length_1kbp",
-            "pct_length_2kbp",
-            "pct_length_5kbp",
-            "pct_length_10kbp",
-            "pct_length_20kbp",
-            "pct_length_50kbp",
-            "shortest_contig",
-            "longest_contig",
-            "mean_length",
-            "median_length",
-            "mean_depth",
-            "median_depth",
-            "gc",
-            "N50",
-            "N75",
-            "L50",
-            "L75",
-        ]
-    )
-    depth_stats_header = "\t".join(
-        [
-            "sample_name",
-            "stage",
-            "depth_bin",
-            "length",
-            "fraction",
-            "num_contigs",
-        ]
-    )
-    length_stats_header = "\t".join(
-        [
-            "sample_name",
-            "stage",
-            "length_bin",
-            "length",
-            "fraction",
-            "num_contigs",
-        ]
-    )
+    asm_stats_header = [
+        "sample_name",
+        "stage",
+        "num_contigs",
+        "pct_contigs_1kbp",
+        "pct_contigs_2kbp",
+        "pct_contigs_5kbp",
+        "pct_contigs_10kbp",
+        "pct_contigs_20kbp",
+        "pct_contigs_50kbp",
+        "total_length",
+        "pct_length_1kbp",
+        "pct_length_2kbp",
+        "pct_length_5kbp",
+        "pct_length_10kbp",
+        "pct_length_20kbp",
+        "pct_length_50kbp",
+        "shortest_contig",
+        "longest_contig",
+        "mean_length",
+        "median_length",
+        "mean_depth",
+        "median_depth",
+        "gc",
+        "N50",
+        "N75",
+        "L50",
+        "L75",
+    ]
+    asm_stats_header = "\t".join(asm_stats_header)
+
+    depth_stats_header = [
+        "sample_name",
+        "stage",
+        "depth_bin",
+        "length",
+        "fraction",
+        "num_contigs",
+    ]
+    depth_stats_header = "\t".join(depth_stats_header)
+
+    length_stats_header = [
+        "sample_name",
+        "stage",
+        "length_bin",
+        "length",
+        "fraction",
+        "num_contigs",
+    ]
+    length_stats_header = "\t".join(length_stats_header)
+
     with open(asm_stats_tsv_path, "w") as stats_tsv:
         stats_tsv.write(tsv_comment)
         stats_tsv.write(f"{asm_stats_header}\n")
@@ -1310,9 +1313,9 @@ def get_asm_stats(
 
 
 def collect_asm_stats(out_dir, tsv_comment):
-    assembly_tsv_files = sorted(list(Path(out_dir).resolve().rglob("assembly_stats.tsv")))
-    depth_tsv_files = sorted(list(Path(out_dir).resolve().rglob("depth_stats.tsv")))
-    length_tsv_files = sorted(list(Path(out_dir).resolve().rglob("length_stats.tsv")))
+    assembly_tsv_files = sorted(Path(out_dir).resolve().rglob("assembly_stats.tsv"))
+    depth_tsv_files = sorted(Path(out_dir).resolve().rglob("depth_stats.tsv"))
+    length_tsv_files = sorted(Path(out_dir).resolve().rglob("length_stats.tsv"))
 
     assembly_stats_tsv = Path(out_dir, "captus-assemble_assembly_stats.tsv")
     depth_stats_tsv = Path(out_dir, "captus-assemble_depth_stats.tsv")
@@ -1321,57 +1324,57 @@ def collect_asm_stats(out_dir, tsv_comment):
     if not assembly_tsv_files or not depth_tsv_files or not length_tsv_files:
         return None, None, None
     else:
-        assembly_stats_header = "\t".join(
-            [
-                "sample_name",
-                "stage",
-                "num_contigs",
-                "pct_contigs_1kbp",
-                "pct_contigs_2kbp",
-                "pct_contigs_5kbp",
-                "pct_contigs_10kbp",
-                "pct_contigs_20kbp",
-                "pct_contigs_50kbp",
-                "total_length",
-                "pct_length_1kbp",
-                "pct_length_2kbp",
-                "pct_length_5kbp",
-                "pct_length_10kbp",
-                "pct_length_20kbp",
-                "pct_length_50kbp",
-                "shortest_contig",
-                "longest_contig",
-                "mean_length",
-                "median_length",
-                "mean_depth",
-                "median_depth",
-                "gc",
-                "N50",
-                "N75",
-                "L50",
-                "L75",
-            ]
-        )
-        depth_stats_header = "\t".join(
-            [
-                "sample_name",
-                "stage",
-                "depth_bin",
-                "length",
-                "fraction",
-                "num_contigs",
-            ]
-        )
-        length_stats_header = "\t".join(
-            [
-                "sample_name",
-                "stage",
-                "length_bin",
-                "length",
-                "fraction",
-                "num_contigs",
-            ]
-        )
+        assembly_stats_header = [
+            "sample_name",
+            "stage",
+            "num_contigs",
+            "pct_contigs_1kbp",
+            "pct_contigs_2kbp",
+            "pct_contigs_5kbp",
+            "pct_contigs_10kbp",
+            "pct_contigs_20kbp",
+            "pct_contigs_50kbp",
+            "total_length",
+            "pct_length_1kbp",
+            "pct_length_2kbp",
+            "pct_length_5kbp",
+            "pct_length_10kbp",
+            "pct_length_20kbp",
+            "pct_length_50kbp",
+            "shortest_contig",
+            "longest_contig",
+            "mean_length",
+            "median_length",
+            "mean_depth",
+            "median_depth",
+            "gc",
+            "N50",
+            "N75",
+            "L50",
+            "L75",
+        ]
+        assembly_stats_header = "\t".join(assembly_stats_header)
+
+        depth_stats_header = [
+            "sample_name",
+            "stage",
+            "depth_bin",
+            "length",
+            "fraction",
+            "num_contigs",
+        ]
+        depth_stats_header = "\t".join(depth_stats_header)
+
+        length_stats_header = [
+            "sample_name",
+            "stage",
+            "length_bin",
+            "length",
+            "fraction",
+            "num_contigs",
+        ]
+        length_stats_header = "\t".join(length_stats_header)
+
         assembly_stats_header = f"{assembly_stats_header}\n"
         depth_stats_header = f"{depth_stats_header}\n"
         length_stats_header = f"{length_stats_header}\n"
@@ -1417,7 +1420,7 @@ def megahit_contig2fastg(megahit_toolkit_path, in_fasta_path, out_fastg_path):
             if line.startswith(">"):
                 kmer = line[2:].split("_")[0]
                 break
-    if int(kmer) >= settings.MIN_KMER_SIZE_FOR_FASTG:
+    if int(kmer) >= sett.MIN_KMER_SIZE_FOR_FASTG:
         contig2fastg_cmd = [megahit_toolkit_path, "contig2fastg", kmer, f"{in_fasta_path}"]
         with open(out_fastg_path, "w") as fastg_out:
-            subprocess.run(contig2fastg_cmd, stdout=fastg_out, stderr=None)
+            subprocess.run(contig2fastg_cmd, stdout=fastg_out, stderr=None, check=False)

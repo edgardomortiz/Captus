@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Copyright 2020-2026 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
 https://github.com/edgardomortiz/Captus
@@ -20,7 +19,7 @@ not, see <http://www.gnu.org/licenses/>.
 import argparse
 import sys
 
-from . import settings
+from . import settings as sett
 from .align import align
 from .assemble import assemble
 from .clean import clean
@@ -29,7 +28,7 @@ from .misc import MyHelpFormatter, bold, red
 from .version import __version__
 
 
-class CaptusAssembly(object):
+class CaptusAssembly:
     ################################################################################################
     ######################################################################## CAPTUS-ASSEMBLY SECTION
     def __init__(self):
@@ -74,14 +73,14 @@ class CaptusAssembly(object):
 
         if len(sys.argv) == 1:
             parser.print_help()
-            exit(red("\nERROR: Missing command\n"))
+            sys.exit(red("\nERROR: Missing command\n"))
 
         # parse_args defaults to [1:] for args, but you need to
         # exclude the rest of the args too, or validation will fail
         args = parser.parse_args(sys.argv[1:2])
         if not hasattr(self, args.command):
             parser.print_help()
-            exit(red(f"\nERROR: Unrecognized command: {sys.argv[1]}\n"))
+            sys.exit(red(f"\nERROR: Unrecognized command: {sys.argv[1]}\n"))
         # use dispatch pattern to invoke method with same name
         getattr(self, args.command)()
 
@@ -176,7 +175,7 @@ class CaptusAssembly(object):
         quality_group.add_argument(
             "--min_length",
             action="store",
-            default=settings.BBDUK_MIN_LENGTH,
+            default=sett.BBDUK_MIN_LENGTH,
             type=int,
             dest="min_length",
             help="Discard reads shorter than this length after trimming",
@@ -253,7 +252,7 @@ class CaptusAssembly(object):
             type=str,
             dest="ram",
             help="Maximum RAM in GB (e.g.: 4.5) dedicated to Captus, 'auto' uses"
-            f" {settings.RAM_FRACTION:.0%}% of available RAM",
+            f" {sett.RAM_FRACTION:.0%}% of available RAM",
         )
         other_group.add_argument(
             "--threads",
@@ -270,7 +269,7 @@ class CaptusAssembly(object):
             type=str,
             dest="concurrent",
             help="Captus will attempt to run FastQC concurrently on this many samples. If set to"
-            f" 'auto', Captus will run at most {settings.MAX_HDD_READ_INSTANCES} instances of"
+            f" 'auto', Captus will run at most {sett.MAX_HDD_READ_INSTANCES} instances of"
             " FastQC or as many CPU cores are available, whatever number is lower",
         )
         other_group.add_argument(
@@ -298,12 +297,12 @@ class CaptusAssembly(object):
 
         if len(sys.argv) == 2:
             parser.print_help()
-            exit(red("\nERROR: Missing required argument -r/--reads\n"))
+            sys.exit(red("\nERROR: Missing required argument -r/--reads\n"))
 
         full_command = " ".join(sys.argv)
         args = parser.parse_args(sys.argv[2:])
         clean(full_command, args)
-        exit(1)
+        sys.exit(1)
 
     ################################################################################################
     ############################################################################### ASSEMBLE SECTION
@@ -440,15 +439,15 @@ class CaptusAssembly(object):
             " of 8GB of RAM to work well. In order to avoid RAM limitations when assembly high-depth"
             " data, consider using '--preset WGS --concurrent 1' to assemble a single sample at time"
             " using all the CPUs and RAM provided by '--threads' and '--ram' (default: CAPSKIM)\n"
-            f"CAPSKIM = --k-list {settings.MEGAHIT_PRESETS['CAPSKIM']['k_list']}"
-            f" --min-count {settings.MEGAHIT_PRESETS['CAPSKIM']['min_count']}"
-            f" --prune-level {settings.MEGAHIT_PRESETS['CAPSKIM']['prune_level']}\n"
-            f"RNA = --k-list {settings.MEGAHIT_PRESETS['RNA']['k_list']}"
-            f" --min-count {settings.MEGAHIT_PRESETS['RNA']['min_count']}"
-            f" --prune-level {settings.MEGAHIT_PRESETS['RNA']['prune_level']}\n"
-            f"WGS = --k-list {settings.MEGAHIT_PRESETS['WGS']['k_list']}"
-            f" --min-count {settings.MEGAHIT_PRESETS['WGS']['min_count']}"
-            f" --prune-level {settings.MEGAHIT_PRESETS['WGS']['prune_level']}\n",
+            f"CAPSKIM = --k-list {sett.MEGAHIT_PRESETS['CAPSKIM']['k_list']}"
+            f" --min-count {sett.MEGAHIT_PRESETS['CAPSKIM']['min_count']}"
+            f" --prune-level {sett.MEGAHIT_PRESETS['CAPSKIM']['prune_level']}\n"
+            f"RNA = --k-list {sett.MEGAHIT_PRESETS['RNA']['k_list']}"
+            f" --min-count {sett.MEGAHIT_PRESETS['RNA']['min_count']}"
+            f" --prune-level {sett.MEGAHIT_PRESETS['RNA']['prune_level']}\n"
+            f"WGS = --k-list {sett.MEGAHIT_PRESETS['WGS']['k_list']}"
+            f" --min-count {sett.MEGAHIT_PRESETS['WGS']['min_count']}"
+            f" --prune-level {sett.MEGAHIT_PRESETS['WGS']['prune_level']}\n",
         )
         megahit_group.add_argument(
             "--min_contig_len",
@@ -546,7 +545,7 @@ class CaptusAssembly(object):
             type=str,
             dest="ram",
             help="Maximum RAM in GB (e.g.: 4.5) dedicated to Captus, 'auto' uses"
-            f" {settings.RAM_FRACTION:.0%}% of available RAM",
+            f" {sett.RAM_FRACTION:.0%}% of available RAM",
         )
         other_group.add_argument(
             "--threads",
@@ -594,12 +593,12 @@ class CaptusAssembly(object):
 
         if len(sys.argv) == 2:
             parser.print_help()
-            exit(red("\nERROR: Missing required argument -r/--reads\n"))
+            sys.exit(red("\nERROR: Missing required argument -r/--reads\n"))
 
         full_command = " ".join(sys.argv)
         args = parser.parse_args(sys.argv[2:])
         assemble(full_command, args)
-        exit(1)
+        sys.exit(1)
 
     ################################################################################################
     ################################################################################ EXTRACT SECTION
@@ -679,7 +678,7 @@ class CaptusAssembly(object):
         output_group.add_argument(
             "--max_locus_overlap",
             action="store",
-            default=settings.HIT_MAX_PCT_OVERLAP,
+            default=sett.HIT_MAX_PCT_OVERLAP,
             type=float,
             dest="max_locus_overlap",
             help="Maximum overlap percentage allowed between loci annotations, nuclear genes"
@@ -789,13 +788,13 @@ class CaptusAssembly(object):
         scipio_nuc_group.add_argument(
             "--nuc_transtable",
             action="store",
-            default=settings.DEFAULT_GENETIC_CODES["NUC"]["id"],
+            default=sett.DEFAULT_GENETIC_CODES["NUC"]["id"],
             type=int,
             dest="nuc_transtable",
             help="Genetic code table to translate your nuclear proteins. Complete list of tables at:"
             " https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi (default:"
-            f" {settings.DEFAULT_GENETIC_CODES['NUC']['id']}:"
-            f" {settings.DEFAULT_GENETIC_CODES['NUC']['name']})",
+            f" {sett.DEFAULT_GENETIC_CODES['NUC']['id']}:"
+            f" {sett.DEFAULT_GENETIC_CODES['NUC']['name']})",
         )
         scipio_nuc_group.add_argument(
             "--nuc_min_score",
@@ -847,13 +846,13 @@ class CaptusAssembly(object):
         scipio_ptd_group.add_argument(
             "--ptd_transtable",
             action="store",
-            default=settings.DEFAULT_GENETIC_CODES["PTD"]["id"],
+            default=sett.DEFAULT_GENETIC_CODES["PTD"]["id"],
             type=int,
             dest="ptd_transtable",
             help="Genetic code table to translate your plastidial proteins. Complete list of tables"
             " at: https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi (default:"
-            f" {settings.DEFAULT_GENETIC_CODES['PTD']['id']}:"
-            f" {settings.DEFAULT_GENETIC_CODES['PTD']['name']})",
+            f" {sett.DEFAULT_GENETIC_CODES['PTD']['id']}:"
+            f" {sett.DEFAULT_GENETIC_CODES['PTD']['name']})",
         )
         scipio_ptd_group.add_argument(
             "--ptd_min_score",
@@ -905,13 +904,13 @@ class CaptusAssembly(object):
         scipio_mit_group.add_argument(
             "--mit_transtable",
             action="store",
-            default=settings.DEFAULT_GENETIC_CODES["MIT"]["id"],
+            default=sett.DEFAULT_GENETIC_CODES["MIT"]["id"],
             type=int,
             dest="mit_transtable",
             help="Genetic code table to translate your mitochondrial proteins. Complete list of"
             " tables at: https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi (default:"
-            f" {settings.DEFAULT_GENETIC_CODES['MIT']['id']}:"
-            f" {settings.DEFAULT_GENETIC_CODES['MIT']['name']})",
+            f" {sett.DEFAULT_GENETIC_CODES['MIT']['id']}:"
+            f" {sett.DEFAULT_GENETIC_CODES['MIT']['name']})",
         )
         scipio_mit_group.add_argument(
             "--mit_min_score",
@@ -959,7 +958,7 @@ class CaptusAssembly(object):
         non_coding_group.add_argument(
             "--blat_min_score",
             action="store",
-            default=settings.DNA_BLAT_MIN_SCORE,
+            default=sett.DNA_BLAT_MIN_SCORE,
             type=int,
             dest="blat_min_score",
             help="Minimum BLAT score for DNA matches, decrease if the targets are very divergent",
@@ -1031,7 +1030,7 @@ class CaptusAssembly(object):
         mmseqs2_group.add_argument(
             "--cl_sensitivity",
             action="store",
-            default=settings.MMSEQS_SENSITIVITY,
+            default=sett.MMSEQS_SENSITIVITY,
             type=float,
             dest="cl_sensitivity",
             help="MMseqs2 sensitivity, from 1 to 7.5, only applicable when using 'easy-cluster'."
@@ -1044,8 +1043,8 @@ class CaptusAssembly(object):
             type=str,
             dest="cl_min_identity",
             help="Minimum identity percentage between sequences in a cluster, when set to 'auto'"
-            f" it becomes {settings.MMSEQS_BLAT_DNA_IDENTITY_FACTOR:.0%}% of the '--dna_min"
-            f"_identity' value but never less than {settings.MMSEQS_MIN_AUTO_MIN_IDENTITY}%%",
+            f" it becomes {sett.MMSEQS_BLAT_DNA_IDENTITY_FACTOR:.0%}% of the '--dna_min"
+            f"_identity' value but never less than {sett.MMSEQS_MIN_AUTO_MIN_IDENTITY}%%",
         )
         mmseqs2_group.add_argument(
             "--cl_seq_id_mode",
@@ -1070,7 +1069,7 @@ class CaptusAssembly(object):
         mmseqs2_group.add_argument(
             "--cl_cov_mode",
             action="store",
-            default=settings.MMSEQS_COV_MODE,
+            default=sett.MMSEQS_COV_MODE,
             type=int,
             dest="cl_cov_mode",
             help="MMseqs2 sequence coverage mode (https://github.com/soedinglab/mmseqs2/wiki#how-"
@@ -1083,7 +1082,7 @@ class CaptusAssembly(object):
             type=str,
             dest="cl_min_samples",
             help="Minimum number of samples per cluster, if set to 'auto' the number is adjusted to"
-            f" {settings.CLR_MIN_SAMPLE_PROP:.0%}% of the total number of samples or at least 4",
+            f" {sett.CLR_MIN_SAMPLE_PROP:.0%}% of the total number of samples or at least 4",
         )
         mmseqs2_group.add_argument(
             "--cl_rep_single",
@@ -1181,7 +1180,7 @@ class CaptusAssembly(object):
             type=str,
             dest="ram",
             help="Maximum RAM in GB (e.g.: 4.5) dedicated to Captus, 'auto' uses"
-            f" {settings.RAM_FRACTION:.0%}% of available RAM",
+            f" {sett.RAM_FRACTION:.0%}% of available RAM",
         )
         other_group.add_argument(
             "--threads",
@@ -1227,12 +1226,12 @@ class CaptusAssembly(object):
 
         if len(sys.argv) == 2:
             parser.print_help()
-            exit(red("\nERROR: Missing required argument -a/--captus_assemblies_dir\n"))
+            sys.exit(red("\nERROR: Missing required argument -a/--captus_assemblies_dir\n"))
 
         full_command = " ".join(sys.argv)
         args = parser.parse_args(sys.argv[2:])
         extract(full_command, args)
-        exit(1)
+        sys.exit(1)
 
     ################################################################################################
     ################################################################################## ALIGN SECTION
@@ -1620,7 +1619,7 @@ class CaptusAssembly(object):
             type=str,
             dest="ram",
             help="Maximum RAM in GB (e.g.: 4.5) dedicated to Captus, 'auto' uses"
-            f" {settings.RAM_FRACTION:.0%}% of available RAM",
+            f" {sett.RAM_FRACTION:.0%}% of available RAM",
         )
         other_group.add_argument(
             "--threads",
@@ -1666,12 +1665,12 @@ class CaptusAssembly(object):
 
         if len(sys.argv) == 2:
             parser.print_help()
-            exit(red("\nERROR: Missing required argument -a/--captus_assemblies_dir\n"))
+            sys.exit(red("\nERROR: Missing required argument -a/--captus_assemblies_dir\n"))
 
         full_command = " ".join(sys.argv)
         args = parser.parse_args(sys.argv[2:])
         align(full_command, args)
-        exit(1)
+        sys.exit(1)
 
 
 def main():

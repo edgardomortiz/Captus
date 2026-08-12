@@ -19,7 +19,6 @@ import random
 import sys
 from pathlib import Path
 
-
 # Captus directories
 CAPTUS_DIRS = {
     "unaligned": "01_unaligned",

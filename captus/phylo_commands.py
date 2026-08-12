@@ -406,7 +406,7 @@ def main():
             )
             if not aln_dir.exists():
                 quit_with_error(f"'{aln_dir}' not found, verify this Captus alignment directory exists!")
-            fastas_paths = list(sorted(aln_dir.glob(f"*.{fasta_ext}")))
+            fastas_paths = sorted(aln_dir.glob(f"*.{fasta_ext}"))
 
     if not Path(args.out_dir).exists():
         try:

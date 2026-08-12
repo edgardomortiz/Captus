@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Copyright 2020-2026 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
 https://github.com/edgardomortiz/Captus
@@ -19,7 +18,8 @@ from pathlib import Path
 
 from tqdm import tqdm
 
-from . import log, settings
+from . import log
+from . import settings as sett
 from .misc import (
     bold,
     dim,
@@ -509,8 +509,8 @@ def filter_loci(
 
 def copy_loci(aln_stats: dict, out_dir: Path, overwrite: bool, show_more: bool):
     start = time.time()
-    sel_dir, _ = make_output_dir(Path(out_dir, settings.DES_DIRS["AUT"]))
-    _, _ = make_output_dir(Path(out_dir, settings.DES_DIRS["MAN"]))
+    sel_dir, _ = make_output_dir(Path(out_dir, sett.DES_DIRS["AUT"]))
+    _, _ = make_output_dir(Path(out_dir, sett.DES_DIRS["MAN"]))
     if overwrite or dir_is_empty(sel_dir):
         log.log("")
         log.log("")
@@ -535,7 +535,6 @@ def copy_loci(aln_stats: dict, out_dir: Path, overwrite: bool, show_more: bool):
         )
     else:
         quit_with_error(f"'{sel_dir}': is not empty, enable '--overwrite' if needed")
-    return
 
 
 def write_aln_stats(out_dir: Path, tsv_comment: str, aln_stats_filtered: dict):
@@ -548,69 +547,63 @@ def write_aln_stats(out_dir: Path, tsv_comment: str, aln_stats_filtered: dict):
     else:
         with open(stats_tsv_file, "wt") as tsv_out:
             tsv_out.write(tsv_comment)
-            tsv_out.write(
-                "\t".join(
-                    [
-                        "path",
-                        "locus",
-                        "copies",
-                        "median_copies",
-                        "mean_copies",
-                        "length",
-                        "gc_content",
-                        "mean_pid",
-                        "informative_sites",
-                        "informativeness",
-                        "missingness",
-                        "sequences",
-                        "samples",
-                        "focal_species",
-                        "outgroup_species",
-                        "addon_samples",
-                        "species",
-                        "genera",
-                        "cds_id",
-                        "cds_len",
-                        "len_long_exons_retained",
-                        "len_short_exons_retained",
-                        "perc_exons_retained",
-                        "perc_long_exons_retained",
-                        "perc_short_exons_retained",
-                    ]
-                )
-                + "\n"
-            )
+            tsv_header = [
+                "path",
+                "locus",
+                "copies",
+                "median_copies",
+                "mean_copies",
+                "length",
+                "gc_content",
+                "mean_pid",
+                "informative_sites",
+                "informativeness",
+                "missingness",
+                "sequences",
+                "samples",
+                "focal_species",
+                "outgroup_species",
+                "addon_samples",
+                "species",
+                "genera",
+                "cds_id",
+                "cds_len",
+                "len_long_exons_retained",
+                "len_short_exons_retained",
+                "perc_exons_retained",
+                "perc_long_exons_retained",
+                "perc_short_exons_retained",
+            ]
+
+            tsv_out.write("\t".join(tsv_header) + "\n")
             for locus in sorted(aln_stats_filtered):
-                tsv_out.write(
-                    "\t".join(
-                        [
-                            f"{aln_stats_filtered[locus]['path']}",
-                            f"{locus}",
-                            f"{aln_stats_filtered[locus]['copies']}",
-                            f"{aln_stats_filtered[locus]['median_copies']}",
-                            f"{aln_stats_filtered[locus]['mean_copies']}",
-                            f"{aln_stats_filtered[locus]['length']}",
-                            f"{aln_stats_filtered[locus]['gc_content']}",
-                            f"{aln_stats_filtered[locus]['mean_pid']}",
-                            f"{aln_stats_filtered[locus]['informative_sites']}",
-                            f"{aln_stats_filtered[locus]['informativeness']}",
-                            f"{aln_stats_filtered[locus]['missingness']}",
-                            f"{aln_stats_filtered[locus]['num_sequences']}",
-                            f"{aln_stats_filtered[locus]['num_samples']}",
-                            f"{aln_stats_filtered[locus]['num_focal_species']}",
-                            f"{aln_stats_filtered[locus]['num_outgroup_species']}",
-                            f"{aln_stats_filtered[locus]['num_addon_samples']}",
-                            f"{aln_stats_filtered[locus]['num_species']}",
-                            f"{aln_stats_filtered[locus]['num_genera']}",
-                            f"{aln_stats_filtered[locus]['cds_id']}",
-                            f"{aln_stats_filtered[locus]['cds_len']}",
-                            f"{aln_stats_filtered[locus]['len_long_exons_retained']}",
-                            f"{aln_stats_filtered[locus]['len_short_exons_retained']}",
-                            f"{aln_stats_filtered[locus]['perc_exons_retained']}",
-                            f"{aln_stats_filtered[locus]['perc_long_exons_retained']}",
-                            f"{aln_stats_filtered[locus]['perc_short_exons_retained']}",
-                        ]
-                    )
-                    + "\n"
-                )
+                tsv_record = [
+                    f"{aln_stats_filtered[locus]['path']}",
+                    f"{locus}",
+                    f"{aln_stats_filtered[locus]['copies']}",
+                    f"{aln_stats_filtered[locus]['median_copies']}",
+                    f"{aln_stats_filtered[locus]['mean_copies']}",
+                    f"{aln_stats_filtered[locus]['length']}",
+                    f"{aln_stats_filtered[locus]['gc_content']}",
+                    f"{aln_stats_filtered[locus]['mean_pid']}",
+                    f"{aln_stats_filtered[locus]['informative_sites']}",
+                    f"{aln_stats_filtered[locus]['informativeness']}",
+                    f"{aln_stats_filtered[locus]['missingness']}",
+                    f"{aln_stats_filtered[locus]['num_sequences']}",
+                    f"{aln_stats_filtered[locus]['num_samples']}",
+                    f"{aln_stats_filtered[locus]['num_focal_species']}",
+                    f"{aln_stats_filtered[locus]['num_outgroup_species']}",
+                    f"{aln_stats_filtered[locus]['num_addon_samples']}",
+                    f"{aln_stats_filtered[locus]['num_species']}",
+                    f"{aln_stats_filtered[locus]['num_genera']}",
+                    f"{aln_stats_filtered[locus]['cds_id']}",
+                    f"{aln_stats_filtered[locus]['cds_len']}",
+                    f"{aln_stats_filtered[locus]['len_long_exons_retained']}",
+                    f"{aln_stats_filtered[locus]['len_short_exons_retained']}",
+                    f"{aln_stats_filtered[locus]['perc_exons_retained']}",
+                    f"{aln_stats_filtered[locus]['perc_long_exons_retained']}",
+                    f"{aln_stats_filtered[locus]['perc_short_exons_retained']}",
+                ]
+
+                tsv_out.write("\t".join(tsv_record) + "\n")
         return stats_tsv_file

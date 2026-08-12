@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Copyright 2020-2026 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
 https://github.com/edgardomortiz/Captus
@@ -19,7 +18,8 @@ import subprocess
 import time
 from pathlib import Path
 
-from . import log, settings
+from . import log
+from . import settings as sett
 from .bioformats import get_read_stats
 from .misc import (
     bbtools_path_version,
@@ -154,20 +154,20 @@ def clean(full_command, args):
     adaptor_msg = (
         "Now Captus will perform two simultaneous rounds of adaptor removal using the specified set"
         " of adaptors. Most of the parameters are hard-coded but can be modified directly in the"
-        f" file: '{settings.SETTINGS_ASSEMBLY_PATH}'"
+        f" file: '{sett.SETTINGS_ASSEMBLY_PATH}'"
     )
     if args.rna:
         adaptor_msg += ". Since you enabled the '--rna' option, poly-A tails will also be trimmed."
     log.log_explanation(adaptor_msg)
 
     if args.adaptor_set.lower() == "illumina":
-        adaptor_set = settings.ILLUMINA_ADAPTORS
+        adaptor_set = sett.ILLUMINA_ADAPTORS
         adaptor_set_msg = f"{bold('Illumina')} {dim(adaptor_set)}"
     elif args.adaptor_set.lower() in ["bgi", "bgiseq", "dnbseq", "mgiseq"]:
-        adaptor_set = settings.BGISEQ_ADAPTORS
+        adaptor_set = sett.BGISEQ_ADAPTORS
         adaptor_set_msg = f"{bold('BGI')} {dim(adaptor_set)}"
     elif args.adaptor_set.lower() == "all":
-        adaptor_set = settings.COMBINED_ADAPTORS
+        adaptor_set = sett.COMBINED_ADAPTORS
         adaptor_set_msg = f"{bold('ALL')} {dim(adaptor_set)}"
     elif Path(args.adaptor_set).is_file():
         adaptor_set = Path(args.adaptor_set).resolve()
@@ -237,7 +237,7 @@ def clean(full_command, args):
         " afterwards will remove reads with mean PHRED quality lower than '--maq'. Common"
         " sequencing artifacts and reads belonging to the viral genome phiX174 will also be"
         " filtered out. Other parameters are hard-coded but can be modified directly in the file:"
-        f" '{settings.SETTINGS_ASSEMBLY_PATH}'"
+        f" '{sett.SETTINGS_ASSEMBLY_PATH}'"
     )
 
     log.log(f"{'trimq':>{mar}}: {bold(args.trimq)}")
@@ -453,7 +453,7 @@ def clean(full_command, args):
         files_to_delete = [
             fq
             for fq in adaptors_trimmed_dir.resolve().glob("*")
-            if has_valid_ext(fq, settings.FASTQ_VALID_EXTENSIONS)
+            if has_valid_ext(fq, sett.FASTQ_VALID_EXTENSIONS)
         ]
         if not args.skip_qc_stats:
             files_to_delete += [
@@ -491,7 +491,7 @@ def trim_AT_GC_bias(in_dir, in_fastq):
     delta exceeds 'settings.MAX_DELTA_AT', return the final lengtht to which the reads have to be
     trimmed ('max_length' - 1) or 0 if they should not be trimmed
     """
-    num_reads = settings.NUM_READS_TO_CALCULATE_STATS
+    num_reads = sett.NUM_READS_TO_CALCULATE_STATS
     max_length = 0
     nt = {"A": 0, "C": 0, "G": 0, "T": 0, "N": 0}
 
@@ -506,9 +506,7 @@ def trim_AT_GC_bias(in_dir, in_fastq):
         else:
             opener = open
         with opener(fq, "rt") as fastq:
-            line_count = 0
-            for line in fastq:
-                line_count += 1
+            for line_count, line in enumerate(fastq, start=1):
                 if line_count % 4 == 2:
                     seq = line.strip("\n")
                     if len(seq) >= max_length:
@@ -521,7 +519,7 @@ def trim_AT_GC_bias(in_dir, in_fastq):
     delta_AT = abs((nt["A"] / reads_processed) - (nt["T"] / reads_processed)) * 100
     delta_GC = abs((nt["C"] / reads_processed) - (nt["G"] / reads_processed)) * 100
 
-    if delta_AT > settings.MAX_DELTA_AT_GC or delta_GC > settings.MAX_DELTA_AT_GC:
+    if delta_AT > sett.MAX_DELTA_AT_GC or delta_GC > sett.MAX_DELTA_AT_GC:
         ftr = max_length - 2  # ftr is 0-based, we need to substract 2 instead of 1
     else:
         ftr = 0
@@ -595,7 +593,7 @@ def bbduk_trim_adaptors(
     ref = [f"ref={adaptor_set}"]
 
     if rna is True:
-        ref[0] += f",{settings.POLYA_ADAPTORS}"
+        ref[0] += f",{sett.POLYA_ADAPTORS}"
         fixed += ["trimpolya=4"]
 
     if "#" in in_fastq:
@@ -608,9 +606,9 @@ def bbduk_trim_adaptors(
         f"in={Path(in_dir, in_fastq)}",
         "out=stdout.fq",
         f"ftr={ftr}",
-        f"k={settings.BBDUK_ADAPTOR_ROUND1_K}",
-        f"mink={settings.BBDUK_ADAPTOR_ROUND1_MINK}",
-        f"hdist={settings.BBDUK_ADAPTOR_ROUND1_HDIST}",
+        f"k={sett.BBDUK_ADAPTOR_ROUND1_K}",
+        f"mink={sett.BBDUK_ADAPTOR_ROUND1_MINK}",
+        f"hdist={sett.BBDUK_ADAPTOR_ROUND1_HDIST}",
         f"stats={Path(out_dir, f'{sample_name}.round1.stats.txt')}",
         "tossbrokenreads=t",
         f"2>{round_1_stdout_file}",
@@ -619,9 +617,9 @@ def bbduk_trim_adaptors(
     round_2 = [
         "in=stdin.fq",
         f"out={Path(out_dir, in_fastq)}",
-        f"k={settings.BBDUK_ADAPTOR_ROUND2_K}",
-        f"mink={settings.BBDUK_ADAPTOR_ROUND2_MINK}",
-        f"hdist={settings.BBDUK_ADAPTOR_ROUND2_HDIST}",
+        f"k={sett.BBDUK_ADAPTOR_ROUND2_K}",
+        f"mink={sett.BBDUK_ADAPTOR_ROUND2_MINK}",
+        f"hdist={sett.BBDUK_ADAPTOR_ROUND2_HDIST}",
         f"stats={Path(out_dir, f'{sample_name}.round2.stats.txt')}",
         f"2>{round_2_stdout_file}",
     ]
@@ -630,7 +628,7 @@ def bbduk_trim_adaptors(
         fixed += ["overwrite=t"]
         bbduk_cmd = fixed + ref + round_1 + ["|"] + fixed + ref + round_2
         with open(bbduk_stderr_file, "w") as bbduk_cmd_stderr:
-            subprocess.run(bbduk_cmd, stderr=bbduk_cmd_stderr)
+            subprocess.run(bbduk_cmd, stderr=bbduk_cmd_stderr, check=False)
         header_cmd = f"Captus' BBDuk Command for BOTH rounds:\n  {' '.join(bbduk_cmd)}\n\n\n"
         with open(bbduk_log1_file, "w") as bbduk_log1:
             bbduk_log1.write(header_cmd)
@@ -695,17 +693,17 @@ def bbduk_filter_quality(
         f"threads={threads}",
         f"in={Path(in_dir, in_fastq)}",
         f"out={Path(out_dir, in_fastq)}",
-        f"ref={settings.PHIX_REF_GENOME},{settings.SEQUENCING_ARTIFACTS}",
-        f"k={settings.BBDUK_QUALITY_K}",
-        f"hdist={settings.BBDUK_QUALITY_HDIST}",
-        f"qtrim={settings.BBDUK_QUALITY_QTRIM}",
+        f"ref={sett.PHIX_REF_GENOME},{sett.SEQUENCING_ARTIFACTS}",
+        f"k={sett.BBDUK_QUALITY_K}",
+        f"hdist={sett.BBDUK_QUALITY_HDIST}",
+        f"qtrim={sett.BBDUK_QUALITY_QTRIM}",
         f"trimq={trimq}",
         f"maq={maq}",
         f"ftl={ftl}",
         f"ftr={ftr}",
         f"minlength={min_length}",
-        f"maxns={settings.BBDUK_QUALITY_MAXNS}",
-        f"ziplevel={settings.BBDUK_QUALITY_ZIPLEVEL}",
+        f"maxns={sett.BBDUK_QUALITY_MAXNS}",
+        f"ziplevel={sett.BBDUK_QUALITY_ZIPLEVEL}",
     ]
 
     stats_log = [
@@ -719,12 +717,11 @@ def bbduk_filter_quality(
         bbduk_cmd += ["overwrite=t"]
         bbduk_cmd += stats_log
         with open(bbduk_stderr_file, "w") as bbduk_cmd_stderr:
-            subprocess.run(bbduk_cmd, stderr=bbduk_cmd_stderr)
+            subprocess.run(bbduk_cmd, stderr=bbduk_cmd_stderr, check=False)
         with open(bbduk_log_file, "w") as bbduk_log:
             bbduk_log.write(f"Captus' BBDuk Command:\n  {' '.join(bbduk_cmd)}\n\n\n")
             with open(Path(out_dir, f"{sample_name}.stdout.log"), "r") as real_log_data:
-                for line in real_log_data:
-                    bbduk_log.write(line)
+                bbduk_log.writelines(real_log_data)
         bbduk_stderr_file.unlink()
         Path(out_dir, f"{sample_name}.stdout.log").unlink()
         message = f"'{sample_name}': quality filtered [{elapsed_time(time.time() - start)}]"
@@ -736,7 +733,7 @@ def bbduk_filter_quality(
 
 def set_qc_stats_concurrency(concurrent, threads_max):
     if concurrent == "auto":
-        concurrent = settings.MAX_HDD_READ_INSTANCES
+        concurrent = sett.MAX_HDD_READ_INSTANCES
     else:
         try:
             concurrent = int(concurrent)
@@ -778,14 +775,14 @@ def qc_stats(qc_program_name, qc_program_path, in_fastq, qc_stats_out_dir, overw
             "--extract",
         ]
 
-    cmd_last_part = ["--threads", "1", "--adapters", f"{settings.QC_ADAPTORS_LIST}", f"{in_fastq}"]
+    cmd_last_part = ["--threads", "1", "--adapters", f"{sett.QC_ADAPTORS_LIST}", f"{in_fastq}"]
 
     qc_stats_name = f"{Path(file_out_dir).parts[-1].replace('_fastqc', '')}"
     qc_stats_log_file = Path(qc_stats_out_dir, f"{qc_stats_name}.qc_stats.log")
     file_name_stage = f"'{in_fastq.name}' ({stage} cleaning)"
 
     if overwrite is True or not qc_stats_log_file.exists():
-        read_stats = get_read_stats(in_fastq, settings.NUM_READS_TO_CALCULATE_STATS)
+        read_stats = get_read_stats(in_fastq, sett.NUM_READS_TO_CALCULATE_STATS)
         median_read_length = read_stats["median_read_length"]
         if median_read_length <= 1000:
             cmd_last_part = ["--nogroup"] + cmd_last_part
@@ -814,7 +811,7 @@ def summarize_bbduk_logs(out_dir, qc_extras_dir, tsv_comment, margin):
     sample_names += [file.name.replace(".round1.stats.txt", "") for file in round1_stats]
     sample_names += [file.name.replace(".round2.stats.txt", "") for file in round2_stats]
     sample_names += [file.name.replace(".cleaning.stats.txt", "") for file in cleaning_stats]
-    sample_names = sorted(list(set(sample_names)))
+    sample_names = sorted(set(sample_names))
 
     stats = {}
     for sample_name in sample_names:
@@ -917,10 +914,10 @@ def summarize_bbduk_logs(out_dir, qc_extras_dir, tsv_comment, margin):
                     contaminants[contaminant_name][sample_name] = int(fields[-2])
                     contaminants[contaminant_name]["total"] += int(fields[-2])
 
-    reads_bases_summary = Path(qc_extras_dir, settings.QC_FILES["REBA"])
-    adaptors_round1_summary = Path(qc_extras_dir, settings.QC_FILES["ADR1"])
-    adaptors_round2_summary = Path(qc_extras_dir, settings.QC_FILES["ADR2"])
-    contaminants_summary = Path(qc_extras_dir, settings.QC_FILES["CONT"])
+    reads_bases_summary = Path(qc_extras_dir, sett.QC_FILES["REBA"])
+    adaptors_round1_summary = Path(qc_extras_dir, sett.QC_FILES["ADR1"])
+    adaptors_round2_summary = Path(qc_extras_dir, sett.QC_FILES["ADR2"])
+    contaminants_summary = Path(qc_extras_dir, sett.QC_FILES["CONT"])
     with open(reads_bases_summary, "wt") as summary_out:
         summary_out.write(tsv_comment)
         summary_out.write(
@@ -996,49 +993,45 @@ def summarize_qc_stats(
     reports += list(Path(out_dir, qc_stats_after_dir).rglob("*_fastqc"))
     reports = [d for d in reports if d.is_dir()]
 
+    per_base_seq_qual_data = [
+        "sample_name",
+        "read",
+        "stage",
+        "base",
+        "mean",
+        "median",
+        "upper_quartile",
+        "lower_quartile",
+        "percentile_10",
+        "percentile_90",
+    ]
+    per_seq_qual_scores_data = ["sample_name", "read", "stage", "quality", "count"]
+    per_base_seq_content_data = ["sample_name", "read", "stage", "base", "G", "A", "T", "C"]
+    per_seq_gc_content_data = ["sample_name", "read", "stage", "gc_content", "count"]
+    seq_len_dist_data = ["sample_name", "read", "stage", "length", "count"]
+    seq_dup_levels_data = ["sample_name", "read", "stage", "duplication_level", "percentage_of_total"]
+    adaptor_content_data = [
+        "sample_name",
+        "read",
+        "stage",
+        "position",
+        "Illumina_universal_adaptor",
+        "Illumina_small_RNA_3'_adaptor",
+        "Illumina_small_RNA_5'_adaptor",
+        "Nextera_transposase_sequence",
+        "SOLID_small_RNA_adaptor",
+        "BGI_Forward",
+        "BGI_Reverse",
+    ]
+
     qc_stats = {
-        "per_base_seq_qual_data": [
-            "\t".join(
-                [
-                    "sample_name",
-                    "read",
-                    "stage",
-                    "base",
-                    "mean",
-                    "median",
-                    "upper_quartile",
-                    "lower_quartile",
-                    "percentile_10",
-                    "percentile_90",
-                ]
-            )
-        ],
-        "per_seq_qual_scores_data": ["\t".join(["sample_name", "read", "stage", "quality", "count"])],
-        "per_base_seq_content_data": [
-            "\t".join(["sample_name", "read", "stage", "base", "G", "A", "T", "C"])
-        ],
-        "per_seq_gc_content_data": ["\t".join(["sample_name", "read", "stage", "gc_content", "count"])],
-        "seq_len_dist_data": ["\t".join(["sample_name", "read", "stage", "length", "count"])],
-        "seq_dup_levels_data": [
-            "\t".join(["sample_name", "read", "stage", "duplication_level", "percentage_of_total"])
-        ],
-        "adaptor_content_data": [
-            "\t".join(
-                [
-                    "sample_name",
-                    "read",
-                    "stage",
-                    "position",
-                    "Illumina_universal_adaptor",
-                    "Illumina_small_RNA_3'_adaptor",
-                    "Illumina_small_RNA_5'_adaptor",
-                    "Nextera_transposase_sequence",
-                    "SOLID_small_RNA_adaptor",
-                    "BGI_Forward",
-                    "BGI_Reverse",
-                ]
-            )
-        ],
+        "per_base_seq_qual_data": ["\t".join(per_base_seq_qual_data)],
+        "per_seq_qual_scores_data": ["\t".join(per_seq_qual_scores_data)],
+        "per_base_seq_content_data": ["\t".join(per_base_seq_content_data)],
+        "per_seq_gc_content_data": ["\t".join(per_seq_gc_content_data)],
+        "seq_len_dist_data": ["\t".join(seq_len_dist_data)],
+        "seq_dup_levels_data": ["\t".join(seq_dup_levels_data)],
+        "adaptor_content_data": ["\t".join(adaptor_content_data)],
     }
 
     for report_dir in sorted(reports):
@@ -1115,43 +1108,43 @@ def summarize_qc_stats(
                             record = "\t".join(prepend + line.strip("\n").split())
                             qc_stats[add_to].append(record)
 
-    per_base_seq_qual = Path(qc_extras_dir, settings.QC_FILES["PBSQ"])
+    per_base_seq_qual = Path(qc_extras_dir, sett.QC_FILES["PBSQ"])
     with open(per_base_seq_qual, "wt") as stats_out:
         stats_out.write(tsv_comment)
         stats_out.write("\n".join(qc_stats["per_base_seq_qual_data"]))
     log.log(f"{'Per base seq. qual.':>{margin}}: {bold(per_base_seq_qual)}")
 
-    per_seq_qual_scores = Path(qc_extras_dir, settings.QC_FILES["PSQS"])
+    per_seq_qual_scores = Path(qc_extras_dir, sett.QC_FILES["PSQS"])
     with open(per_seq_qual_scores, "wt") as stats_out:
         stats_out.write(tsv_comment)
         stats_out.write("\n".join(qc_stats["per_seq_qual_scores_data"]))
     log.log(f"{'Per seq. qual. scores':>{margin}}: {bold(per_seq_qual_scores)}")
 
-    per_base_seq_content = Path(qc_extras_dir, settings.QC_FILES["PBSC"])
+    per_base_seq_content = Path(qc_extras_dir, sett.QC_FILES["PBSC"])
     with open(per_base_seq_content, "wt") as stats_out:
         stats_out.write(tsv_comment)
         stats_out.write("\n".join(qc_stats["per_base_seq_content_data"]))
     log.log(f"{'Per base seq. content':>{margin}}: {bold(per_base_seq_content)}")
 
-    per_seq_gc_content = Path(qc_extras_dir, settings.QC_FILES["PSGC"])
+    per_seq_gc_content = Path(qc_extras_dir, sett.QC_FILES["PSGC"])
     with open(per_seq_gc_content, "wt") as stats_out:
         stats_out.write(tsv_comment)
         stats_out.write("\n".join(qc_stats["per_seq_gc_content_data"]))
     log.log(f"{'Per seq. GC content':>{margin}}: {bold(per_seq_gc_content)}")
 
-    seq_len_dist = Path(qc_extras_dir, settings.QC_FILES["SLEN"])
+    seq_len_dist = Path(qc_extras_dir, sett.QC_FILES["SLEN"])
     with open(seq_len_dist, "wt") as stats_out:
         stats_out.write(tsv_comment)
         stats_out.write("\n".join(qc_stats["seq_len_dist_data"]))
     log.log(f"{'Seq. length distr.':>{margin}}: {bold(seq_len_dist)}")
 
-    seq_dup_levels = Path(qc_extras_dir, settings.QC_FILES["SDUP"])
+    seq_dup_levels = Path(qc_extras_dir, sett.QC_FILES["SDUP"])
     with open(seq_dup_levels, "wt") as stats_out:
         stats_out.write(tsv_comment)
         stats_out.write("\n".join(qc_stats["seq_dup_levels_data"]))
     log.log(f"{'Seq. duplication':>{margin}}: {bold(seq_dup_levels)}")
 
-    adaptor_content = Path(qc_extras_dir, settings.QC_FILES["ADCO"])
+    adaptor_content = Path(qc_extras_dir, sett.QC_FILES["ADCO"])
     with open(adaptor_content, "wt") as stats_out:
         stats_out.write(tsv_comment)
         stats_out.write("\n".join(qc_stats["adaptor_content_data"]))

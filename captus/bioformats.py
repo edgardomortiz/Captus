@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Copyright 2020-2026 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
 https://github.com/edgardomortiz/Captus
@@ -26,7 +25,7 @@ import time
 import urllib.parse
 from pathlib import Path
 
-from . import settings
+from . import settings as sett
 from .misc import ElapsedTimeThread, bold, elapsed_time, gzip_compress, pigz_compress
 
 # Regular expression to match MEGAHIT headers assembled within Captus
@@ -63,8 +62,7 @@ NT_IUPAC = {
 
 # Calculate pairwise identities for nucleotides
 NT_PIDS = {}
-i = 0
-for a in sorted(NT_IUPAC):
+for i, a in enumerate(sorted(NT_IUPAC)):
     for b in sorted(NT_IUPAC)[i:]:
         expand = NT_IUPAC[a] + NT_IUPAC[b]
         combos = len(NT_IUPAC[a]) * len(NT_IUPAC[b])
@@ -72,7 +70,6 @@ for a in sorted(NT_IUPAC):
         for nuc in set(expand):
             matches += (expand.count(nuc) * (expand.count(nuc) - 1)) / 2
         NT_PIDS[f"{a}{b}"] = matches / combos
-    i += 1
 NT_PIDS["--"] = 0.0
 
 # fmt: off
@@ -111,8 +108,7 @@ AA_IUPAC = {
 
 # Calculate pairwise identities for aminoacids
 AA_PIDS = {}
-i = 0
-for a in sorted(AA_IUPAC):
+for i, a in enumerate(sorted(AA_IUPAC)):
     for b in sorted(AA_IUPAC)[i:]:
         expand = AA_IUPAC[a] + AA_IUPAC[b]
         combos = len(AA_IUPAC[a]) * len(AA_IUPAC[b])
@@ -120,7 +116,6 @@ for a in sorted(AA_IUPAC):
         for nuc in set(expand):
             matches += (expand.count(nuc) * (expand.count(nuc) - 1)) / 2
         AA_PIDS[a + b] = matches / combos
-    i += 1
 AA_PIDS["--"] = 0.0
 
 # Ambiguous aminoacids used in fuzzy translation
@@ -635,7 +630,7 @@ def reverse_complement(seq):
     return "".join([REV_COMP_DICT[n] for n in seq[::-1]])
 
 
-sys.setrecursionlimit(settings.RECURSION_LIMIT)
+sys.setrecursionlimit(sett.RECURSION_LIMIT)
 
 
 def align_prots(s1, s2, method, scoring_matrix=PAM250):
@@ -983,9 +978,9 @@ def site_pairwise_identity(site: str, seq_type: str):
         if combos == 0:
             return [0, 0]
         matches = 0
-        for ra in counts:
+        for ra, ra_count in counts.items():
             try:
-                matches += ((counts[ra] * (counts[ra] - 1)) / 2) * PIDS[ra + ra]
+                matches += ((ra_count * (ra_count - 1)) / 2) * PIDS[ra + ra]
             except KeyError:
                 continue
         i = 0
@@ -1107,12 +1102,12 @@ def shred_fasta_dict(in_fasta_dict: dict, max_seq_len: int, is_cds=False):
     if is_cds is True:
         size_mul = 3
     out_fasta_dict = {}
-    for seq_name in in_fasta_dict:
-        seq = in_fasta_dict[seq_name]["sequence"]
-        desc = in_fasta_dict[seq_name]["description"]
+    for seq_name, seq_info in in_fasta_dict.items():
+        seq = seq_info["sequence"]
+        desc = seq_info["description"]
         seq_len = math.ceil(len(seq) / size_mul)
         if seq_len <= max_seq_len:
-            out_fasta_dict[seq_name] = in_fasta_dict[seq_name]
+            out_fasta_dict[seq_name] = seq_info
         else:
             num_chunks = math.ceil(seq_len / max_seq_len)
             chunk_len = seq_len // num_chunks
@@ -1156,10 +1151,9 @@ def fasta_type(fasta_path):
             else:
                 if has_headers is True:
                     line_set = set(line.replace(" ", "").upper().replace("U", "T"))
-                    if line_set - set(NT_IUPAC):
-                        if not line_set - set(AA_IUPAC):
-                            has_aminos = True
-                            break
+                    if line_set - set(NT_IUPAC) and not line_set - set(AA_IUPAC):
+                        has_aminos = True
+                        break
                 else:
                     return "invalid"
     if has_headers and has_aminos:
@@ -1195,7 +1189,7 @@ def alignment_stats(fasta_dict, aln_type, coding: bool):
     def copies_per_sample(fasta_dict):
         sample_copies = {}
         for seq in fasta_dict:
-            sample_name = seq.split(settings.SEQ_NAME_SEP)[0]
+            sample_name = seq.split(sett.SEQ_NAME_SEP)[0]
             if sample_name in sample_copies:
                 sample_copies[sample_name] += 1
             else:
@@ -1388,10 +1382,10 @@ def sample_stats(fasta_dict, aln_type, coding):
     """
     stats = {}
     for seq_name in fasta_dict:
-        if seq_name.endswith(f"{settings.SEQ_NAME_SEP}ref"):
+        if seq_name.endswith(f"{sett.SEQ_NAME_SEP}ref"):
             sam_name = seq_name
         else:
-            sam_name = seq_name.split(settings.SEQ_NAME_SEP)[0]
+            sam_name = seq_name.split(sett.SEQ_NAME_SEP)[0]
         len_seq = len(fasta_dict[seq_name]["sequence"])
         len_gapped = len(fasta_dict[seq_name]["sequence"].strip("-"))
         ungapped_seq = fasta_dict[seq_name]["sequence"].replace("-", "")
@@ -1443,18 +1437,18 @@ def sample_stats(fasta_dict, aln_type, coding):
             stats[sam_name]["gc_codon_p2"].append(gc_codon_p2)
             stats[sam_name]["gc_codon_p3"].append(gc_codon_p3)
             stats[sam_name]["num_copies"] += 1
-    for sam_name in stats:
-        if len(stats[sam_name]["len_gapped"]) > 1:
-            for k in stats[sam_name]:
-                if isinstance(stats[sam_name][k], list):
+    for sam_name, sam_info in stats.items():
+        if len(sam_info["len_gapped"]) > 1:
+            for k in sam_info:
+                if isinstance(sam_info[k], list):
                     try:
-                        stats[sam_name][k] = f"{statistics.mean(stats[sam_name][k]):.2f}"
+                        sam_info[k] = f"{statistics.mean(sam_info[k]):.2f}"
                     except TypeError:
-                        stats[sam_name][k] = "NA"
+                        sam_info[k] = "NA"
         else:
-            for k in stats[sam_name]:
-                if isinstance(stats[sam_name][k], list):
-                    stats[sam_name][k] = stats[sam_name][k][0]
+            for k in sam_info:
+                if isinstance(sam_info[k], list):
+                    stats[sam_name][k] = sam_info[k][0]
 
     return stats
 
@@ -1551,8 +1545,9 @@ def calc_mean_contig_depth(hit_contigs: str):
             try:
                 contig_depth = float(contig_name.split("_cov_")[1].split("_")[0])
                 contig_depths.append(contig_depth)
-            except Exception as err:
-                print(f"Unexpected {err=}, {type(err)=}")
+            except (ValueError, IndexError):
+                # ValueError: Happens if the split string cannot be converted to a float.
+                # IndexError: Happens if the expected '_cov_' format is cut short or malformed.
                 continue
     if contig_depths:
         return statistics.mean(contig_depths)
@@ -1988,7 +1983,7 @@ def scipio_yaml_to_dict(
             last_exon_idx = exon_indexes[-1]
             if (
                 mod["mat_types"][last_exon_idx - 1] == "intron"
-                and len(mod["mat_nt"][last_exon_idx]) < settings.SCIPIO_MIN_LEN_FINAL_EXON
+                and len(mod["mat_nt"][last_exon_idx]) < sett.SCIPIO_MIN_LEN_FINAL_EXON
             ):
                 last_intron_idx = last_exon_idx - 1
                 mod["ref_starts"] = mod["ref_starts"][:last_intron_idx]
@@ -2120,7 +2115,7 @@ def scipio_yaml_to_dict(
         else:
             aln = align_prots(cds_nt_translated, cds_aa, "gapless")
             mismatches = len(aln["mismatches"]) - sum(aln["s2_aln"][i] == "X" for i in aln["mismatches"])
-            if mismatches <= settings.SCIPIO_MAX_MISMATCHES:
+            if mismatches <= sett.SCIPIO_MAX_MISMATCHES:
                 return mod
             else:
                 return None
@@ -2158,14 +2153,14 @@ def scipio_yaml_to_dict(
                     )
                 ]
                 len_gap = len(prot_gap)
-                max_gap_size = mod["ref_size"] * settings.SCIPIO_MAX_GAP_AS_REF_PROP
-                min_gap_identity = (min_identity / 100) - settings.SCIPIO_MAX_GAP_DELTA_IDENTITY
+                max_gap_size = mod["ref_size"] * sett.SCIPIO_MAX_GAP_AS_REF_PROP
+                min_gap_identity = (min_identity / 100) - sett.SCIPIO_MAX_GAP_DELTA_IDENTITY
 
                 if len_gap > 0:
                     len_chunk = len(current_chunk) // 3
                     overlap = min(len_gap, len_chunk) / max(len_gap, len_chunk)
                     # Don't align if 'current_chunk' is too long compared to the unmatched protein
-                    if len_chunk <= max_gap_size and len_gap * len_chunk <= settings.RECURSION_LIMIT:
+                    if len_chunk <= max_gap_size and len_gap * len_chunk <= sett.RECURSION_LIMIT:
                         rfs = {
                             i: translate(current_chunk, gencode, frame=i, start_as_M=False)
                             for i in [1, 2, 3]
@@ -2190,7 +2185,7 @@ def scipio_yaml_to_dict(
                         # Rank reading frames by their match rate penalized by the number of stops
                         else:
                             for rf in alns:
-                                alns[rf]["match_rate"] *= settings.SCIPIO_STOP_PENALTY ** alns[rf][
+                                alns[rf]["match_rate"] *= sett.SCIPIO_STOP_PENALTY ** alns[rf][
                                     "s1_aln"
                                 ].count("*")
                             rf, aln = max(alns.items(), key=(lambda x: x[1]["match_rate"]))
@@ -2212,35 +2207,34 @@ def scipio_yaml_to_dict(
                                     pos + mod["ref_ends"][i - 1] for pos in aln["mismatches"]
                                 ]
 
-            if predict:
-                if mod["mat_types"][i] == "intron?" or mod["mat_types"][i] == "gap":
-                    rf1 = translate(current_chunk, gencode, frame=1, start_as_M=False)
-                    if len(current_chunk) % 3 == 0 and "*" not in rf1:
-                        lead, trail = 0, 0
-                        seq_chunks = ["", mod["mat_nt"][i].upper()]
+            if predict and (mod["mat_types"][i] == "intron?" or mod["mat_types"][i] == "gap"):
+                rf1 = translate(current_chunk, gencode, frame=1, start_as_M=False)
+                if len(current_chunk) % 3 == 0 and "*" not in rf1:
+                    lead, trail = 0, 0
+                    seq_chunks = ["", mod["mat_nt"][i].upper()]
 
-                # # When predicting we think we should only add the intervening segment if it can
-                # # be completely translated (i.e. divisible by 3 and without stop codons), the
-                # # following code would add translation even if it includes frameshifts
-                # rfs = {i: translate(current_chunk, gencode, frame=i, start_as_M=False)
-                #        for i in [1,2,3]}
-                # no_stops = {i: rfs[i] for i in rfs if not "*" in rfs[i]}
-                # if no_stops:
-                #     if 1 in no_stops:
-                #         if len(current_chunk) % 3 == 0:
-                #             lead, trail = 0, 0
-                #             seq_chunks = ["", mod["mat_nt"][i].upper()]
-                #     else:
-                #         rf, aa = max(no_stops.items(), key=(lambda x: len(x[1])))
-                #         lead = rf - 1
-                #         trail = (len(current_chunk) - lead) % 3
-                #         if trail > 0:
-                #             seq_chunks = [f'{mod["mat_nt"][i][:lead].lower()}',
-                #                           f'{mod["mat_nt"][i][lead:-trail].upper()}',
-                #                           f'{mod["mat_nt"][i][-trail:].lower()}']
-                #         else:
-                #             seq_chunks = [f'{mod["mat_nt"][i][:lead].lower()}',
-                #                           f'{mod["mat_nt"][i][lead:].upper()}']
+            # # When predicting we think we should only add the intervening segment if it can
+            # # be completely translated (i.e. divisible by 3 and without stop codons), the
+            # # following code would add translation even if it includes frameshifts
+            # rfs = {i: translate(current_chunk, gencode, frame=i, start_as_M=False)
+            #        for i in [1,2,3]}
+            # no_stops = {i: rfs[i] for i in rfs if not "*" in rfs[i]}
+            # if no_stops:
+            #     if 1 in no_stops:
+            #         if len(current_chunk) % 3 == 0:
+            #             lead, trail = 0, 0
+            #             seq_chunks = ["", mod["mat_nt"][i].upper()]
+            #     else:
+            #         rf, aa = max(no_stops.items(), key=(lambda x: len(x[1])))
+            #         lead = rf - 1
+            #         trail = (len(current_chunk) - lead) % 3
+            #         if trail > 0:
+            #             seq_chunks = [f'{mod["mat_nt"][i][:lead].lower()}',
+            #                           f'{mod["mat_nt"][i][lead:-trail].upper()}',
+            #                           f'{mod["mat_nt"][i][-trail:].lower()}']
+            #         else:
+            #             seq_chunks = [f'{mod["mat_nt"][i][:lead].lower()}',
+            #                           f'{mod["mat_nt"][i][lead:].upper()}']
 
             if seq_chunks:
                 mod["seq_flanked"] += "".join(seq_chunks)
@@ -2312,15 +2306,16 @@ def scipio_yaml_to_dict(
             if mod["mat_types"][i] == "upstream":
                 mod["seq_flanked"] += mod["mat_nt"][i].lower()
             if mod["mat_types"][i] == "exon":
-                if settings.FILL_GAP_WITH_X:
-                    if last_exon is not None:  # if this is not the first exon
-                        gap_len = mod["ref_starts"][i] - mod["ref_ends"][last_exon]
-                        if (
+                if sett.FILL_GAP_WITH_X and last_exon is not None:  # if this is not the first exon
+                    gap_len = mod["ref_starts"][i] - mod["ref_ends"][last_exon]
+                    if (
+                        (
                             "gap before" in mod["mat_notes"][i]
                             and "gap after" in mod["mat_notes"][last_exon]
-                        ) or gap_len >= settings.SCIPIO_MIN_GAP_LEN_TO_X:
-                            if "/exon" not in mod["mat_types"][i - 1]:
-                                mod["seq_nt"] += "n" * 3 * gap_len
+                        )
+                        or gap_len >= sett.SCIPIO_MIN_GAP_LEN_TO_X
+                    ) and "/exon" not in mod["mat_types"][i - 1]:
+                        mod["seq_nt"] += "n" * 3 * gap_len
                 mod["seq_flanked"] += mod["mat_nt"][i].upper()
                 mod["seq_gene"] += mod["mat_nt"][i].upper()
                 mod["seq_nt"] += mod["mat_nt"][i].upper()
@@ -2470,7 +2465,7 @@ def scipio_yaml_to_dict(
                     hit_ends.append(None)
                     mat_types.append("separator")
                     mat_notes.append("separator")
-                    mat_nt.append(settings.SCIPIO_CONTIG_SEP)
+                    mat_nt.append(sett.SCIPIO_CONTIG_SEP)
                     mat_aa.append(None)
                 if ctg["upstream"]:
                     ref_starts.append(None)
@@ -2557,7 +2552,7 @@ def scipio_yaml_to_dict(
                     mod["strand"] += [ctg["strand"]]
                     mod["matches"] += [ctg["matches"]]
                     mod["mismatches"] += mismatches
-                    add_separator = False if has_overlap else True
+                    add_separator = not has_overlap
 
         mod = fix_model(mod, gencode, marker_type)
         if not mod:
@@ -2601,58 +2596,57 @@ def scipio_yaml_to_dict(
     # 'settings.REFERENCE_CLUSTER_SEPARATOR'
     refs_have_separators = True
     for prot in unfilter_models:
-        if settings.REF_CLUSTER_SEP not in prot:
+        if sett.REF_CLUSTER_SEP not in prot:
             refs_have_separators = False
             break
 
     # Keep track of longest recovered AA length per locus
     max_len_aa_recov = {}
-    for prot in unfilter_models:
-        for model in unfilter_models[prot]:
+    for prot, prot_info in unfilter_models.items():
+        for model in prot_info:
             if refs_have_separators:
-                ref_cluster = prot.split(settings.REF_CLUSTER_SEP)[-1]
+                ref_cluster = prot.split(sett.REF_CLUSTER_SEP)[-1]
             else:
                 ref_cluster = prot
             if ref_cluster in max_len_aa_recov:
-                if unfilter_models[prot][model]["match_len"] > max_len_aa_recov[ref_cluster]:
-                    max_len_aa_recov[ref_cluster] = unfilter_models[prot][model]["match_len"]
+                max_len_aa_recov[ref_cluster] = max(
+                    max_len_aa_recov[ref_cluster], prot_info[model]["match_len"]
+                )
             else:
-                max_len_aa_recov[ref_cluster] = unfilter_models[prot][model]["match_len"]
+                max_len_aa_recov[ref_cluster] = prot_info[model]["match_len"]
 
     # Filter models by 'min_score', 'min_identity', and 'min_coverage', calculate 'wscore'
     # penalize 'wscore' by number of frameshifts, remove paralogs according to 'paralog_tolerance'
     filter_models = {}
-    for prot in unfilter_models:
+    for prot, prot_info in unfilter_models.items():
         accepted_models = []
-        for model in unfilter_models[prot]:
+        for model in prot_info:
             if refs_have_separators:
-                ref_cluster = prot.split(settings.REF_CLUSTER_SEP)[-1]
+                ref_cluster = prot.split(sett.REF_CLUSTER_SEP)[-1]
             else:
                 ref_cluster = prot
             frameshifts = len(
-                set(
-                    [
-                        math.ceil((p + 1) / 3)
-                        for p in range(len(unfilter_models[prot][model]["seq_nt"]))
-                        if unfilter_models[prot][model]["seq_nt"][p] == "N"
-                    ]
-                )
+                {
+                    math.ceil((p + 1) / 3)
+                    for p in range(len(prot_info[model]["seq_nt"]))
+                    if prot_info[model]["seq_nt"][p] == "N"
+                }
             )
-            contigs = len(set(unfilter_models[prot][model]["hit_contigs"].split("\n")))
-            identity = unfilter_models[prot][model]["identity"] / 100
-            wcoverage = unfilter_models[prot][model]["match_len"] / max_len_aa_recov[ref_cluster]
+            contigs = len(set(prot_info[model]["hit_contigs"].split("\n")))
+            identity = prot_info[model]["identity"] / 100
+            wcoverage = prot_info[model]["match_len"] / max_len_aa_recov[ref_cluster]
             unfilter_models[prot][model]["wscore"] = (
-                math.pow(identity, settings.WSCORE_EXP)
-                * math.pow(wcoverage, 1 / settings.WSCORE_EXP)
-                * math.pow(settings.SCIPIO_FRAMESHIFT_PENALTY, frameshifts)
-                * math.pow(settings.EXTRA_CONTIG_PENALTY, contigs - 1)
+                math.pow(identity, sett.WSCORE_EXP)
+                * math.pow(wcoverage, 1 / sett.WSCORE_EXP)
+                * math.pow(sett.SCIPIO_FRAMESHIFT_PENALTY, frameshifts)
+                * math.pow(sett.EXTRA_CONTIG_PENALTY, contigs - 1)
             )
             if (
-                unfilter_models[prot][model]["score"] >= min_score
-                and unfilter_models[prot][model]["identity"] >= min_identity
-                and unfilter_models[prot][model]["coverage"] >= min_coverage
+                prot_info[model]["score"] >= min_score
+                and prot_info[model]["identity"] >= min_identity
+                and prot_info[model]["coverage"] >= min_coverage
             ):
-                accepted_models.append(unfilter_models[prot][model])
+                accepted_models.append(prot_info[model])
         if accepted_models:
             accepted_models = sorted(accepted_models, key=lambda i: i["wscore"], reverse=True)
             best_hit_identity = accepted_models[0]["identity"]
@@ -2684,28 +2678,26 @@ def scipio_yaml_to_dict(
     # format your protein reference files under 'REFERENCE_CLUSTER_SEPARATOR'
     if filter_models:
         best_models = {}
-        for prot in filter_models:
+        for prot, prot_info in filter_models.items():
             if refs_have_separators:
-                ref_cluster = prot.split(settings.REF_CLUSTER_SEP)[-1]
+                ref_cluster = prot.split(sett.REF_CLUSTER_SEP)[-1]
             else:
                 ref_cluster = prot
             if ref_cluster not in best_models:
-                best_models[ref_cluster] = filter_models[prot]
+                best_models[ref_cluster] = prot_info
             else:
-                if filter_models[prot][0]["wscore"] > best_models[ref_cluster][0]["wscore"]:
-                    best_models[ref_cluster] = filter_models[prot]
-                elif filter_models[prot][0]["wscore"] == best_models[ref_cluster][0]["wscore"]:
+                if prot_info[0]["wscore"] > best_models[ref_cluster][0]["wscore"]:
+                    best_models[ref_cluster] = prot_info
+                elif prot_info[0]["wscore"] == best_models[ref_cluster][0]["wscore"]:
                     top_so_far = statistics.mean(
                         [
                             best_models[ref_cluster][i]["wscore"]
                             for i in range(len(best_models[ref_cluster]))
                         ]
                     )
-                    tied = statistics.mean(
-                        [filter_models[prot][i]["wscore"] for i in range(len(filter_models[prot]))]
-                    )
+                    tied = statistics.mean([prot_info[i]["wscore"] for i in range(len(prot_info))])
                     if tied > top_so_far:
-                        best_models[ref_cluster] = filter_models[prot]
+                        best_models[ref_cluster] = prot_info
         filter_models = None
         return best_models
     else:
@@ -2714,6 +2706,12 @@ def scipio_yaml_to_dict(
 
 def parse_psl_record(psl_line):
     record = psl_line.strip().split()
+
+    # Standard PSL has 21 columns, PSL+WebScore has 22 columns
+    if len(record) < 21:
+        print(f"Malformed PSL record (insufficient columns): {psl_line.strip()}")
+        return None
+
     try:
         psl = {
             "matches": int(record[0]),
@@ -2741,8 +2739,9 @@ def parse_psl_record(psl_line):
         if len(record) == 22:
             psl["wscore"] = float(record[21])
         return psl
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+
+    except ValueError as e:
+        print(f"Data type error: {e}")
         print(f"Malformed PSL record: {psl_line.strip()}")
         return None
 
@@ -2799,9 +2798,8 @@ def calculate_psl_identity(
             if direction == "+":
                 if t_end == t_end_last_block:
                     size_mul = 3
-            elif direction == "-":
-                if t_start == (t_size - t_end_last_block):
-                    size_mul = 3
+            elif direction == "-" and t_start == (t_size - t_end_last_block):
+                size_mul = 3
         return size_mul
 
     if q_type == "protein":
@@ -2888,7 +2886,7 @@ def blat_misc_dna_psl_to_dict(
         q_ends_mb, t_ends_mb = [], []
         for i in range(len(block_sizes) - 1):
             if t_starts[i + 1] - t_ends[i] >= min(
-                q_size * settings.DNA_MAX_INSERT_PROP, settings.DNA_MAX_INSERT_SIZE
+                q_size * sett.DNA_MAX_INSERT_PROP, sett.DNA_MAX_INSERT_SIZE
             ):
                 q_starts_mb.append(q_starts[i + 1])
                 t_starts_mb.append(t_starts[i + 1])
@@ -2910,36 +2908,35 @@ def blat_misc_dna_psl_to_dict(
         is partial and subsumed within a larger stretch of sequence unrelated to the query
         """
         region = ""
-        if q_end - q_start >= q_size * (1 - settings.DNA_TOLERANCE_LEN):
-            region = "full"
-        elif (
-            q_start < q_size * settings.DNA_TOLERANCE_LEN
-            and (q_size - q_end) < q_size * settings.DNA_TOLERANCE_LEN
+        if q_end - q_start >= q_size * (1 - sett.DNA_TOLERANCE_LEN) or (
+            q_start < q_size * sett.DNA_TOLERANCE_LEN
+            and (q_size - q_end) < q_size * sett.DNA_TOLERANCE_LEN
         ):
             region = "full"
         elif (
-            q_start >= q_size * settings.DNA_TOLERANCE_LEN
-            and (q_size - q_end) >= q_size * settings.DNA_TOLERANCE_LEN
+            q_start >= q_size * sett.DNA_TOLERANCE_LEN
+            and (q_size - q_end) >= q_size * sett.DNA_TOLERANCE_LEN
         ):
             region = "middle"
-        elif q_start <= q_size * settings.DNA_TOLERANCE_LEN:
+        elif q_start <= q_size * sett.DNA_TOLERANCE_LEN:
             region = "proximal"
-        elif (q_size - q_end) <= q_size * settings.DNA_TOLERANCE_LEN:
+        elif (q_size - q_end) <= q_size * sett.DNA_TOLERANCE_LEN:
             region = "distal"
         else:  # hit is only partial and surrounded by a large proportion of unmatched sequence
             region = "wedged"
         # Now check if the flanks in the contig are too long to be part of a multi-part hit
-        left_flank_too_long = t_start / (t_end - t_start) < settings.DNA_TOLERANCE_LEN
-        right_flank_too_long = (t_size - t_end) / (t_end - t_start) < settings.DNA_TOLERANCE_LEN
+        left_flank_too_long = t_start / (t_end - t_start) < sett.DNA_TOLERANCE_LEN
+        right_flank_too_long = (t_size - t_end) / (t_end - t_start) < sett.DNA_TOLERANCE_LEN
         if region == "middle":
             if left_flank_too_long or right_flank_too_long:
                 region = "wedged"
-        elif (region == "proximal" and strand == "+") or (region == "distal" and strand == "-"):
-            if right_flank_too_long:
-                region = "wedged"
-        elif (region == "proximal" and strand == "-") or (region == "distal" and strand == "+"):
-            if left_flank_too_long:
-                region = "wedged"
+        elif (
+            ((region == "proximal" and strand == "+") or (region == "distal" and strand == "-"))
+            and right_flank_too_long
+            or ((region == "proximal" and strand == "-") or (region == "distal" and strand == "+"))
+            and left_flank_too_long
+        ):
+            region = "wedged"
         return region
 
     def determine_max_overlap(contig_name):
@@ -2947,7 +2944,7 @@ def blat_misc_dna_psl_to_dict(
         if template.match(contig_name):
             max_overlap_bp = int(contig_name.split("_")[7])
         else:
-            max_overlap_bp = settings.DNA_MAX_OVERLAP_BP
+            max_overlap_bp = sett.DNA_MAX_OVERLAP_BP
         return max_overlap_bp
 
     def greedy_assembly_partial_hits(hits_list, max_overlap_bp, max_paralogs: int):
@@ -3008,14 +3005,14 @@ def blat_misc_dna_psl_to_dict(
         return assembly
 
     def pair_is_compatible(h1, h2, max_overlap_bp):
-        if abs(h1["identity"] - h2["identity"]) > (settings.DNA_TOLERANCE_PID * 100.0):
+        if abs(h1["identity"] - h2["identity"]) > (sett.DNA_TOLERANCE_PID * 100.0):
             return False
         overlap = min(h1["q_end"][-1], h2["q_end"][-1]) - max(h1["q_start"][0], h2["q_start"][0])
         if overlap < 1:
             return True
         if (
-            h1["match_len"] * (1 - settings.DNA_TOLERANCE_LEN) <= overlap
-            or h2["match_len"] * (1 - settings.DNA_TOLERANCE_LEN) <= overlap
+            h1["match_len"] * (1 - sett.DNA_TOLERANCE_LEN) <= overlap
+            or h2["match_len"] * (1 - sett.DNA_TOLERANCE_LEN) <= overlap
         ):
             return False
         return bool(overlap <= max_overlap_bp)
@@ -3058,7 +3055,7 @@ def blat_misc_dna_psl_to_dict(
                 "region": path[0]["region"],  # full, proximal, middle, distal with respect to ref
                 # assembled sequence match plus upstream and downstream buffer
                 "seq_flanked": extract_psl_sequence(
-                    target_dict, path[0], settings.DNA_UP_DOWN_STREAM_BP, flanked=True
+                    target_dict, path[0], sett.DNA_UP_DOWN_STREAM_BP, flanked=True
                 ),
                 # assembled sequence match
                 "seq_gene": extract_psl_sequence(target_dict, path[0], 0),
@@ -3083,7 +3080,7 @@ def blat_misc_dna_psl_to_dict(
                     hit_ids.append(path[h + 1]["identity"])
                     asm_hit["region"] += f",{path[h + 1]['region']}"
                     next_seq_flanked = extract_psl_sequence(
-                        target_dict, path[h + 1], settings.DNA_UP_DOWN_STREAM_BP, flanked=True
+                        target_dict, path[h + 1], sett.DNA_UP_DOWN_STREAM_BP, flanked=True
                     )
                     next_seq_gene = extract_psl_sequence(target_dict, path[h + 1], 0)
                     sum_matches += path[h + 1]["matches"]
@@ -3140,8 +3137,8 @@ def blat_misc_dna_psl_to_dict(
                 # asm_hit["wscore"] = math.pow(asm_hit["identity"] / 100, settings.WSCORE_EXP) * math.pow(
                 #     full_len / asm_hit["ref_size"], 1 / settings.WSCORE_EXP
                 # )
-                asm_hit["wscore"] = math.pow(asm_hit["identity"] / 100, settings.WSCORE_EXP) * math.pow(
-                    asm_hit["coverage"], 1 / settings.WSCORE_EXP
+                asm_hit["wscore"] = math.pow(asm_hit["identity"] / 100, sett.WSCORE_EXP) * math.pow(
+                    asm_hit["coverage"], 1 / sett.WSCORE_EXP
                 )
                 asm_hit["gapped"] = bool("n" in asm_hit["seq_gene"])
                 asm_hit["match_len"] = match_len
@@ -3234,15 +3231,15 @@ def blat_misc_dna_psl_to_dict(
         check_len = min(len(current_trail), len(next_lead))
         scaffold_overlap = 0
         # Only check for potential overlaps > DNA_MIN_OVERLAP_BP (21 bp)
-        if check_len > settings.DNA_MIN_OVERLAP_BP:
-            while check_len >= settings.DNA_MIN_OVERLAP_BP:
+        if check_len > sett.DNA_MIN_OVERLAP_BP:
+            while check_len >= sett.DNA_MIN_OVERLAP_BP:
                 if overlap_matches(current_trail[-check_len:], next_lead[0:check_len]):
                     scaffold_overlap = check_len
                     break
                 check_len -= 1
         scaffold = ""
         sep_len = gap_len - (len(current_trail) + len(next_lead))
-        separator = "n" * sep_len if sep_len > 0 else settings.DNA_CONTIG_SEPARATOR
+        separator = "n" * sep_len if sep_len > 0 else sett.DNA_CONTIG_SEPARATOR
 
         if scaffold_overlap == 0:
             scaffold = f"{current_ctg_seq}{separator}{next_ctg_seq}"
@@ -3261,11 +3258,9 @@ def blat_misc_dna_psl_to_dict(
             matches += NT_PIDS["".join(sorted([n1, n2]))]
         if matches == seq_len:
             return True
-        if matches / seq_len >= (1 - settings.DNA_TOLERANCE_PID):
+        if matches / seq_len >= (1 - sett.DNA_TOLERANCE_PID):
             return True
-        if seq_len - matches <= 1.0 and seq_len <= 10:
-            return True
-        return False
+        return bool(seq_len - matches <= 1.0 and seq_len <= 10)
 
     raw_dna_hits = {}
     hit = {}
@@ -3301,8 +3296,8 @@ def blat_misc_dna_psl_to_dict(
                 p["t_starts"],
                 q_type="dna",
             )
-            wscore = math.pow(pct_identity / 100, settings.WSCORE_EXP) * math.pow(
-                coverage, 1 / settings.WSCORE_EXP
+            wscore = math.pow(pct_identity / 100, sett.WSCORE_EXP) * math.pow(
+                coverage, 1 / sett.WSCORE_EXP
             )
 
             if disable_stitching:  # prevent locus assembly across multiple contigs
@@ -3321,7 +3316,7 @@ def blat_misc_dna_psl_to_dict(
 
             # Ignore hits with not enough pct_coverage of the reference, or partial hits immersed in
             # larger segments of unrelated sequence
-            if not (pct_coverage < settings.DNA_MIN_COVERAGE_BEFORE_ASSEMBLY and region == "wedged"):
+            if not (pct_coverage < sett.DNA_MIN_COVERAGE_BEFORE_ASSEMBLY and region == "wedged"):
                 # Compose hit record with columns from the .psl line
                 hit = {
                     "ref_name": p["q_name"],
@@ -3358,10 +3353,8 @@ def blat_misc_dna_psl_to_dict(
 
     # Assemble hits, organized by reference
     dna_hits = {}
-    for dna_ref in raw_dna_hits:
-        assembled_hits = greedy_assembly_partial_hits(
-            raw_dna_hits[dna_ref], max_overlap_bp, max_paralogs
-        )
+    for dna_ref, dna_ref_raw_hits in raw_dna_hits.items():
+        assembled_hits = greedy_assembly_partial_hits(dna_ref_raw_hits, max_overlap_bp, max_paralogs)
         if assembled_hits:
             dna_hits[dna_ref] = assembled_hits
 
@@ -3370,7 +3363,7 @@ def blat_misc_dna_psl_to_dict(
     # recognize the name of the cluster of references of the same kind
     refs_have_separators = True
     for dna_ref in dna_hits:
-        if settings.REF_CLUSTER_SEP not in dna_ref:
+        if sett.REF_CLUSTER_SEP not in dna_ref:
             refs_have_separators = False
             break
 
@@ -3378,32 +3371,31 @@ def blat_misc_dna_psl_to_dict(
         # First obtain the length of the longest match across reference sequences in reference locus
         # 'match_len' is holding temporarily the matched length of each hit
         max_len_nt_recov = {}
-        for dna_ref in dna_hits:
+        for dna_ref, dna_ref_hits in dna_hits.items():
             if refs_have_separators:
-                ref_cluster = dna_ref.split(settings.REF_CLUSTER_SEP)[-1]
+                ref_cluster = dna_ref.split(sett.REF_CLUSTER_SEP)[-1]
             else:
                 ref_cluster = dna_ref
-            for hit in dna_hits[dna_ref]:
+            for hit in dna_ref_hits:
                 if ref_cluster not in max_len_nt_recov:
                     max_len_nt_recov[ref_cluster] = hit["match_len"]
                 else:
-                    if hit["match_len"] > max_len_nt_recov[ref_cluster]:
-                        max_len_nt_recov[ref_cluster] = hit["match_len"]
+                    max_len_nt_recov[ref_cluster] = max(max_len_nt_recov[ref_cluster], hit["match_len"])
 
         # Loop the object again to calculate the actual wscore
-        for dna_ref in dna_hits:
+        for dna_ref, dna_ref_hits in dna_hits.items():
             if refs_have_separators:
-                ref_cluster = dna_ref.split(settings.REF_CLUSTER_SEP)[-1]
+                ref_cluster = dna_ref.split(sett.REF_CLUSTER_SEP)[-1]
             else:
                 ref_cluster = dna_ref
-            for hit in dna_hits[dna_ref]:
+            for hit in dna_ref_hits:
                 contigs = len(set(hit["hit_contigs"].split("\n")))
                 identity = hit["identity"] / 100
                 wcoverage = hit["match_len"] / max_len_nt_recov[ref_cluster]
                 hit["wscore"] = (
-                    math.pow(identity, settings.WSCORE_EXP)
-                    * math.pow(wcoverage, 1 / settings.WSCORE_EXP)
-                    * math.pow(settings.EXTRA_CONTIG_PENALTY, contigs - 1)
+                    math.pow(identity, sett.WSCORE_EXP)
+                    * math.pow(wcoverage, 1 / sett.WSCORE_EXP)
+                    * math.pow(sett.EXTRA_CONTIG_PENALTY, contigs - 1)
                 )
             # Sort hits from largest to smallest 'wscore'
             dna_hits[dna_ref] = sorted(dna_hits[dna_ref], key=lambda i: i["wscore"], reverse=True)
@@ -3431,17 +3423,17 @@ def blat_misc_dna_psl_to_dict(
         # the best hit that has the highest 'wscore', break ties by averaging the 'wscore' of all
         # secondary hits
         best_dna_hits = {}
-        for dna_ref in dna_hits:
+        for dna_ref, dna_ref_hits in dna_hits.items():
             if refs_have_separators:
-                ref_cluster = dna_ref.split(settings.REF_CLUSTER_SEP)[-1]
+                ref_cluster = dna_ref.split(sett.REF_CLUSTER_SEP)[-1]
             else:
                 ref_cluster = dna_ref
             if ref_cluster not in best_dna_hits:
-                best_dna_hits[ref_cluster] = dna_hits[dna_ref]
+                best_dna_hits[ref_cluster] = dna_ref_hits
             else:
-                if dna_hits[dna_ref][0]["wscore"] > best_dna_hits[ref_cluster][0]["wscore"]:
-                    best_dna_hits[ref_cluster] = dna_hits[dna_ref]
-                elif dna_hits[dna_ref][0]["wscore"] == best_dna_hits[ref_cluster][0]["wscore"]:
+                if dna_ref_hits[0]["wscore"] > best_dna_hits[ref_cluster][0]["wscore"]:
+                    best_dna_hits[ref_cluster] = dna_ref_hits
+                elif dna_ref_hits[0]["wscore"] == best_dna_hits[ref_cluster][0]["wscore"]:
                     top_so_far = statistics.mean(
                         [
                             best_dna_hits[ref_cluster][i]["wscore"]
@@ -3449,10 +3441,10 @@ def blat_misc_dna_psl_to_dict(
                         ]
                     )
                     tied = statistics.mean(
-                        [dna_hits[dna_ref][i]["wscore"] for i in range(len(dna_hits[dna_ref]))]
+                        [dna_ref_hits[i]["wscore"] for i in range(len(dna_ref_hits))]
                     )
                     if tied > top_so_far:
-                        best_dna_hits[ref_cluster] = dna_hits[dna_ref]
+                        best_dna_hits[ref_cluster] = dna_ref_hits
         dna_hits = None
         return best_dna_hits
     else:
@@ -3509,9 +3501,8 @@ def taper_correction(
             unq = len(rcounts)
             tot = sum(rcounts.values())
             for j in range(m):
-                if tot > 0:
-                    if seqs_array[j][i] not in ["-", ambig]:
-                        w0[i][j] = tot / (unq * rcounts[seqs_upper[j][i]])
+                if tot > 0 and seqs_array[j][i] not in ["-", ambig]:
+                    w0[i][j] = tot / (unq * rcounts[seqs_upper[j][i]])
 
         w1 = [[w0[i][j] for i in range(n) if w0[i][j] is not None] for j in range(m)]
 
@@ -3527,7 +3518,7 @@ def taper_correction(
                     ws.append([])
         else:
             # The index P-1 is absolutely necessary!, in Julia it was just P
-            P = int(round(k * 2 / 3)) - 1
+            P = round(k * 2 / 3) - 1
             for arr in w1:
                 if len(arr) >= k:
                     w.append([sorted(arr[i : i + k])[P] for i in range(len(arr) - k + 1)])
@@ -3683,7 +3674,7 @@ def taper_correction(
     n = len(sequences[0]) if sequences else 0
     m = len(sequences)
 
-    for t in settings.TAPER_PARAMS:
+    for t in sett.TAPER_PARAMS:
         tmp_mask = "@"
         output = correct_sequences(
             sequences, t["k"], ambig, tmp_mask, t["p"], t["q"], cutoff_threshold, conservative
@@ -3701,13 +3692,13 @@ def taper_correction(
                 elif start is not None and output[j][i] not in [tmp_mask, "-"]:
                     if cnt < L:
                         for k in range(start, i):
-                            seq_array[j][k] = "-" if output[j][k] == "-" else settings.TAPER_MASK
+                            seq_array[j][k] = "-" if output[j][k] == "-" else sett.TAPER_MASK
                     start = None
                     cnt = 0
 
             if start is not None and cnt < L:
                 for k in range(start, n):
-                    seq_array[j][k] = "-" if output[j][k] == "-" else settings.TAPER_MASK
+                    seq_array[j][k] = "-" if output[j][k] == "-" else sett.TAPER_MASK
 
     sequences_corrected = ["".join(seq_array[j]) for j in range(m)]
     fasta_out = {}
@@ -3765,20 +3756,14 @@ def write_gff3(hits, marker_type, disable_stitching, tsv_comment, out_gff_path):
                 for coord in fragment.split(","):
                     start, end = int(coord.split("-")[0]), int(coord.split("-")[1])
                     if start > end:
-                        if end + 1 < min_start:
-                            min_start = end + 1
-                        if start > max_end:
-                            max_end = start
+                        min_start = min(min_start, end + 1)
+                        max_end = max(max_end, start)
                     elif start == end:
-                        if start < min_start:
-                            min_start = start
-                        if end > max_end:
-                            max_end = end
+                        min_start = min(min_start, start)
+                        max_end = max(max_end, end)
                     else:
-                        if start + 1 < min_start:
-                            min_start = start + 1
-                        if end > max_end:
-                            max_end = end
+                        min_start = min(min_start, start + 1)
+                        max_end = max(max_end, end)
                 fragment_coords_strings.append(f"{min_start}-{max_end}")
                 fragment_coords_tuples.append((f"{min_start}", f"{max_end}"))
                 if as_strings:
@@ -3805,7 +3790,7 @@ def write_gff3(hits, marker_type, disable_stitching, tsv_comment, out_gff_path):
             if len(hits[ref]) == 1:
                 h_name = ref
             else:
-                h_name = f"{ref}{settings.SEQ_NAME_SEP}{h:02}"
+                h_name = f"{ref}{sett.SEQ_NAME_SEP}{h:02}"
                 gff.append(f"# {h_name}")
             wscore = f"{hits[ref][h]['wscore']:.3f}"
             strands = hits[ref][h]["strand"].split("\n")
@@ -3816,7 +3801,7 @@ def write_gff3(hits, marker_type, disable_stitching, tsv_comment, out_gff_path):
             else:
                 depth = f"""Depth={f"{hits[ref][h]['ctg_mean_depth']:.4f}"}"""
             score = f"""Score={f"{hits[ref][h]['score']:.3f}"}"""
-            color = f"Color={urllib.parse.quote(settings.GFF_COLORS[marker_type])}"
+            color = f"Color={urllib.parse.quote(sett.GFF_COLORS[marker_type])}"
             hit_ids = hits[ref][h]["hit_ids"].split("\n")
             hit_contigs = hits[ref][h]["hit_contigs"].split("\n")
             if disable_stitching is True and marker_type in ["NUC", "PTD", "MIT"]:
@@ -3832,11 +3817,11 @@ def write_gff3(hits, marker_type, disable_stitching, tsv_comment, out_gff_path):
                     f"""Target={urllib.parse.quote(f"{hits[ref][h]['ref_name']}")} {ref_min_max[0]}"""
                 )
                 if depth:
-                    attributes = ";".join([hit_id, name, ident_pct, cover_pct, score, depth, query])
+                    attributes = f"{hit_id};{name};{ident_pct};{cover_pct};{score};{depth};{query}"
                 else:
-                    attributes = ";".join([hit_id, name, ident_pct, cover_pct, score, query])
+                    attributes = f"{hit_id};{name};{ident_pct};{cover_pct};{score};{query}"
                 gff.append(
-                    "\t".join([seq_id, source, "mRNA", start, end, wscore, strand, phase, attributes])
+                    f"{seq_id}\t{source}\tmRNA\t{start}\t{end}\t{wscore}\t{strand}\t{phase}\t{attributes}"
                 )
             ref_coords = split_coords(hits[ref][h]["ref_coords"], as_strings=True)
             hit_coords = split_coords(hits[ref][h]["hit_coords"])
@@ -3852,26 +3837,24 @@ def write_gff3(hits, marker_type, disable_stitching, tsv_comment, out_gff_path):
                         f"""Target={urllib.parse.quote(f"{hits[ref][h]['ref_name']}")} {ref_coords[c]}"""
                     )
                     if depth:
-                        attributes = ";".join(
-                            [hit_id, name, ident_pct, cover_pct, score, depth, color, query]
+                        attributes = (
+                            f"{hit_id};{name};{ident_pct};{cover_pct};{score};{depth};{color};{query}"
                         )
                     else:
-                        attributes = ";".join([hit_id, name, ident_pct, cover_pct, score, color, query])
-                    gff.append(
-                        "\t".join(
-                            [
-                                seq_id,
-                                source,
-                                feature_type,
-                                start,
-                                end,
-                                wscore,
-                                strand,
-                                phase,
-                                attributes,
-                            ]
-                        )
-                    )
+                        attributes = f"{hit_id};{name};{ident_pct};{cover_pct};{score};{color};{query}"
+                    gff_record = [
+                        seq_id,
+                        source,
+                        feature_type,
+                        start,
+                        end,
+                        wscore,
+                        strand,
+                        phase,
+                        attributes,
+                    ]
+
+                    gff.append("\t".join(gff_record))
     with open(out_gff_path, "w") as gff_out:
         gff_out.write("\n".join(gff) + "\n")
 
@@ -3947,7 +3930,7 @@ def cds_from_gff(gff_path, fasta_path, bait_length):
                     shift = int(record[7]) if record[7] != "." else 0
                     start = int(record[3])
                     end = int(record[4])
-                    cds_id = notes[key].translate(settings.INVALID_CHARS)
+                    cds_id = notes[key].translate(sett.INVALID_CHARS)
                     if cds_id not in cds:
                         cds[cds_id] = {
                             "seq_id": record[0],
@@ -3977,14 +3960,14 @@ def cds_from_gff(gff_path, fasta_path, bait_length):
             "gene_len",
         ]
     ]
-    for cds_id in cds:
-        seq_id = cds[cds_id]["seq_id"]
-        strand = cds[cds_id]["strand"]
-        if cds[cds_id]["strand"] == "+":
-            cds[cds_id]["coords"].sort()
-        elif cds[cds_id]["strand"] == "-":
-            cds[cds_id]["coords"].sort(reverse=True)
-        coords = cds[cds_id]["coords"]
+    for cds_id, cds_info in cds.items():
+        seq_id = cds_info["seq_id"]
+        strand = cds_info["strand"]
+        if cds_info["strand"] == "+":
+            cds_info["coords"].sort()
+        elif cds_info["strand"] == "-":
+            cds_info["coords"].sort(reverse=True)
+        coords = cds_info["coords"]
         cds[cds_id]["seqs"] = []
         for i in range(len(coords)):
             s, e = coords[i][0], coords[i][2]
@@ -3997,8 +3980,8 @@ def cds_from_gff(gff_path, fasta_path, bait_length):
                 seq = genome[seq_id]["sequence"][s - 1 : e]
             elif strand == "-":
                 seq = reverse_complement(genome[seq_id]["sequence"][s - 1 : e])
-            cds[cds_id]["seqs"].append(seq)
-        sequence = "".join(cds[cds_id]["seqs"])
+            cds_info["seqs"].append(seq)
+        sequence = "".join(cds_info["seqs"])
         se = ",".join([f"{t[0]}-{t[2]}" for t in coords])
         description = f"[{seq_id}:{se}:{strand}]"
 
@@ -4016,13 +3999,13 @@ def cds_from_gff(gff_path, fasta_path, bait_length):
             short_exons = 0
             short_exons_len = 0
             if strand == "+":
-                gene_len = abs(cds[cds_id]["coords"][-1][2] - cds[cds_id]["coords"][0][0]) + 1
+                gene_len = abs(cds_info["coords"][-1][2] - cds_info["coords"][0][0]) + 1
             elif strand == "-":
-                gene_len = abs(cds[cds_id]["coords"][0][2] - cds[cds_id]["coords"][-1][0]) + 1
+                gene_len = abs(cds_info["coords"][0][2] - cds_info["coords"][-1][0]) + 1
             for i in range(len(coords)):
-                s = f"{cds[cds_id]['coords'][i][0]}"
-                e = f"{cds[cds_id]['coords'][i][2]}"
-                seq = cds[cds_id]["seqs"][i]
+                s = f"{cds_info['coords'][i][0]}"
+                e = f"{cds_info['coords'][i][2]}"
+                seq = cds_info["seqs"][i]
                 exons_len += len(seq)
                 if len(seq) >= bait_length:
                     long_exons += 1
@@ -4041,7 +4024,7 @@ def cds_from_gff(gff_path, fasta_path, bait_length):
             cds_data.append(
                 [
                     cds_id,
-                    f"{seq_id}:{cds[cds_id]['coords'][0][0]}-{cds[cds_id]['coords'][-1][2]}:{strand}",
+                    f"{seq_id}:{cds_info['coords'][0][0]}-{cds_info['coords'][-1][2]}:{strand}",
                     f"{exons}",
                     f"{exons_len}",
                     f"{long_exons}",
@@ -4080,8 +4063,7 @@ def mmseqs_cluster(
     start = time.time()
     if sensitivity < 1:
         sensitivity = 1.0
-    if sensitivity > 7.5:
-        sensitivity = 7.5
+    sensitivity = min(sensitivity, 7.5)
     if not 0 < min_identity <= 1:
         min_identity = min(1.0, round((abs(min_identity) / 100), 3))
     if not 0 < min_coverage <= 1:
@@ -4095,9 +4077,9 @@ def mmseqs_cluster(
         f"{result_prefix}",
         f"{clustering_tmp_dir}",
         "--split-memory-limit",
-        f"{ram_mb * settings.MMSEQS_RAM_FRACTION:.0f}M",
+        f"{ram_mb * sett.MMSEQS_RAM_FRACTION:.0f}M",
         "--mask",
-        f"{settings.MMSEQS_MASK_LOW_COMPLEXITY}",
+        f"{sett.MMSEQS_MASK_LOW_COMPLEXITY}",
         "--spaced-kmer-mode",
         f"{0}",
         "-c",
@@ -4113,23 +4095,23 @@ def mmseqs_cluster(
         "--cluster-mode",
         f"{cluster_mode}",
         "--kmer-per-seq-scale",
-        f"{settings.MMSEQS_KMER_PER_SEQ_SCALE}",
+        f"{sett.MMSEQS_KMER_PER_SEQ_SCALE}",
         "--threads",
         f"{threads}",
     ]
     if proteins is True:
         mmseqs_cmd += [
             "--gap-open",
-            f"{max(1, settings.MMSEQS_GAP_OPEN_AA)}",
+            f"{max(1, sett.MMSEQS_GAP_OPEN_AA)}",
             "--gap-extend",
-            f"{max(1, settings.MMSEQS_GAP_EXTEND_AA)}",
+            f"{max(1, sett.MMSEQS_GAP_EXTEND_AA)}",
         ]
     else:
         mmseqs_cmd += [
             "--gap-open",
-            f"{max(1, settings.MMSEQS_GAP_OPEN_NT)}",
+            f"{max(1, sett.MMSEQS_GAP_OPEN_NT)}",
             "--gap-extend",
-            f"{max(1, settings.MMSEQS_GAP_EXTEND_NT)}",
+            f"{max(1, sett.MMSEQS_GAP_EXTEND_NT)}",
         ]
     if mmseqs_method == "easy-cluster":
         mmseqs_cmd += ["-s", f"{sensitivity}"]
@@ -4141,7 +4123,7 @@ def mmseqs_cluster(
     with open(mmseqs_log_file, "w") as mmseqs_log:
         mmseqs_log.write(f"Captus' MMseqs2 Command:\n  {' '.join(mmseqs_cmd)}\n\n")
     with open(mmseqs_log_file, "a") as mmseqs_log:
-        subprocess.run(mmseqs_cmd, stdout=mmseqs_log, stdin=mmseqs_log)
+        subprocess.run(mmseqs_cmd, stdout=mmseqs_log, stdin=mmseqs_log, check=False)
     mmseqs_thread.stop()
     mmseqs_thread.join()
     print()
@@ -4195,7 +4177,9 @@ def vsearch_cluster(
     with open(vsearch_log_file, "w") as vsearch_log:
         vsearch_log.write(f"Captus' VSEARCH Command:\n  {' '.join(vsearch_cmd)}\n\n")
     with open(vsearch_log_file, "a") as vsearch_log:
-        subprocess.run(vsearch_cmd, stdout=vsearch_log, stdin=vsearch_log, stderr=vsearch_log)
+        subprocess.run(
+            vsearch_cmd, stdout=vsearch_log, stdin=vsearch_log, stderr=vsearch_log, check=False
+        )
     vsearch_thread.stop()
     vsearch_thread.join()
     print()
@@ -4306,8 +4290,7 @@ def bait_stats(bait_seq, hybrid_chem, sodium_conc, formamide_conc):
             if r == bait_seq_upper[i - 1]:
                 homopolymer_len += 1
             else:
-                if homopolymer_len > max_homopolymer_len:
-                    max_homopolymer_len = homopolymer_len
+                max_homopolymer_len = max(max_homopolymer_len, homopolymer_len)
                 homopolymer_len = 1
 
         if bait_seq[i].islower():
@@ -4366,7 +4349,7 @@ def import_busco_odb1x(odb1x_tar_path: Path):
                         else:
                             name = line[1:].rstrip()
                             desc = ""
-                        name = f"{name}{settings.REF_CLUSTER_SEP}{name.split('_')[0]}"
+                        name = f"{name}{sett.REF_CLUSTER_SEP}{name.split('_')[0]}"
                     else:
                         seq += line
                 if seq:
@@ -4402,17 +4385,15 @@ def rehead_root_msa(fasta_in: Path, fasta_out: Path, outgroup: list, remove_R_=F
     reheaded = {}
     for sample_name in outgroup:
         for seq_name in sorted(aligned):
-            if seq_name.split(settings.SEQ_NAME_SEP)[0] == sample_name:
+            if seq_name.split(sett.SEQ_NAME_SEP)[0] == sample_name:
                 reheaded[seq_name] = {
                     "description": unaligned[seq_name]["description"],
                     "sequence": aligned[seq_name]["sequence"],
                 }
     for seq_name in aligned:
-        if seq_name.split(settings.SEQ_NAME_SEP)[0] not in outgroup:
+        if seq_name.split(sett.SEQ_NAME_SEP)[0] not in outgroup:
             reheaded[seq_name] = {
                 "description": unaligned[seq_name]["description"],
                 "sequence": aligned[seq_name]["sequence"],
             }
     dict_to_fasta(reheaded, fasta_out)
-
-    return

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Copyright 2020-2026 Edgardo M. Ortiz (e.ortiz.v@gmail.com)
 https://github.com/edgardomortiz/Captus
@@ -39,7 +38,7 @@ class ElapsedTimeThread(threading.Thread):
     """
 
     def __init__(self):
-        super(ElapsedTimeThread, self).__init__()
+        super().__init__()
         self._stop_event = threading.Event()
 
     def stop(self):
@@ -293,10 +292,7 @@ def file_is_empty(file_path):
         except (OSError, gzip.BadGzipFile):
             return True
     else:
-        if file_path.stat().st_size == 0:
-            return True
-        else:
-            return False
+        return file_path.stat().st_size == 0
 
 
 def dir_is_empty(dir_path, ignore_subdirectories=True):
@@ -476,7 +472,7 @@ def gzip_compress(file_in):
     cmd = ["gzip", f"{file_in}"]
     if Path(f"{file_in}.gz").exists():
         Path(f"{file_in}.gz").unlink()
-    subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    subprocess.run(cmd, capture_output=True, check=False)
     file_in = "/".join(f"{Path(file_in)}".split("/")[-3:])
     message = f"'{file_in}': successfully compressed [{elapsed_time(time.time() - start)}]"
     log.log(message, print_to_screen=False)
@@ -488,7 +484,7 @@ def pigz_compress(file_in, threads):
     cmd = ["pigz", "-p", f"{threads}", "-5", f"{file_in}"]
     if Path(f"{file_in}.gz").exists():
         Path(f"{file_in}.gz").unlink()
-    subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    subprocess.run(cmd, capture_output=True, check=False)
     file_in = "/".join(f"{Path(file_in)}".split("/")[-3:])
     message = f"'{file_in}': successfully compressed [{elapsed_time(time.time() - start)}]"
     log.log(message, print_to_screen=False)
@@ -541,7 +537,7 @@ def execute_jupyter_report(out_dir, jupyter_notebook, title, prefix):
         f"{qc_html_report}",
     ]
     with open(qc_html_report_log, "wt") as report_log:
-        subprocess.run(nbconvert_cmd, stderr=report_log)
+        subprocess.run(nbconvert_cmd, stderr=report_log, check=False)
 
     Path(out_dir, title).unlink()
 
@@ -852,22 +848,18 @@ class MyHelpFormatter(argparse.HelpFormatter):
 
         # no help; start on same line and add a final newline
         if not action.help:
-            tup = self._current_indent, "", action_header
-            action_header = "%*s%s\n" % tup
+            action_header = f"{'':>{self._current_indent}}{action_header}\n"
             indent_first = 0
 
         # short action name; start on the same line and pad two spaces
         elif len(action_header) <= action_width:
-            tup = self._current_indent, "", action_width, action_header
-            action_header = "%*s%-*s  " % tup
+            indent_spaces = f"{'':>{self._current_indent}}"
+            action_header = f"{indent_spaces}{action_header:<{action_width}}  "
             indent_first = 0
-
         # long action name; start on the next line
         else:
-            tup = self._current_indent, "", action_header
-            action_header = "%*s%s\n" % tup
+            action_header = f"{'':>{self._current_indent}}{action_header}\n"
             indent_first = help_position
-
         # collect the pieces of the action help
         parts = [action_header]
 
@@ -878,11 +870,11 @@ class MyHelpFormatter(argparse.HelpFormatter):
             first_line = help_lines[0]
             if self.colours > 8:
                 first_line = f"{DIM}{first_line}{END_FORMATTING}"
-            parts.append("%*s%s\n" % (indent_first, "", first_line))
+            parts.append(f"{'':>{indent_first}}{first_line}\n")
             for line in help_lines[1:]:
                 if self.colours > 8:
                     line = f"{DIM}{line}{END_FORMATTING}"
-                parts.append("%*s%s\n" % (help_position, "", line))
+                parts.append(f"{'':>{help_position}}{line}\n")
 
         # or add a newline if the description doesn't end with one
         elif not action_header.endswith("\n"):

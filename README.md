@@ -19,29 +19,29 @@ Documentation: [https://edgardomortiz.github.io/captus.docs](https://edgardomort
 
 #### _Linux:_
 ```shell
-conda create -n captus -c bioconda -c conda-forge captus bbmap=39.80 salmon=1.10.3 mafft=7.526
+conda create -n captus -c bioconda -c conda-forge captus bbmap=39.26 salmon=1.10.3 mafft=7.526
 ```
 or
 ```shell
-mamba create -n captus -c bioconda -c conda-forge captus bbmap=39.80 salmon=1.10.3 mafft=7.526
+mamba create -n captus -c bioconda -c conda-forge captus bbmap=39.26 salmon=1.10.3 mafft=7.526
 ```
 
 #### _Mac computers with Intel processors:_
 ```shell
-conda create -n captus -c bioconda -c conda-forge captus megahit=1.2.9=hfbae3c0_0 bbmap=39.80 salmon=1.10.3 mafft=7.526
+conda create -n captus -c bioconda -c conda-forge captus megahit=1.2.9=hfbae3c0_0 bbmap=39.26 salmon=1.10.3 mafft=7.526
 ```
 or
 ```shell
-mamba create -n captus -c bioconda -c conda-forge captus megahit=1.2.9=hfbae3c0_0 bbmap=39.80 salmon=1.10.3 mafft=7.526
+mamba create -n captus -c bioconda -c conda-forge captus megahit=1.2.9=hfbae3c0_0 bbmap=39.26 salmon=1.10.3 mafft=7.526
 ```
 
 #### _Mac computers with Apple silicon (M processors):_
 ```shell
-conda create --platform osx-64 -n captus -c bioconda -c conda-forge captus megahit=1.2.9=hfbae3c0_0 mmseqs2=16.747c6 bbmap=39.80 salmon=1.10.3 mafft=7.526
+conda create --platform osx-64 -n captus -c bioconda -c conda-forge captus megahit=1.2.9=hfbae3c0_0 mmseqs2=16.747c6 bbmap=39.26 salmon=1.10.3 mafft=7.526
 ```
 or
 ```shell
-mamba create --platform osx-64 -n captus -c bioconda -c conda-forge captus megahit=1.2.9=hfbae3c0_0 mmseqs2=16.747c6 bbmap=39.80 salmon=1.10.3 mafft=7.526
+mamba create --platform osx-64 -n captus -c bioconda -c conda-forge captus megahit=1.2.9=hfbae3c0_0 mmseqs2=16.747c6 bbmap=39.26 salmon=1.10.3 mafft=7.526
 ```
 
 > [!WARNING]
